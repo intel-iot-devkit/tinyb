@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!--
+Author: Petre Eftime <petre.p.eftime@intel.com>
+Copyright (c) 2015 Intel Corporation.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+-->
+<node>
+  <interface name="org.bluez.Adapter1">
+    <method name="StartDiscovery"/>
+    <method name="StopDiscovery"/>
+    <method name="RemoveDevice">
+      <arg name="device" type="o" direction="in"/>
+    </method>
+    <property name="Address" type="s" access="read"/>
+    <property name="Name" type="s" access="read"/>
+    <property name="Alias" type="s" access="readwrite"/>
+    <property name="Class" type="u" access="read"/>
+    <property name="Powered" type="b" access="readwrite"/>
+    <property name="Discoverable" type="b" access="readwrite"/>
+    <property name="DiscoverableTimeout" type="u" access="readwrite"/>
+    <property name="Pairable" type="b" access="readwrite"/>
+    <property name="PairableTimeout" type="u" access="readwrite"/>
+    <property name="Discovering" type="b" access="read"/>
+    <property name="UUIDs" type="as" access="read"/>
+    <property name="Modalias" type="s" access="read"/>
+  </interface>
+  <interface name="org.bluez.Device1">
+    <method name="Disconnect"/>
+    <method name="Connect"/>
+    <method name="ConnectProfile">
+      <arg name="UUID" type="s" direction="in"/>
+    </method>
+    <method name="DisconnectProfile">
+      <arg name="UUID" type="s" direction="in"/>
+    </method>
+    <method name="Pair"/>
+    <method name="CancelPairing"/>
+    <property name="Address" type="s" access="read"/>
+    <property name="Name" type="s" access="read"/>
+    <property name="Alias" type="s" access="readwrite"/>
+    <property name="Class" type="u" access="read"/>
+    <property name="Appearance" type="q" access="read"/>
+    <property name="Icon" type="s" access="read"/>
+    <property name="Paired" type="b" access="read"/>
+    <property name="Trusted" type="b" access="readwrite"/>
+    <property name="Blocked" type="b" access="readwrite"/>
+    <property name="LegacyPairing" type="b" access="read"/>
+    <property name="RSSI" type="n" access="read"/>
+    <property name="Connected" type="b" access="read"/>
+    <property name="UUIDs" type="as" access="read"/>
+    <property name="Modalias" type="s" access="read"/>
+    <property name="Adapter" type="o" access="read"/>
+  </interface>
+  <interface name="org.bluez.GattService1">
+    <property name="UUID" type="s" access="read"/>
+    <property name="Device" type="o" access="read"/>
+    <property name="Primary" type="b" access="read"/>
+    <property name="Characteristics" type="ao" access="read"/>
+  </interface>
+  <interface name="org.bluez.GattCharacteristic1">
+    <method name="ReadValue">
+      <arg name="value" type="ay" direction="out"/>
+    </method>
+    <method name="WriteValue">
+      <arg name="value" type="ay" direction="in"/>
+    </method>
+    <method name="StartNotify"/>
+    <method name="StopNotify"/>
+    <property name="UUID" type="s" access="read"/>
+    <property name="Service" type="o" access="read"/>
+    <property name="Value" type="ay" access="read"/>
+    <property name="Notifying" type="b" access="read"/>
+    <property name="Flags" type="as" access="read"/>
+    <property name="Descriptors" type="ao" access="read"/>
+  </interface>
+  <interface name="org.bluez.GattDescriptor1">
+    <method name="ReadValue">
+      <arg name="value" type="ay" direction="out"/>
+    </method>
+    <method name="WriteValue">
+      <arg name="value" type="ay" direction="in"/>
+    </method>
+    <property name="UUID" type="s" access="read"/>
+    <property name="Characteristic" type="o" access="read"/>
+    <property name="Value" type="ay" access="read"/>
+  </interface>
+</node>
