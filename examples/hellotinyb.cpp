@@ -40,6 +40,10 @@ static float celsius_temp(uint16_t raw_temp)
     return ((float)(raw_temp >> 2)) * SCALE_LSB;
 }
 
+/** This program reads the temperature from a
+ * TI Sensor Tag(http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
+ * Pass the MAC address of the sensor as the first parameter of the program.
+ */
 int main(int argc, char **argv)
 {
     BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
