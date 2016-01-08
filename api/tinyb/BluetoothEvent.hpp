@@ -24,6 +24,7 @@
 
 #include <string>
 #include <condition_variable>
+#include <atomic>
 #include "BluetoothObject.hpp"
 #pragma once
 
@@ -37,27 +38,106 @@ private:
     std::string *identifier;
     BluetoothObject *parent;
     BluetoothType type;
+    bool execute_once;
     BluetoothCallback cb;
     void *data;
+    bool canceled;
 
-static void generic_callback(BluetoothObject &object, void *data);
+class BluetoothConditionVariable {
 
-struct generic_callback_data {
+    friend class BluetoothEvent;
+
     std::condition_variable cv;
+    std::mutex lock;
     BluetoothObject *result;
+    std::atomic_bool triggered;
+    std::atomic_uint waiting;
+
+    BluetoothConditionVariable() : cv(), lock() {
+        result = NULL;
+        waiting = 0;
+        triggered = false;
+    }
+
+    BluetoothObject *wait() {
+
+        if (result != NULL)
+            return result;
+
+        if (!triggered) {
+            std::unique_lock<std::mutex> lk(lock);
+            waiting++;
+            cv.wait(lk);
+            waiting--;
+        }
+
+        return result;
+    }
+
+    BluetoothObject *wait_for(std::chrono::milliseconds timeout) {
+        if (result != NULL)
+            return result;
+
+        if (!triggered) {
+            waiting++;
+            std::unique_lock<std::mutex> lk(lock);
+            cv.wait_for(lk, timeout);
+            waiting--;
+        }
+
+        return result;
+    }
+
+    void notify() {
+        triggered = true;
+        while (waiting != 0)
+            cv.notify_all();
+    }
+
+    ~BluetoothConditionVariable() {
+        notify();
+    }
 };
 
+
+BluetoothConditionVariable cv;
+
+static void generic_callback(BluetoothObject &object, void *data);
 public:
 
     BluetoothEvent(BluetoothType type, std::string *name, std::string *identifier,
-        BluetoothObject *parent, BluetoothCallback cb = generic_callback,
-        void *data = NULL);
+        BluetoothObject *parent, bool execute_once = true,
+        BluetoothCallback cb = generic_callback, void *data = NULL);
+    ~BluetoothEvent();
 
-    BluetoothType get_type();
-    std::string get_name();
-    std::string get_identifier();
-    bool execute_callback();
-    bool has_callback();
+    BluetoothType get_type() const {
+        return type;
+    }
 
-    bool operator==(BluetoothEvent const &other);
+    std::string *get_name() const {
+        return name;
+    }
+
+    std::string *get_identifier() const {
+        return identifier;
+    }
+
+    BluetoothObject *get_parent() const {
+        return parent;
+    }
+
+    bool execute_callback(BluetoothObject &object);
+    bool has_callback() {
+        return (cb != NULL);
+    }
+
+   BluetoothObject *get_result() {
+        return cv.result;
+   }
+
+   void cancel();
+
+   void wait(std::chrono::milliseconds timeout = std::chrono::milliseconds::zero());
+
+   bool operator==(BluetoothEvent const &other);
 };
