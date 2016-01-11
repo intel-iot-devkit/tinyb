@@ -36,6 +36,7 @@ friend class BluetoothDevice;
 friend class BluetoothGattService;
 friend class BluetoothGattCharacteristic;
 friend class BluetoothGattDescriptor;
+friend class BluetoothEventManager;
 
 private:
     std::unique_ptr<BluetoothAdapter> default_adapter;
@@ -48,10 +49,7 @@ private:
 protected:
 
     void handle_event(BluetoothType type, std::string *name,
-        std::string *identifier, BluetoothObject &object);
-    void handle_event(const BluetoothEvent &event, BluetoothObject &object) {
-        handle_event(event.get_type(), event.get_name(), event.get_identifier(), object);
-    }
+        std::string *identifier, BluetoothObject *parent, BluetoothObject &object);
 
 public:
 

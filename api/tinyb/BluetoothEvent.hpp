@@ -54,14 +54,13 @@ class BluetoothConditionVariable {
     std::atomic_uint waiting;
 
     BluetoothConditionVariable() : cv(), lock() {
-        result = NULL;
+        result = nullptr;
         waiting = 0;
         triggered = false;
     }
 
     BluetoothObject *wait() {
-
-        if (result != NULL)
+        if (result != nullptr)
             return result;
 
         if (!triggered) {
@@ -75,7 +74,7 @@ class BluetoothConditionVariable {
     }
 
     BluetoothObject *wait_for(std::chrono::milliseconds timeout) {
-        if (result != NULL)
+        if (result != nullptr)
             return result;
 
         if (!triggered) {

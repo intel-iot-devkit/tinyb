@@ -4,10 +4,11 @@
 
 void BluetoothEvent::generic_callback(BluetoothObject &object, void *data)
 {
-   BluetoothConditionVariable *generic_data = static_cast<BluetoothConditionVariable *>(data);
 
-   if (data == NULL)
+   if (data == nullptr)
         return;
+
+   BluetoothConditionVariable *generic_data = static_cast<BluetoothConditionVariable *>(data);
 
    generic_data->result = object.clone();
    generic_data->notify();
@@ -19,25 +20,28 @@ BluetoothEvent::BluetoothEvent(BluetoothType type, std::string *name,
 {
     canceled = false;
     this->type = type;
-    if (name != NULL)
+    if (name != nullptr)
     	this->name = new std::string(*name);
     else
-        this->name = NULL;
+        this->name = nullptr;
 
-    if (identifier != NULL)
+    if (identifier != nullptr)
         this->identifier = new std::string(*identifier);
     else
-        this->identifier = NULL;
+        this->identifier = nullptr;
 
-    if (parent != NULL)
+    if (parent != nullptr)
         this->parent = parent->clone();
     else
-        this->parent = NULL;
+        this->parent = nullptr;
 
     this->execute_once = execute_once;
     this->cb = cb;
 
-    this->data = data;
+    if (cb == generic_callback)
+        this->data = static_cast<void *>(&cv);
+    else
+        this->data = data;
 }
 
 bool BluetoothEvent::execute_callback(BluetoothObject &object)
@@ -53,7 +57,6 @@ bool BluetoothEvent::execute_callback(BluetoothObject &object)
 
 void BluetoothEvent::wait(std::chrono::milliseconds timeout)
 {
-   BluetoothConditionVariable *generic_data = static_cast<BluetoothConditionVariable *>(data);
     if (!canceled && execute_once == true) {
         if (timeout == std::chrono::milliseconds::zero())
             cv.wait();
@@ -72,8 +75,6 @@ void BluetoothEvent::cancel()
 
 BluetoothEvent::~BluetoothEvent()
 {
-    cancel();
-
     if (name != nullptr)
         delete name;
     if (identifier != nullptr)
