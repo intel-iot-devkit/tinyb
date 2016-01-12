@@ -43,7 +43,6 @@ public:
         GDBusInterface *interface, gpointer user_data) {
         GDBusInterfaceInfo *info = g_dbus_interface_get_info(interface);
         BluetoothType type = BluetoothType::NONE;
-    
         BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
 
         /* Unknown interface, ignore */
