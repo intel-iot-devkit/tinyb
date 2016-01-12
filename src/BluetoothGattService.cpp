@@ -127,7 +127,6 @@ bool BluetoothGattService::get_primary ()
 std::vector<std::unique_ptr<BluetoothGattCharacteristic>> BluetoothGattService::get_characteristics ()
 {
     std::vector<std::unique_ptr<BluetoothGattCharacteristic>> vector;
-    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {

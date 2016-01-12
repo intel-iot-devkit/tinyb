@@ -93,7 +93,6 @@ std::unique_ptr<BluetoothAdapter> BluetoothAdapter::make(Object *object,
 std::vector<std::unique_ptr<BluetoothDevice>> BluetoothAdapter::get_devices()
 {
     std::vector<std::unique_ptr<BluetoothDevice>> vector;
-    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
     GList *l, *objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
     for (l = objects; l != NULL; l = l->next) {

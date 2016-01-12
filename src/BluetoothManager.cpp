@@ -43,9 +43,6 @@ public:
         GDBusInterface *interface, gpointer user_data) {
         GDBusInterfaceInfo *info = g_dbus_interface_get_info(interface);
         BluetoothType type = BluetoothType::NONE;
-        std::string *name = NULL;
-        std::string *identifier = NULL;
-        BluetoothObject *bobj = NULL;
     
         /* Unknown interface, ignore */
         if (info == NULL)
@@ -53,34 +50,23 @@ public:
     
         if(IS_GATT_SERVICE1_PROXY(interface)) {
             type = BluetoothType::GATT_SERVICE;
-            bobj = new BluetoothGattService(GATT_SERVICE1(object));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
         }
         else if(IS_GATT_CHARACTERISTIC1_PROXY(interface)) {
             type = BluetoothType::GATT_CHARACTERISTIC;
-            bobj = new BluetoothGattCharacteristic(GATT_CHARACTERISTIC1(object));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
         }
         else if(IS_GATT_DESCRIPTOR1_PROXY(interface)) {
             type = BluetoothType::GATT_DESCRIPTOR;
-            bobj = new BluetoothGattDescriptor(GATT_DESCRIPTOR1(object));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
         }
         else if(IS_DEVICE1_PROXY(interface)) {
             type = BluetoothType::DEVICE;
-            bobj = new BluetoothDevice(DEVICE1(object));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
         }
         else if(IS_ADAPTER1_PROXY(interface)) {
             type = BluetoothType::ADAPTER;
-            bobj = new BluetoothAdapter(ADAPTER1(object));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
         }
     
         if (type == BluetoothType::NONE) /* It does not match anything */
             return;
     
-        //BluetoothEvent event = BluetoothEvent(type, );
     }
     
     static void on_object_added (GDBusObjectManager *manager,

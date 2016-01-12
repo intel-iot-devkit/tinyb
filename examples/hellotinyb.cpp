@@ -154,7 +154,7 @@ int main(int argc, char **argv)
                 data = response.data();
 
                 std::cout << "Raw data=[";
-                for (int i = 0; i < response.size(); i++)
+                for (unsigned i = 0; i < response.size(); i++)
                     std::cout << std::hex << static_cast<int>(data[i]) << ", ";
                 std::cout << "] ";
 
