@@ -73,5 +73,10 @@ include_directories (${SYSTEM_USR_DIR})
 
 option (BUILDJAVA "Build Java API." OFF)
 
+IF(BUILDJAVA)
+    add_subdirectory (java)
+    add_subdirectory (examples/java)
+ENDIF(BUILDJAVA)
+
 add_subdirectory (src)
 add_subdirectory (examples)
