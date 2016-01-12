@@ -52,7 +52,6 @@ public:
         if(IS_GATT_SERVICE1_PROXY(interface)) {
             type = BluetoothType::GATT_SERVICE;
             auto obj = new BluetoothGattService(GATT_SERVICE1(interface));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
             auto uuid = obj->get_uuid();
             auto parent = obj->get_device();
             manager->handle_event(type, nullptr, &uuid, &parent, *obj);
@@ -60,7 +59,6 @@ public:
         else if(IS_GATT_CHARACTERISTIC1_PROXY(interface)) {
             type = BluetoothType::GATT_CHARACTERISTIC;
             auto obj = new BluetoothGattCharacteristic(GATT_CHARACTERISTIC1(interface));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
             auto uuid = obj->get_uuid();
             auto parent = obj->get_service();
             manager->handle_event(type, nullptr, &uuid, &parent, *obj);
@@ -68,7 +66,6 @@ public:
         else if(IS_GATT_DESCRIPTOR1_PROXY(interface)) {
             type = BluetoothType::GATT_DESCRIPTOR;
             auto obj = new BluetoothGattDescriptor(GATT_DESCRIPTOR1(interface));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
             auto uuid = obj->get_uuid();
             auto parent = obj->get_characteristic();
             manager->handle_event(type, nullptr, &uuid, &parent, *obj);
@@ -76,7 +73,6 @@ public:
         else if(IS_DEVICE1_PROXY(interface)) {
             type = BluetoothType::DEVICE;
             auto obj = new BluetoothDevice(DEVICE1(interface));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
             auto name = obj->get_name();
             auto uuid = obj->get_address();
             auto parent = obj->get_adapter();
@@ -85,7 +81,6 @@ public:
         else if(IS_ADAPTER1_PROXY(interface)) {
             type = BluetoothType::ADAPTER;
             auto obj = new BluetoothAdapter(ADAPTER1(interface));
-            g_print("Object %s - Interface added: %s\n", g_dbus_object_get_object_path(object), info->name);
             auto name = obj->get_name();
             auto uuid = obj->get_address();
             manager->handle_event(type, &name, &uuid, nullptr, *obj);
