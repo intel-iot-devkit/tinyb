@@ -61,6 +61,7 @@ public:
     static std::string java_class() {
         return std::string(JAVA_PACKAGE "/BluetoothGattDescriptor");
     }
+    static BluetoothType class_type() { return BluetoothType::GATT_DESCRIPTOR; }
 
     virtual std::string get_java_class() const;
     virtual std::string get_class_name() const;

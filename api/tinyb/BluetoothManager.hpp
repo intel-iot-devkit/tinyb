@@ -76,6 +76,16 @@ public:
         event_list.remove(event);
     }
 
+    template<class T>
+    std::unique_ptr<T> find(std::string *name,
+        std::string* identifier, BluetoothObject *parent,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
+    {
+        std::unique_ptr<BluetoothObject> obj = find(T::class_type(), name, identifier, parent, timeout);
+        T *t = dynamic_cast<T *>(obj.release());
+        return std::unique_ptr<T>(t);
+    }
+
     std::unique_ptr<BluetoothObject> find(BluetoothType type, std::string *name,
         std::string* identifier, BluetoothObject *parent,
         std::chrono::milliseconds timeout = std::chrono::milliseconds::zero());
