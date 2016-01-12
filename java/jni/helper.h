@@ -1,0 +1,74 @@
+#ifndef _HELPER_H_
+#define _HELPER_H_
+
+#include <vector>
+
+jfieldID getInstanceField(JNIEnv *env, jobject obj);
+
+jclass search_class(JNIEnv *env, const char *clazz_name);
+jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
+                        const char *prototype, bool is_static);
+jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,
+                        const char *type, bool is_static);
+bool from_jboolean_to_bool(jboolean val);
+jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
+jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add);
+
+template <typename T>
+T *getInstance(JNIEnv *env, jobject obj)
+{
+    jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
+    return reinterpret_cast<T *>(instance);
+}
+
+template <typename T>
+void setInstance(JNIEnv *env, jobject obj, T *t)
+{
+    jlong instance = reinterpret_cast<jlong>(t);
+    env->SetLongField(obj, getInstanceField(env, obj), instance);
+}
+
+template <typename T>
+jobject generic_clone(JNIEnv *env, jobject obj, const char *class_name)
+{
+    T *obj_generic = getInstance<T>(env, obj);
+    T *copy_generic = new T(*obj_generic);
+
+    jclass generic_class = search_class(env, class_name);
+    jmethodID generic_ctor = search_method(env, generic_class, "<init>", "(J)V", false);
+
+    jobject result = env->NewObject(generic_class, generic_ctor, (jlong)copy_generic);
+    if (result == NULL)
+    {
+        throw std::runtime_error("cannot create instance of class\n");
+    }
+
+    return result;
+}
+
+template <typename T>
+jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
+                                const char *class_name, const char *ctor_prototype)
+{
+    unsigned int array_size = array.size();
+
+    jmethodID arraylist_add;
+    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
+
+    jclass clazz = search_class(env, class_name);
+    jmethodID clazz_ctor = search_method(env, clazz, "<init>", ctor_prototype, false);
+
+    for (unsigned int i = 0; i < array_size; ++i)
+    {
+        T *elem = array.at(i).release();
+        jobject object = env->NewObject(clazz, clazz_ctor, (long)elem);
+        if (object == NULL)
+        {
+            throw std::runtime_error("cannot create instance of class\n");
+        }
+        env->CallBooleanMethod(result, arraylist_add, object);
+    }
+    return result;
+}
+
+#endif

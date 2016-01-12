@@ -27,6 +27,7 @@ set (tinyb_LIB_SRCS
 )
 
 set (tinyb_LIB_GLOB_HEADERS
+  ${PROJECT_SOURCE_DIR}/api/tinyb.h
   ${PROJECT_SOURCE_DIR}/api/tinyb.hpp
 )
 
@@ -56,14 +57,3 @@ tinyb_create_install_pkgconfig (tinyb.pc lib${LIB_SUFFIX}/pkgconfig)
 
 install(TARGETS tinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-if (BUILDSWIG)
-  find_package (SWIG)
-  if (SWIG_FOUND)
-    include (${SWIG_USE_FILE})
-    set_source_files_properties (tinyb.i PROPERTIES SWIG_FLAGS "-I${CMAKE_BINARY_DIR}/src")
-
-    if (BUILDSWIGJAVA)
-      add_subdirectory (java)
-    endif ()
-  endif ()
-endif ()

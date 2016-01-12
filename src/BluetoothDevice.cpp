@@ -207,7 +207,10 @@ std::string BluetoothDevice::get_address ()
 
 std::string BluetoothDevice::get_name ()
 {
-    return std::string(device1_get_name (object));
+    const gchar *name = device1_get_name(object);
+    if (name == nullptr)
+        return std::string(device1_get_alias(object));
+    return std::string(name);
 }
 
 std::string BluetoothDevice::get_alias ()

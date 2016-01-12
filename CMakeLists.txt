@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 project (tinyb)
 
 FIND_PACKAGE (Threads REQUIRED)
@@ -56,9 +56,9 @@ IF(WARNINGS)
     IF(UNIX)
         IF(CMAKE_COMPILER_IS_GNUCC)
             ADD_DEFINITIONS(-Wall -Wextra)
-            ENDIF(CMAKE_COMPILER_IS_GNUCC)
-        ENDIF(UNIX)
-    ENDIF(WARNINGS)
+        ENDIF(CMAKE_COMPILER_IS_GNUCC)
+    ENDIF(UNIX)
+ENDIF(WARNINGS)
 
 IF(DEBUG)
     IF(UNIX)
@@ -71,8 +71,7 @@ ENDIF(DEBUG)
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
 
-option (BUILDSWIG "Build swig modules." ON)
-option (BUILDSWIGJAVA "Build Java API." OFF)
+option (BUILDJAVA "Build Java API." OFF)
 
 add_subdirectory (src)
 add_subdirectory (examples)
