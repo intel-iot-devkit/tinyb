@@ -7,11 +7,11 @@ public class BluetoothGattDescriptor extends BluetoothObject
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
 
-    public native List<Byte> readValue();
-    public native boolean writeValue(List<Byte> argValue);
+    public native byte[] readValue();
+    public native boolean writeValue(byte[] argValue);
     public native String getUuid();
     public native BluetoothGattCharacteristic getCharacteristic();
-    public native List<Byte> getValue();
+    public native byte[] getValue();
 
     private native void delete();
 

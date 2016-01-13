@@ -21,49 +21,32 @@ jobject Java_BluetoothGattCharacteristic_clone(JNIEnv *env, jobject obj)
     return generic_clone<BluetoothGattCharacteristic>(env, obj, "BluetoothGattCharacteristic");
 }
 
-jobject Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
+jbyteArray Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     std::vector<unsigned char> array = obj_gatt_char->read_value();
     unsigned int array_size = array.size();
 
-    jmethodID arraylist_add;
-    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
-
-    jclass byte_class = search_class(env, "Ljava/lang/Byte");
-    jmethodID byte_ctor = search_method(env, byte_class, "<init>", "(B)V", false);
-
-    for (unsigned int i = 0; i < array_size; ++i)
-    {
-        unsigned char elem = array.at(i);
-        jobject byte_obj = env->NewObject(byte_class, byte_ctor, elem);
-        if (byte_obj == NULL)
-        {
-            throw std::runtime_error("cannot create instance of class\n");
-        }
-        env->CallBooleanMethod(result, arraylist_add, byte_obj);
-    }
+    jbyteArray result = env->NewByteArray((jsize)array_size);
+    env->SetByteArrayRegion(result, 0, (jsize)array_size, (const jbyte *)&array[0]);
 
     return result;
 }
 
-jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jobject argValue)
+jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
-    jclass arraylist_class = search_class(env, "Ljava/util/ArrayList;");
-    jmethodID arraylist_get = search_method(env, arraylist_class, "get",
-                                            "(I)Ljava/lang/Object;", false);
-    jmethodID arraylist_size = search_method(env, arraylist_class, "size",
-                                            "()I", false);
-    unsigned int size = env->CallIntMethod(argValue, arraylist_size);
 
-    std::vector<unsigned char> array(size);
-    for (unsigned int i = 0; i < size; ++i)
+    jboolean is_copy = false;
+    jbyte *native_array = env->GetByteArrayElements(argValue, &is_copy);
+    jsize native_array_length = env->GetArrayLength(argValue);
+
+    std::vector<unsigned char> array(native_array_length);
+    for (int i = 0; i < native_array_length; ++i)
     {
-        unsigned char elem = env->CallByteMethod(argValue, arraylist_get, i);
-        array.push_back(elem);
+        array.push_back(native_array[i]);
     }
 
     return obj_gatt_char->write_value(array);
@@ -110,29 +93,15 @@ jobject Java_BluetoothGattCharacteristic_getService(JNIEnv *env, jobject obj)
     return result;
 }
 
-jobject Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
+jbyteArray Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     std::vector<unsigned char> array = obj_gatt_char->get_value();
     unsigned int array_size = array.size();
 
-    jmethodID arraylist_add;
-    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
-
-    jclass byte_class = search_class(env, "Ljava/lang/Byte");
-    jmethodID byte_ctor = search_method(env, byte_class, "<init>", "(B)V", false);
-
-    for (unsigned int i = 0; i < array_size; ++i)
-    {
-        unsigned char elem = array.at(i);
-        jobject byte_obj = env->NewObject(byte_class, byte_ctor, elem);
-        if (byte_obj == NULL)
-        {
-            throw std::runtime_error("cannot create instance of class\n");
-        }
-        env->CallBooleanMethod(result, arraylist_add, byte_obj);
-    }
+    jbyteArray result = env->NewByteArray((jsize)array_size);
+    env->SetByteArrayRegion(result, 0, (jsize)array_size, (const jbyte *)&array[0]);
 
     return result;
 }
