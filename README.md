@@ -46,11 +46,11 @@ Cross-compiling on a different system:
 ~~~~~~~~~~~~~
 To build Java bindings:
 ~~~~~~~~~~~~~
--DBUILD_JAVA=1
+-DBUILDJAVA=ON
 ~~~~~~~~~~~~~
 To build documentation run: 
 ~~~~~~~~~~~~~
-doxygen Doxyfile
+make doc
 ~~~~~~~~~~~~~
 
 The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag) from which it reads the ambient temperature. You have to pass the MAC address of the Sensor Tag as a first parameter to the program.

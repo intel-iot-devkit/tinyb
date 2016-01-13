@@ -3,7 +3,6 @@ project (tinyb)
 
 FIND_PACKAGE (Threads REQUIRED)
 FIND_PACKAGE (PkgConfig REQUIRED)
-FIND_PACKAGE (Git)
 
 PKG_CHECK_MODULES (GLIB2 REQUIRED glib-2.0)
 PKG_CHECK_MODULES (GIO REQUIRED gio-2.0)
@@ -52,6 +51,8 @@ set (tinyb_VERSION_STRING ${mraa_VERSION_MAJOR}.${mraa_VERSION_MINOR}.${mraa_VER
 
 set (CMAKE_SWIG_FLAGS "")
 
+set (tinyb_DOCS_DIR documentation)
+
 IF(WARNINGS)
     IF(UNIX)
         IF(CMAKE_COMPILER_IS_GNUCC)
@@ -77,6 +78,35 @@ IF(BUILDJAVA)
     add_subdirectory (java)
     add_subdirectory (examples/java)
 ENDIF(BUILDJAVA)
+
+# add a target to generate API documentation with Doxygen
+find_package (Doxygen)
+if (DOXYGEN_FOUND)
+  configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out @ONLY)
+  if (BUILDJAVA)
+    configure_file (${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.java.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.java.out @ONLY)
+    add_custom_command (OUTPUT ${tinyb_DOCS_DIR}/cpp ${tinyb_DOCS_DIR}/java
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${tinyb_DOCS_DIR}
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.java.out
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/api/tinyb/*.hpp ${CMAKE_CURRENT_SOURCE_DIR}/java/*.java
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating API documentation with Doxygen" VERBATIM
+    )
+    add_custom_target(doc
+      DEPENDS ${tinyb_DOCS_DIR}/cpp ${tinyb_DOCS_DIR}/java)
+  else ()
+    add_custom_command (OUTPUT ${tinyb_DOCS_DIR}/cpp
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${tinyb_DOCS_DIR}
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.cpp.out
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/api/
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Generating API documentation with Doxygen" VERBATIM
+    )
+    add_custom_target(doc
+      DEPENDS ${tinyb_DOCS_DIR}/cpp)
+  endif ()
+endif (DOXYGEN_FOUND)
 
 add_subdirectory (src)
 add_subdirectory (examples)
