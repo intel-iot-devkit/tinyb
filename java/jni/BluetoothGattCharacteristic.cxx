@@ -1,3 +1,27 @@
+/*
+ * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
+ * Copyright (c) 2016 Intel Corporation.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "tinyb/BluetoothGattCharacteristic.hpp"
 #include "tinyb/BluetoothGattDescriptor.hpp"
 #include "tinyb/BluetoothGattService.hpp"
@@ -21,49 +45,32 @@ jobject Java_BluetoothGattCharacteristic_clone(JNIEnv *env, jobject obj)
     return generic_clone<BluetoothGattCharacteristic>(env, obj, "BluetoothGattCharacteristic");
 }
 
-jobject Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
+jbyteArray Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     std::vector<unsigned char> array = obj_gatt_char->read_value();
     unsigned int array_size = array.size();
 
-    jmethodID arraylist_add;
-    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
-
-    jclass byte_class = search_class(env, "Ljava/lang/Byte");
-    jmethodID byte_ctor = search_method(env, byte_class, "<init>", "(B)V", false);
-
-    for (unsigned int i = 0; i < array_size; ++i)
-    {
-        unsigned char elem = array.at(i);
-        jobject byte_obj = env->NewObject(byte_class, byte_ctor, elem);
-        if (byte_obj == NULL)
-        {
-            throw std::runtime_error("cannot create instance of class\n");
-        }
-        env->CallBooleanMethod(result, arraylist_add, byte_obj);
-    }
+    jbyteArray result = env->NewByteArray((jsize)array_size);
+    env->SetByteArrayRegion(result, 0, (jsize)array_size, (const jbyte *)&array[0]);
 
     return result;
 }
 
-jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jobject argValue)
+jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
-    jclass arraylist_class = search_class(env, "Ljava/util/ArrayList;");
-    jmethodID arraylist_get = search_method(env, arraylist_class, "get",
-                                            "(I)Ljava/lang/Object;", false);
-    jmethodID arraylist_size = search_method(env, arraylist_class, "size",
-                                            "()I", false);
-    unsigned int size = env->CallIntMethod(argValue, arraylist_size);
 
-    std::vector<unsigned char> array(size);
-    for (unsigned int i = 0; i < size; ++i)
+    jboolean is_copy = false;
+    jbyte *native_array = env->GetByteArrayElements(argValue, &is_copy);
+    jsize native_array_length = env->GetArrayLength(argValue);
+
+    std::vector<unsigned char> array(native_array_length);
+    for (int i = 0; i < native_array_length; ++i)
     {
-        unsigned char elem = env->CallByteMethod(argValue, arraylist_get, i);
-        array.push_back(elem);
+        array.push_back(native_array[i]);
     }
 
     return obj_gatt_char->write_value(array);
@@ -110,29 +117,15 @@ jobject Java_BluetoothGattCharacteristic_getService(JNIEnv *env, jobject obj)
     return result;
 }
 
-jobject Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
+jbyteArray Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     std::vector<unsigned char> array = obj_gatt_char->get_value();
     unsigned int array_size = array.size();
 
-    jmethodID arraylist_add;
-    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
-
-    jclass byte_class = search_class(env, "Ljava/lang/Byte");
-    jmethodID byte_ctor = search_method(env, byte_class, "<init>", "(B)V", false);
-
-    for (unsigned int i = 0; i < array_size; ++i)
-    {
-        unsigned char elem = array.at(i);
-        jobject byte_obj = env->NewObject(byte_class, byte_ctor, elem);
-        if (byte_obj == NULL)
-        {
-            throw std::runtime_error("cannot create instance of class\n");
-        }
-        env->CallBooleanMethod(result, arraylist_add, byte_obj);
-    }
+    jbyteArray result = env->NewByteArray((jsize)array_size);
+    env->SetByteArrayRegion(result, 0, (jsize)array_size, (const jbyte *)&array[0]);
 
     return result;
 }
