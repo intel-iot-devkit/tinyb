@@ -89,4 +89,5 @@ public:
       * @return True if this object and the other point to the same DBus Object
       */
     virtual bool operator==(const BluetoothObject &other) const;
+    virtual bool operator!=(const BluetoothObject &other) const;
 };

@@ -57,3 +57,8 @@ bool BluetoothObject::operator==(const BluetoothObject &other) const
    return (this->get_bluetooth_type() == other.get_bluetooth_type())
         && (this->get_object_path() == other.get_object_path());
 }
+
+bool BluetoothObject::operator!=(const BluetoothObject &other) const
+{
+   return !(*this == other);
+}

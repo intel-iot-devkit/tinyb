@@ -212,7 +212,11 @@ void BluetoothManager::handle_event(BluetoothType type, std::string *name,
                 ++it;
                 continue; /* this event does not match */
             }
-
+        if ((*it)->get_parent() != NULL)
+            if (parent == NULL || *((*it)->get_parent()) != *parent) {
+                ++it;
+                continue; /* this event does not match */
+            }
         /* The event matches, execute and see if it needs to reexecute */
         if ((*it)->execute_callback(object))
             it = event_list.erase(it);
