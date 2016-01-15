@@ -112,6 +112,8 @@ std::vector<std::unique_ptr<BluetoothDevice>> BluetoothAdapter::get_devices()
 bool BluetoothAdapter::start_discovery ()
 {
     GError *error = NULL;
+    if (get_discovering() == true)
+        return true;
     bool result = adapter1_call_start_discovery_sync(
         object,
         NULL,
@@ -125,6 +127,8 @@ bool BluetoothAdapter::start_discovery ()
 bool BluetoothAdapter::stop_discovery ()
 {
     GError *error = NULL;
+    if (get_discovering() == false)
+        return true;
     bool result = adapter1_call_stop_discovery_sync(
         object,
         NULL,
@@ -185,7 +189,8 @@ bool BluetoothAdapter::get_powered ()
 
 void BluetoothAdapter::set_powered (bool  value)
 {
-    adapter1_set_powered (object, value);
+    if (get_powered() != value)
+        adapter1_set_powered (object, value);
 }
 
 bool BluetoothAdapter::get_discoverable ()
