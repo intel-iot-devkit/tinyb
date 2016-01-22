@@ -27,7 +27,6 @@ set (tinyb_LIB_SRCS
 )
 
 set (tinyb_LIB_GLOB_HEADERS
-  ${PROJECT_SOURCE_DIR}/api/tinyb.h
   ${PROJECT_SOURCE_DIR}/api/tinyb.hpp
 )
 
