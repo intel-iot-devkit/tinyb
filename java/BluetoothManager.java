@@ -34,11 +34,35 @@ public class BluetoothManager
                                     String identifier, BluetoothObject parent);
     public native List<BluetoothObject> getObjects(BluetoothType type, String name,
                                     String identifier, BluetoothObject parent);
+
+    /** Returns a list of BluetoothAdapters available in the system
+      * @return A list of BluetoothAdapters available in the system
+      */
     public native List<BluetoothAdapter> getAdapters();
+
+    /** Returns a list of discovered BluetoothDevices
+      * @return A list of discovered BluetoothDevices
+      */
     public native List<BluetoothDevice> getDevices();
+
+    /** Returns a list of available BluetoothGattServices
+      * @return A list of available BluetoothGattServices
+      */
     public native List<BluetoothGattService> getServices();
+
+    /** Sets a default adapter to use for discovery.
+      * @return TRUE if the device was set
+      */
     public native boolean setDefaultAdapter(BluetoothAdapter adapter);
+
+    /** Turns on device discovery on the default adapter if it is disabled.
+      * @return TRUE if discovery was successfully enabled
+      */
     public native boolean startDiscovery();
+
+    /** Turns off device discovery on the default adapter if it is enabled.
+      * @return TRUE if discovery was successfully disabled
+      */
     public native boolean stopDiscovery();
 
     private native void init();
@@ -47,6 +71,10 @@ public class BluetoothManager
     {
         init();
     }
+
+    /** Returns an instance of BluetoothManager, to be used instead of constructor.
+      * @return An initialized BluetoothManager instance.
+      */
     public static synchronized BluetoothManager getBluetoothManager()
     {
         if (inst == null)

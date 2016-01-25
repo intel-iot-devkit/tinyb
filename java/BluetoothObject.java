@@ -28,7 +28,14 @@ public class BluetoothObject
 {
     long nativeInstance;
 
+    /** Returns the BluetoothType of this object
+      * @return The BluetoothType of this object
+      */
     public native BluetoothType getBluetoothType();
+
+    /** Returns a clone of the BluetoothObject
+      * @return A clone of the BluetoothObject
+      */
     public native BluetoothObject clone();
 
     private native void delete();

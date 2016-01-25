@@ -48,7 +48,7 @@ struct generic_callback_data {
 };
 
 public:
-    
+
     BluetoothEvent(BluetoothType type, std::string *name, std::string *identifier,
         BluetoothObject *parent, BluetoothCallback cb = generic_callback,
         void *data = NULL);

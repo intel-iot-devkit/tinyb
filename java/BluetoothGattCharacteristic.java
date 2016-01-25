@@ -24,24 +24,69 @@
 
 import java.util.*;
 
+/**
+  * Provides access to Bluetooth GATT characteristic. Follows the BlueZ adapter API
+  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
+  */
 public class BluetoothGattCharacteristic extends BluetoothObject
 {
     private long nativeInstance;
 
     public native BluetoothType getBluetoothType();
     public native BluetoothGattCharacteristic clone();
+
+    /* D-Bus method calls: */
+    /** Reads the value of this characteristic.
+      * @return A std::vector<unsgined char> containing the value of this characteristic.
+      */
     public native byte[] readValue();
+
+    /** Writes the value of this characteristic.
+      * @param[in] arg_value The data as vector<uchar>
+      * to be written packed in a GBytes struct
+      * @return TRUE if value was written succesfully
+      */
     public native boolean writeValue(byte[] argValue);
+
     public native boolean startNotify();
+
     public native boolean stopNotify();
+
+    /* D-Bus property accessors: */
+    /** Get the UUID of this characteristic.
+      * @return The 128 byte UUID of this characteristic, NULL if an error occurred
+      */
     public native String getUuid();
+
+    /** Returns the service to which this characteristic belongs to.
+      * @return The service.
+      */
     public native BluetoothGattService getService();
+
+    /** Returns the cached value of this characteristic, if any.
+      * @return The cached value of this characteristic.
+      */
     public native byte[] getValue();
+
+    /** Returns true if notification for changes of this characteristic are
+      * activated.
+      * @return True if notificatios are activated.
+      */
     public native boolean getNotifying();
+
+    /** Returns the flags this characterstic has.
+      * @return A list of flags for this characteristic.
+      */
     public native String[] getFlags();
+
+    /** Returns a list of BluetoothGattDescriptors this characteristic exposes.
+      * @return A list of BluetoothGattDescriptors exposed by this characteristic
+      * NULL if an error occurred
+      */
     public native List<BluetoothGattDescriptor> getDescriptors();
 
     private native void init(BluetoothGattCharacteristic obj);
+
     private native void delete();
 
     private BluetoothGattCharacteristic(long instance)
