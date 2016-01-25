@@ -21,6 +21,7 @@ set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_
 # Make a version file containing the current version from git.
 include (GetGitRevisionDescription)
 git_describe (VERSION "--tags")
+
 if ("x_${VERSION}" STREQUAL "x_GIT-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_HEAD-HASH-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_-128-NOTFOUND")
   message (WARNING " - Install git to compile a production libtinyb!")
   set (VERSION "v0.1.0-dirty")
@@ -47,7 +48,7 @@ configure_file (${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/version.c.in
 set (tinyb_VERSION_MAJOR ${VERSION_MAJOR})
 set (tinyb_VERSION_MINOR ${VERSION_MINOR})
 set (tinyb_VERSION_PATCH ${VERSION_PATCH})
-set (tinyb_VERSION_STRING ${mraa_VERSION_MAJOR}.${mraa_VERSION_MINOR}.${mraa_VERSION_PATCH})
+set (tinyb_VERSION_STRING "${tinyb_VERSION_MAJOR}.${tinyb_VERSION_MINOR}.${tinyb_VERSION_PATCH}")
 
 set (CMAKE_SWIG_FLAGS "")
 
