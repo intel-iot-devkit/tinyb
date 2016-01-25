@@ -24,6 +24,10 @@
 
 import java.util.*;
 
+/**
+  * Provides access to Bluetooth GATT descriptor. Follows the BlueZ adapter API
+  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
+  */
 public class BluetoothGattDescriptor extends BluetoothObject
 {
     public long nativeInstance;
@@ -31,10 +35,33 @@ public class BluetoothGattDescriptor extends BluetoothObject
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
 
+    /* D-Bus method calls: */
+    /** Reads the value of this descriptor
+      * @return A vector<uchar> containing data from this descriptor
+      */
     public native byte[] readValue();
+
+    /** Writes the value of this descriptor.
+      * @param[in] arg_value The data as vector<uchar>
+      * to be written packed in a GBytes struct
+      * @return TRUE if value was written succesfully
+      */
     public native boolean writeValue(byte[] argValue);
+
+    /* D-Bus property accessors: */
+    /** Get the UUID of this descriptor.
+      * @return The 128 byte UUID of this descriptor, NULL if an error occurred
+      */
     public native String getUuid();
+
+    /** Returns the characteristic to which this descriptor belongs to.
+      * @return The characteristic.
+      */
     public native BluetoothGattCharacteristic getCharacteristic();
+
+    /** Returns the cached value of this descriptor, if any.
+      * @return The cached value of this descriptor.
+      */
     public native byte[] getValue();
 
     private native void delete();

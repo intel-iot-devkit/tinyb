@@ -145,39 +145,39 @@ public:
     unsigned int get_class ();
 
     /** Returns the appearance of the device, as found by GAP service.
-        @return The appearance of the device, as found by GAP service.
+      * @return The appearance of the device, as found by GAP service.
       */
     uint16_t get_appearance ();
 
     /** Returns the proposed icon name of the device.
-        @return The proposed icon name, or NULL if not set.
+      * @return The proposed icon name, or NULL if not set.
       */
     std::string get_icon ();
 
-     /** Returns the paired state the device.
+    /** Returns the paired state the device.
       * @return The paired state of the device.
       */
     bool get_paired ();
 
-     /** Returns the trusted state the device.
+    /** Returns the trusted state the device.
       * @return The trusted state of the device.
       */
     bool get_trusted ();
 
-     /** Sets the trusted state the device.
+    /** Sets the trusted state the device.
       */
     void set_trusted (bool  value);
 
-     /** Returns the blocked state the device.
+    /** Returns the blocked state the device.
       * @return The blocked state of the device.
       */
     bool get_blocked ();
 
-     /** Sets the blocked state the device.
+    /** Sets the blocked state the device.
       */
     void set_blocked (bool  value);
 
-     /** Returns if device uses only pre-Bluetooth 2.1 pairing mechanism.
+    /** Returns if device uses only pre-Bluetooth 2.1 pairing mechanism.
       * @return True if device uses only pre-Bluetooth 2.1 pairing mechanism.
       */
     bool get_legacy_pairing ();

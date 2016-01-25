@@ -24,15 +24,37 @@
 
 import java.util.*;
 
+/**
+  * Provides access to Bluetooth GATT characteristic. Follows the BlueZ adapter API
+  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
+  */
 public class BluetoothGattService extends BluetoothObject
 {
     private long nativeInstance;
 
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
+
+    /* D-Bus property accessors: */
+
+    /** Get the UUID of this service
+      * @return The 128 byte UUID of this service, NULL if an error occurred
+      */
     public native String getUuid();
+
+    /** Returns the device to which this service belongs to.
+      * @return The device.
+      */
     public native BluetoothDevice getDevice();
+
+    /** Returns true if this service is a primary service, false if secondary.
+      * @return true if this service is a primary service, false if secondary.
+      */
     public native boolean getPrimary();
+
+    /** Returns a list of BluetoothGattCharacteristics this service exposes.
+      * @return A list of BluetoothGattCharacteristics exposed by this service
+      */
     public native List<BluetoothGattCharacteristic> getCharacteristics();
 
     private native void delete();

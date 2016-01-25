@@ -124,6 +124,7 @@ public:
       * @return The power state of the adapter.
       */
     bool get_powered ();
+
     /** Sets the power state the adapter.
       */
     void set_powered (bool  value);
@@ -132,6 +133,7 @@ public:
       * @return The discoverable state of the adapter.
       */
     bool get_discoverable ();
+
     /** Sets the discoverable state the adapter.
       */
     void set_discoverable (bool  value);
@@ -140,6 +142,7 @@ public:
       * @return The discoverable timeout of the adapter.
       */
     unsigned int get_discoverable_timeout ();
+
     /** Sets the discoverable timeout the adapter. A value of 0 disables
       * the timeout.
       */
@@ -149,6 +152,7 @@ public:
       * @return The pairable state of the adapter.
       */
     bool get_pairable ();
+
     /** Sets the discoverable state the adapter.
       */
     void set_pairable (bool  value);
@@ -162,7 +166,6 @@ public:
     /** Sets the timeout after which pairable state turns off automatically, 0 means never.
       */
     void set_pairable_timeout (unsigned int  value);
-
 
     /** Returns the discovering state the adapter. It can be modified through
       * start_discovery/stop_discovery functions.
