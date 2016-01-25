@@ -26,25 +26,25 @@
 #include "tinyb/BluetoothGattDescriptor.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "BluetoothGattDescriptor.h"
+#include "tinyb_BluetoothGattDescriptor.h"
 
 #include "helper.h"
 
 using namespace tinyb;
 
-jobject Java_BluetoothGattDescriptor_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattDescriptor_getBluetoothType(JNIEnv *env, jobject obj)
 {
     (void)obj;
 
     return get_bluetooth_type(env, "GATT_DESCRIPTOR");
 }
 
-jobject Java_BluetoothGattDescriptor_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattDescriptor_clone(JNIEnv *env, jobject obj)
 {
     return generic_clone<BluetoothGattDescriptor>(env, obj, "BluetoothGattDescriptor");
 }
 
-jbyteArray Java_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
     std::vector<unsigned char> array = obj_gatt_desc->read_value();
@@ -56,7 +56,7 @@ jbyteArray Java_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj)
     return result;
 }
 
-jboolean Java_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
+jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
 
@@ -73,7 +73,7 @@ jboolean Java_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyte
     return obj_gatt_desc->write_value(array);
 }
 
-jstring Java_BluetoothGattDescriptor_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattDescriptor_getUuid(JNIEnv *env, jobject obj)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
     std::string uuid = obj_gatt_desc->get_uuid();
@@ -81,7 +81,7 @@ jstring Java_BluetoothGattDescriptor_getUuid(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)uuid.c_str());
 }
 
-jobject Java_BluetoothGattDescriptor_getCharacteristic(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattDescriptor_getCharacteristic(JNIEnv *env, jobject obj)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
     BluetoothGattCharacteristic *obj_gatt_char = obj_gatt_desc->get_characteristic().clone();
@@ -98,7 +98,7 @@ jobject Java_BluetoothGattDescriptor_getCharacteristic(JNIEnv *env, jobject obj)
     return result;
 }
 
-jbyteArray Java_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
     std::vector<unsigned char> array = obj_gatt_desc->get_value();
@@ -111,7 +111,7 @@ jbyteArray Java_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
 
 }
 
-void Java_BluetoothGattDescriptor_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothGattDescriptor_delete(JNIEnv *env, jobject obj)
 {
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
     delete obj_gatt_desc;

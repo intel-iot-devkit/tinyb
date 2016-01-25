@@ -22,9 +22,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "BluetoothEvent.h"
+#include "tinyb_BluetoothEvent.h"
 
-jobject Java_BluetoothEvent_getType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothEvent_getType(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -32,7 +32,7 @@ jobject Java_BluetoothEvent_getType(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jstring Java_BluetoothEvent_getName(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothEvent_getName(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -40,7 +40,7 @@ jstring Java_BluetoothEvent_getName(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jstring Java_BluetoothEvent_getIdentifier(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothEvent_getIdentifier(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -48,7 +48,7 @@ jstring Java_BluetoothEvent_getIdentifier(JNIEnv *env, jobject obj)
     return NULL;
 }
 
-jboolean Java_BluetoothEvent_executeCallback(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothEvent_executeCallback(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -56,7 +56,7 @@ jboolean Java_BluetoothEvent_executeCallback(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_BluetoothEvent_hasCallback(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothEvent_hasCallback(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;
@@ -64,7 +64,7 @@ jboolean Java_BluetoothEvent_hasCallback(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_BluetoothEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
+void Java_tinyb_BluetoothEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
                                 jstring identifier, jobject parent, jobject callback,
                                 jobject arg_data)
 {
@@ -78,7 +78,7 @@ void Java_BluetoothEvent_init(JNIEnv *env, jobject obj, jobject type, jstring na
     (void)arg_data;
 }
 
-void Java_BluetoothEvent_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothEvent_delete(JNIEnv *env, jobject obj)
 {
     (void)env;
     (void)obj;

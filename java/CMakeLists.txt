@@ -21,18 +21,18 @@ add_jar(tinybjar ${JAVA_SOURCES}
                   OUTPUT_NAME tinyb
 )
 
-set(JAVA_CLASSES BluetoothAdapter
-                 BluetoothCallback
-                 BluetoothDevice
-                 BluetoothEvent
-                 BluetoothGattCharacteristic
-                 BluetoothGattService
-                 BluetoothGattDescriptor
-                 BluetoothManager
-                 BluetoothObject
-                 BluetoothType
-                 ObjectArgCallback
-                 ObjectArrayArgCallback)
+set(JAVA_CLASSES tinyb.BluetoothAdapter
+                 tinyb.BluetoothCallback
+                 tinyb.BluetoothDevice
+                 tinyb.BluetoothEvent
+                 tinyb.BluetoothGattCharacteristic
+                 tinyb.BluetoothGattService
+                 tinyb.BluetoothGattDescriptor
+                 tinyb.BluetoothManager
+                 tinyb.BluetoothObject
+                 tinyb.BluetoothType
+                 tinyb.ObjectArgCallback
+                 tinyb.ObjectArrayArgCallback)
 add_custom_command (TARGET tinybjar
   POST_BUILD
   COMMAND cmake -E echo "Generating JNI headers.."

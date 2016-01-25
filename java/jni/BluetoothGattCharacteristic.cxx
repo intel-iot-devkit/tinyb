@@ -27,25 +27,25 @@
 #include "tinyb/BluetoothGattService.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "BluetoothGattCharacteristic.h"
+#include "tinyb_BluetoothGattCharacteristic.h"
 
 #include "helper.h"
 
 using namespace tinyb;
 
-jobject Java_BluetoothGattCharacteristic_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattCharacteristic_getBluetoothType(JNIEnv *env, jobject obj)
 {
     (void)obj;
 
     return get_bluetooth_type(env, "GATT_CHARACTERISTIC");
 }
 
-jobject Java_BluetoothGattCharacteristic_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattCharacteristic_clone(JNIEnv *env, jobject obj)
 {
     return generic_clone<BluetoothGattCharacteristic>(env, obj, "BluetoothGattCharacteristic");
 }
 
-jbyteArray Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -58,7 +58,7 @@ jbyteArray Java_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)
     return result;
 }
 
-jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
+jboolean Java_tinyb_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -76,21 +76,21 @@ jboolean Java_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject obj, j
     return obj_gatt_char->write_value(array);
 }
 
-jboolean Java_BluetoothGattCharacteristic_startNotify(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattCharacteristic_startNotify(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     return obj_gatt_char->start_notify() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothGattCharacteristic_stopNotify(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattCharacteristic_stopNotify(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     return obj_gatt_char->stop_notify() ? JNI_TRUE : JNI_FALSE;
 }
 
-jstring Java_BluetoothGattCharacteristic_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattCharacteristic_getUuid(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -99,7 +99,7 @@ jstring Java_BluetoothGattCharacteristic_getUuid(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)uuid.c_str());
 }
 
-jobject Java_BluetoothGattCharacteristic_getService(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattCharacteristic_getService(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -117,7 +117,7 @@ jobject Java_BluetoothGattCharacteristic_getService(JNIEnv *env, jobject obj)
     return result;
 }
 
-jbyteArray Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -130,14 +130,14 @@ jbyteArray Java_BluetoothGattCharacteristic_getValue(JNIEnv *env, jobject obj)
     return result;
 }
 
-jboolean Java_BluetoothGattCharacteristic_getNotifying(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattCharacteristic_getNotifying(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
     return obj_gatt_char->get_notifying() ? JNI_TRUE : JNI_FALSE;
 }
 
-jobjectArray Java_BluetoothGattCharacteristic_getFlags(JNIEnv *env, jobject obj)
+jobjectArray Java_tinyb_BluetoothGattCharacteristic_getFlags(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -157,7 +157,7 @@ jobjectArray Java_BluetoothGattCharacteristic_getFlags(JNIEnv *env, jobject obj)
     return result;
 }
 
-jobject Java_BluetoothGattCharacteristic_getDescriptors(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattCharacteristic_getDescriptors(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);
@@ -169,7 +169,7 @@ jobject Java_BluetoothGattCharacteristic_getDescriptors(JNIEnv *env, jobject obj
     return result;
 }
 
-void Java_BluetoothGattCharacteristic_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothGattCharacteristic_delete(JNIEnv *env, jobject obj)
 {
     BluetoothGattCharacteristic *obj_gatt_char =
                                 getInstance<BluetoothGattCharacteristic>(env, obj);

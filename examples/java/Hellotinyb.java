@@ -1,3 +1,4 @@
+import tinyb.*;
 import java.util.*;
 
 public class Hellotinyb {

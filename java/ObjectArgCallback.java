@@ -22,6 +22,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+package tinyb;
+
 public class ObjectArgCallback extends BluetoothCallback
 {
     private Object callbackArg;

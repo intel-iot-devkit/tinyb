@@ -27,39 +27,39 @@
 #include "tinyb/BluetoothGattService.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "BluetoothDevice.h"
+#include "tinyb_BluetoothDevice.h"
 
 #include "helper.h"
 
 using namespace tinyb;
 
-jobject Java_BluetoothAdapter_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothAdapter_getBluetoothType(JNIEnv *env, jobject obj)
 {
     (void)obj;
 
     return get_bluetooth_type(env, "DEVICE");
 }
 
-jobject Java_BluetoothDevice_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothDevice_clone(JNIEnv *env, jobject obj)
 {
     return generic_clone<BluetoothDevice>(env, obj, "BluetoothDevice");
 }
 
-jboolean Java_BluetoothDevice_disconnect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_disconnect(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->disconnect() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothDevice_connect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_connect(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->connect() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jstring str)
+jboolean Java_tinyb_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
@@ -72,7 +72,7 @@ jboolean Java_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jstring s
     return obj_device->connect_profile(string_to_write);
 }
 
-jboolean Java_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, jstring str)
+jboolean Java_tinyb_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
@@ -85,21 +85,21 @@ jboolean Java_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, jstrin
     return obj_device->disconnect_profile(string_to_write);
 }
 
-jboolean Java_BluetoothDevice_pair(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_pair(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->pair() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothDevice_cancelPairing(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_cancelPairing(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->cancel_pairing() ? JNI_TRUE : JNI_FALSE;
 }
 
-jobject Java_BluetoothDevice_getServices(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothDevice_getServices(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::vector<std::unique_ptr<BluetoothGattService>> array = obj_device->get_services();
@@ -110,7 +110,7 @@ jobject Java_BluetoothDevice_getServices(JNIEnv *env, jobject obj)
     return result;
 }
 
-jstring Java_BluetoothDevice_getAddress(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothDevice_getAddress(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::string address = obj_device->get_address();
@@ -118,7 +118,7 @@ jstring Java_BluetoothDevice_getAddress(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)address.c_str());
 }
 
-jstring Java_BluetoothDevice_getName(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothDevice_getName(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::string name = obj_device->get_name();
@@ -126,7 +126,7 @@ jstring Java_BluetoothDevice_getName(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)name.c_str());
 }
 
-jstring Java_BluetoothDevice_getAlias(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothDevice_getAlias(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::string alias = obj_device->get_alias();
@@ -134,7 +134,7 @@ jstring Java_BluetoothDevice_getAlias(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)alias.c_str());
 }
 
-void Java_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
+void Java_tinyb_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
@@ -147,21 +147,21 @@ void Java_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
     obj_device->set_alias(string_to_write);
 }
 
-jint Java_BluetoothDevice_getBluetoothClass(JNIEnv *env, jobject obj)
+jint Java_tinyb_BluetoothDevice_getBluetoothClass(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return (jlong)obj_device->get_class();
 }
 
-jshort Java_BluetoothDevice_getAppearance(JNIEnv *env, jobject obj)
+jshort Java_tinyb_BluetoothDevice_getAppearance(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return (jshort)obj_device->get_appearance();
 }
 
-jstring Java_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::string icon = obj_device->get_icon();
@@ -169,21 +169,21 @@ jstring Java_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)icon.c_str());
 }
 
-jboolean Java_BluetoothDevice_getPaired(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_getPaired(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->get_paired() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothDevice_getTrusted(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_getTrusted(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->get_trusted() ? JNI_TRUE : JNI_FALSE;
 }
 
-void Java_BluetoothDevice_setTrusted(JNIEnv *env, jobject obj, jboolean val)
+void Java_tinyb_BluetoothDevice_setTrusted(JNIEnv *env, jobject obj, jboolean val)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
@@ -191,14 +191,14 @@ void Java_BluetoothDevice_setTrusted(JNIEnv *env, jobject obj, jboolean val)
     obj_device->set_trusted(val_to_write);
 }
 
-jboolean Java_BluetoothDevice_getBlocked(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_getBlocked(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->get_blocked() ? JNI_TRUE : JNI_FALSE;
 }
 
-void Java_BluetoothDevice_setBlocked(JNIEnv *env, jobject obj, jboolean val)
+void Java_tinyb_BluetoothDevice_setBlocked(JNIEnv *env, jobject obj, jboolean val)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
@@ -206,28 +206,28 @@ void Java_BluetoothDevice_setBlocked(JNIEnv *env, jobject obj, jboolean val)
     obj_device->set_blocked(val_to_write);
 }
 
-jboolean Java_BluetoothDevice_getLegacyPairing(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_getLegacyPairing(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->get_legacy_pairing() ? JNI_TRUE : JNI_FALSE;
 }
 
-jshort Java_BluetoothDevice_getRssi(JNIEnv *env, jobject obj)
+jshort Java_tinyb_BluetoothDevice_getRssi(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return (jshort)obj_device->get_rssi();
 }
 
-jboolean Java_BluetoothDevice_getConnected(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothDevice_getConnected(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
     return obj_device->get_connected() ? JNI_TRUE : JNI_FALSE;
 }
 
-jobjectArray Java_BluetoothDevice_getUuids(JNIEnv *env, jobject obj)
+jobjectArray Java_tinyb_BluetoothDevice_getUuids(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::vector<std::string> uuids = obj_device->get_uuids();
@@ -246,7 +246,7 @@ jobjectArray Java_BluetoothDevice_getUuids(JNIEnv *env, jobject obj)
     return result;
 }
 
-jstring Java_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     std::string modalias = obj_device->get_modalias();
@@ -254,7 +254,7 @@ jstring Java_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)modalias.c_str());
 }
 
-jobject Java_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
     BluetoothAdapter *obj_adapter = obj_device->get_adapter().clone();
@@ -271,7 +271,7 @@ jobject Java_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
     return result;
 }
 
-void Java_BluetoothDevice_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothDevice_delete(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *b_device = getInstance<BluetoothDevice>(env, obj);
     delete b_device;

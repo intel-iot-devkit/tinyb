@@ -27,20 +27,20 @@
 #include "tinyb/BluetoothGattService.hpp"
 #include "tinyb/BluetoothManager.hpp"
 
-#include "BluetoothManager.h"
+#include "tinyb_BluetoothManager.h"
 
 #include "helper.h"
 
 using namespace tinyb;
 
-jobject Java_BluetoothManager_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothManager_getBluetoothType(JNIEnv *env, jobject obj)
 {
     (void)obj;
 
     return get_bluetooth_type(env, "NONE");
 }
 
-jobject Java_BluetoothManager_getObject(JNIEnv *env, jobject obj, jobject type,
+jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jobject type,
                                         jstring name, jstring identifier, jobject parent)
 {
     (void)env;
@@ -53,7 +53,7 @@ jobject Java_BluetoothManager_getObject(JNIEnv *env, jobject obj, jobject type,
     return nullptr;
 }
 
-jobject Java_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jobject type,
+jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jobject type,
                                         jstring name, jstring identifier, jobject parent)
 {
     (void)env;
@@ -66,7 +66,7 @@ jobject Java_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jobject type,
     return nullptr;
 }
 
-jobject Java_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
@@ -77,7 +77,7 @@ jobject Java_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
     return result;
 }
 
-jobject Java_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
@@ -89,7 +89,7 @@ jobject Java_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
 
 }
 
-jobject Java_BluetoothManager_getServices(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
@@ -100,7 +100,7 @@ jobject Java_BluetoothManager_getServices(JNIEnv *env, jobject obj)
     return result;
 }
 
-jboolean Java_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobject adapter)
+jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobject adapter)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     BluetoothAdapter *b_adapter = getInstance<BluetoothAdapter>(env, adapter);
@@ -108,25 +108,25 @@ jboolean Java_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobje
     return manager->set_default_adapter(b_adapter);
 }
 
-jboolean Java_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
 }
 
-jboolean Java_BluetoothManager_stopDiscovery(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothManager_stopDiscovery(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
 }
 
-void Java_BluetoothManager_init(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothManager_init(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
     setInstance<BluetoothManager>(env, obj, manager);
 }
 
-void Java_BluetoothManager_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothManager_delete(JNIEnv *env, jobject obj)
 {
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     delete manager;

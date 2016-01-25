@@ -27,25 +27,25 @@
 #include "tinyb/BluetoothGattCharacteristic.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "BluetoothGattService.h"
+#include "tinyb_BluetoothGattService.h"
 
 #include "helper.h"
 
 using namespace tinyb;
 
-jobject Java_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject obj)
 {
     (void)obj;
 
     return get_bluetooth_type(env, "GATT_SERVICE");
 }
 
-jobject Java_BluetoothGattService_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
 {
     return generic_clone<BluetoothGattService>(env, obj, "BluetoothGattService");
 }
 
-jstring Java_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)
 {
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
     std::string uuid = obj_gatt_serv->get_uuid();
@@ -53,7 +53,7 @@ jstring Java_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)
     return env->NewStringUTF((const char *)uuid.c_str());
 }
 
-jobject Java_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
 {
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
     BluetoothDevice *obj_device = obj_gatt_serv->get_device().clone();
@@ -70,14 +70,14 @@ jobject Java_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
     return result;
 }
 
-jboolean Java_BluetoothGattService_getPrimary(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattService_getPrimary(JNIEnv *env, jobject obj)
 {
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
 
     return obj_gatt_serv->get_primary() ? JNI_TRUE : JNI_FALSE;
 }
 
-jobject Java_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject obj)
 {
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
     std::vector<std::unique_ptr<BluetoothGattCharacteristic>> array =
@@ -88,7 +88,7 @@ jobject Java_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject obj)
     return result;
 }
 
-void Java_BluetoothGattService_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_BluetoothGattService_delete(JNIEnv *env, jobject obj)
 {
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
     delete obj_gatt_serv;
