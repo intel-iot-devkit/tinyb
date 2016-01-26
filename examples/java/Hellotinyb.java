@@ -4,15 +4,6 @@ import java.util.*;
 public class Hellotinyb {
     private static final float SCALE_LSB = 0.03125f;
 
-    static {
-        try {
-            System.loadLibrary("javatinyb");
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Native code library failed to load." + e);
-            System.exit(-1);
-        }
-    }
-
     public static void main(String[] args) throws InterruptedException {
         BluetoothManager manager = BluetoothManager.getBluetoothManager();
 
