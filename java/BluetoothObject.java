@@ -30,6 +30,15 @@ public class BluetoothObject
 {
     long nativeInstance;
 
+    static {
+        try {
+            System.loadLibrary("javatinyb");
+        } catch (UnsatisfiedLinkError e) {
+            System.err.println("Native code library failed to load.\n" + e);
+            System.exit(-1);
+        }
+    }
+
     /** Returns the BluetoothType of this object
       * @return The BluetoothType of this object
       */

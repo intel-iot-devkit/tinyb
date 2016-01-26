@@ -31,6 +31,15 @@ public class BluetoothManager
     private long nativeInstance;
     private static BluetoothManager inst;
 
+    static {
+        try {
+            System.loadLibrary("javatinyb");
+        } catch (UnsatisfiedLinkError e) {
+            System.err.println("Native code library failed to load.\n" + e);
+            System.exit(-1);
+        }
+    }
+
     public native BluetoothType getBluetoothType();
     public native BluetoothObject getObject(BluetoothType type, String name,
                                     String identifier, BluetoothObject parent);
