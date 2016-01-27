@@ -29,7 +29,7 @@
 
 #include "tinyb_BluetoothGattService.h"
 
-#include "helper.h"
+#include "helper.hpp"
 
 using namespace tinyb;
 
@@ -58,7 +58,7 @@ jobject Java_tinyb_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
     BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
     BluetoothDevice *obj_device = obj_gatt_serv->get_device().clone();
 
-    jclass b_device_class = search_class(env, "BluetoothDevice");
+    jclass b_device_class = search_class(env, *obj_device);
     jmethodID b_device_ctor = search_method(env, b_device_class, "<init>",
                                             "(J)V", false);
     jobject result = env->NewObject(b_device_class, b_device_ctor, (jlong)obj_device);
@@ -83,7 +83,6 @@ jobject Java_tinyb_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject 
     std::vector<std::unique_ptr<BluetoothGattCharacteristic>> array =
                                                 obj_gatt_serv->get_characteristics();
     jobject result = convert_vector_to_jobject<BluetoothGattCharacteristic>(env, array,
-                                                                    "BluetoothGattCharacteristic",
                                                                     "(J)V");
     return result;
 }

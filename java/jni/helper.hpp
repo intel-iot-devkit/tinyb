@@ -22,14 +22,15 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef _HELPER_H_
-#define _HELPER_H_
+#pragma once
 
 #include <vector>
+#include "tinyb/BluetoothObject.hpp"
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj);
 
 jclass search_class(JNIEnv *env, const char *clazz_name);
+jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object);
 jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
                         const char *prototype, bool is_static);
 jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,
@@ -72,14 +73,17 @@ jobject generic_clone(JNIEnv *env, jobject obj, const char *class_name)
 
 template <typename T>
 jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
-                                const char *class_name, const char *ctor_prototype)
+                                const char *ctor_prototype)
 {
     unsigned int array_size = array.size();
 
     jmethodID arraylist_add;
     jobject result = get_new_arraylist(env, array_size, &arraylist_add);
 
-    jclass clazz = search_class(env, class_name);
+    if (array_size == 0)
+        return result;
+
+    jclass clazz = search_class(env, T::java_class().c_str());
     jmethodID clazz_ctor = search_method(env, clazz, "<init>", ctor_prototype, false);
 
     for (unsigned int i = 0; i < array_size; ++i)
@@ -94,5 +98,3 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
     }
     return result;
 }
-
-#endif

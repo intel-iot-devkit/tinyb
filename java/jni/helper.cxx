@@ -27,7 +27,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "helper.h"
+#include "helper.hpp"
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj)
 {
@@ -36,12 +36,18 @@ jfieldID getInstanceField(JNIEnv *env, jobject obj)
     return env->GetFieldID(clazz, "nativeInstance", "J");
 }
 
+jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object)
+{
+    return search_class(env, object.get_java_class().c_str());
+}
+
 jclass search_class(JNIEnv *env, const char *clazz_name)
 {
     jclass clazz = env->FindClass(clazz_name);
     if (clazz == NULL)
     {
-        throw std::runtime_error("no class found\n");
+        std::string error = "no class found: "; error += clazz_name;
+        throw std::runtime_error(error);
     }
     return clazz;
 }

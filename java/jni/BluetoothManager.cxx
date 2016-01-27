@@ -29,7 +29,7 @@
 
 #include "tinyb_BluetoothManager.h"
 
-#include "helper.h"
+#include "helper.hpp"
 
 using namespace tinyb;
 
@@ -72,7 +72,6 @@ jobject Java_tinyb_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
 
     std::vector<std::unique_ptr<BluetoothAdapter>> array = manager->get_adapters();
     jobject result = convert_vector_to_jobject<BluetoothAdapter>(env, array,
-                                                                "BluetoothAdapter",
                                                                 "(J)V");
     return result;
 }
@@ -83,7 +82,6 @@ jobject Java_tinyb_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
 
     std::vector<std::unique_ptr<BluetoothDevice>> array = manager->get_devices();
     jobject result = convert_vector_to_jobject<BluetoothDevice>(env, array,
-                                                                "BluetoothDevice",
                                                                 "(J)V");
     return result;
 
@@ -95,7 +93,6 @@ jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
 
     std::vector<std::unique_ptr<BluetoothGattService>> array = manager->get_services();
     jobject result = convert_vector_to_jobject<BluetoothGattService>(env, array,
-                                                                "BluetoothGattService",
                                                                 "(J)V");
     return result;
 }

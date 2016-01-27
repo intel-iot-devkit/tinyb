@@ -25,7 +25,7 @@
 #include <memory>
 #pragma once
 
-#define JAVA_PACKAGE "io/mraa/tinyb"
+#define JAVA_PACKAGE "tinyb"
 
 namespace tinyb {
 enum class BluetoothType {
@@ -51,6 +51,10 @@ enum class BluetoothType {
 class tinyb::BluetoothObject
 {
 public:
+
+    static std::string java_class() {
+        return std::string(JAVA_PACKAGE "/BluetoothObject");
+    }
 
     /** Returns the complete Java class of this object
       * @return A std::string containing the java class of this object

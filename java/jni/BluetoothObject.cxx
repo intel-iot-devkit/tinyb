@@ -26,7 +26,7 @@
 
 #include "tinyb_BluetoothObject.h"
 
-#include "helper.h"
+#include "helper.hpp"
 
 using namespace tinyb;
 

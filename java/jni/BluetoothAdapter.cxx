@@ -28,7 +28,7 @@
 
 #include "tinyb_BluetoothAdapter.h"
 
-#include "helper.h"
+#include "helper.hpp"
 
 using namespace tinyb;
 
@@ -63,7 +63,6 @@ jobject Java_tinyb_BluetoothAdapter_getDevices(JNIEnv *env, jobject obj)
     BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
     std::vector<std::unique_ptr<BluetoothDevice>> array = obj_adapter->get_devices();
     jobject result = convert_vector_to_jobject<BluetoothDevice>(env, array,
-                                                                "BluetoothDevice",
                                                                 "(J)V");
 
     return result;

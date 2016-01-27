@@ -46,6 +46,11 @@ private:
     BluetoothManager(const BluetoothManager &object);
 
 public:
+
+    static std::string java_class() {
+        return std::string(JAVA_PACKAGE "/BluetoothManager");
+    }
+
     virtual std::string get_java_class() const;
     virtual std::string get_class_name() const;
     virtual std::string get_object_path() const;
