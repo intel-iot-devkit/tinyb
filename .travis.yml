@@ -1,0 +1,11 @@
+sudo: required
+dist: trusty
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_script:
+  - export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+  - if `java -version`; then export BUILDJAVA=ON; fi
+script:
+  - mkdir build && cd build && cmake -DBUILDJAVA=$BUILDJAVA .. && make
