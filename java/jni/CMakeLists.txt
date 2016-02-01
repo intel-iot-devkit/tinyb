@@ -31,3 +31,5 @@ set_target_properties(
     COMPILE_FLAGS "-Wall -Wextra"
 )
 
+install(TARGETS javatinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
