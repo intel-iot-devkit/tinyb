@@ -41,9 +41,19 @@ public class BluetoothManager
     }
 
     public native BluetoothType getBluetoothType();
-    public native BluetoothObject getObject(BluetoothType type, String name,
+
+    public BluetoothObject getObject(BluetoothType type, String name,
+                                String identifier, BluetoothObject parent) {
+        return getObject(type.ordinal(), name, identifier, parent);
+    }
+    private native BluetoothObject getObject(int type, String name,
                                     String identifier, BluetoothObject parent);
-    public native List<BluetoothObject> getObjects(BluetoothType type, String name,
+
+    public List<BluetoothObject> getObjects(BluetoothType type, String name,
+                                    String identifier, BluetoothObject parent) {
+        return getObjects(type.ordinal(), name, identifier, parent);
+    }
+    private native List<BluetoothObject> getObjects(int type, String name,
                                     String identifier, BluetoothObject parent);
 
     /** Returns a list of BluetoothAdapters available in the system

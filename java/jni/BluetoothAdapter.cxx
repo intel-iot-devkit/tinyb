@@ -96,11 +96,7 @@ void Java_tinyb_BluetoothAdapter_setAlias(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
 
-    jboolean is_copy = JNI_TRUE;
-    const char *str_chars = (char *)env->GetStringUTFChars(str, &is_copy);
-    const std::string string_to_write = std::string(str_chars);
-
-    env->ReleaseStringUTFChars(str, str_chars);
+    const std::string string_to_write = from_jstring_to_string(env, str);
 
     obj_adapter->set_alias(string_to_write);
 }
@@ -208,6 +204,10 @@ jobjectArray Java_tinyb_BluetoothAdapter_getUuids(JNIEnv *env, jobject obj)
 
     jclass string_class = search_class(env, "Ljava/lang/String;");
     jobjectArray result = env->NewObjectArray(uuids_size, string_class, 0);
+    if (!result)
+    {
+        throw std::runtime_error("NewObjectArray cannot create instance\n");
+    }
 
     for (unsigned int i = 0; i < uuids_size; ++i)
     {

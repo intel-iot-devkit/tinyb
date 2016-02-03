@@ -58,6 +58,11 @@ jbyteArray Java_tinyb_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj
 
 jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
+    if (!argValue)
+    {
+        throw std::invalid_argument("byte array argument is null\n");
+    }
+
     BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
 
     jboolean is_copy = false;
@@ -70,7 +75,7 @@ jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj,
         array.push_back(native_array[i]);
     }
 
-    return obj_gatt_desc->write_value(array);
+    return obj_gatt_desc->write_value(array) ? JNI_TRUE : JNI_FALSE;
 }
 
 jstring Java_tinyb_BluetoothGattDescriptor_getUuid(JNIEnv *env, jobject obj)

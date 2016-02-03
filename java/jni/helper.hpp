@@ -26,6 +26,7 @@
 
 #include <vector>
 #include "tinyb/BluetoothObject.hpp"
+#include "tinyb/BluetoothObject.hpp"
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj);
 
@@ -36,6 +37,8 @@ jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
 jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,
                         const char *type, bool is_static);
 bool from_jboolean_to_bool(jboolean val);
+std::string from_jstring_to_string(JNIEnv *env, jstring str);
+tinyb::BluetoothType from_int_to_btype(int type);
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
 jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add);
 
@@ -63,7 +66,7 @@ jobject generic_clone(JNIEnv *env, jobject obj)
     jmethodID generic_ctor = search_method(env, generic_class, "<init>", "(J)V", false);
 
     jobject result = env->NewObject(generic_class, generic_ctor, (jlong)copy_generic);
-    if (result == NULL)
+    if (!result)
     {
         throw std::runtime_error("cannot create instance of class\n");
     }
@@ -81,7 +84,9 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
     jobject result = get_new_arraylist(env, array_size, &arraylist_add);
 
     if (array_size == 0)
+    {
         return result;
+    }
 
     jclass clazz = search_class(env, T::java_class().c_str());
     jmethodID clazz_ctor = search_method(env, clazz, "<init>", ctor_prototype, false);
@@ -90,7 +95,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
     {
         T *elem = array.at(i).release();
         jobject object = env->NewObject(clazz, clazz_ctor, (long)elem);
-        if (object == NULL)
+        if (!object)
         {
             throw std::runtime_error("cannot create instance of class\n");
         }

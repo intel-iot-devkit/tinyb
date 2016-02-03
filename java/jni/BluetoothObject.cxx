@@ -51,6 +51,10 @@ void Java_tinyb_BluetoothObject_delete(JNIEnv *env, jobject obj)
 
 jboolean Java_tinyb_BluetoothObject_operatorEqual(JNIEnv *env, jobject obj, jobject other)
 {
+    if (!other)
+    {
+        return JNI_FALSE;
+    }
     BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
     BluetoothObject *obj_other = getInstance<BluetoothObject>(env, other);
 

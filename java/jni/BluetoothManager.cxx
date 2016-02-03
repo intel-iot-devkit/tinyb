@@ -40,30 +40,91 @@ jobject Java_tinyb_BluetoothManager_getBluetoothType(JNIEnv *env, jobject obj)
     return get_bluetooth_type(env, "NONE");
 }
 
-jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jobject type,
-                                        jstring name, jstring identifier, jobject parent)
+static void getObject_setter(JNIEnv *env,
+                              jstring name, std::string **name_to_write,
+                              jstring identifier, std::string **identifier_to_write,
+                              jobject parent, BluetoothObject **b_parent)
 {
-    (void)env;
-    (void)obj;
-    (void)type;
-    (void)name;
-    (void)identifier;
-    (void)parent;
+    if (!parent)
+    {
+        *b_parent = nullptr;
+    }
+    else
+    {
+        *b_parent = getInstance<BluetoothObject>(env, parent);
+    }
 
-    return nullptr;
+    if (!name)
+    {
+        *name_to_write = nullptr;
+    }
+    else
+    {
+        **name_to_write = from_jstring_to_string(env, name);
+    }
+
+    if (!identifier)
+    {
+        *identifier_to_write = nullptr;
+    }
+    else
+    {
+        **identifier_to_write = from_jstring_to_string(env, identifier);
+    }
 }
 
-jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jobject type,
+jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint type,
                                         jstring name, jstring identifier, jobject parent)
 {
-    (void)env;
-    (void)obj;
-    (void)type;
-    (void)name;
-    (void)identifier;
-    (void)parent;
+    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    BluetoothObject *b_parent;
+    BluetoothType b_type;
+    std::string *name_to_write;
+    std::string *identifier_to_write;
 
-    return nullptr;
+    getObject_setter(env,
+                     name, &name_to_write,
+                     identifier, &identifier_to_write,
+                     parent, &b_parent);
+
+    b_type = from_int_to_btype((int)type);
+    std::unique_ptr<BluetoothObject> b_object = manager->get_object(b_type, name_to_write,
+                                                            identifier_to_write,
+                                                            b_parent);
+
+    BluetoothObject *b_object_naked = b_object.release();
+    if (!b_object_naked)
+    {
+        return nullptr;
+    }
+    jclass clazz = search_class(env, *b_object_naked);
+    jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+    jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+    return result;
+}
+
+jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jint type,
+                                        jstring name, jstring identifier, jobject parent)
+{
+    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    BluetoothObject *b_parent;
+    BluetoothType b_type;
+    std::string *name_to_write;
+    std::string *identifier_to_write;
+
+    getObject_setter(env,
+                     name, &name_to_write,
+                     identifier, &identifier_to_write,
+                     parent, &b_parent);
+
+    b_type = from_int_to_btype((int)type);
+    std::vector<std::unique_ptr<BluetoothObject>> array = manager->get_objects(b_type,
+                                                                name_to_write,
+                                                                identifier_to_write,
+                                                                b_parent);
+    jobject result = convert_vector_to_jobject<BluetoothObject>(env, array, "(J)V");
+    return result;
 }
 
 jobject Java_tinyb_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
@@ -99,6 +160,10 @@ jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
 
 jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobject adapter)
 {
+    if (!adapter)
+    {
+        throw std::invalid_argument("adapter argument is null\n");
+    }
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     BluetoothAdapter *b_adapter = getInstance<BluetoothAdapter>(env, adapter);
 

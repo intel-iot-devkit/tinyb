@@ -63,26 +63,18 @@ jboolean Java_tinyb_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jst
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
-    jboolean is_copy = JNI_TRUE;
-    const char *str_chars = (char *)env->GetStringUTFChars(str, &is_copy);
-    const std::string string_to_write = std::string(str_chars);
+    const std::string string_to_write = from_jstring_to_string(env, str);
 
-    env->ReleaseStringUTFChars(str, str_chars);
-
-    return obj_device->connect_profile(string_to_write);
+    return obj_device->connect_profile(string_to_write) ? JNI_TRUE : JNI_FALSE;
 }
 
 jboolean Java_tinyb_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
-    jboolean is_copy = JNI_TRUE;
-    const char *str_chars = (char *)env->GetStringUTFChars(str, &is_copy);
-    const std::string string_to_write = std::string(str_chars);
+    const std::string string_to_write = from_jstring_to_string(env, str);
 
-    env->ReleaseStringUTFChars(str, str_chars);
-
-    return obj_device->disconnect_profile(string_to_write);
+    return obj_device->disconnect_profile(string_to_write) ? JNI_TRUE : JNI_FALSE;
 }
 
 jboolean Java_tinyb_BluetoothDevice_pair(JNIEnv *env, jobject obj)
@@ -137,11 +129,7 @@ void Java_tinyb_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
 
-    jboolean is_copy = JNI_TRUE;
-    const char *str_chars = (char *)env->GetStringUTFChars(str, &is_copy);
-    const std::string string_to_write = std::string(str_chars);
-
-    env->ReleaseStringUTFChars(str, str_chars);
+    const std::string string_to_write = from_jstring_to_string(env, str);
 
     obj_device->set_alias(string_to_write);
 }
@@ -262,7 +250,7 @@ jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
     jmethodID b_adapter_ctor = search_method(env, b_adapter_class, "<init>",
                                             "(J)V", false);
     jobject result = env->NewObject(b_adapter_class, b_adapter_ctor, (jlong)obj_adapter);
-    if (result == NULL)
+    if (!result)
     {
         throw std::runtime_error("cannot create instance of class\n");
     }
