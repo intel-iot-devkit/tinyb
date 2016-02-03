@@ -4,12 +4,6 @@ language: cpp
 
 compiler:
   - gcc
-  - clang
-
-matrix:
-  exclude:
-    - compiler: clang
-      env: TRAVIS_BRANCH=coverity_scan
 
 env:
   global:
