@@ -41,7 +41,7 @@ jobject Java_tinyb_BluetoothGattDescriptor_getBluetoothType(JNIEnv *env, jobject
 
 jobject Java_tinyb_BluetoothGattDescriptor_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothGattDescriptor>(env, obj, "BluetoothGattDescriptor");
+    return generic_clone<BluetoothGattDescriptor>(env, obj);
 }
 
 jbyteArray Java_tinyb_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj)

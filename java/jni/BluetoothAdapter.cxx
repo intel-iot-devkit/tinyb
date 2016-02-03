@@ -41,7 +41,7 @@ jobject Java_tinyb_BluetoothAdapter_getBluetoothType(JNIEnv *env, jobject obj)
 
 jobject Java_tinyb_BluetoothAdapter_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothAdapter>(env, obj, "BluetoothAdapter");
+    return generic_clone<BluetoothAdapter>(env, obj);
 }
 
 jboolean Java_tinyb_BluetoothAdapter_startDiscovery(JNIEnv *env, jobject obj)

@@ -42,7 +42,7 @@ jobject Java_tinyb_BluetoothGattCharacteristic_getBluetoothType(JNIEnv *env, job
 
 jobject Java_tinyb_BluetoothGattCharacteristic_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothGattCharacteristic>(env, obj, "BluetoothGattCharacteristic");
+    return generic_clone<BluetoothGattCharacteristic>(env, obj);
 }
 
 jbyteArray Java_tinyb_BluetoothGattCharacteristic_readValue(JNIEnv *env, jobject obj)

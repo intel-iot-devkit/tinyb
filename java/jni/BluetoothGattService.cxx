@@ -42,7 +42,7 @@ jobject Java_tinyb_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject ob
 
 jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothGattService>(env, obj, "BluetoothGattService");
+    return generic_clone<BluetoothGattService>(env, obj);
 }
 
 jstring Java_tinyb_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)

@@ -119,7 +119,7 @@ bool from_jboolean_to_bool(jboolean val)
 
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {
-    jclass b_type_enum = search_class(env, "BluetoothType");
+    jclass b_type_enum = search_class(env, JAVA_PACKAGE "/BluetoothType");
 
     jfieldID b_type_field = search_field(env, b_type_enum, field_name, "l", true);
 

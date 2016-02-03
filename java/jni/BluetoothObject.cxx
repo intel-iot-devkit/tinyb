@@ -39,7 +39,7 @@ jobject Java_tinyb_BluetoothObject_getBluetoothType(JNIEnv *env, jobject obj)
 
 jobject Java_tinyb_BluetoothObject_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothObject>(env, obj, "BluetoothObject");
+    return generic_clone<BluetoothObject>(env, obj);
 }
 
 void Java_tinyb_BluetoothObject_delete(JNIEnv *env, jobject obj)
