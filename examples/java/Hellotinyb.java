@@ -57,5 +57,7 @@ public class Hellotinyb {
                 System.out.println("UUID: " + service.getUuid());
             }
         } while (bluetoothServices.isEmpty());
+
+        sensor.disconnect();
     }
 }
