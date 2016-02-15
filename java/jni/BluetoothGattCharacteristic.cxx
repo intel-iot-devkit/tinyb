@@ -72,11 +72,7 @@ jboolean Java_tinyb_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject 
     jbyte *native_array = env->GetByteArrayElements(argValue, &is_copy);
     jsize native_array_length = env->GetArrayLength(argValue);
 
-    std::vector<unsigned char> array(native_array_length);
-    for (int i = 0; i < native_array_length; ++i)
-    {
-        array.push_back(native_array[i]);
-    }
+    std::vector<unsigned char> array(native_array, native_array + native_array_length);
 
     return obj_gatt_char->write_value(array) ? JNI_TRUE : JNI_FALSE;
 }
