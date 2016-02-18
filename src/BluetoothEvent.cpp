@@ -68,7 +68,7 @@ void BluetoothEvent::wait(std::chrono::milliseconds timeout)
 void BluetoothEvent::cancel()
 {
     BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
-    manager->remove_event(std::shared_ptr<BluetoothEvent>(this));
+    manager->remove_event(*this);
 
     cv.notify();
 }

@@ -179,6 +179,7 @@ std::unique_ptr<BluetoothObject> BluetoothManager::find(BluetoothType type,
         object = std::unique_ptr<BluetoothObject>(event->get_result());
     }
 
+    event->cancel();
     return object;
 }
 
