@@ -24,6 +24,8 @@
 
 #pragma once
 #include "BluetoothObject.hpp"
+#include "BluetoothManager.hpp"
+#include "BluetoothGattDescriptor.hpp"
 #include <string>
 #include <vector>
 
@@ -71,6 +73,15 @@ public:
     BluetoothGattCharacteristic(const BluetoothGattCharacteristic &object);
     ~BluetoothGattCharacteristic();
     virtual BluetoothGattCharacteristic *clone() const;
+
+    std::unique_ptr<BluetoothGattDescriptor> find(
+        std::string *identifier,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
+    {
+
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        return manager->find<BluetoothGattDescriptor>(nullptr, identifier, this, timeout);
+    }
 
     /* D-Bus method calls: */
     /** Reads the value of this characteristic.

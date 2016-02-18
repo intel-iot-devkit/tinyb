@@ -24,6 +24,7 @@
 
 #pragma once
 #include "BluetoothObject.hpp"
+#include "BluetoothManager.hpp"
 #include <vector>
 
 /* Forward declaration of types */
@@ -77,6 +78,15 @@ public:
     BluetoothAdapter(const BluetoothAdapter &object);
     ~BluetoothAdapter();
     virtual BluetoothAdapter *clone() const;
+
+    std::unique_ptr<BluetoothDevice> find(std::string *name,
+        std::string *identifier,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
+    {
+
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        return manager->find<BluetoothDevice>(name, identifier, this, timeout);
+    }
 
     /* D-Bus method calls: */
 

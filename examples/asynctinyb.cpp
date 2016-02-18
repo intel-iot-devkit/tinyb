@@ -71,8 +71,7 @@ int main(int argc, char **argv)
         sensor_tag->connect();
         std::string service_uuid("f000aa00-0451-4000-b000-000000000000");
         std::cout << "Waiting for service " << service_uuid << "to be discovered" << std::endl; 
-        temperature_service =
-            manager->find<BluetoothGattService>(nullptr, &service_uuid, sensor_tag.get());
+        temperature_service = sensor_tag->find(&service_uuid);
     } else {
        ret = manager->stop_discovery();
        std::cerr << "SensorTag not found after 30 seconds, exiting" << std::endl;
@@ -84,22 +83,13 @@ int main(int argc, char **argv)
     std::cout << "Stopped = " << (ret ? "true" : "false") << std::endl;
 
     auto value_uuid = std::string("f000aa01-0451-4000-b000-000000000000");
-    auto temp_value = 
-        manager->find<BluetoothGattCharacteristic>(nullptr,
-        &value_uuid,
-        temperature_service.get());
+    auto temp_value = temperature_service->find(&value_uuid);
 
     auto config_uuid = std::string("f000aa02-0451-4000-b000-000000000000");
-    auto temp_config =
-        manager->find<BluetoothGattCharacteristic>(nullptr,
-        &config_uuid,
-        temperature_service.get());
+    auto temp_config = temperature_service->find(&config_uuid);
 
     auto period_uuid = std::string("f000aa03-0451-4000-b000-000000000000");
-    auto temp_period =
-        manager->find<BluetoothGattCharacteristic>(nullptr,
-        &period_uuid,
-        temperature_service.get());
+    auto temp_period = temperature_service->find(&period_uuid);
 
     /* Activate the temperature measurements */
     std::vector<unsigned char> config_on {0x01};

@@ -24,6 +24,9 @@
 
 #pragma once
 #include "BluetoothObject.hpp"
+#include "BluetoothAdapter.hpp"
+#include "BluetoothGattService.hpp"
+#include "BluetoothManager.hpp"
 #include <cstdint>
 #include <vector>
 
@@ -71,6 +74,15 @@ public:
     BluetoothDevice(const BluetoothDevice &object);
     ~BluetoothDevice();
     virtual BluetoothDevice *clone() const;
+
+    std::unique_ptr<BluetoothGattService> find(
+        std::string *identifier,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
+    {
+
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        return manager->find<BluetoothGattService>(nullptr, identifier, this, timeout);
+    }
 
     /* D-Bus method calls: */
 

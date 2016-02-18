@@ -25,6 +25,7 @@
 #pragma once
 #include "BluetoothObject.hpp"
 #include "BluetoothManager.hpp"
+#include "BluetoothGattCharacteristic.hpp"
 #include <vector>
 
 /* Forward declaration of types */
@@ -72,6 +73,15 @@ public:
     BluetoothGattService(const BluetoothGattService &object);
     ~BluetoothGattService();
     virtual BluetoothGattService *clone() const;
+
+    std::unique_ptr<BluetoothGattCharacteristic> find(
+        std::string *identifier,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds::zero())
+    {
+
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        return manager->find<BluetoothGattCharacteristic>(nullptr, identifier, this, timeout);
+    }
 
     /* D-Bus property accessors: */
 

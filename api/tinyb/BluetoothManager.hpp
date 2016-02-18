@@ -24,7 +24,6 @@
 
 #pragma once
 #include "BluetoothObject.hpp"
-#include "BluetoothAdapter.hpp"
 #include "BluetoothEvent.hpp"
 #include <vector>
 #include <list>
