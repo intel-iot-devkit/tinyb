@@ -46,12 +46,17 @@ template <typename T>
 T *getInstance(JNIEnv *env, jobject obj)
 {
     jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
-    return reinterpret_cast<T *>(instance);
+    T *t = reinterpret_cast<T *>(instance);
+    if (t == nullptr)
+        throw std::runtime_error("Trying to acquire null object");
+    return t;
 }
 
 template <typename T>
 void setInstance(JNIEnv *env, jobject obj, T *t)
 {
+    if (t == nullptr)
+        throw std::runtime_error("Trying to create null object");
     jlong instance = reinterpret_cast<jlong>(t);
     env->SetLongField(obj, getInstanceField(env, obj), instance);
 }
