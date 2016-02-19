@@ -160,14 +160,13 @@ jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
 
 jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobject adapter)
 {
-    if (!adapter)
-    {
+    if (adapter == nullptr)
         throw std::invalid_argument("adapter argument is null\n");
-    }
+
     BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
     BluetoothAdapter *b_adapter = getInstance<BluetoothAdapter>(env, adapter);
 
-    return manager->set_default_adapter(b_adapter);
+    return manager->set_default_adapter(*b_adapter);
 }
 
 jboolean Java_tinyb_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)

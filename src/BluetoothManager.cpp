@@ -192,15 +192,20 @@ BluetoothManager::BluetoothManager() : event_list()
 
     objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
+    default_adapter = nullptr;
     for (l = objects; l != NULL; l = l->next) {
         Object *object = (Object *) l->data;
         Adapter1 *adapter = object_get_adapter1(object);
         if (adapter != NULL) {
-            default_adapter = new BluetoothAdapter(adapter);
+            default_adapter = std::unique_ptr<BluetoothAdapter>(new BluetoothAdapter(adapter));
             break;
         }
     }
     g_list_free_full(objects, g_object_unref);
+
+    if (default_adapter == nullptr) {
+        throw std::runtime_error("No adapter installed or not recognized by system");
+    }
 }
 
 BluetoothManager *BluetoothManager::get_bluetooth_manager()
@@ -267,20 +272,20 @@ std::vector<std::unique_ptr<BluetoothGattService>> BluetoothManager::get_service
     return vector;
 }
 
-bool BluetoothManager::set_default_adapter(BluetoothAdapter *adapter)
+bool BluetoothManager::set_default_adapter(BluetoothAdapter &adapter)
 {
-    if (adapter != NULL) {
-        BluetoothAdapter *prev_adapter = default_adapter;
-        default_adapter = new BluetoothAdapter(*adapter);
-        delete prev_adapter;
-        return true;
-    }
-    return false;
+    default_adapter = std::unique_ptr<BluetoothAdapter>(adapter.clone());
+    return true;
+}
+
+std::unique_ptr<BluetoothAdapter> BluetoothManager::get_default_adapter()
+{
+    return std::unique_ptr<BluetoothAdapter>(default_adapter->clone());
 }
 
 bool BluetoothManager::start_discovery()
 {
-    if (default_adapter != NULL)
+    if (default_adapter != nullptr)
         return default_adapter->start_discovery();
     else
         return false;

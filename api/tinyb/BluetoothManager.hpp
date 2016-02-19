@@ -38,7 +38,7 @@ friend class BluetoothGattCharacteristic;
 friend class BluetoothGattDescriptor;
 
 private:
-    BluetoothAdapter *default_adapter = NULL;
+    std::unique_ptr<BluetoothAdapter> default_adapter;
     static BluetoothManager *bluetooth_manager;
     std::list<std::shared_ptr<BluetoothEvent>> event_list;
 
@@ -92,8 +92,10 @@ public:
       * @return TRUE if the device was set
       */
     bool set_default_adapter(
-        BluetoothAdapter *adapter
+        BluetoothAdapter &adapter
     );
+
+    std::unique_ptr<BluetoothAdapter> get_default_adapter();
 
     /** Turns on device discovery on the default adapter if it is disabled.
       * @return TRUE if discovery was successfully enabled
