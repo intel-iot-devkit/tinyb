@@ -93,18 +93,6 @@ public class HelloTinyB {
             System.exit(-1);
         }
 
-        final Thread mainThread = Thread.currentThread();
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                running = false;
-                try {
-                    mainThread.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
         /*
          * To start looking of the device, we first must initialize the TinyB library. The way of interacting with the
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
@@ -140,6 +128,15 @@ public class HelloTinyB {
             System.out.println("Could not connect device.");
             System.exit(-1);
         }
+
+        final Thread mainThread = Thread.currentThread();
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                running = false;
+                sensor.disconnect();
+            }
+        });
+
 
         BluetoothGattService tempService = getService(sensor, "f000aa00-0451-4000-b000-000000000000");
 
