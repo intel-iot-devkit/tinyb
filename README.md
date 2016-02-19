@@ -1,6 +1,9 @@
 Tiny Bluetooth Library
 =============
 
+[![Build Status](https://travis-ci.org/intel-iot-devkit/tinyb.svg?branch=master)](https://travis-ci.org/intel-iot-devkit/tinyb)
+[![Coverity Scan](https://scan.coverity.com/projects/7546/badge.svg)](https://scan.coverity.com/projects/intel-iot-devkit-tinyb)
+
 This project aims to create clean, modern and easy to use Bluetooth GATT API
 for C++, Java and other languages, using BlueZ over DBus.
 
