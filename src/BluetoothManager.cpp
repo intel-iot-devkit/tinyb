@@ -182,10 +182,11 @@ BluetoothManager::BluetoothManager() : event_list()
             NULL, /* GCancellable */
             &error);
 
-    if (gdbus_manager == NULL) {
-            g_printerr("Error getting object manager client: %s",
-                    error->message);
-            g_error_free(error);
+    if (gdbus_manager == nullptr) {
+        std::string error_str("Error getting object manager client: ");
+        error_str += error->message;
+        g_error_free(error);
+        throw std::runtime_error(error_str);
     }
 
     g_thread_new(NULL, init_manager_thread, gdbus_manager);

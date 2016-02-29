@@ -9,7 +9,7 @@ compiler:
 matrix:
   exclude:
     - compiler: clang
-    - env: COVERITY_SCAN_BRANCH=1
+      env: TRAVIS_BRANCH=coverity_scan
 
 env:
   global:

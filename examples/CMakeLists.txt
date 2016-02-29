@@ -11,6 +11,12 @@ set_target_properties(hellotinyb
     PROPERTIES
     CXX_STANDARD 11)
 
+add_executable (checkinit checkinit.cpp)
+set_target_properties(checkinit
+    PROPERTIES
+    CXX_STANDARD 11)
+
 include_directories(${PROJECT_SOURCE_DIR}/api)
 
 target_link_libraries (hellotinyb tinyb)
+target_link_libraries (checkinit tinyb)
