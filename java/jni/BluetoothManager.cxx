@@ -73,6 +73,15 @@ static void getObject_setter(JNIEnv *env,
     }
 }
 
+static void getObject_cleaner(std::string *name_to_write, std::string *identifier_to_write)
+{
+    if (name_to_write != nullptr)
+        delete name_to_write;
+
+    if (identifier_to_write != nullptr)
+        delete identifier_to_write;
+}
+
 jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
                                         jstring name, jstring identifier, jobject parent,
                                         jlong milliseconds)
@@ -93,6 +102,7 @@ jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
                                                             identifier_to_write,
                                                             b_parent,
                                                             std::chrono::milliseconds(milliseconds));
+    getObject_cleaner(name_to_write, identifier_to_write);
 
     BluetoothObject *b_object_naked = b_object.release();
     if (!b_object_naked)
@@ -127,6 +137,7 @@ jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint typ
     std::unique_ptr<BluetoothObject> b_object = manager->get_object(b_type, name_to_write,
                                                             identifier_to_write,
                                                             b_parent);
+    getObject_cleaner(name_to_write, identifier_to_write);
 
     BluetoothObject *b_object_naked = b_object.release();
     if (!b_object_naked)
@@ -159,6 +170,7 @@ jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jint ty
                                                                 name_to_write,
                                                                 identifier_to_write,
                                                                 b_parent);
+    getObject_cleaner(name_to_write, identifier_to_write);
     jobject result = convert_vector_to_jobject<BluetoothObject>(env, array, "(J)V");
     return result;
 }
