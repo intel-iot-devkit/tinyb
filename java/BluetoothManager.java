@@ -25,6 +25,7 @@
 package tinyb;
 
 import java.util.*;
+import java.time.Duration;
 
 public class BluetoothManager
 {
@@ -41,6 +42,21 @@ public class BluetoothManager
     }
 
     public native BluetoothType getBluetoothType();
+
+    private native BluetoothObject find(int type, String name, String identifier, BluetoothObject parent, long milliseconds);
+
+    public BluetoothObject find(BluetoothType type, String name, String identifier, BluetoothObject parent, Duration duration) {
+        return find(type.ordinal(), name, identifier, parent, duration.toNanos() / 1000000);
+    }
+    public BluetoothObject find(BluetoothType type, String name, String identifier, BluetoothObject parent) {
+        return find(type, name, identifier, parent, Duration.ZERO);
+    }
+    public <T extends BluetoothObject>  T find(String name, String identifier, BluetoothObject parent, Duration duration) {
+        return (T) find(T.class_type().ordinal(), name, identifier, parent, duration.toNanos() / 1000000);
+    }
+    public <T extends BluetoothObject>  T find(String name, String identifier, BluetoothObject parent) {
+        return (T) find(name, identifier, parent, Duration.ZERO);
+    }
 
     public BluetoothObject getObject(BluetoothType type, String name,
                                 String identifier, BluetoothObject parent) {

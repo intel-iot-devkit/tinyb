@@ -25,6 +25,7 @@
 package tinyb;
 
 import java.util.*;
+import java.time.Duration;
 
 /**
   * Provides access to Bluetooth GATT characteristic. Follows the BlueZ adapter API
@@ -36,6 +37,18 @@ public class BluetoothGattCharacteristic extends BluetoothObject
 
     public native BluetoothType getBluetoothType();
     public native BluetoothGattCharacteristic clone();
+
+    static BluetoothType class_type() { return BluetoothType.GATT_CHARACTERISTIC; }
+
+    public BluetoothGattDescriptor find(String UUID, Duration duration) {
+            BluetoothManager manager = BluetoothManager.getBluetoothManager();
+            return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
+                null, UUID, this, duration);
+    }
+
+    public BluetoothGattDescriptor find(String UUID) {
+            return find(UUID, Duration.ZERO);
+    }
 
     /* D-Bus method calls: */
     /** Reads the value of this characteristic.

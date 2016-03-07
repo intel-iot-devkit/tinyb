@@ -25,6 +25,7 @@
 package tinyb;
 
 import java.util.*;
+import java.time.Duration;
 
 /**
   * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
@@ -36,6 +37,19 @@ public class BluetoothAdapter extends BluetoothObject
 
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
+
+    static BluetoothType class_type() { return BluetoothType.ADAPTER; }
+
+    public BluetoothDevice find(String name, String address, Duration duration) {
+            BluetoothManager manager = BluetoothManager.getBluetoothManager();
+            return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address, this, duration);
+    }
+
+    public BluetoothDevice find(String name, String address) {
+            return find(name, address, Duration.ZERO);
+    }
+
+
 
     /* D-Bus method calls: */
     /** Turns on device discovery if it is disabled.

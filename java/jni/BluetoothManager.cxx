@@ -73,6 +73,42 @@ static void getObject_setter(JNIEnv *env,
     }
 }
 
+jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
+                                        jstring name, jstring identifier, jobject parent,
+                                        jlong milliseconds)
+{
+    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    BluetoothObject *b_parent;
+    BluetoothType b_type;
+    std::string *name_to_write;
+    std::string *identifier_to_write;
+
+    getObject_setter(env,
+                     name, &name_to_write,
+                     identifier, &identifier_to_write,
+                     parent, &b_parent);
+
+    b_type = from_int_to_btype((int)type);
+    std::unique_ptr<BluetoothObject> b_object = manager->find(b_type, name_to_write,
+                                                            identifier_to_write,
+                                                            b_parent,
+                                                            std::chrono::milliseconds(milliseconds));
+
+    BluetoothObject *b_object_naked = b_object.release();
+    if (!b_object_naked)
+    {
+        return nullptr;
+    }
+    jclass clazz = search_class(env, *b_object_naked);
+    jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+    jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+
+    return result;
+
+}
+
+
 jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint type,
                                         jstring name, jstring identifier, jobject parent)
 {

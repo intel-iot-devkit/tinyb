@@ -37,6 +37,8 @@ public class BluetoothGattDescriptor extends BluetoothObject
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
 
+    static BluetoothType class_type() { return BluetoothType.GATT_DESCRIPTOR; }
+
     /* D-Bus method calls: */
     /** Reads the value of this descriptor
       * @return A vector<uchar> containing data from this descriptor

@@ -39,6 +39,8 @@ public class BluetoothObject
         }
     }
 
+    static BluetoothType class_type() { return BluetoothType.NONE; }
+
     /** Returns the BluetoothType of this object
       * @return The BluetoothType of this object
       */

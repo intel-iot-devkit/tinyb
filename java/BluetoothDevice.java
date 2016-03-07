@@ -25,6 +25,7 @@
 package tinyb;
 
 import java.util.*;
+import java.time.Duration;
 
 /**
   * Provides access to Bluetooth devices. Follows the BlueZ adapter API
@@ -36,6 +37,18 @@ public class BluetoothDevice extends BluetoothObject
 
     public native BluetoothType getBluetoothType();
     public native BluetoothDevice clone();
+
+    static BluetoothType class_type() { return BluetoothType.DEVICE; }
+
+    public BluetoothGattService find(String UUID, Duration duration) {
+            BluetoothManager manager = BluetoothManager.getBluetoothManager();
+            return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
+                null, UUID, this, duration);
+    }
+
+    public BluetoothGattService find(String UUID) {
+            return find(UUID, Duration.ZERO);
+    }
 
     /* D-Bus method calls: */
     /** The connection to this device is removed, removing all connected
