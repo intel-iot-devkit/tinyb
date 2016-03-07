@@ -60,7 +60,7 @@ static void getObject_setter(JNIEnv *env,
     }
     else
     {
-        **name_to_write = from_jstring_to_string(env, name);
+        *name_to_write = new std::string(from_jstring_to_string(env, name));
     }
 
     if (!identifier)
@@ -69,7 +69,7 @@ static void getObject_setter(JNIEnv *env,
     }
     else
     {
-        **identifier_to_write = from_jstring_to_string(env, identifier);
+        *identifier_to_write = new std::string(from_jstring_to_string(env, identifier));
     }
 }
 
