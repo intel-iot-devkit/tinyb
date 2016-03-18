@@ -45,19 +45,101 @@ public class BluetoothManager
 
     private native BluetoothObject find(int type, String name, String identifier, BluetoothObject parent, long milliseconds);
 
-    public BluetoothObject find(BluetoothType type, String name, String identifier, BluetoothObject parent, Duration duration) {
-        return find(type.ordinal(), name, identifier, parent, duration.toNanos() / 1000000);
+    /** Find a BluetoothObject of a type matching type. If parameters name,
+      * identifier and parent are not null, the returned object will have to
+      * match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter type specify the type of the object you are
+      * waiting for, NONE means anything.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @parameter timeout the function will return after timeout time, a
+      * value of zero means wait forever. If object is not found during this time null will be returned.
+      * @return An object matching the name, identifier, parent or null if not found before
+      * timeout expires or event is canceled.
+      */
+    public BluetoothObject find(BluetoothType type, String name, String identifier, BluetoothObject parent, Duration timeout) {
+        return find(type.ordinal(), name, identifier, parent, timeout.toNanos() / 1000000);
     }
+
+
+    /** Find a BluetoothObject of a type matching type. If parameters name,
+      * identifier and parent are not null, the returned object will have to
+      * match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter type specify the type of the object you are
+      * waiting for, NONE means anything.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @return An object matching the name, identifier and parent.
+      */
     public BluetoothObject find(BluetoothType type, String name, String identifier, BluetoothObject parent) {
         return find(type, name, identifier, parent, Duration.ZERO);
     }
-    public <T extends BluetoothObject>  T find(String name, String identifier, BluetoothObject parent, Duration duration) {
-        return (T) find(T.class_type().ordinal(), name, identifier, parent, duration.toNanos() / 1000000);
+
+    /** Find a BluetoothObject of type T. If parameters name, identifier and
+      * parent are not null, the returned object will have to match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @parameter timeout the function will return after timeout time, a
+      * value of zero means wait forever. If object is not found during this time null will be returned.
+      * @return An object matching the name, identifier, parent or null if not found before
+      * timeout expires or event is canceled.
+      */
+    public <T extends BluetoothObject>  T find(String name, String identifier, BluetoothObject parent, Duration timeout) {
+        return (T) find(T.class_type().ordinal(), name, identifier, parent, timeout.toNanos() / 1000000);
     }
+
+    /** Find a BluetoothObject of type T. If parameters name, identifier and
+      * parent are not null, the returned object will have to match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @return An object matching the name, identifier and parent.
+      */
     public <T extends BluetoothObject>  T find(String name, String identifier, BluetoothObject parent) {
         return (T) find(name, identifier, parent, Duration.ZERO);
     }
 
+    /** Return a BluetoothObject of a type matching type. If parameters name,
+      * identifier and parent are not null, the returned object will have to
+      * match them. Only objects which are already in the system will be returned.
+      * @parameter type specify the type of the object you are
+      * waiting for, NONE means anything.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @return An object matching the name, identifier, parent or null if not found.
+      */
     public BluetoothObject getObject(BluetoothType type, String name,
                                 String identifier, BluetoothObject parent) {
         return getObject(type.ordinal(), name, identifier, parent);
@@ -65,6 +147,20 @@ public class BluetoothManager
     private native BluetoothObject getObject(int type, String name,
                                     String identifier, BluetoothObject parent);
 
+    /** Return a List of BluetoothObject of a type matching type. If parameters name,
+      * identifier and parent are not null, the returned object will have to
+      * match them. Only objects which are already in the system will be returned.
+      * @parameter type specify the type of the object you are
+      * waiting for, NONE means anything.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for (for Adapter or Device)
+      * @parameter identifier optionally specify the identifier of the object you are
+      * waiting for (UUID for GattService, GattCharacteristic or GattDescriptor, address
+      * for Adapter or Device)
+      * @parameter parent optionally specify the parent of the object you are
+      * waiting for
+      * @return A vector of object matching the name, identifier, parent.
+      */
     public List<BluetoothObject> getObjects(BluetoothType type, String name,
                                     String identifier, BluetoothObject parent) {
         return getObjects(type.ordinal(), name, identifier, parent);

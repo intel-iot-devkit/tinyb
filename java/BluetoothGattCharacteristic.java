@@ -40,12 +40,32 @@ public class BluetoothGattCharacteristic extends BluetoothObject
 
     static BluetoothType class_type() { return BluetoothType.GATT_CHARACTERISTIC; }
 
+    /** Find a BluetoothGattDescriptor. If parameter UUID is not null,
+      * the returned object will have to match it.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter UUID optionally specify the UUID of the BluetoothGattDescriptor you are
+      * waiting for
+      * @parameter timeout the function will return after timeout time, a
+      * value of zero means wait forever. If object is not found during this time null will be returned.
+      * @return An object matching the UUID or null if not found before
+      * timeout expires or event is canceled.
+      */
     public BluetoothGattDescriptor find(String UUID, Duration duration) {
             BluetoothManager manager = BluetoothManager.getBluetoothManager();
             return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
                 null, UUID, this, duration);
     }
 
+    /** Find a BluetoothGattDescriptor. If parameter UUID is not null,
+      * the returned object will have to match it.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter UUID optionally specify the UUID of the BluetoothGattDescriptor you are
+      * waiting for
+      * @return An object matching the UUID or null if not found before
+      * timeout expires or event is canceled.
+      */
     public BluetoothGattDescriptor find(String UUID) {
             return find(UUID, Duration.ZERO);
     }

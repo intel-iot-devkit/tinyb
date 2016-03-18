@@ -40,16 +40,37 @@ public class BluetoothAdapter extends BluetoothObject
 
     static BluetoothType class_type() { return BluetoothType.ADAPTER; }
 
+    /** Find a BluetoothDevice. If parameters name and address are not null,
+      * the returned object will have to match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for
+      * @parameter address optionally specify the MAC address of the device you are
+      * waiting for
+      * @parameter timeout the function will return after timeout time, a
+      * value of zero means wait forever. If object is not found during this time null will be returned.
+      * @return An object matching the name and address or null if not found before
+      * timeout expires.
+      */
     public BluetoothDevice find(String name, String address, Duration duration) {
             BluetoothManager manager = BluetoothManager.getBluetoothManager();
             return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address, this, duration);
     }
 
+    /** Find a BluetoothDevice. If parameters name and address are not null,
+      * the returned object will have to match them.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter name optionally specify the name of the object you are
+      * waiting for
+      * @parameter address optionally specify the MAC address of the device you are
+      * waiting for
+      * @return An object matching the name and address.
+      */
     public BluetoothDevice find(String name, String address) {
             return find(name, address, Duration.ZERO);
     }
-
-
 
     /* D-Bus method calls: */
     /** Turns on device discovery if it is disabled.

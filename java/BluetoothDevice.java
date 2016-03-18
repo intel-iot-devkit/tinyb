@@ -40,12 +40,32 @@ public class BluetoothDevice extends BluetoothObject
 
     static BluetoothType class_type() { return BluetoothType.DEVICE; }
 
+    /** Find a BluetoothGattService. If parameter UUID is not null,
+      * the returned object will have to match it.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter UUID optionally specify the UUID of the BluetoothGattService you are
+      * waiting for
+      * @parameter timeout the function will return after timeout time, a
+      * value of zero means wait forever. If object is not found during this time null will be returned.
+      * @return An object matching the UUID or null if not found before
+      * timeout expires or event is canceled.
+      */
     public BluetoothGattService find(String UUID, Duration duration) {
             BluetoothManager manager = BluetoothManager.getBluetoothManager();
             return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
                 null, UUID, this, duration);
     }
 
+    /** Find a BluetoothGattService. If parameter UUID is not null,
+      * the returned object will have to match it.
+      * It will first check for existing objects. It will not turn on discovery
+      * or connect to devices.
+      * @parameter UUID optionally specify the UUID of the BluetoothGattService you are
+      * waiting for
+      * @return An object matching the UUID or null if not found before
+      * timeout expires or event is canceled.
+      */
     public BluetoothGattService find(String UUID) {
             return find(UUID, Duration.ZERO);
     }
