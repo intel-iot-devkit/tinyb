@@ -26,7 +26,7 @@ package tinyb;
 
 import java.util.*;
 
-public class BluetoothObject
+public class BluetoothObject implements Cloneable
 {
     long nativeInstance;
 
