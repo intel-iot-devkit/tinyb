@@ -33,8 +33,6 @@ import java.time.Duration;
   */
 public class BluetoothAdapter extends BluetoothObject
 {
-    private long nativeInstance;
-
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
 
@@ -182,11 +180,5 @@ public class BluetoothAdapter extends BluetoothObject
     private BluetoothAdapter(long instance)
     {
         super(instance);
-        nativeInstance = instance;
-    }
-
-    protected void finalize()
-    {
-        delete();
     }
 }

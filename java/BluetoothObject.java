@@ -28,7 +28,7 @@ import java.util.*;
 
 public class BluetoothObject implements Cloneable
 {
-    long nativeInstance;
+    protected long nativeInstance;
 
     static {
         try {

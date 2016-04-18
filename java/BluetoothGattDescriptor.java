@@ -32,8 +32,6 @@ import java.util.*;
   */
 public class BluetoothGattDescriptor extends BluetoothObject
 {
-    public long nativeInstance;
-
     public native BluetoothType getBluetoothType();
     public native BluetoothAdapter clone();
 
@@ -73,11 +71,5 @@ public class BluetoothGattDescriptor extends BluetoothObject
     private BluetoothGattDescriptor(long instance)
     {
         super(instance);
-        nativeInstance = instance;
-    }
-
-    protected void finalize()
-    {
-        delete();
     }
 }
