@@ -133,8 +133,8 @@ public class AsyncTinyB {
              * raw temperature format to celsius and print it. Conversion for object temperature depends on ambient
              * according to wiki, but assume result is good enough for our purposes without conversion.
              */
-            int objectTempRaw = tempRaw[0] + (tempRaw[1] << 8);
-            int ambientTempRaw = tempRaw[2] + (tempRaw[3] << 8);
+            int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
+            int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
 
             float objectTempCelsius = convertCelsius(objectTempRaw);
             float ambientTempCelsius = convertCelsius(ambientTempRaw);

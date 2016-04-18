@@ -26,6 +26,8 @@ public class HelloTinyB {
         BluetoothDevice sensor = null;
         for (int i = 0; (i < 15) && running; ++i) {
             List<BluetoothDevice> list = manager.getDevices();
+            if (list == null)
+                return null;
 
             for (BluetoothDevice device : list) {
                 printDevice(device);
@@ -56,6 +58,8 @@ public class HelloTinyB {
         List<BluetoothGattService> bluetoothServices = null;
         do {
             bluetoothServices = device.getServices();
+            if (bluetoothServices == null)
+                return null;
 
             for (BluetoothGattService service : bluetoothServices) {
                 System.out.println("UUID: " + service.getUuid());
@@ -63,12 +67,14 @@ public class HelloTinyB {
                     tempService = service;
             }
             Thread.sleep(4000);
-        } while (bluetoothServices != null && bluetoothServices.isEmpty() && running);
+        } while (bluetoothServices.isEmpty() && running);
         return tempService;
     }
 
     static BluetoothGattCharacteristic getCharacteristic(BluetoothGattService service, String UUID) {
         List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+        if (characteristics == null)
+            return null;
 
         for (BluetoothGattCharacteristic characteristic : characteristics) {
             if (characteristic.getUuid().equals(UUID))
@@ -183,8 +189,8 @@ public class HelloTinyB {
              * raw temperature format to celsius and print it. Conversion for object temperature depends on ambient
              * according to wiki, but assume result is good enough for our purposes without conversion.
              */
-            int objectTempRaw = tempRaw[0] + (tempRaw[1] << 8);
-            int ambientTempRaw = tempRaw[2] + (tempRaw[3] << 8);
+            int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
+            int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
 
             float objectTempCelsius = convertCelsius(objectTempRaw);
             float ambientTempCelsius = convertCelsius(ambientTempRaw);

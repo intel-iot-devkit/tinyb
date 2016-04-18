@@ -114,8 +114,8 @@ int main(int argc, char **argv)
             std::cout << "] ";
 
             uint16_t ambient_temp, object_temp;
-            object_temp = data[0] + (data[1] << 8);
-            ambient_temp = data[2] + (data[3] << 8);
+            object_temp = data[0] | (data[1] << 8);
+            ambient_temp = data[2] | (data[3] << 8);
 
             std::cout << "Ambient temp: " << celsius_temp(ambient_temp) << "C ";
             std::cout << "Object temp: " << celsius_temp(object_temp) << "C ";
