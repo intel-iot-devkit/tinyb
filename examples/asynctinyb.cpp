@@ -46,10 +46,16 @@ static float celsius_temp(uint16_t raw_temp)
  */
 int main(int argc, char **argv)
 {
-    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
-
     if (argc < 2) {
         std::cerr << "Run as: " << argv[0] << " <device_address>" << std::endl;
+        exit(1);
+    }
+
+    BluetoothManager *manager = nullptr;
+    try {
+        manager = BluetoothManager::get_bluetooth_manager();
+    } catch(const std::runtime_error& e) {
+        std::cerr << "Error while initializing libtinyb: " << e.what() << std::endl;
         exit(1);
     }
 
