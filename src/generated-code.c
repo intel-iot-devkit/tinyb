@@ -8081,7 +8081,7 @@ gatt_characteristic1_call_read_value_finish (
   }
 
   array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", array[i++]));
+  while (g_variant_iter_loop(iter, "y", &array[i++]));
   *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
   g_variant_iter_free(iter);
 
@@ -8745,10 +8745,10 @@ gatt_characteristic1_proxy_get_value (GattCharacteristic1 *object)
   variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "Value");
   if (variant != NULL)
     {
-      g_variant_get (variant, "(ay)", &iter);
+      g_variant_get (variant, "ay", &iter);
 
       array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-      while (g_variant_iter_loop(iter, "y", array[i++]));
+      while (g_variant_iter_loop(iter, "y", &array[i++]));
       value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
       g_variant_iter_free(iter);
 
@@ -10053,7 +10053,7 @@ gatt_descriptor1_call_read_value_finish (
                  &iter);
 
   array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", array[i++]));
+  while (g_variant_iter_loop(iter, "y", &array[i++]));
   *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
   g_variant_iter_free(iter);
 
@@ -10102,7 +10102,7 @@ gatt_descriptor1_call_read_value_sync (
                  &iter);
 
   array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", array[i++]));
+  while (g_variant_iter_loop(iter, "y", &array[i++]));
   *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
   g_variant_iter_free(iter);
 
@@ -10492,10 +10492,10 @@ gatt_descriptor1_proxy_get_value (GattDescriptor1 *object)
   variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "Value");
   if (variant != NULL)
     {
-      g_variant_get (variant, "(ay)", &iter);
+      g_variant_get (variant, "ay", &iter);
 
       array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-      while (g_variant_iter_loop(iter, "y", array[i++]));
+      while (g_variant_iter_loop(iter, "y", &array[i++]));
       value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
       g_variant_iter_free(iter);
 
