@@ -1,11 +1,22 @@
-Tiny Bluetooth Library
+Tiny Bluetooth LE Library
 =============
 
 [![Build Status](https://travis-ci.org/intel-iot-devkit/tinyb.svg?branch=master)](https://travis-ci.org/intel-iot-devkit/tinyb)
 [![Coverity Scan](https://scan.coverity.com/projects/7546/badge.svg)](https://scan.coverity.com/projects/intel-iot-devkit-tinyb)
 
-This project aims to create clean, modern and easy to use Bluetooth GATT API
-for C++, Java and other languages, using BlueZ over DBus.
+This project aims to create clean, modern and easy to use Bluetooth LE API.
+TinyB exposes the BLE GATT API for C++, Java and other languages, using BlueZ
+over DBus.
+
+API Documentation
+============
+
+Up to date API documentation can be found:
+* for C++: http://iotdk.intel.com/docs/master/tinyb/
+* for Java: http://iotdk.intel.com/docs/master/tinyb/java/
+
+A guide for getting started with TinyB on Java is available here:
+https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
 Using TinyB
 ============
