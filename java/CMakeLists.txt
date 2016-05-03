@@ -35,7 +35,7 @@ set(JAVA_CLASSES tinyb.BluetoothAdapter
                  tinyb.ObjectArrayArgCallback)
 add_custom_command (TARGET tinybjar
   POST_BUILD
-  COMMAND cmake -E echo "Generating JNI headers.."
+  COMMAND ${CMAKE_COMMAND} -E echo "Generating JNI headers.."
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir"
   COMMAND ${Java_JAVAH_EXECUTABLE} -d jni/ -jni ${JAVA_CLASSES}
 )
