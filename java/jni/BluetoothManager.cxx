@@ -241,3 +241,10 @@ void Java_tinyb_BluetoothManager_delete(JNIEnv *env, jobject obj)
     delete manager;
 }
 
+jstring Java_tinyb_BluetoothManager_getNativeAPIVersion(JNIEnv *env, jclass clazz)
+{
+    (void) clazz;
+
+    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+    return env->NewStringUTF(manager->get_api_version().c_str());
+}

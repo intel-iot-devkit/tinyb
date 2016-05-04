@@ -30,6 +30,7 @@
 #include "BluetoothGattCharacteristic.hpp"
 #include "BluetoothGattDescriptor.hpp"
 #include "BluetoothEvent.hpp"
+#include "version.h"
 
 #include <pthread.h>
 #include <cassert>
@@ -119,6 +120,14 @@ std::string BluetoothManager::get_object_path() const
 BluetoothType BluetoothManager::get_bluetooth_type() const
 {
    return BluetoothType::NONE;
+}
+
+std::string BluetoothManager::get_api_version() {
+    return std::string(gVERSION_API);
+}
+
+std::string BluetoothManager::get_library_version() {
+    return std::string(gVERSION_SHORT);
 }
 
 std::unique_ptr<BluetoothObject> BluetoothManager::get_object(

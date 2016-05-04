@@ -56,6 +56,9 @@ public:
         return std::string(JAVA_PACKAGE "/BluetoothManager");
     }
 
+    static std::string get_api_version();
+    static std::string get_library_version();
+
     virtual std::string get_java_class() const;
     virtual std::string get_class_name() const;
     virtual std::string get_object_path() const;
