@@ -16,8 +16,11 @@ if(NOT Java_JAVAH_EXECUTABLE)
     message(FATAL_ERROR "Cannot locate javah executable.")
 endif(NOT Java_JAVAH_EXECUTABLE)
 
+set(CMAKE_JNI_TARGET TRUE)
 file(GLOB JAVA_SOURCES "*.java")
 add_jar(tinybjar ${JAVA_SOURCES}
+                  MANIFEST ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
+                  VERSION ${VERSION}
                   OUTPUT_NAME tinyb
 )
 
@@ -41,7 +44,6 @@ add_custom_command (TARGET tinybjar
 )
 
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir/jni")
-
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/tinyb.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/java)
+install_jar (tinybjar DESTINATION ${CMAKE_INSTALL_LIBDIR}/java)
 
 add_subdirectory (jni)

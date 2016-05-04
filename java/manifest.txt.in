@@ -1,0 +1,9 @@
+Manifest-version: 1.0
+
+Name: tinyb/
+Specification-Title: "TinyB"
+Specification-Version: "@VERSION_API@"
+Specification-Vendor: "Intel Corp."
+Package-Title: "tinyb"
+Package-Version: "@VERSION_SHORT@"
+Package-Vendor: "Intel Corp."

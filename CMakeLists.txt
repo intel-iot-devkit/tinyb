@@ -36,6 +36,7 @@ string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${VE
 string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+\\-([0-9]+).*" "\\1" VERSION_COMMIT "${VERSION}")
 string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+\\-(.*)" "\\1" VERSION_SHA1 "${VERSION}")
 set (VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set (VERSION_API "${VERSION_MAJOR}.${VERSION_MINOR}")
 
 if ("${VERSION_COMMIT}" MATCHES "^v.*")
   set (VERSION_COMMIT "")
@@ -76,6 +77,7 @@ include_directories (${SYSTEM_USR_DIR})
 option (BUILDJAVA "Build Java API." OFF)
 
 IF(BUILDJAVA)
+    configure_file (${CMAKE_CURRENT_SOURCE_DIR}/java/manifest.txt.in ${CMAKE_CURRENT_BINARY_DIR}/java/manifest.txt)
     add_subdirectory (java)
     add_subdirectory (examples/java)
 ENDIF(BUILDJAVA)

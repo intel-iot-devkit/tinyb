@@ -2,3 +2,4 @@
 
 const char* gVERSION = "@VERSION@";
 const char* gVERSION_SHORT = "@VERSION_SHORT@";
+const char* gVERSION_API = "@VERSION_API@";
