@@ -37,6 +37,7 @@ string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+\\-([0-9]+).*" "\\1" VERSION_CO
 string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+\\-(.*)" "\\1" VERSION_SHA1 "${VERSION}")
 set (VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set (VERSION_API "${VERSION_MAJOR}.${VERSION_MINOR}")
+string(TIMESTAMP BUILD_TSTAMP "%Y-%m-%d %H:%M:%S")
 
 if ("${VERSION_COMMIT}" MATCHES "^v.*")
   set (VERSION_COMMIT "")

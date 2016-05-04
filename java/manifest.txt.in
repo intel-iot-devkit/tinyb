@@ -1,9 +1,15 @@
-Manifest-version: 1.0
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: tinyb
+Bundle-SymbolicName: tinyb
+Bundle-Version: @VERSION_SHORT@
+Export-Package: tinyb
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
 
 Name: tinyb/
-Specification-Title: "TinyB"
-Specification-Version: "@VERSION_API@"
-Specification-Vendor: "Intel Corp."
 Package-Title: "tinyb"
-Package-Version: "@VERSION_SHORT@"
 Package-Vendor: "Intel Corp."
+Package-Version: "@VERSION_SHORT@"
+Specification-Title: "TinyB"
+Specification-Vendor: "Intel Corp."
+Specification-Version: "@VERSION_API@"
