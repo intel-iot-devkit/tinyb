@@ -1,4 +1,5 @@
 Manifest-Version: 1.0
+Bundle-Date: @BUILD_TSTAMP@
 Bundle-ManifestVersion: 2
 Bundle-Name: tinyb
 Bundle-SymbolicName: tinyb
