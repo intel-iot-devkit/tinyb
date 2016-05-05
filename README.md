@@ -73,3 +73,10 @@ make doc
 The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
 from which it reads the ambient temperature. You have to pass the MAC address
 of the Sensor Tag as a first parameter to the program.
+
+Contributing to TinyB
+============
+
+You must agree to Developer Certificate of Origin and Sign-off your code,
+using a real name and e-mail address. 
+Please check the [Contribution](CONTRIBUTING.md) document for more details.
