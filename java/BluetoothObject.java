@@ -64,12 +64,10 @@ public class BluetoothObject implements Cloneable
         delete();
     }
 
-    public boolean equals(BluetoothObject obj)
+    public boolean equals(Object obj)
     {
-        if (obj == null)
-        {
+        if (obj == null || !(obj instanceof BluetoothObject))
             return false;
-        }
-        return operatorEqual(obj);
+        return operatorEqual((BluetoothObject)obj);
     }
 }
