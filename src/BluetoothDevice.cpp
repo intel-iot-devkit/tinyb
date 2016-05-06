@@ -232,9 +232,12 @@ uint16_t BluetoothDevice::get_appearance ()
     return device1_get_appearance (object);
 }
 
-std::string BluetoothDevice::get_icon ()
+std::unique_ptr<std::string> BluetoothDevice::get_icon ()
 {
-    return std::string(device1_get_icon (object));
+    const gchar *icon = device1_get_icon (object);
+    if (icon == nullptr)
+        return std::unique_ptr<std::string>();
+    return std::unique_ptr<std::string>(new std::string(icon));
 }
 
 bool BluetoothDevice::get_paired ()
@@ -287,9 +290,12 @@ std::vector<std::string> BluetoothDevice::get_uuids ()
     return uuids;
 }
 
-std::string BluetoothDevice::get_modalias ()
+std::unique_ptr<std::string> BluetoothDevice::get_modalias ()
 {
-    return std::string(device1_get_modalias (object));
+    const gchar *modalias= device1_get_modalias (object);
+    if (modalias == nullptr)
+        return std::unique_ptr<std::string>();
+    return std::unique_ptr<std::string>(new std::string(modalias));
 }
 
 BluetoothAdapter BluetoothDevice::get_adapter ()

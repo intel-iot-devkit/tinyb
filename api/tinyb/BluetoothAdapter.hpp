@@ -196,6 +196,6 @@ public:
     /** Returns the local ID of the adapter.
       * @return The local ID of the adapter.
       */
-    std::string get_modalias ();
+    std::unique_ptr<std::string> get_modalias ();
 
 };

@@ -169,7 +169,7 @@ public:
     /** Returns the proposed icon name of the device.
       * @return The proposed icon name, or NULL if not set.
       */
-    std::string get_icon ();
+    std::unique_ptr<std::string> get_icon ();
 
     /** Returns the paired state the device.
       * @return The paired state of the device.
@@ -199,8 +199,8 @@ public:
       */
     bool get_legacy_pairing ();
 
-    /** Returns the Received Signal Strength Indicator of the device.
-      * @return The Received Signal Strength Indicator of the device.
+    /** Returns the Received Signal Strength Indicator of the device (0 means unknown).
+      * @return The Received Signal Strength Indicator of the device (0 means unknown).
       */
     int16_t get_rssi ();
 
@@ -214,10 +214,10 @@ public:
       */
     std::vector<std::string> get_uuids ();
 
-    /** Returns the local ID of the adapter.
-      * @return The local ID of the adapter.
+    /** Returns the local ID of the adapter, or nullptr.
+      * @return The local ID of the adapter, or nullptr.
       */
-    std::string get_modalias ();
+    std::unique_ptr<std::string> get_modalias ();
 
     /** Returns the adapter on which this device was discovered or
       * connected.

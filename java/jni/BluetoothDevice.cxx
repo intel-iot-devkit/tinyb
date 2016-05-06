@@ -151,9 +151,11 @@ jshort Java_tinyb_BluetoothDevice_getAppearance(JNIEnv *env, jobject obj)
 jstring Java_tinyb_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
-    std::string icon = obj_device->get_icon();
+    std::unique_ptr<std::string> icon = obj_device->get_icon();
+    if (icon == nullptr)
+        return nullptr;
 
-    return env->NewStringUTF((const char *)icon.c_str());
+    return env->NewStringUTF((const char *)icon->c_str());
 }
 
 jboolean Java_tinyb_BluetoothDevice_getPaired(JNIEnv *env, jobject obj)
@@ -236,9 +238,11 @@ jobjectArray Java_tinyb_BluetoothDevice_getUuids(JNIEnv *env, jobject obj)
 jstring Java_tinyb_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
 {
     BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
-    std::string modalias = obj_device->get_modalias();
+    std::unique_ptr<std::string> modalias = obj_device->get_modalias();
+    if (modalias == nullptr)
+        return nullptr;
 
-    return env->NewStringUTF((const char *)modalias.c_str());
+    return env->NewStringUTF((const char *)modalias->c_str());
 }
 
 jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)

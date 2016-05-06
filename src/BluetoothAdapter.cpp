@@ -246,7 +246,10 @@ std::vector<std::string> BluetoothAdapter::get_uuids ()
     return uuids;
 }
 
-std::string BluetoothAdapter::get_modalias ()
+std::unique_ptr<std::string> BluetoothAdapter::get_modalias ()
 {
-    return std::string(adapter1_get_modalias (object));
+    const gchar *modalias= adapter1_get_modalias (object);
+    if (modalias == nullptr)
+        return std::unique_ptr<std::string>();
+    return std::unique_ptr<std::string>(new std::string(modalias));
 }

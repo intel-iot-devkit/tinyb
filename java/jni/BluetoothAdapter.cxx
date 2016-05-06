@@ -222,9 +222,11 @@ jobjectArray Java_tinyb_BluetoothAdapter_getUuids(JNIEnv *env, jobject obj)
 jstring Java_tinyb_BluetoothAdapter_getModalias(JNIEnv *env, jobject obj)
 {
     BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
-    std::string modalias = obj_adapter->get_modalias();
+    std::unique_ptr<std::string> modalias = obj_adapter->get_modalias();
+    if(modalias == nullptr)
+        return nullptr;
 
-    return env->NewStringUTF((const char *)modalias.c_str());
+    return env->NewStringUTF((const char *)modalias->c_str());
 }
 
 void Java_tinyb_BluetoothAdapter_delete(JNIEnv *env, jobject obj)
