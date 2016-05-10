@@ -311,10 +311,10 @@ BluetoothAdapter BluetoothDevice::get_adapter ()
         &error);
 
    if (adapter == NULL) {
-            g_printerr("Error instantiating adapter: %s",
-                    error->message);
-            g_error_free(error);
-            throw std::exception();
+        std::string error_msg("Error occured while instantiating adapter: ");
+        error_msg += error->message;
+        g_error_free(error);
+        throw std::runtime_error(error_msg);
    }
 
    return BluetoothAdapter(adapter);

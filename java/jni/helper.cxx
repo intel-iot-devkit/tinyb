@@ -120,10 +120,12 @@ bool from_jboolean_to_bool(jboolean val)
 std::string from_jstring_to_string(JNIEnv *env, jstring str)
 {
     jboolean is_copy = JNI_TRUE;
+    if (!str) {
+        throw std::invalid_argument("String should not be null");
+    }
     const char *str_chars = (char *)env->GetStringUTFChars(str, &is_copy);
-    if (!str_chars)
-    {
-        throw std::runtime_error("GetStringUTFChars returned NULL\n");
+    if (!str_chars) {
+        throw std::bad_alloc();
     }
     const std::string string_to_write = std::string(str_chars);
 
@@ -196,3 +198,24 @@ jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
 
     return result;
 }
+
+void raise_java_exception(JNIEnv *env, std::exception &e)
+{
+    env->ThrowNew(env->FindClass("java/lang/Error"), e.what());
+}
+
+void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e)
+{
+    env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+}
+
+void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e)
+{
+    env->ThrowNew(env->FindClass("java/lang/OutOfMemoryException"), e.what());
+}
+
+void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e)
+{
+    env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
+}
+

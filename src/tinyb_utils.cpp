@@ -29,6 +29,9 @@ std::vector<unsigned char> tinyb::from_gbytes_to_vector(const GBytes *bytes)
     gsize result_size;
     const unsigned char *aux_array = (const unsigned char *)g_bytes_get_data(const_cast<GBytes *>(bytes), &result_size);
 
+    if (aux_array == nullptr || result_size == 0)
+        throw std::runtime_error("Trying to read empty value");
+
     std::vector<unsigned char> result(result_size);
     std::copy(aux_array, aux_array + result_size, result.begin());
 
@@ -42,11 +45,8 @@ GBytes *tinyb::from_vector_to_gbytes(const std::vector<unsigned char>& vector)
     const unsigned char *vector_content = vector.data();
 
     GBytes *result = g_bytes_new(vector_content, vector_size);
-    if (!result)
-    {
-        g_printerr("Error: cannot allocate\n");
-        throw std::exception();
-    }
+    if (result == nullptr)
+        throw std::bad_alloc();
 
     return result;
 }

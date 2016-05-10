@@ -108,3 +108,8 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
     }
     return result;
 }
+
+void raise_java_exception(JNIEnv *env, std::exception &e);
+void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e);
+void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e);
+void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e);

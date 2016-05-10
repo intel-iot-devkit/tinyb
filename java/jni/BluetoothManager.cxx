@@ -35,41 +35,62 @@ using namespace tinyb;
 
 jobject Java_tinyb_BluetoothManager_getBluetoothType(JNIEnv *env, jobject obj)
 {
-    (void)obj;
+    try {
+        (void)obj;
 
-    return get_bluetooth_type(env, "NONE");
+        return get_bluetooth_type(env, "NONE");
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 static void getObject_setter(JNIEnv *env,
-                              jstring name, std::string **name_to_write,
-                              jstring identifier, std::string **identifier_to_write,
-                              jobject parent, BluetoothObject **b_parent)
+                                  jstring name, std::string **name_to_write,
+                                  jstring identifier, std::string **identifier_to_write,
+                                  jobject parent, BluetoothObject **b_parent)
 {
-    if (!parent)
-    {
-        *b_parent = nullptr;
-    }
-    else
-    {
-        *b_parent = getInstance<BluetoothObject>(env, parent);
-    }
+    try {
+        if (!parent)
+        {
+            *b_parent = nullptr;
+        }
+        else
+        {
+            *b_parent = getInstance<BluetoothObject>(env, parent);
+        }
 
-    if (!name)
-    {
-        *name_to_write = nullptr;
-    }
-    else
-    {
-        *name_to_write = new std::string(from_jstring_to_string(env, name));
-    }
+        if (!name)
+        {
+            *name_to_write = nullptr;
+        }
+        else
+        {
+            *name_to_write = new std::string(from_jstring_to_string(env, name));
+        }
 
-    if (!identifier)
-    {
-        *identifier_to_write = nullptr;
-    }
-    else
-    {
-        *identifier_to_write = new std::string(from_jstring_to_string(env, identifier));
+        if (!identifier)
+        {
+            *identifier_to_write = nullptr;
+        }
+        else
+        {
+            *identifier_to_write = new std::string(from_jstring_to_string(env, identifier));
+        }
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
     }
 }
 
@@ -83,168 +104,297 @@ static void getObject_cleaner(std::string *name_to_write, std::string *identifie
 }
 
 jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
-                                        jstring name, jstring identifier, jobject parent,
-                                        jlong milliseconds)
+                                            jstring name, jstring identifier, jobject parent,
+                                            jlong milliseconds)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    BluetoothObject *b_parent;
-    BluetoothType b_type;
-    std::string *name_to_write;
-    std::string *identifier_to_write;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        BluetoothObject *b_parent;
+        BluetoothType b_type;
+        std::string *name_to_write;
+        std::string *identifier_to_write;
 
-    getObject_setter(env,
-                     name, &name_to_write,
-                     identifier, &identifier_to_write,
-                     parent, &b_parent);
+        getObject_setter(env,
+                         name, &name_to_write,
+                         identifier, &identifier_to_write,
+                         parent, &b_parent);
 
-    b_type = from_int_to_btype((int)type);
-    std::unique_ptr<BluetoothObject> b_object = manager->find(b_type, name_to_write,
-                                                            identifier_to_write,
-                                                            b_parent,
-                                                            std::chrono::milliseconds(milliseconds));
-    getObject_cleaner(name_to_write, identifier_to_write);
+        b_type = from_int_to_btype((int)type);
+        std::unique_ptr<BluetoothObject> b_object = manager->find(b_type, name_to_write,
+                                                                identifier_to_write,
+                                                                b_parent,
+                                                                std::chrono::milliseconds(milliseconds));
+        getObject_cleaner(name_to_write, identifier_to_write);
 
-    BluetoothObject *b_object_naked = b_object.release();
-    if (!b_object_naked)
-    {
-        return nullptr;
+        BluetoothObject *b_object_naked = b_object.release();
+        if (!b_object_naked)
+        {
+            return nullptr;
+        }
+        jclass clazz = search_class(env, *b_object_naked);
+        jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+        jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+
+        return result;
+
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
     }
-    jclass clazz = search_class(env, *b_object_naked);
-    jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
-
-    jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
-
-    return result;
-
+    return nullptr;
 }
 
 
 jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint type,
-                                        jstring name, jstring identifier, jobject parent)
+                                            jstring name, jstring identifier, jobject parent)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    BluetoothObject *b_parent;
-    BluetoothType b_type;
-    std::string *name_to_write;
-    std::string *identifier_to_write;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        BluetoothObject *b_parent;
+        BluetoothType b_type;
+        std::string *name_to_write;
+        std::string *identifier_to_write;
 
-    getObject_setter(env,
-                     name, &name_to_write,
-                     identifier, &identifier_to_write,
-                     parent, &b_parent);
+        getObject_setter(env,
+                         name, &name_to_write,
+                         identifier, &identifier_to_write,
+                         parent, &b_parent);
 
-    b_type = from_int_to_btype((int)type);
-    std::unique_ptr<BluetoothObject> b_object = manager->get_object(b_type, name_to_write,
-                                                            identifier_to_write,
-                                                            b_parent);
-    getObject_cleaner(name_to_write, identifier_to_write);
+        b_type = from_int_to_btype((int)type);
+        std::unique_ptr<BluetoothObject> b_object = manager->get_object(b_type, name_to_write,
+                                                                identifier_to_write,
+                                                                b_parent);
+        getObject_cleaner(name_to_write, identifier_to_write);
 
-    BluetoothObject *b_object_naked = b_object.release();
-    if (!b_object_naked)
-    {
-        return nullptr;
+        BluetoothObject *b_object_naked = b_object.release();
+        if (!b_object_naked)
+        {
+            return nullptr;
+        }
+        jclass clazz = search_class(env, *b_object_naked);
+        jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+        jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
     }
-    jclass clazz = search_class(env, *b_object_naked);
-    jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
-
-    jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
-    return result;
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jint type,
-                                        jstring name, jstring identifier, jobject parent)
+                                            jstring name, jstring identifier, jobject parent)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    BluetoothObject *b_parent;
-    BluetoothType b_type;
-    std::string *name_to_write;
-    std::string *identifier_to_write;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        BluetoothObject *b_parent;
+        BluetoothType b_type;
+        std::string *name_to_write;
+        std::string *identifier_to_write;
 
-    getObject_setter(env,
-                     name, &name_to_write,
-                     identifier, &identifier_to_write,
-                     parent, &b_parent);
+        getObject_setter(env,
+                         name, &name_to_write,
+                         identifier, &identifier_to_write,
+                         parent, &b_parent);
 
-    b_type = from_int_to_btype((int)type);
-    std::vector<std::unique_ptr<BluetoothObject>> array = manager->get_objects(b_type,
-                                                                name_to_write,
-                                                                identifier_to_write,
-                                                                b_parent);
-    getObject_cleaner(name_to_write, identifier_to_write);
-    jobject result = convert_vector_to_jobject<BluetoothObject>(env, array, "(J)V");
-    return result;
+        b_type = from_int_to_btype((int)type);
+        std::vector<std::unique_ptr<BluetoothObject>> array = manager->get_objects(b_type,
+                                                                    name_to_write,
+                                                                    identifier_to_write,
+                                                                    b_parent);
+        getObject_cleaner(name_to_write, identifier_to_write);
+        jobject result = convert_vector_to_jobject<BluetoothObject>(env, array, "(J)V");
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
-    std::vector<std::unique_ptr<BluetoothAdapter>> array = manager->get_adapters();
-    jobject result = convert_vector_to_jobject<BluetoothAdapter>(env, array,
-                                                                "(J)V");
-    return result;
+        std::vector<std::unique_ptr<BluetoothAdapter>> array = manager->get_adapters();
+        jobject result = convert_vector_to_jobject<BluetoothAdapter>(env, array,
+                                                                    "(J)V");
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
-    std::vector<std::unique_ptr<BluetoothDevice>> array = manager->get_devices();
-    jobject result = convert_vector_to_jobject<BluetoothDevice>(env, array,
-                                                                "(J)V");
-    return result;
-
+        std::vector<std::unique_ptr<BluetoothDevice>> array = manager->get_devices();
+        jobject result = convert_vector_to_jobject<BluetoothDevice>(env, array,
+                                                                    "(J)V");
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
 
-    std::vector<std::unique_ptr<BluetoothGattService>> array = manager->get_services();
-    jobject result = convert_vector_to_jobject<BluetoothGattService>(env, array,
-                                                                "(J)V");
-    return result;
+        std::vector<std::unique_ptr<BluetoothGattService>> array = manager->get_services();
+        jobject result = convert_vector_to_jobject<BluetoothGattService>(env, array,
+                                                                    "(J)V");
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj, jobject adapter)
 {
-    if (adapter == nullptr)
-        throw std::invalid_argument("adapter argument is null\n");
+    try {
+        if (adapter == nullptr)
+            throw std::invalid_argument("adapter argument is null\n");
 
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    BluetoothAdapter *b_adapter = getInstance<BluetoothAdapter>(env, adapter);
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        BluetoothAdapter *b_adapter = getInstance<BluetoothAdapter>(env, adapter);
 
-    return manager->set_default_adapter(*b_adapter);
+        return manager->set_default_adapter(*b_adapter);
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
 }
 
 jboolean Java_tinyb_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
 }
 
 jboolean Java_tinyb_BluetoothManager_stopDiscovery(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
 }
 
 void Java_tinyb_BluetoothManager_init(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
-    setInstance<BluetoothManager>(env, obj, manager);
+    try {
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        setInstance<BluetoothManager>(env, obj, manager);
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
 }
 
 void Java_tinyb_BluetoothManager_delete(JNIEnv *env, jobject obj)
 {
-    BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-    delete manager;
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        delete manager;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
 }
 
 jstring Java_tinyb_BluetoothManager_getNativeAPIVersion(JNIEnv *env, jclass clazz)
 {
-    (void) clazz;
+    try {
+        (void) clazz;
 
-    BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
-    return env->NewStringUTF(manager->get_api_version().c_str());
+        BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        return env->NewStringUTF(manager->get_api_version().c_str());
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }

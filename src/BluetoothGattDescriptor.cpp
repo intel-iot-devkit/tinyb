@@ -158,10 +158,10 @@ BluetoothGattCharacteristic BluetoothGattDescriptor::get_characteristic ()
         &error);
 
     if (characteristic == NULL) {
-        g_printerr("Error instantiating: %s",
-            error->message);
+        std::string error_msg("Error occured while instantiating characteristic: ");
+        error_msg += error->message;
         g_error_free(error);
-        throw std::exception();
+        throw std::runtime_error(error_msg);
     }
 
     return BluetoothGattCharacteristic(characteristic);
@@ -170,7 +170,13 @@ BluetoothGattCharacteristic BluetoothGattDescriptor::get_characteristic ()
 std::vector<unsigned char> BluetoothGattDescriptor::get_value ()
 {
     GBytes *value_gbytes = const_cast<GBytes *>(gatt_descriptor1_get_value (object));
-    std::vector<unsigned char> result = from_gbytes_to_vector(value_gbytes);
+    std::vector<unsigned char> result;
+    try {
+        result = from_gbytes_to_vector(value_gbytes);
+    } catch (std::exception &e) {
+        g_bytes_unref(value_gbytes);
+        throw e;
+    }
 
     g_bytes_unref(value_gbytes);
 

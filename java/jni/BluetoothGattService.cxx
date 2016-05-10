@@ -35,61 +35,137 @@ using namespace tinyb;
 
 jobject Java_tinyb_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject obj)
 {
-    (void)obj;
+    try {
+        (void)obj;
 
-    return get_bluetooth_type(env, "GATT_SERVICE");
+        return get_bluetooth_type(env, "GATT_SERVICE");
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothGattService>(env, obj);
+    try {
+        return generic_clone<BluetoothGattService>(env, obj);
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jstring Java_tinyb_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)
 {
-    BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
-    std::string uuid = obj_gatt_serv->get_uuid();
+    try {
+        BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
+        std::string uuid = obj_gatt_serv->get_uuid();
 
-    return env->NewStringUTF((const char *)uuid.c_str());
+        return env->NewStringUTF((const char *)uuid.c_str());
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 jobject Java_tinyb_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
 {
-    BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
-    BluetoothDevice *obj_device = obj_gatt_serv->get_device().clone();
+    try {
+        BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
+        BluetoothDevice *obj_device = obj_gatt_serv->get_device().clone();
 
-    jclass b_device_class = search_class(env, *obj_device);
-    jmethodID b_device_ctor = search_method(env, b_device_class, "<init>",
-                                            "(J)V", false);
-    jobject result = env->NewObject(b_device_class, b_device_ctor, (jlong)obj_device);
-    if (result == NULL)
-    {
-        throw std::runtime_error("cannot create instance of class\n");
+        jclass b_device_class = search_class(env, *obj_device);
+        jmethodID b_device_ctor = search_method(env, b_device_class, "<init>",
+                                                "(J)V", false);
+        jobject result = env->NewObject(b_device_class, b_device_ctor, (jlong)obj_device);
+        if (result == NULL)
+        {
+            throw std::runtime_error("cannot create instance of class\n");
+        }
+
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
     }
-
-    return result;
+    return nullptr;
 }
 
 jboolean Java_tinyb_BluetoothGattService_getPrimary(JNIEnv *env, jobject obj)
 {
-    BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
+    try {
+        BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
 
-    return obj_gatt_serv->get_primary() ? JNI_TRUE : JNI_FALSE;
+        return obj_gatt_serv->get_primary() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
 }
 
 jobject Java_tinyb_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject obj)
 {
-    BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
-    std::vector<std::unique_ptr<BluetoothGattCharacteristic>> array =
-                                                obj_gatt_serv->get_characteristics();
-    jobject result = convert_vector_to_jobject<BluetoothGattCharacteristic>(env, array,
-                                                                    "(J)V");
-    return result;
+    try {
+        BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
+        std::vector<std::unique_ptr<BluetoothGattCharacteristic>> array =
+                                                    obj_gatt_serv->get_characteristics();
+        jobject result = convert_vector_to_jobject<BluetoothGattCharacteristic>(env, array,
+                                                                        "(J)V");
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
 }
 
 void Java_tinyb_BluetoothGattService_delete(JNIEnv *env, jobject obj)
 {
-    BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
-    delete obj_gatt_serv;
+    try {
+        BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
+        delete obj_gatt_serv;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
 }
 

@@ -109,11 +109,11 @@ BluetoothDevice BluetoothGattService::get_device ()
         NULL,
         &error);
 
-    if (device == NULL) {
-        g_printerr("Error instantiating: %s",
-            error->message);
+    if (device == nullptr) {
+        std::string error_msg("Error occured while instantiating device: ");
+        error_msg += error->message;
         g_error_free(error);
-        throw std::exception();
+        throw std::runtime_error(error_msg);
     }
 
     return BluetoothDevice(device);

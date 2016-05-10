@@ -184,11 +184,11 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
         NULL,
         &error);
 
-    if (service == NULL) {
-        g_printerr("Error instantiating: %s",
-            error->message);
+    if (service == nullptr) {
+        std::string error_msg("Error occured while instantiating service: ");
+        error_msg += error->message;
         g_error_free(error);
-        throw std::exception();
+        throw std::runtime_error(error_msg);
     }
 
     return BluetoothGattService(service);
@@ -197,7 +197,14 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
 std::vector<unsigned char> BluetoothGattCharacteristic::get_value ()
 {
     GBytes *value_gbytes = const_cast<GBytes *>(gatt_characteristic1_get_value (object));
-    std::vector<unsigned char> result = from_gbytes_to_vector(value_gbytes);
+    std::vector<unsigned char> result;
+
+    try {
+        result = from_gbytes_to_vector(value_gbytes);
+    } catch (std::exception &e) {
+        g_bytes_unref(value_gbytes);
+        throw e;
+    }
 
     g_bytes_unref(value_gbytes);
 
