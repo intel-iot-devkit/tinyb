@@ -20,7 +20,6 @@ set(CMAKE_JNI_TARGET TRUE)
 file(GLOB JAVA_SOURCES "*.java")
 add_jar(tinybjar ${JAVA_SOURCES}
                   MANIFEST ${CMAKE_CURRENT_BINARY_DIR}/manifest.txt
-                  VERSION ${VERSION}
                   OUTPUT_NAME tinyb
 )
 
@@ -44,6 +43,6 @@ add_custom_command (TARGET tinybjar
 )
 
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir/jni")
-install_jar (tinybjar DESTINATION ${CMAKE_INSTALL_LIBDIR}/java)
+install_jar (tinybjar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
 
 add_subdirectory (jni)
