@@ -46,7 +46,7 @@ you all the options. The interesting ones are detailed below:
 
 Changing install path from /usr/local to /usr
 ~~~~~~~~~~~~~
--DCMAKE_INSTALL_PREFIX:PATH=/usr
+-DCMAKE_INSTALL_PREFIX=/usr
 ~~~~~~~~~~~~~
 Building debug build:
 ~~~~~~~~~~~~~
@@ -73,6 +73,11 @@ make doc
 The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_connectivity/sensortag2015/?INTC=SensorTag&HQS=sensortag)
 from which it reads the ambient temperature. You have to pass the MAC address
 of the Sensor Tag as a first parameter to the program.
+
+Common issues
+============
+
+If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). If the solution is not there, please create a new issue on [Github](https://github.com/intel-iot-devkit/tinyb).
 
 Contributing to TinyB
 ============
