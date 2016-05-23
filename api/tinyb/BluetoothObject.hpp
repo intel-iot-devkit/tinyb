@@ -46,6 +46,7 @@ enum class BluetoothType {
     class BluetoothGattService;
     class BluetoothGattCharacteristic;
     class BluetoothGattDescriptor;
+    class BluetoothException;
 }
 
 class tinyb::BluetoothObject

@@ -26,6 +26,7 @@
 #include "tinyb_utils.hpp"
 #include "BluetoothGattDescriptor.hpp"
 #include "BluetoothGattCharacteristic.hpp"
+#include "BluetoothException.hpp"
 
 using namespace tinyb;
 
@@ -103,8 +104,7 @@ std::vector<unsigned char> BluetoothGattDescriptor::read_value ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
 
     std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
 
@@ -128,8 +128,7 @@ bool BluetoothGattDescriptor::write_value (
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
 
     /* unref the GBytes allocated inside from_vector_to_gbytes function */
     g_bytes_unref(arg_value_gbytes);
@@ -161,7 +160,7 @@ BluetoothGattCharacteristic BluetoothGattDescriptor::get_characteristic ()
         std::string error_msg("Error occured while instantiating characteristic: ");
         error_msg += error->message;
         g_error_free(error);
-        throw std::runtime_error(error_msg);
+        throw BluetoothException(error_msg);
     }
 
     return BluetoothGattCharacteristic(characteristic);

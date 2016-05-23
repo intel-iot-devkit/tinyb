@@ -27,6 +27,7 @@
 #include "BluetoothAdapter.hpp"
 #include "BluetoothDevice.hpp"
 #include "BluetoothManager.hpp"
+#include "BluetoothException.hpp"
 
 using namespace tinyb;
 
@@ -118,8 +119,7 @@ bool BluetoothAdapter::start_discovery ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -133,8 +133,7 @@ bool BluetoothAdapter::stop_discovery ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -148,8 +147,7 @@ bool BluetoothAdapter::remove_device (
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 

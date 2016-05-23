@@ -23,6 +23,7 @@
  */
 
 #include "tinyb_utils.hpp"
+#include "BluetoothException.hpp"
 
 std::vector<unsigned char> tinyb::from_gbytes_to_vector(const GBytes *bytes)
 {
@@ -49,4 +50,13 @@ GBytes *tinyb::from_vector_to_gbytes(const std::vector<unsigned char>& vector)
         throw std::bad_alloc();
 
     return result;
+}
+
+void tinyb::handle_error(GError *error)
+{
+    if (error != nullptr) {
+        BluetoothException e(error->message);
+        g_error_free(error);
+        throw e;
+    }
 }

@@ -209,6 +209,12 @@ void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e)
     env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
 }
 
+void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e)
+{
+    env->ThrowNew(env->FindClass("tinyb/BluetoothException"), e.what());
+}
+
+
 void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e)
 {
     env->ThrowNew(env->FindClass("java/lang/OutOfMemoryException"), e.what());

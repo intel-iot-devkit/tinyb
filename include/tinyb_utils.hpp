@@ -34,4 +34,5 @@ extern GDBusObjectManager *gdbus_manager;
 namespace tinyb {
     std::vector<unsigned char> from_gbytes_to_vector(const GBytes *bytes);
     GBytes *from_vector_to_gbytes(const std::vector<unsigned char>& array);
+    void handle_error(GError *error);
 };

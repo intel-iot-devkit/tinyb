@@ -33,6 +33,7 @@ set(JAVA_CLASSES tinyb.BluetoothAdapter
                  tinyb.BluetoothManager
                  tinyb.BluetoothObject
                  tinyb.BluetoothType
+                 tinyb.BluetoothException
                  tinyb.ObjectArgCallback
                  tinyb.ObjectArrayArgCallback)
 add_custom_command (TARGET tinybjar

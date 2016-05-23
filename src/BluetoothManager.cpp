@@ -30,6 +30,7 @@
 #include "BluetoothGattCharacteristic.hpp"
 #include "BluetoothGattDescriptor.hpp"
 #include "BluetoothEvent.hpp"
+#include "BluetoothException.hpp"
 #include "version.h"
 
 #include <pthread.h>
@@ -293,7 +294,7 @@ BluetoothManager::BluetoothManager() : event_list()
     g_list_free_full(objects, g_object_unref);
 
     if (default_adapter == nullptr) {
-        throw std::runtime_error("No adapter installed or not recognized by system");
+        throw BluetoothException("No adapter installed or not recognized by system");
     }
 }
 

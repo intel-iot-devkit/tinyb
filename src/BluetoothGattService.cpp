@@ -27,6 +27,7 @@
 #include "BluetoothGattService.hpp"
 #include "BluetoothGattCharacteristic.hpp"
 #include "BluetoothDevice.hpp"
+#include "BluetoothException.hpp"
 
 using namespace tinyb;
 
@@ -113,7 +114,7 @@ BluetoothDevice BluetoothGattService::get_device ()
         std::string error_msg("Error occured while instantiating device: ");
         error_msg += error->message;
         g_error_free(error);
-        throw std::runtime_error(error_msg);
+        throw BluetoothException(error_msg);
     }
 
     return BluetoothDevice(device);

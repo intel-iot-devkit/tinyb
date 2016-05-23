@@ -41,6 +41,8 @@ jobject Java_tinyb_BluetoothManager_getBluetoothType(JNIEnv *env, jobject obj)
         return get_bluetooth_type(env, "NONE");
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -85,6 +87,8 @@ static void getObject_setter(JNIEnv *env,
         }
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -140,6 +144,8 @@ jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
 
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -184,6 +190,8 @@ jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint typ
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -219,6 +227,8 @@ jobject Java_tinyb_BluetoothManager_getObjects(JNIEnv *env, jobject obj, jint ty
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -240,6 +250,8 @@ jobject Java_tinyb_BluetoothManager_getAdapters(JNIEnv *env, jobject obj)
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -261,6 +273,8 @@ jobject Java_tinyb_BluetoothManager_getDevices(JNIEnv *env, jobject obj)
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -282,6 +296,8 @@ jobject Java_tinyb_BluetoothManager_getServices(JNIEnv *env, jobject obj)
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -304,6 +320,8 @@ jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj,
         return manager->set_default_adapter(*b_adapter);
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -321,6 +339,8 @@ jboolean Java_tinyb_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)
         return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -338,6 +358,8 @@ jboolean Java_tinyb_BluetoothManager_stopDiscovery(JNIEnv *env, jobject obj)
         return manager->start_discovery() ? JNI_TRUE : JNI_FALSE;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -355,6 +377,8 @@ void Java_tinyb_BluetoothManager_init(JNIEnv *env, jobject obj)
         setInstance<BluetoothManager>(env, obj, manager);
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -371,6 +395,8 @@ void Java_tinyb_BluetoothManager_delete(JNIEnv *env, jobject obj)
         delete manager;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {
@@ -389,6 +415,8 @@ jstring Java_tinyb_BluetoothManager_getNativeAPIVersion(JNIEnv *env, jclass claz
         return env->NewStringUTF(manager->get_api_version().c_str());
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
     } catch (std::runtime_error &e) {
         raise_java_runtime_exception(env, e);
     } catch (std::invalid_argument &e) {

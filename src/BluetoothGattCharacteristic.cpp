@@ -27,6 +27,7 @@
 #include "BluetoothGattCharacteristic.hpp"
 #include "BluetoothGattService.hpp"
 #include "BluetoothGattDescriptor.hpp"
+#include "BluetoothException.hpp"
 
 using namespace tinyb;
 
@@ -102,8 +103,7 @@ std::vector<unsigned char> BluetoothGattCharacteristic::read_value ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
 
     std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
 
@@ -127,8 +127,7 @@ bool BluetoothGattCharacteristic::write_value (
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
 
     /* freeing the GBytes allocated inside from_vector_to_gbytes function */
     g_bytes_unref(arg_value_gbytes);
@@ -145,8 +144,7 @@ bool BluetoothGattCharacteristic::start_notify ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -159,8 +157,7 @@ bool BluetoothGattCharacteristic::stop_notify ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -188,7 +185,7 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
         std::string error_msg("Error occured while instantiating service: ");
         error_msg += error->message;
         g_error_free(error);
-        throw std::runtime_error(error_msg);
+        throw BluetoothException(error_msg);
     }
 
     return BluetoothGattService(service);

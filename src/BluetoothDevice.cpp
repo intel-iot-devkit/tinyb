@@ -27,6 +27,7 @@
 #include "BluetoothDevice.hpp"
 #include "BluetoothGattService.hpp"
 #include "BluetoothManager.hpp"
+#include "BluetoothException.hpp"
 
 using namespace tinyb;
 
@@ -117,8 +118,7 @@ bool BluetoothDevice::disconnect ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -131,8 +131,7 @@ bool BluetoothDevice::connect ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -147,8 +146,7 @@ bool BluetoothDevice::connect_profile (
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -163,8 +161,7 @@ bool BluetoothDevice::disconnect_profile (
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -177,8 +174,7 @@ bool BluetoothDevice::pair ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -191,8 +187,7 @@ bool BluetoothDevice::cancel_pairing ()
         NULL,
         &error
     );
-    if (error)
-        g_printerr("Error: %s\n", error->message);
+    handle_error(error);
     return result;
 }
 
@@ -314,7 +309,7 @@ BluetoothAdapter BluetoothDevice::get_adapter ()
         std::string error_msg("Error occured while instantiating adapter: ");
         error_msg += error->message;
         g_error_free(error);
-        throw std::runtime_error(error_msg);
+        throw BluetoothException(error_msg);
    }
 
    return BluetoothAdapter(adapter);
