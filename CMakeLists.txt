@@ -24,7 +24,7 @@ git_describe (VERSION "--tags")
 
 if ("x_${VERSION}" STREQUAL "x_GIT-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_HEAD-HASH-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_-128-NOTFOUND")
   message (WARNING " - Install git to compile a production libtinyb!")
-  set (VERSION "v0.4.2-dirty")
+  set (VERSION "v0.4.3-dirty")
 endif ()
 
 message (INFO " - libtinyb Version ${VERSION}")
