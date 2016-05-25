@@ -81,9 +81,9 @@ public class BluetoothGattCharacteristic extends BluetoothObject
       */
     public native boolean writeValue(byte[] argValue);
 
-    public native boolean startNotify();
+    public native boolean enableValueNotifications(Runnable runnable);
 
-    public native boolean stopNotify();
+    public native boolean disableValueNotifications();
 
     /* D-Bus property accessors: */
     /** Get the UUID of this characteristic.

@@ -24,11 +24,33 @@
 
 #include "generated-code.h"
 #include "tinyb_utils.hpp"
+#include "BluetoothNotificationHandler.hpp"
 #include "BluetoothGattDescriptor.hpp"
 #include "BluetoothGattCharacteristic.hpp"
 #include "BluetoothException.hpp"
 
 using namespace tinyb;
+
+void BluetoothNotificationHandler::on_properties_changed_descriptor(GDBusProxy *proxy, GVariant *changed_properties, GStrv invalidated_properties, gpointer userdata) {
+
+    auto c = static_cast<BluetoothGattDescriptor*>(userdata);
+
+    if(g_variant_n_children(changed_properties) > 0) {
+        GVariantIter *iter = NULL;
+
+        GVariant *value;
+        const gchar *key;
+        g_variant_get(changed_properties, "a{sv}", &iter);
+        while (iter != nullptr && g_variant_iter_loop(iter, "{&sv}", &key, &value)) {
+            auto value_callback = c->value_changed_callback;
+            if (value_callback != nullptr && g_ascii_strncasecmp(key, "value", 5) == 0) {
+                std::vector<unsigned char> new_value = from_iter_to_vector(value);
+                value_callback(new_value);
+            }
+        }
+        g_variant_iter_free (iter);
+    }
+}
 
 std::string BluetoothGattDescriptor::get_class_name() const
 {
@@ -54,6 +76,10 @@ BluetoothGattDescriptor::BluetoothGattDescriptor(GattDescriptor1 *object)
 {
     this->object = object;
     g_object_ref(object);
+
+    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+        G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_descriptor), this);
+    valid = true;
 }
 
 BluetoothGattDescriptor::BluetoothGattDescriptor(const BluetoothGattDescriptor &object)
@@ -63,6 +89,10 @@ BluetoothGattDescriptor::BluetoothGattDescriptor(const BluetoothGattDescriptor &
 
 BluetoothGattDescriptor::~BluetoothGattDescriptor()
 {
+    valid = false;
+    g_signal_handlers_disconnect_by_data(object, this);
+    lk.lock();
+
     g_object_unref(object);
 }
 
@@ -136,7 +166,26 @@ bool BluetoothGattDescriptor::write_value (
     return result;
 }
 
+bool BluetoothGattDescriptor::enable_value_notifications(
+    std::function<void(BluetoothGattDescriptor &, std::vector<unsigned char> &,void *)> callback,
+    void *userdata)
+{
+    value_changed_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+    return true;
+}
 
+bool BluetoothGattDescriptor::enable_value_notifications(
+    std::function<void(std::vector<unsigned char> &)> callback)
+{
+    value_changed_callback = callback;
+    return true;
+}
+
+bool BluetoothGattDescriptor::disable_value_notifications()
+{
+    value_changed_callback = nullptr;
+    return true;
+}
 
 /* D-Bus property accessors: */
 std::string BluetoothGattDescriptor::get_uuid ()

@@ -65,7 +65,7 @@ template <typename T>
 jobject generic_clone(JNIEnv *env, jobject obj)
 {
     T *obj_generic = getInstance<T>(env, obj);
-    T *copy_generic = new T(*obj_generic);
+    T *copy_generic = obj_generic->clone();
 
     jclass generic_class = search_class(env, *copy_generic);
     jmethodID generic_ctor = search_method(env, generic_class, "<init>", "(J)V", false);

@@ -24,12 +24,62 @@
 
 #include "generated-code.h"
 #include "tinyb_utils.hpp"
+#include "BluetoothNotificationHandler.hpp"
 #include "BluetoothAdapter.hpp"
 #include "BluetoothDevice.hpp"
 #include "BluetoothManager.hpp"
 #include "BluetoothException.hpp"
 
 using namespace tinyb;
+
+void BluetoothNotificationHandler::on_properties_changed_adapter(GDBusProxy *proxy, GVariant *changed_properties, GStrv invalidated_properties, gpointer userdata) {
+
+    auto c = static_cast<BluetoothAdapter*>(userdata);
+
+    if (!c->lock())
+        return;
+
+    if(g_variant_n_children(changed_properties) > 0) {
+        GVariantIter *iter = NULL;
+
+        GVariant *value;
+        const gchar *key;
+        g_variant_get(changed_properties, "a{sv}", &iter);
+        while (iter != nullptr && g_variant_iter_loop(iter, "{&sv}", &key, &value)) {
+            auto powered_callback = c->powered_callback;
+            if (powered_callback != nullptr && g_ascii_strncasecmp(key, "powered", 8) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                powered_callback(new_value);
+                continue;
+            }
+            auto discoverable_callback = c->discoverable_callback;
+            if (discoverable_callback != nullptr && g_ascii_strncasecmp(key, "discoverable", 13) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                discoverable_callback(new_value);
+                continue;
+            }
+            auto pairable_callback = c->pairable_callback;
+            if (pairable_callback != nullptr && g_ascii_strncasecmp(key, "pairable", 9) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                pairable_callback(new_value);
+                continue;
+            }
+            auto discovering_callback = c->discovering_callback;
+            if (discovering_callback != nullptr && g_ascii_strncasecmp(key, "discovering", 12) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                discovering_callback(new_value);
+                continue;
+            }
+        }
+        g_variant_iter_free (iter);
+    }
+
+    c->unlock();
+}
 
 std::string BluetoothAdapter::get_class_name() const
 {
@@ -55,6 +105,10 @@ BluetoothAdapter::BluetoothAdapter(Adapter1 *object)
 {
     this->object = object;
     g_object_ref(object);
+
+    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+        G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_adapter), this);
+    valid = true;
 }
 
 BluetoothAdapter::BluetoothAdapter(const BluetoothAdapter &object)
@@ -69,6 +123,10 @@ BluetoothAdapter *BluetoothAdapter::clone() const
 
 BluetoothAdapter::~BluetoothAdapter()
 {
+    valid = false;
+    g_signal_handlers_disconnect_by_data(object, this);
+    lk.lock();
+
     g_object_unref(object);
 }
 
@@ -151,8 +209,6 @@ bool BluetoothAdapter::remove_device (
     return result;
 }
 
-
-
 /* D-Bus property accessors: */
 std::string BluetoothAdapter::get_address ()
 {
@@ -184,6 +240,18 @@ bool BluetoothAdapter::get_powered ()
     return adapter1_get_powered (object);
 }
 
+void BluetoothAdapter::enable_powered_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool powered, void *userdata)> callback,
+        void *userdata) {
+    powered_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothAdapter::enable_powered_notifications(std::function<void(bool powered)> callback) {
+    powered_callback = callback;
+}
+void BluetoothAdapter::disable_powered_notifications() {
+    powered_callback = nullptr;
+}
+
 void BluetoothAdapter::set_powered (bool  value)
 {
     if (get_powered() != value)
@@ -200,6 +268,18 @@ void BluetoothAdapter::set_discoverable (bool  value)
     adapter1_set_discoverable (object, value);
 }
 
+void BluetoothAdapter::enable_discoverable_notifications(
+    std::function<void(BluetoothAdapter &adapter, bool discoverable, void *userdata)> callback,
+    void *userdata) {
+    discoverable_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothAdapter::enable_discoverable_notifications(std::function<void(bool discoverable)> callback) {
+    discoverable_callback = callback;
+}
+void BluetoothAdapter::disable_discoverable_notifications() {
+    discoverable_callback = nullptr;
+}
+
 unsigned int BluetoothAdapter::get_discoverable_timeout ()
 {
     return adapter1_get_discoverable_timeout (object);
@@ -213,6 +293,18 @@ void BluetoothAdapter::set_discoverable_timeout (unsigned int  value)
 bool BluetoothAdapter::get_pairable ()
 {
     return adapter1_get_pairable (object);
+}
+
+void BluetoothAdapter::enable_pairable_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool pairable, void *userdata)> callback,
+        void *userdata) {
+    pairable_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothAdapter::enable_pairable_notifications(std::function<void(bool pairable)> callback) {
+    pairable_callback = callback;
+}
+void BluetoothAdapter::disable_pairable_notifications() {
+    pairable_callback = nullptr;
 }
 
 void BluetoothAdapter::set_pairable (bool  value)
@@ -233,6 +325,18 @@ void BluetoothAdapter::set_pairable_timeout (unsigned int  value)
 bool BluetoothAdapter::get_discovering ()
 {
     return adapter1_get_discovering (object);
+}
+
+void BluetoothAdapter::enable_discovering_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool discovering, void *userdata)> callback,
+        void *userdata) {
+    discovering_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothAdapter::enable_discovering_notifications(std::function<void(bool discovering)> callback) {
+    discovering_callback = callback;
+}
+void BluetoothAdapter::disable_discovering_notifications() {
+    discovering_callback = nullptr;
 }
 
 std::vector<std::string> BluetoothAdapter::get_uuids ()

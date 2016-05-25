@@ -25,12 +25,13 @@
 #include <string>
 #include <condition_variable>
 #include <atomic>
+#include <functional>
 #include "BluetoothObject.hpp"
 #pragma once
 
 using namespace tinyb;
 
-typedef void (*BluetoothCallback)(BluetoothObject &, void *);
+typedef std::function<void (BluetoothObject &, void *)> BluetoothCallback;
 
 class tinyb::BluetoothEvent {
 private:
@@ -106,7 +107,7 @@ public:
 
     BluetoothEvent(BluetoothType type, std::string *name, std::string *identifier,
         BluetoothObject *parent, bool execute_once = true,
-        BluetoothCallback cb = generic_callback, void *data = NULL);
+        BluetoothCallback cb = nullptr, void *data = NULL);
     ~BluetoothEvent();
 
     BluetoothType get_type() const {

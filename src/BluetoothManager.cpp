@@ -33,9 +33,7 @@
 #include "BluetoothException.hpp"
 #include "version.h"
 
-#include <pthread.h>
 #include <cassert>
-#include <iostream>
 
 using namespace tinyb;
 

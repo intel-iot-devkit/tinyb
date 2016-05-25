@@ -28,12 +28,14 @@
 #include "BluetoothGattDescriptor.hpp"
 #include <string>
 #include <vector>
+#include <functional>
 
 /* Forward declaration of types */
 struct _Object;
 typedef struct _Object Object;
 struct _GattCharacteristic1;
 typedef struct _GattCharacteristic1 GattCharacteristic1;
+
 
 /**
   * Provides access to Bluetooth GATT characteristic. Follows the BlueZ adapter API
@@ -46,6 +48,7 @@ friend class tinyb::BluetoothGattService;
 friend class tinyb::BluetoothGattDescriptor;
 friend class tinyb::BluetoothManager;
 friend class tinyb::BluetoothEventManager;
+friend class BluetoothNotificationHandler;
 
 private:
     GattCharacteristic1 *object;
@@ -58,6 +61,12 @@ protected:
         std::string *name = nullptr,
         std::string *identifier = nullptr,
         BluetoothObject *parent = nullptr);
+
+    std::function<void(std::vector<unsigned char> &)> value_changed_callback;
+
+    bool start_notify ();
+    bool stop_notify ();
+
 public:
 
     static std::string java_class() {
@@ -97,11 +106,12 @@ public:
       */
     bool write_value (const std::vector<unsigned char> &arg_value);
 
-    bool start_notify (
-    );
-
-    bool stop_notify (
-    );
+    bool enable_value_notifications(
+        std::function<void(BluetoothGattCharacteristic &characteristic, std::vector<unsigned char> &value,void *userdata)> callback,
+        void *user_data);
+    bool enable_value_notifications(
+        std::function<void(std::vector<unsigned char> &value)> callback);
+    bool disable_value_notifications();
 
     /* D-Bus property accessors: */
     /** Get the UUID of this characteristic.

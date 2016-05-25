@@ -29,6 +29,7 @@
 #include "BluetoothManager.hpp"
 #include <cstdint>
 #include <vector>
+#include <functional>
 
 /* Forward declaration of types */
 struct _Object;
@@ -47,6 +48,7 @@ friend class tinyb::BluetoothManager;
 friend class tinyb::BluetoothEventManager;
 friend class tinyb::BluetoothAdapter;
 friend class tinyb::BluetoothGattService;
+friend class tinyb::BluetoothNotificationHandler;
 
 private:
     Device1 *object;
@@ -59,6 +61,13 @@ protected:
         std::string *name = nullptr,
         std::string *identifier = nullptr,
         BluetoothObject *parent = nullptr);
+
+    std::function<void(int16_t)> rssi_callback;
+    std::function<void(bool)> trusted_callback;
+    std::function<void(bool)> paired_callback;
+    std::function<void(bool)> connected_callback;
+    std::function<void(bool)> blocked_callback;
+
 public:
 
     static std::string java_class() {
@@ -176,6 +185,20 @@ public:
       */
     bool get_paired ();
 
+    /** Registers a callback which will be called when the paired property changes.
+      * @param callback The callback function to be called.
+      * @param device Will contain a reference to this device
+      * @param paired Will contain the new value of the paired property
+      * @param userdata Data provided by the user to be attached to the callback. Can be nullptr. The caller retains ownership of this data and will have to clear it after disabling this notification.
+      */
+    void enable_paired_notifications(
+        std::function<void(BluetoothDevice &device, bool paired, void *userdata)> callback,
+        void *userdata);
+    /** Unregisters the callback set with enable_paired_notifications. No more notifications will
+      * be sent after this operation completes.
+      */
+    void disable_paired_notifications();
+
     /** Returns the trusted state the device.
       * @return The trusted state of the device.
       */
@@ -185,6 +208,22 @@ public:
       */
     void set_trusted (bool  value);
 
+    /** Registers a callback which will be called when the trusted property changes.
+      * @param callback The callback function to be called.
+      * @param device Will contain a reference to this device
+      * @param trusted Will contain the new value of the trusted property
+      * @param userdata Data provided by the user to be attached to the callback. Can be nullptr. The caller retains ownership of this data and will have to clear it after disabling this notification.
+      */
+    void enable_trusted_notifications(
+        std::function<void(BluetoothDevice &device, bool trusted, void *userdata)> callback,
+        void *userdata);
+    void enable_trusted_notifications(
+        std::function<void(bool trusted)> callback);
+    /** Unregisters the callback set with enable_trusted_notifications. No more notifications will
+      * be sent after this operation completes.
+      */
+    void disable_trusted_notifications();
+
     /** Returns the blocked state the device.
       * @return The blocked state of the device.
       */
@@ -193,6 +232,23 @@ public:
     /** Sets the blocked state the device.
       */
     void set_blocked (bool  value);
+
+    /** Registers a callback which will be called when the blocked property changes.
+      * @param callback The callback function to be called.
+      * @param device Will contain a reference to this device
+      * @param blocked Will contain the new value of the trusted property
+      * @param userdata Data provided by the user to be attached to the callback. Can be nullptr.
+      * The caller retains ownership of this data and might have to deallocate it after disabling this notification.
+      */
+    void enable_blocked_notifications(
+        std::function<void(BluetoothDevice &device, bool blocked, void *userdata)> callback,
+        void *userdata);
+    void enable_blocked_notifications(
+        std::function<void(bool blocked)> callback);
+    /** Unregisters the callback set with enable_trusted_notifications. No more notifications will
+      * be sent after this operation completes.
+      */
+    void disable_blocked_notifications();
 
     /** Returns if device uses only pre-Bluetooth 2.1 pairing mechanism.
       * @return True if device uses only pre-Bluetooth 2.1 pairing mechanism.
@@ -204,10 +260,51 @@ public:
       */
     int16_t get_rssi ();
 
+
+    /** Registers a callback which will be called when the RSSI property changes.
+      * @param callback The callback function to be called.
+      * @param device Will contain a reference to this device
+      * @param rssi Will contain the new value of the rssi property
+      * @param userdata Data provided by the user to be attached to the callback. Can be nullptr. The caller retains ownership of this data and will have to clear it after disabling this notification.
+      */
+    void enable_rssi_notifications(
+        std::function<void(BluetoothDevice &device, int16_t rssi, void *userdata)> callback,
+        void *userdata = nullptr);
+   /** Registers a callback which will be called when the RSSI property changes.
+      * @param callback The callback function to be called.
+      * @param rssi Will contain the new value of the rssi property
+      */
+    void enable_rssi_notifications(
+        std::function<void(int16_t rssi)> callback);
+    /** Unregisters the callback set with enable_rssi_notifications. No more notifications will
+      * be sent after this operation completes.
+      */
+    void disable_rssi_notifications();
+
     /** Returns the connected state of the device.
       * @return The connected state of the device.
       */
     bool get_connected ();
+
+    /** Registers a callback which will be called when the connected property changes.
+      * @param callback The callback function to be called.
+      * @param device Will contain a reference to this device
+      * @param connected Will contain the new value of the connected property
+      * @param userdata Data provided by the user to be attached to the callback. Can be nullptr. The caller retains ownership of this data and will have to clear it after disabling this notification.
+      */
+    void enable_connected_notifications(
+        std::function<void(BluetoothDevice &device, bool connected, void *userdata)> callback,
+        void *userdata);
+    /** Registers a callback which will be called when the connected property changes.
+      * @param callback The callback function to be called.
+      * @param connected Will contain the new value of the connected property
+      */
+    void enable_connected_notifications(
+        std::function<void(bool connected)> callback);
+    /** Unregisters the callback set with enable_connected_notifications. No more notifications will
+      * be sent after this operation completes.
+      */
+    void disable_connected_notifications();
 
     /** Returns the UUIDs of the device.
       * @return Array containing the UUIDs of the device, ends with NULL.

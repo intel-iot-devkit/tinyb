@@ -52,6 +52,27 @@ GBytes *tinyb::from_vector_to_gbytes(const std::vector<unsigned char>& vector)
     return result;
 }
 
+std::vector<unsigned char> tinyb::from_iter_to_vector(GVariant *iter)
+{
+    GVariantIter *value_iter;
+    guchar value_byte;
+
+    g_variant_get (iter,
+        "ay",
+        &value_iter);
+
+    if (value_iter == nullptr)
+        throw std::invalid_argument("GVariant should be a container of an array of bytes");
+
+    std::vector<unsigned char> value;
+    while (g_variant_iter_loop(value_iter, "y", &value_byte)) {
+        value.push_back(value_byte);
+    }
+
+    g_variant_iter_free(value_iter);
+    return value;
+}
+
 void tinyb::handle_error(GError *error)
 {
     if (error != nullptr) {

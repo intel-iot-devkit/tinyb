@@ -24,12 +24,69 @@
 
 #include "generated-code.h"
 #include "tinyb_utils.hpp"
+#include "BluetoothNotificationHandler.hpp"
 #include "BluetoothDevice.hpp"
 #include "BluetoothGattService.hpp"
 #include "BluetoothManager.hpp"
 #include "BluetoothException.hpp"
 
 using namespace tinyb;
+
+void BluetoothNotificationHandler::on_properties_changed_device(GDBusProxy *proxy, GVariant *changed_properties, GStrv invalidated_properties, gpointer userdata) {
+
+    auto c = static_cast<BluetoothDevice*>(userdata);
+
+    if (!c->lock())
+        return;
+
+    if(g_variant_n_children(changed_properties) > 0) {
+        GVariantIter *iter = NULL;
+
+        GVariant *value;
+        const gchar *key;
+        g_variant_get(changed_properties, "a{sv}", &iter);
+        while (iter != nullptr && g_variant_iter_loop(iter, "{&sv}", &key, &value)) {
+            auto rssi_callback = c->rssi_callback;
+            if (rssi_callback != nullptr && g_ascii_strncasecmp(key, "rssi", 5) == 0) {
+                int16_t new_value;
+                g_variant_get(value, "n", &new_value);
+                rssi_callback(new_value);
+                continue;
+            }
+            auto blocked_callback = c->blocked_callback;
+            if (blocked_callback != nullptr && g_ascii_strncasecmp(key, "blocked", 8) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                blocked_callback(new_value);
+                continue;
+            }
+            auto trusted_callback = c->trusted_callback;
+            if (trusted_callback != nullptr && g_ascii_strncasecmp(key, "trusted", 8) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                trusted_callback(new_value);
+                continue;
+            }
+            auto paired_callback = c->paired_callback;
+            if (paired_callback != nullptr && g_ascii_strncasecmp(key, "paired", 7) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                paired_callback(new_value);
+                continue;
+            }
+            auto connected_callback = c->connected_callback;
+            if (connected_callback != nullptr && g_ascii_strncasecmp(key, "connected", 10) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                connected_callback(new_value);
+                continue;
+            }
+        }
+        g_variant_iter_free (iter);
+    }
+
+    c->unlock();
+}
 
 std::string BluetoothDevice::get_class_name() const
 {
@@ -55,6 +112,10 @@ BluetoothDevice::BluetoothDevice(Device1 *object)
 {
     this->object = object;
     g_object_ref(object);
+
+    g_signal_connect(G_DBUS_PROXY(object), "g-properties-changed",
+        G_CALLBACK(BluetoothNotificationHandler::on_properties_changed_device), this);
+    valid = true;
 }
 
 BluetoothDevice::BluetoothDevice(const BluetoothDevice &object)
@@ -64,6 +125,10 @@ BluetoothDevice::BluetoothDevice(const BluetoothDevice &object)
 
 BluetoothDevice::~BluetoothDevice()
 {
+    valid = false;
+    g_signal_handlers_disconnect_by_data(object, this);
+    lk.lock();
+
     g_object_unref(object);
 }
 
@@ -240,6 +305,15 @@ bool BluetoothDevice::get_paired ()
     return device1_get_paired (object);
 }
 
+void BluetoothDevice::enable_paired_notifications(
+    std::function<void(BluetoothDevice &, bool, void *)> callback,
+    void *userdata) {
+    paired_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::disable_paired_notifications() {
+    paired_callback = nullptr;
+}
+
 bool BluetoothDevice::get_trusted ()
 {
     return device1_get_trusted (object);
@@ -248,6 +322,19 @@ bool BluetoothDevice::get_trusted ()
 void BluetoothDevice::set_trusted (bool  value)
 {
     device1_set_trusted (object, value);
+}
+
+void BluetoothDevice::enable_trusted_notifications(
+    std::function<void(BluetoothDevice &, bool, void *)> callback,
+    void *userdata) {
+    trusted_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_trusted_notifications(
+    std::function<void(bool)> callback) {
+    trusted_callback = callback;
+}
+void BluetoothDevice::disable_trusted_notifications() {
+    trusted_callback = nullptr;
 }
 
 bool BluetoothDevice::get_blocked ()
@@ -260,6 +347,19 @@ void BluetoothDevice::set_blocked (bool  value)
     device1_set_blocked (object, value);
 }
 
+void BluetoothDevice::enable_blocked_notifications(
+    std::function<void(BluetoothDevice &, bool, void *)> callback,
+    void *userdata) {
+    blocked_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_blocked_notifications(
+    std::function<void(bool)> callback) {
+    blocked_callback = callback;
+}
+void BluetoothDevice::disable_blocked_notifications() {
+    blocked_callback = nullptr;
+}
+
 bool BluetoothDevice::get_legacy_pairing ()
 {
     return device1_get_legacy_pairing (object);
@@ -270,9 +370,35 @@ int16_t BluetoothDevice::get_rssi ()
     return device1_get_rssi (object);
 }
 
+void BluetoothDevice::enable_rssi_notifications(
+    std::function<void(BluetoothDevice &, int16_t, void *)> callback,
+    void *userdata) {
+    rssi_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_rssi_notifications(
+    std::function<void(int16_t)> callback) {
+    rssi_callback = callback;
+}
+void BluetoothDevice::disable_rssi_notifications() {
+    rssi_callback = nullptr;
+}
+
 bool BluetoothDevice::get_connected ()
 {
     return device1_get_connected (object);
+}
+
+void BluetoothDevice::enable_connected_notifications(
+    std::function<void(BluetoothDevice &, bool, void *)> callback,
+    void *userdata) {
+    connected_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_connected_notifications(
+    std::function<void(bool)> callback) {
+    connected_callback = callback;
+}
+void BluetoothDevice::disable_connected_notifications() {
+    connected_callback = nullptr;
 }
 
 std::vector<std::string> BluetoothDevice::get_uuids ()

@@ -22,8 +22,10 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <memory>
 #pragma once
+#include <memory>
+#include <mutex>
+#include <atomic>
 
 #define JAVA_PACKAGE "tinyb"
 
@@ -43,14 +45,34 @@ enum class BluetoothType {
     class BluetoothManager;
     class BluetoothAdapter;
     class BluetoothDevice;
+    class BluetoothDeviceChangeHandler;
     class BluetoothGattService;
     class BluetoothGattCharacteristic;
+    class BluetoothNotificationHandler;
     class BluetoothGattDescriptor;
     class BluetoothException;
 }
 
+
 class tinyb::BluetoothObject
 {
+protected:
+    std::mutex lk;
+    std::atomic_bool valid;
+
+    bool lock() {
+         if (valid) {
+             lk.lock();
+             return true;
+         } else {
+             return false;
+         }
+     }
+
+     void unlock() {
+         lk.unlock();
+     }
+
 public:
     static BluetoothType class_type() { return BluetoothType::NONE; }
 

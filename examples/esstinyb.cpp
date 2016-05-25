@@ -136,7 +136,6 @@ int main(int argc, char **argv)
         bool bt_error = false;
         /* Activate the temperature measurements by enabling notifications */
         add_signal_handler();
-        temp_characteristic->start_notify();
         while (!bt_error && !interrupted) {
             /* Read temperature data and display it */
             try {
@@ -154,7 +153,6 @@ int main(int argc, char **argv)
                 bt_error = true;
             }
         }
-        temp_characteristic->stop_notify();
         delete temp_characteristic;
     }
 

@@ -36,12 +36,15 @@ BluetoothEvent::BluetoothEvent(BluetoothType type, std::string *name,
         this->parent = nullptr;
 
     this->execute_once = execute_once;
-    this->cb = cb;
 
-    if (cb == generic_callback)
+    if (cb == nullptr) {
         this->data = static_cast<void *>(&cv);
-    else
+        this->cb = generic_callback;
+    }
+    else {
+        this->cb = cb;
         this->data = data;
+    }
 }
 
 bool BluetoothEvent::execute_callback(BluetoothObject &object)

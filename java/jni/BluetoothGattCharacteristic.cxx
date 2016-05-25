@@ -130,12 +130,12 @@ jboolean Java_tinyb_BluetoothGattCharacteristic_writeValue(JNIEnv *env, jobject 
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothGattCharacteristic_startNotify(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattCharacteristic_enableValueNotifications(JNIEnv *env, jobject obj, jobject runnable)
 {
     try {
         BluetoothGattCharacteristic *obj_gatt_char =
                                     getInstance<BluetoothGattCharacteristic>(env, obj);
-        return obj_gatt_char->start_notify() ? JNI_TRUE : JNI_FALSE;
+        return JNI_FALSE;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
     } catch (BluetoothException &e) {
@@ -150,12 +150,12 @@ jboolean Java_tinyb_BluetoothGattCharacteristic_startNotify(JNIEnv *env, jobject
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothGattCharacteristic_stopNotify(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_BluetoothGattCharacteristic_disableValueNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattCharacteristic *obj_gatt_char =
                                     getInstance<BluetoothGattCharacteristic>(env, obj);
-        return obj_gatt_char->stop_notify() ? JNI_TRUE : JNI_FALSE;
+        return JNI_FALSE;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
     } catch (BluetoothException &e) {

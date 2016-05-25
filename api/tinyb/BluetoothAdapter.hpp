@@ -43,9 +43,11 @@ class tinyb::BluetoothAdapter: public BluetoothObject
 friend class tinyb::BluetoothManager;
 friend class tinyb::BluetoothEventManager;
 friend class tinyb::BluetoothDevice;
+friend class tinyb::BluetoothNotificationHandler;
 
 private:
     Adapter1 *object;
+
     /** Removes a device from the list of devices available on this adapter.
       * @param[in] arg_device The path of the device on DBus
       * @return TRUE if device was successfully removed
@@ -53,7 +55,6 @@ private:
     bool remove_device (
         const std::string &arg_device
     );
-
 
 protected:
     BluetoothAdapter(Adapter1 *object);
@@ -63,6 +64,12 @@ protected:
         std::string *name = nullptr,
         std::string *identifier = nullptr,
         BluetoothObject *parent = nullptr);
+
+    std::function<void(bool)> powered_callback;
+    std::function<void(bool)> discoverable_callback;
+    std::function<void(bool)> pairable_callback;
+    std::function<void(bool)> discovering_callback;
+
 public:
 
     static std::string java_class() {
@@ -122,7 +129,7 @@ public:
     std::string get_name ();
 
     /** Returns the friendly name of this adapter.
-      * @return The friendly name of this adapter, or NULL if not set.
+      * @return The friendly name of this adapter.
       */
     std::string get_alias ();
 
@@ -144,6 +151,12 @@ public:
       */
     void set_powered (bool  value);
 
+    void enable_powered_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool powered, void *userdata)> callback,
+        void *userdata);
+    void enable_powered_notifications(std::function<void(bool powered)> callback);
+    void disable_powered_notifications();
+
     /** Returns the discoverable state the adapter.
       * @return The discoverable state of the adapter.
       */
@@ -152,6 +165,13 @@ public:
     /** Sets the discoverable state the adapter.
       */
     void set_discoverable (bool  value);
+
+    void enable_discoverable_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool discoverable, void *userdata)> callback,
+        void *userdata);
+    void enable_discoverable_notifications(std::function<void(bool discoverable)> callback);
+    void disable_discoverable_notifications();
+
 
     /** Returns the discoverable timeout the adapter.
       * @return The discoverable timeout of the adapter.
@@ -172,6 +192,12 @@ public:
       */
     void set_pairable (bool  value);
 
+    void enable_pairable_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool pairable, void *userdata)> callback,
+        void *userdata);
+    void enable_pairable_notifications(std::function<void(bool pairable)> callback);
+    void disable_pairable_notifications();
+
     /** Returns the timeout in seconds after which pairable state turns off
       * automatically, 0 means never.
       * @return The pairable timeout of the adapter.
@@ -187,6 +213,12 @@ public:
       * @return The discovering state of the adapter.
       */
     bool get_discovering ();
+
+    void enable_discovering_notifications(
+        std::function<void(BluetoothAdapter &adapter, bool discovering, void *userdata)> callback,
+        void *userdata);
+    void enable_discovering_notifications(std::function<void(bool discovering)> callback);
+    void disable_discovering_notifications();
 
     /** Returns the UUIDs of the adapter.
       * @return Array containing the UUIDs of the adapter, ends with NULL.
