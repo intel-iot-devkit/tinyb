@@ -99,7 +99,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
     for (unsigned int i = 0; i < array_size; ++i)
     {
         T *elem = array.at(i).release();
-        jobject object = env->NewObject(clazz, clazz_ctor, (long)elem);
+        jobject object = env->NewObject(clazz, clazz_ctor, (jlong)elem);
         if (!object)
         {
             throw std::runtime_error("cannot create instance of class\n");
