@@ -138,7 +138,7 @@ jobject Java_tinyb_BluetoothManager_find(JNIEnv *env, jobject obj, jint type,
         jclass clazz = search_class(env, *b_object_naked);
         jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
 
-        jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+        jobject result = env->NewObject(clazz, clazz_ctor, (jlong)b_object_naked);
 
         return result;
 
@@ -186,7 +186,7 @@ jobject Java_tinyb_BluetoothManager_getObject(JNIEnv *env, jobject obj, jint typ
         jclass clazz = search_class(env, *b_object_naked);
         jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
 
-        jobject result = env->NewObject(clazz, clazz_ctor, (long)b_object_naked);
+        jobject result = env->NewObject(clazz, clazz_ctor, (jlong)b_object_naked);
         return result;
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
