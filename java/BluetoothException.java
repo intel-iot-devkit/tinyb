@@ -24,7 +24,7 @@
 
 package tinyb;
 
-class BluetoothException extends RuntimeException {
+public class BluetoothException extends RuntimeException {
     BluetoothException(String msg) {
         super(msg);
     }
