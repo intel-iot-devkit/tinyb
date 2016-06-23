@@ -20,8 +20,14 @@ set_target_properties(asynctinyb
     PROPERTIES
     CXX_STANDARD 11)
 
+add_executable (esstinyb esstinyb.cpp)
+set_target_properties(esstinyb
+    PROPERTIES
+    CXX_STANDARD 11)
+
 include_directories(${PROJECT_SOURCE_DIR}/api)
 
 target_link_libraries (hellotinyb tinyb)
 target_link_libraries (checkinit tinyb)
 target_link_libraries (asynctinyb tinyb)
+target_link_libraries (esstinyb tinyb)
