@@ -74,6 +74,9 @@ public class BluetoothGattCharacteristic extends BluetoothObject
       */
     public native byte[] readValue();
 
+    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    public native void disableValueNotifications();
+
     /** Writes the value of this characteristic.
       * @param[in] arg_value The data as vector<uchar>
       * to be written packed in a GBytes struct
@@ -81,9 +84,6 @@ public class BluetoothGattCharacteristic extends BluetoothObject
       */
     public native boolean writeValue(byte[] argValue);
 
-    public native boolean enableValueNotifications(Runnable runnable);
-
-    public native boolean disableValueNotifications();
 
     /* D-Bus property accessors: */
     /** Get the UUID of this characteristic.

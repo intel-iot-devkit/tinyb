@@ -28,6 +28,7 @@
 
 #include "tinyb_BluetoothAdapter.h"
 
+#include "JNIMem.hpp"
 #include "helper.hpp"
 
 using namespace tinyb;
@@ -277,6 +278,56 @@ void Java_tinyb_BluetoothAdapter_setPowered(JNIEnv *env, jobject obj, jboolean v
     }
 }
 
+void Java_tinyb_BluetoothAdapter_enablePoweredNotifications(JNIEnv *env, jobject obj, jobject callback)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
+        obj_adapter->enable_powered_notifications([ callback_ptr ] (bool v)
+            {
+                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
+                jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
+
+                jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+
+                jni_env->CallVoidMethod(**callback_ptr, method, result);
+
+            });
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothAdapter_disablePoweredNotifications(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        obj_adapter->disable_powered_notifications();
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
 jboolean Java_tinyb_BluetoothAdapter_getDiscoverable(JNIEnv *env, jobject obj)
 {
     try {
@@ -304,6 +355,56 @@ void Java_tinyb_BluetoothAdapter_setDiscoverable(JNIEnv *env, jobject obj, jbool
 
         bool val_to_write = from_jboolean_to_bool(val);
         obj_adapter->set_discoverable(val_to_write);
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothAdapter_enableDiscoverableNotifications(JNIEnv *env, jobject obj, jobject callback)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
+        obj_adapter->enable_discoverable_notifications([ callback_ptr ] (bool v)
+            {
+                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
+                jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
+
+                jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+
+                jni_env->CallVoidMethod(**callback_ptr, method, result);
+
+            });
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothAdapter_disableDiscoverableNotifications(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        obj_adapter->disable_discoverable_notifications();
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
     } catch (BluetoothException &e) {
@@ -378,6 +479,56 @@ jboolean Java_tinyb_BluetoothAdapter_getPairable(JNIEnv *env, jobject obj)
         raise_java_exception(env, e);
     }
     return JNI_FALSE;
+}
+
+void Java_tinyb_BluetoothAdapter_enablePairableNotifications(JNIEnv *env, jobject obj, jobject callback)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
+        obj_adapter->enable_pairable_notifications([ callback_ptr ] (bool v)
+            {
+                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
+                jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
+
+                jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+
+                jni_env->CallVoidMethod(**callback_ptr, method, result);
+
+            });
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothAdapter_disablePairableNotifications(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        obj_adapter->disable_pairable_notifications();
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
 }
 
 void Java_tinyb_BluetoothAdapter_setPairable(JNIEnv *env, jobject obj, jboolean val)
@@ -461,6 +612,56 @@ jboolean Java_tinyb_BluetoothAdapter_getDiscovering(JNIEnv *env, jobject obj)
         raise_java_exception(env, e);
     }
     return JNI_FALSE;
+}
+
+void Java_tinyb_BluetoothAdapter_enableDiscoveringNotifications(JNIEnv *env, jobject obj, jobject callback)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
+        obj_adapter->enable_discovering_notifications([ callback_ptr ] (bool v)
+            {
+                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
+                jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
+
+                jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+
+                jni_env->CallVoidMethod(**callback_ptr, method, result);
+
+            });
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothAdapter_disableDiscoveringNotifications(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothAdapter *obj_adapter =
+                                    getInstance<BluetoothAdapter>(env, obj);
+        obj_adapter->disable_discovering_notifications();
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
 }
 
 jobjectArray Java_tinyb_BluetoothAdapter_getUuids(JNIEnv *env, jobject obj)

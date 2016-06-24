@@ -50,6 +50,9 @@ public class BluetoothGattDescriptor extends BluetoothObject
       */
     public native boolean writeValue(byte[] argValue);
 
+    public native void enableValueNotifications(BluetoothNotification<byte[]> value);
+    public native void disableValueNotifications();
+
     /* D-Bus property accessors: */
     /** Get the UUID of this descriptor.
       * @return The 128 byte UUID of this descriptor, NULL if an error occurred

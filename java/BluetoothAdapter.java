@@ -117,6 +117,9 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getPowered();
 
+    public native void enablePoweredNotifications(BluetoothNotification<Boolean> powered);
+    public native void disablePoweredNotifications();
+
     /** Sets the power state the adapter.
       */
     public native void setPowered(boolean value);
@@ -125,6 +128,9 @@ public class BluetoothAdapter extends BluetoothObject
       * @return The discoverable state of the adapter.
       */
     public native boolean getDiscoverable();
+
+    public native void enableDiscoverableNotifications(BluetoothNotification<Boolean> discoverable);
+    public native void disableDiscoverableNotifications();
 
     /** Sets the discoverable state the adapter.
       */
@@ -145,6 +151,9 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getPairable();
 
+    public native void enablePairableNotifications(BluetoothNotification<Boolean> pairable);
+    public native void disablePairableNotifications();
+
     /** Sets the discoverable state the adapter.
       */
     public native void setPairable(boolean value);
@@ -164,6 +173,9 @@ public class BluetoothAdapter extends BluetoothObject
       * @return The discovering state of the adapter.
       */
     public native boolean getDiscovering();
+
+    public native void enableDiscoveringNotifications(BluetoothNotification<Boolean> discovering);
+    public native void disableDiscoveringNotifications();
 
     /** Returns the UUIDs of the adapter.
       * @return Array containing the UUIDs of the adapter, ends with NULL.

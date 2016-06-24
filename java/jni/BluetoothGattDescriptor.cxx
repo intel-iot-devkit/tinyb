@@ -28,6 +28,7 @@
 
 #include "tinyb_BluetoothGattDescriptor.h"
 
+#include "JNIMem.hpp"
 #include "helper.hpp"
 
 using namespace tinyb;
@@ -202,6 +203,57 @@ jbyteArray Java_tinyb_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
     }
     return nullptr;
 }
+
+void Java_tinyb_BluetoothGattDescriptor_enableValueNotifications(JNIEnv *env, jobject obj, jobject callback)
+{
+    try {
+        BluetoothGattDescriptor *obj_gatt_desc =
+                                    getInstance<BluetoothGattDescriptor>(env, obj);
+        std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
+        obj_gatt_desc->enable_value_notifications([ callback_ptr ] (std::vector<unsigned char> &v)
+            {
+                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                unsigned int size = v.size();
+
+                jbyteArray result = jni_env->NewByteArray((jsize)size);
+                jni_env->SetByteArrayRegion(result, 0, (jsize)size, (const jbyte *)&v[0]);
+
+                jni_env->CallVoidMethod(**callback_ptr, method, result);
+
+            });
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
+void Java_tinyb_BluetoothGattDescriptor_disableValueNotifications(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothGattDescriptor *obj_gatt_desc =
+                                    getInstance<BluetoothGattDescriptor>(env, obj);
+        obj_gatt_desc->disable_value_notifications();
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}
+
 
 void Java_tinyb_BluetoothGattDescriptor_delete(JNIEnv *env, jobject obj)
 {

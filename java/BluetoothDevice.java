@@ -150,10 +150,16 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getPaired();
 
+    public native void enablePairedNotifications(BluetoothNotification<Boolean> paired);
+    public native void disablePairedNotifications();
+
     /** Returns the trusted state the device.
       * @return The trusted state of the device.
       */
     public native boolean getTrusted();
+
+    public native void enableTrustedNotifications(BluetoothNotification<Boolean> trusted);
+    public native void disableTrustedNotifications();
 
     /** Sets the trusted state the device.
       */
@@ -163,6 +169,9 @@ public class BluetoothDevice extends BluetoothObject
       * @return The blocked state of the device.
       */
     public native boolean getBlocked();
+
+    public native void enableBlockedNotifications(BluetoothNotification<Boolean> blocked);
+    public native void disableBlockeddNotifications();
 
     /** Sets the blocked state the device.
       */
@@ -176,17 +185,23 @@ public class BluetoothDevice extends BluetoothObject
     /** Returns the Received Signal Strength Indicator of the device.
       * @return The Received Signal Strength Indicator of the device.
       */
-    public native short getRssi();
+    public native short getRSSI();
+
+    public native void enableRSSINotifications(BluetoothNotification<Short> rssi);
+    public native void disableRSSINotifications();
 
     /** Returns the connected state of the device.
       * @return The connected state of the device.
       */
     public native boolean getConnected();
 
+    public native void enableConnectedNotifications(BluetoothNotification<Boolean> connected);
+    public native void disableConnectedNotifications();
+
     /** Returns the UUIDs of the device.
       * @return Array containing the UUIDs of the device, ends with NULL.
       */
-    public native String[] getUuids();
+    public native String[] getUUIDs();
 
     /** Returns the local ID of the adapter.
       * @return The local ID of the adapter.

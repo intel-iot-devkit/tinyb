@@ -194,6 +194,12 @@ public:
     void enable_paired_notifications(
         std::function<void(BluetoothDevice &device, bool paired, void *userdata)> callback,
         void *userdata);
+    /** Registers a callback which will be called when the paired property changes.
+      * @param callback The callback function to be called.
+      * @param paired Will contain the new value of the paired property
+      */
+    void enable_paired_notifications(
+        std::function<void(bool paired)> callback);
     /** Unregisters the callback set with enable_paired_notifications. No more notifications will
       * be sent after this operation completes.
       */

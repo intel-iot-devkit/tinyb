@@ -310,6 +310,10 @@ void BluetoothDevice::enable_paired_notifications(
     void *userdata) {
     paired_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
 }
+void BluetoothDevice::enable_paired_notifications(
+    std::function<void(bool)> callback) {
+    paired_callback = callback;
+}
 void BluetoothDevice::disable_paired_notifications() {
     paired_callback = nullptr;
 }
