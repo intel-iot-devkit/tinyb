@@ -57,7 +57,7 @@ public class BluetoothGattDescriptor extends BluetoothObject
     /** Get the UUID of this descriptor.
       * @return The 128 byte UUID of this descriptor, NULL if an error occurred
       */
-    public native String getUuid();
+    public native String getUUID();
 
     /** Returns the characteristic to which this descriptor belongs to.
       * @return The characteristic.

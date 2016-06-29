@@ -180,7 +180,7 @@ public class BluetoothAdapter extends BluetoothObject
     /** Returns the UUIDs of the adapter.
       * @return Array containing the UUIDs of the adapter, ends with NULL.
       */
-    public native String[] getUuids();
+    public native String[] getUUIDs();
 
     /** Returns the local ID of the adapter.
       * @return The local ID of the adapter.

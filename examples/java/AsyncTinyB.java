@@ -95,7 +95,7 @@ public class AsyncTinyB {
             sensor.disconnect();
             System.exit(-1);
         }
-        System.out.println("Found service " + tempService.getUuid());
+        System.out.println("Found service " + tempService.getUUID());
 
         BluetoothGattCharacteristic tempValue = tempService.find("f000aa01-0451-4000-b000-000000000000");
         BluetoothGattCharacteristic tempConfig = tempService.find("f000aa02-0451-4000-b000-000000000000");

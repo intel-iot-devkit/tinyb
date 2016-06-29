@@ -62,8 +62,8 @@ public class HelloTinyB {
                 return null;
 
             for (BluetoothGattService service : bluetoothServices) {
-                System.out.println("UUID: " + service.getUuid());
-                if (service.getUuid().equals(UUID))
+                System.out.println("UUID: " + service.getUUID());
+                if (service.getUUID().equals(UUID))
                     tempService = service;
             }
             Thread.sleep(4000);
@@ -77,7 +77,7 @@ public class HelloTinyB {
             return null;
 
         for (BluetoothGattCharacteristic characteristic : characteristics) {
-            if (characteristic.getUuid().equals(UUID))
+            if (characteristic.getUUID().equals(UUID))
                 return characteristic;
         }
         return null;
@@ -151,7 +151,7 @@ public class HelloTinyB {
             sensor.disconnect();
             System.exit(-1);
         }
-        System.out.println("Found service " + tempService.getUuid());
+        System.out.println("Found service " + tempService.getUUID());
 
         BluetoothGattCharacteristic tempValue = getCharacteristic(tempService, "f000aa01-0451-4000-b000-000000000000");
         BluetoothGattCharacteristic tempConfig = getCharacteristic(tempService, "f000aa02-0451-4000-b000-000000000000");

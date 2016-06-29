@@ -73,7 +73,7 @@ public class BluetoothGattService extends BluetoothObject
     /** Get the UUID of this service
       * @return The 128 byte UUID of this service, NULL if an error occurred
       */
-    public native String getUuid();
+    public native String getUUID();
 
     /** Returns the device to which this service belongs to.
       * @return The device.

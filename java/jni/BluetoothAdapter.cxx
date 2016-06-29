@@ -664,7 +664,7 @@ void Java_tinyb_BluetoothAdapter_disableDiscoveringNotifications(JNIEnv *env, jo
     }
 }
 
-jobjectArray Java_tinyb_BluetoothAdapter_getUuids(JNIEnv *env, jobject obj)
+jobjectArray Java_tinyb_BluetoothAdapter_getUUIDs(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);

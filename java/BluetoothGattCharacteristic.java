@@ -89,7 +89,7 @@ public class BluetoothGattCharacteristic extends BluetoothObject
     /** Get the UUID of this characteristic.
       * @return The 128 byte UUID of this characteristic, NULL if an error occurred
       */
-    public native String getUuid();
+    public native String getUUID();
 
     /** Returns the service to which this characteristic belongs to.
       * @return The service.

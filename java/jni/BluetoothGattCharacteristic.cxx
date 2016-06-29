@@ -181,7 +181,7 @@ void Java_tinyb_BluetoothGattCharacteristic_disableValueNotifications(JNIEnv *en
     }
 }
 
-jstring Java_tinyb_BluetoothGattCharacteristic_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattCharacteristic_getUUID(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattCharacteristic *obj_gatt_char =

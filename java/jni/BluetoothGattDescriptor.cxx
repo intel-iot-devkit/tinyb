@@ -127,7 +127,7 @@ jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj,
     return JNI_FALSE;
 }
 
-jstring Java_tinyb_BluetoothGattDescriptor_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattDescriptor_getUUID(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);

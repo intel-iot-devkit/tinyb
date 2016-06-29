@@ -71,7 +71,7 @@ jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothGattService_getUuid(JNIEnv *env, jobject obj)
+jstring Java_tinyb_BluetoothGattService_getUUID(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
