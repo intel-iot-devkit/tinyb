@@ -1,5 +1,7 @@
 import tinyb.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
+import java.util.concurrent.TimeUnit;
 
 public class HelloTinyB {
     private static final float SCALE_LSB = 0.03125f;
@@ -135,11 +137,19 @@ public class HelloTinyB {
             System.exit(-1);
         }
 
-        final Thread mainThread = Thread.currentThread();
+        Lock lock = new ReentrantLock();
+        Condition cv = lock.newCondition();
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 running = false;
-                sensor.disconnect();
+                lock.lock();
+                try {
+                    cv.signalAll();
+                } finally {
+                    lock.unlock();
+                }
+
             }
         });
 
@@ -198,7 +208,12 @@ public class HelloTinyB {
             System.out.println(
                     String.format(" Temp: Object = %fC, Ambient = %fC", objectTempCelsius, ambientTempCelsius));
 
-            Thread.sleep(1000);
+            lock.lock();
+            try {
+                cv.await(1, TimeUnit.SECONDS);
+            } finally {
+                lock.unlock();
+            }
         }
         sensor.disconnect();
 
