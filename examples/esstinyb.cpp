@@ -157,7 +157,11 @@ int main(int argc, char **argv)
     }
 
     /* Disconnect from the device */
-    ess_device->disconnect();
-    delete ess_device;
+    try {
+        ess_device->disconnect();
+        delete ess_device;
+    } catch (std::exception &e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
     return 0;
 }
