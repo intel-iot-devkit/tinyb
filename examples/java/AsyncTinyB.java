@@ -1,6 +1,8 @@
 import tinyb.*;
 import java.util.*;
 import java.time.*;
+import java.util.concurrent.locks.*;
+import java.util.concurrent.TimeUnit;
 
 public class AsyncTinyB {
     private static final float SCALE_LSB = 0.03125f;
@@ -57,7 +59,7 @@ public class AsyncTinyB {
         /*
          * After we find the device we can stop looking for other devices.
          */
-        manager.stopDiscovery();
+        //manager.stopDiscovery();
 
         if (sensor == null) {
             System.err.println("No sensor found with the provided address.");
@@ -74,11 +76,18 @@ public class AsyncTinyB {
             System.exit(-1);
         }
 
-        final Thread mainThread = Thread.currentThread();
+        Lock lock = new ReentrantLock();
+        Condition cv = lock.newCondition();
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 running = false;
-                sensor.disconnect();
+                lock.lock();
+                try {
+                    cv.signalAll();
+                } finally {
+                    lock.unlock();
+                }
             }
         });
 
@@ -142,7 +151,12 @@ public class AsyncTinyB {
             System.out.println(
                     String.format(" Temp: Object = %fC, Ambient = %fC", objectTempCelsius, ambientTempCelsius));
 
-            Thread.sleep(1000);
+            lock.lock();
+            try {
+                cv.await(1, TimeUnit.SECONDS);
+            } finally {
+                lock.unlock();
+            }
         }
         sensor.disconnect();
 

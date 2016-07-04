@@ -1,6 +1,7 @@
 import tinyb.*;
 import java.util.*;
 import java.time.*;
+import java.util.concurrent.locks.*;
 
 class ValueNotification implements BluetoothNotification<byte[]> {
 
@@ -89,17 +90,13 @@ public class Notification {
          * through the manager's find method.
          */
         BluetoothDevice sensor = manager.find(null, args[0], null, Duration.ofSeconds(10));
-        sensor.enableConnectedNotifications(new ConnectedNotification());
-
-        /*
-         * After we find the device we can stop looking for other devices.
-         */
-        //manager.stopDiscovery();
 
         if (sensor == null) {
             System.err.println("No sensor found with the provided address.");
             System.exit(-1);
         }
+
+        sensor.enableConnectedNotifications(new ConnectedNotification());
 
         System.out.print("Found device: ");
         printDevice(sensor);
@@ -111,11 +108,23 @@ public class Notification {
             System.exit(-1);
         }
 
-        final Thread mainThread = Thread.currentThread();
+        /*
+         * After we find the device we can stop looking for other devices.
+         */
+        //manager.stopDiscovery();
+
+        Lock lock = new ReentrantLock();
+        Condition cv = lock.newCondition();
+
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 running = false;
-                sensor.disconnect();
+                lock.lock();
+                try {
+                    cv.signalAll();
+                } finally {
+                    lock.unlock();
+                }
             }
         });
 
@@ -159,11 +168,12 @@ public class Notification {
 
         tempValue.enableValueNotifications(new ValueNotification());
 
-        /*
-         * Each second read the value characteristic and display it in a human readable format.
-         */
-        while (running) {
-            Thread.sleep(1000);
+        lock.lock();
+        try {
+            while(running)
+                cv.await();
+        } finally {
+            lock.unlock();
         }
         sensor.disconnect();
 
