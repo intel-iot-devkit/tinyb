@@ -70,4 +70,11 @@ public abstract class BluetoothObject implements Cloneable
             return false;
         return operatorEqual((BluetoothObject)obj);
     }
+
+    protected native String getObjectPath();
+
+    public int hashCode() {
+        String objectPath = getObjectPath();
+        return objectPath.hashCode();
+    }
 }
