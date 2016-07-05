@@ -193,14 +193,14 @@ public class BluetoothManager
     /** Turns on device discovery on the default adapter if it is disabled.
       * @return TRUE if discovery was successfully enabled
       */
-    public native boolean startDiscovery();
+    public native boolean startDiscovery() throws BluetoothException;
 
     /** Turns off device discovery on the default adapter if it is enabled.
       * @return TRUE if discovery was successfully disabled
       */
-    public native boolean stopDiscovery();
+    public native boolean stopDiscovery() throws BluetoothException;
 
-    private native void init();
+    private native void init() throws BluetoothException;
     private native void delete();
     private BluetoothManager()
     {
@@ -210,7 +210,7 @@ public class BluetoothManager
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
       * @return An initialized BluetoothManager instance.
       */
-    public static synchronized BluetoothManager getBluetoothManager() throws RuntimeException
+    public static synchronized BluetoothManager getBluetoothManager() throws RuntimeException, BluetoothException
     {
         if (inst == null)
         {

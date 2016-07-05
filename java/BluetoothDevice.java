@@ -73,36 +73,36 @@ public class BluetoothDevice extends BluetoothObject
       * profiles.
       * @return TRUE if the device disconnected
       */
-    public native boolean disconnect();
+    public native boolean disconnect() throws BluetoothException;
 
     /** A connection to this device is established, connecting each profile
       * flagged as auto-connectable.
       * @return TRUE if the device connected
       */
-    public native boolean connect();
+    public native boolean connect() throws BluetoothException;
 
      /** Connects a specific profile available on the device, given by UUID
       * @param arg_UUID The UUID of the profile to be connected
       * @return TRUE if the profile connected successfully
       */
-    public native boolean connectProfile(String arg_UUID);
+    public native boolean connectProfile(String arg_UUID) throws BluetoothException;
 
     /** Disconnects a specific profile available on the device, given by UUID
       * @param arg_UUID The UUID of the profile to be disconnected
       * @return TRUE if the profile disconnected successfully
       */
-    public native boolean disconnectProfile(String arg_UUID);
+    public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     /** A connection to this device is established, and the device is then
       * paired.
       * @return TRUE if the device connected and paired
       */
-    public native boolean pair();
+    public native boolean pair() throws BluetoothException;
 
     /** Cancels an initiated pairing operation
       * @return TRUE if the paring is cancelled successfully
       */
-    public native boolean cancelPairing();
+    public native boolean cancelPairing() throws BluetoothException;
 
     /** Returns a list of BluetoothGattServices available on this device.
       * @return A list of BluetoothGattServices available on this device,
