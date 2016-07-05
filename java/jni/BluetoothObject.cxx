@@ -61,3 +61,10 @@ jboolean Java_tinyb_BluetoothObject_operatorEqual(JNIEnv *env, jobject obj, jobj
     return (*obj_b) == (*obj_other);
 }
 
+jstring Java_tinyb_BluetoothObject_getObjectPath(JNIEnv *env, jobject obj)
+{
+    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+
+    return env->NewStringUTF(obj_b->get_object_path().c_str());
+}
+
