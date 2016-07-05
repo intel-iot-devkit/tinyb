@@ -72,7 +72,7 @@ public class BluetoothGattCharacteristic extends BluetoothObject
     /** Reads the value of this characteristic.
       * @return A std::vector<unsgined char> containing the value of this characteristic.
       */
-    public native byte[] readValue();
+    public native byte[] readValue() throws BluetoothException;
 
     public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
     public native void disableValueNotifications();
@@ -82,7 +82,7 @@ public class BluetoothGattCharacteristic extends BluetoothObject
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    public native boolean writeValue(byte[] argValue);
+    public native boolean writeValue(byte[] argValue) throws BluetoothException;
 
 
     /* D-Bus property accessors: */

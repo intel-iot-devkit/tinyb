@@ -74,12 +74,12 @@ public class BluetoothAdapter extends BluetoothObject
     /** Turns on device discovery if it is disabled.
       * @return TRUE if discovery was successfully enabled
       */
-    public native boolean startDiscovery();
+    public native boolean startDiscovery() throws BluetoothException;
 
     /** Turns off device discovery if it is enabled.
       * @return TRUE if discovery was successfully disabled
       */
-    public native boolean stopDiscovery();
+    public native boolean stopDiscovery() throws BluetoothException;
 
     /** Returns a list of BluetoothDevices visible from this adapter.
       * @return A list of BluetoothDevices visible on this adapter,

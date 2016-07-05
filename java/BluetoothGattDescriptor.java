@@ -48,7 +48,7 @@ public class BluetoothGattDescriptor extends BluetoothObject
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    public native boolean writeValue(byte[] argValue);
+    public native boolean writeValue(byte[] argValue) throws BluetoothException;
 
     public native void enableValueNotifications(BluetoothNotification<byte[]> value);
     public native void disableValueNotifications();
