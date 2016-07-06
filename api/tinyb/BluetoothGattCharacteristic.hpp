@@ -106,11 +106,36 @@ public:
       */
     bool write_value (const std::vector<unsigned char> &arg_value);
 
+    /**
+     * Enables notifications (including at BLE level) for changes of the
+     * value of the characteristic and triggers the callback when the
+     * value changes.
+     * Uninstalls the previous value callback, if any was installed.
+     * @param callback A function of the form
+     * void(BluetoothGattCharacteristic&, std::vector<unsigned char> &, void *), where
+     * BluetoothGattCharacteristic& is the adapter for which the callback was
+     * set, bool will contain the new value of the powered property and void *
+     * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
     bool enable_value_notifications(
         std::function<void(BluetoothGattCharacteristic &characteristic, std::vector<unsigned char> &value,void *userdata)> callback,
         void *user_data);
+    /**
+     * Enables notifications (including at BLE level) for changes of the
+     * value of the characteristic and triggers the callback when the
+     * value changes.
+     * Uninstalls the previous powered callback, if any was installed.
+     * @param callback A function of the form void(std::vector<unsigned char> &), where
+     * std::vector<unsigned char>& will contain the new value
+     */
     bool enable_value_notifications(
         std::function<void(std::vector<unsigned char> &value)> callback);
+    /**
+     * Disables notifications for changes of the value of the characteristic
+     * and uninstalls any callback (including BLE level).
+     */
     bool disable_value_notifications();
 
     /* D-Bus property accessors: */

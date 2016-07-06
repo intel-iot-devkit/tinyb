@@ -151,10 +151,31 @@ public:
       */
     void set_powered (bool  value);
 
+    /**
+     * Enables notifications for changes of the powered status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous powered callback, if any was installed.
+     * @param callback A function of the form void(BluetoothAdapter&, bool, void *), where
+     * BluetoothAdapter& is the adapter for which the callback was set, bool will contain the
+     * new value of the powered property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
     void enable_powered_notifications(
         std::function<void(BluetoothAdapter &adapter, bool powered, void *userdata)> callback,
         void *userdata);
+    /**
+     * Enables notifications for changes of the powered status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous powered callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the powered property
+     */
     void enable_powered_notifications(std::function<void(bool powered)> callback);
+    /**
+     * Disables notifications for changes of the powered status of the adapter
+     * and uninstalls any callback.
+     */
     void disable_powered_notifications();
 
     /** Returns the discoverable state the adapter.
@@ -166,10 +187,30 @@ public:
       */
     void set_discoverable (bool  value);
 
+    /**
+     * Enables notifications for changes of the discoverable status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous discoverable callback, if any was installed.
+     * @param callback A function of the form void(BluetoothAdapter&, bool, void *), where
+     * BluetoothAdapter& is the adapter for which the callback was set, bool will contain the
+     * new value of the discoverable property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
     void enable_discoverable_notifications(
         std::function<void(BluetoothAdapter &adapter, bool discoverable, void *userdata)> callback,
         void *userdata);
+    /**
+     * Enables notifications for changes of the discoverable status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous discoverable callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the discoverable property
+     */
     void enable_discoverable_notifications(std::function<void(bool discoverable)> callback);
+    /**
+     * Disables notifications for changes of the discoverable status of the adapter and uninstalls any callback;
+     */
     void disable_discoverable_notifications();
 
 
@@ -192,10 +233,30 @@ public:
       */
     void set_pairable (bool  value);
 
-    void enable_pairable_notifications(
+    /**
+     * Enables notifications for changes of the pairable status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous pairable callback, if any was installed.
+     * @param callback A function of the form void(BluetoothAdapter&, bool, void *), where
+     * BluetoothAdapter& is the adapter for which the callback was set, bool will contain the
+     * new value of the pairable property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
+   void enable_pairable_notifications(
         std::function<void(BluetoothAdapter &adapter, bool pairable, void *userdata)> callback,
         void *userdata);
+    /**
+     * Enables notifications for changes of the pairable status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous pairable callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the pairable property
+     */
     void enable_pairable_notifications(std::function<void(bool pairable)> callback);
+    /**
+     * Disables notifications for changes of the pairable status of the adapter and uninstalls any callback;
+     */
     void disable_pairable_notifications();
 
     /** Returns the timeout in seconds after which pairable state turns off
@@ -214,10 +275,30 @@ public:
       */
     bool get_discovering ();
 
+    /**
+     * Enables notifications for changes of the discovering status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous discovering callback, if any was installed.
+     * @param callback A function of the form void(BluetoothAdapter&, bool, void *), where
+     * BluetoothAdapter& is the adapter for which the callback was set, bool will contain the
+     * new value of the discovering property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
     void enable_discovering_notifications(
         std::function<void(BluetoothAdapter &adapter, bool discovering, void *userdata)> callback,
         void *userdata);
+    /**
+     * Enables notifications for changes of the discovering status of the adapter
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous discovering callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the discovering property
+     */
     void enable_discovering_notifications(std::function<void(bool discovering)> callback);
+    /**
+     * Disables notifications for changes of the discovering status of the adapter and uninstalls any callback;
+     */
     void disable_discovering_notifications();
 
     /** Returns the UUIDs of the adapter.
