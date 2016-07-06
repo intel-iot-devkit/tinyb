@@ -28,62 +28,50 @@
 
 extern JavaVM* vm;
 
+
+/* 
+ * This class provides a lifetime-managed JNIEnv object, which attaches or
+ * detaches the current thread from the JVM automatically
+ */
 class JNIEnvContainer {
 private:    
     JNIEnv *env = nullptr;
     
 public:
-    JNIEnv *operator*() {
-        attach();
-        return env;
-    }
+    /* Attaches this thread to the JVM if it is not already attached */
+    JNIEnvContainer();
+    /* Detaches this thread to the JVM if it is attached */
+    ~JNIEnvContainer();
 
-    JNIEnv *operator->() {
-        attach();
-        return env;
-    }
+    /* Provides access to the local thread's JNIEnv object */
+    JNIEnv *operator*();
+    /* Provides access to the local thread's JNIEnv object's methods */
+    JNIEnv *operator->();
 
-    JNIEnvContainer() {
-    }
-
-    ~JNIEnvContainer() {
-        detach();
-    }
-
-    void attach() {
-        if (env != nullptr)
-            return;
-        jint err = vm->AttachCurrentThreadAsDaemon((void **)&env, NULL);
-        if (err != JNI_OK)
-            throw std::runtime_error("Attach to VM failed");
-    }
-
-    void detach() {
-        if (env == nullptr)
-            return;
-        vm->DetachCurrentThread();
-        env = nullptr;
-    }
+    /* Attaches this thread to the JVM if it is not already attached */
+    void attach();
+    /* Detaches this thread to the JVM if it is attached */
+    void detach();
 };
 
+/* Each thread has a local jni_env variable of JNIEnvContainer type */
 extern thread_local JNIEnvContainer jni_env;
 
+/*
+ * This class provides a lifetime-managed GlobalRef variable, which is automatically
+ * deleted when it goes out of scope.
+ */
 class JNIGlobalRef {
 private:
     jobject object;
 
 public:
-    
-    JNIGlobalRef(jobject object) {
-        this->object = jni_env->NewGlobalRef(object);
-    }
+    /* Creates a GlobalRef from an object passed to it */
+    JNIGlobalRef(jobject object);
+    /* Deletes the stored GlobalRef */
+    ~JNIGlobalRef();
 
-    ~JNIGlobalRef() {
-        jni_env->DeleteGlobalRef(object);
-    }
-
-    jobject operator*() {
-        return object;
-    }
+    /* Provides access to the stored GlobalRef */
+    jobject operator*();
 };
 

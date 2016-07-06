@@ -31,3 +31,46 @@ jint JNI_OnLoad(JavaVM *initVM, void *reserved) {
     vm = initVM;
     return JNI_VERSION_1_8;
 }
+
+JNIEnv *JNIEnvContainer::operator*() {
+    attach();
+    return env;
+}
+
+JNIEnv *JNIEnvContainer::operator->() {
+    attach();
+    return env;
+}
+
+JNIEnvContainer::JNIEnvContainer() {}
+
+JNIEnvContainer::~JNIEnvContainer() {
+    detach();
+}
+
+void JNIEnvContainer::attach() {
+    if (env != nullptr)
+        return;
+    jint err = vm->AttachCurrentThreadAsDaemon((void **)&env, NULL);
+    if (err != JNI_OK)
+        throw std::runtime_error("Attach to VM failed");
+}
+
+void JNIEnvContainer::detach() {
+    if (env == nullptr)
+        return;
+    vm->DetachCurrentThread();
+    env = nullptr;
+}
+
+JNIGlobalRef::JNIGlobalRef(jobject object) {
+    this->object = jni_env->NewGlobalRef(object);
+}
+
+JNIGlobalRef::~JNIGlobalRef() {
+    jni_env->DeleteGlobalRef(object);
+}
+
+jobject JNIGlobalRef::operator*() {
+    return object;
+}
