@@ -74,6 +74,15 @@ The hellotinyb example uses a [TI Sensor Tag](http://www.ti.com/ww/en/wireless_c
 from which it reads the ambient temperature. You have to pass the MAC address
 of the Sensor Tag as a first parameter to the program.
 
+Changes
+============
+  * 0.5.0
+    ** Added notifications API
+    ** Capitalized RSSI and UUID properly in Java
+    ** Added JNI Helper classes for managing lifetime of JNIEnv and Global Refences
+  * 0.4.0 - Added asynchronous methods for discovering BluetoothObjects
+
+
 Common issues
 ============
 
