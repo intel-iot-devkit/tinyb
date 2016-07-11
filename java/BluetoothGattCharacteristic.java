@@ -74,7 +74,19 @@ public class BluetoothGattCharacteristic extends BluetoothObject
       */
     public native byte[] readValue() throws BluetoothException;
 
+    /**
+     * Enables notifications for the value and calls run function of the BluetoothNotification
+     * object. It enables notifications for this characteristic at BLE level.
+     * @param callback A BluetoothNotification<byte[]> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the value
+     * property.
+     */
     public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    /**
+     * Disables notifications of the value and unregisters the callback object
+     * passed through the corresponding enable method. It disables notications
+     * at BLE level for this characteristic.
+     */
     public native void disableValueNotifications();
 
     /** Writes the value of this characteristic.

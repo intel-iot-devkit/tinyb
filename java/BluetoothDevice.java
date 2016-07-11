@@ -150,7 +150,18 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getPaired();
 
-    public native void enablePairedNotifications(BluetoothNotification<Boolean> paired);
+    /**
+     * Enables notifications for the paired property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the paired
+     * property.
+     */
+    public native void enablePairedNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the paired property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disablePairedNotifications();
 
     /** Returns the trusted state the device.
@@ -158,7 +169,18 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getTrusted();
 
-    public native void enableTrustedNotifications(BluetoothNotification<Boolean> trusted);
+    /**
+     * Enables notifications for the trusted property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the trusted
+     * property.
+     */
+    public native void enableTrustedNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the trusted property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disableTrustedNotifications();
 
     /** Sets the trusted state the device.
@@ -170,8 +192,19 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getBlocked();
 
-    public native void enableBlockedNotifications(BluetoothNotification<Boolean> blocked);
-    public native void disableBlockeddNotifications();
+    /**
+     * Enables notifications for the blocked property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the blocked
+     * property.
+     */
+    public native void enableBlockedNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the blocked property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
+    public native void disableBlockedNotifications();
 
     /** Sets the blocked state the device.
       */
@@ -187,7 +220,18 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native short getRSSI();
 
-    public native void enableRSSINotifications(BluetoothNotification<Short> rssi);
+    /**
+     * Enables notifications for the RSSI property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Short> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the RSSI
+     * property.
+     */
+    public native void enableRSSINotifications(BluetoothNotification<Short> callback);
+    /**
+     * Disables notifications of the RSSI property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disableRSSINotifications();
 
     /** Returns the connected state of the device.
@@ -195,8 +239,19 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getConnected();
 
-    public native void enableConnectedNotifications(BluetoothNotification<Boolean> connected);
-    public native void disableConnectedNotifications();
+    /**
+     * Enables notifications for the connected property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the connected
+     * property.
+     */
+    public native void enableConnectedNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the connected property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
+     public native void disableConnectedNotifications();
 
     /** Returns the UUIDs of the device.
       * @return Array containing the UUIDs of the device, ends with NULL.

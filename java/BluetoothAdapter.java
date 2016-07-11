@@ -117,7 +117,18 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getPowered();
 
-    public native void enablePoweredNotifications(BluetoothNotification<Boolean> powered);
+    /**
+     * Enables notifications for the powered property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the powered
+     * property.
+     */
+    public native void enablePoweredNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the powered property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disablePoweredNotifications();
 
     /** Sets the power state the adapter.
@@ -129,7 +140,18 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getDiscoverable();
 
-    public native void enableDiscoverableNotifications(BluetoothNotification<Boolean> discoverable);
+    /**
+     * Enables notifications for the discoverable property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the discoverable
+     * property.
+     */
+    public native void enableDiscoverableNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the discoverable property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disableDiscoverableNotifications();
 
     /** Sets the discoverable state the adapter.
@@ -151,7 +173,18 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getPairable();
 
-    public native void enablePairableNotifications(BluetoothNotification<Boolean> pairable);
+    /**
+     * Enables notifications for the pairable property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the pairable
+     * property.
+     */
+    public native void enablePairableNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the pairable property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
     public native void disablePairableNotifications();
 
     /** Sets the discoverable state the adapter.
@@ -174,7 +207,18 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native boolean getDiscovering();
 
-    public native void enableDiscoveringNotifications(BluetoothNotification<Boolean> discovering);
+    /**
+     * Enables notifications for the discovering property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the discovering
+     * property.
+     */
+    public native void enableDiscoveringNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the discovering property and unregisters the discovering
+     * object passed through the corresponding enable method.
+     */
     public native void disableDiscoveringNotifications();
 
     /** Returns the UUIDs of the adapter.

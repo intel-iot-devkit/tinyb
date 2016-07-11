@@ -50,7 +50,18 @@ public class BluetoothGattDescriptor extends BluetoothObject
       */
     public native boolean writeValue(byte[] argValue) throws BluetoothException;
 
-    public native void enableValueNotifications(BluetoothNotification<byte[]> value);
+    /**
+     * Enables notifications for the value and calls run function of the BluetoothNotification
+     * object.
+     * @param callback A BluetoothNotification<byte[]> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the value
+     * property.
+     */
+    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    /**
+     * Disables notifications of the value and unregisters the callback object
+     * passed through the corresponding enable method.
+     */
     public native void disableValueNotifications();
 
     /* D-Bus property accessors: */
