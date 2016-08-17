@@ -22,34 +22,76 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/*
+ * This sample looks for a device that implements the Environmental Sensing
+ * Service and supports temperatures notifications. It then starts notfication
+ * updates and displays samples until CRTL+C is hit.
+ * Sample has been tested with the following devices:
+ * - Zephyr Environmental Sensing Profile sample running on Arduino 101
+ */
+
 #include <tinyb.hpp>
 #include <tinyb/BluetoothException.hpp>
 #include <vector>
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
 #include <thread>
-#include <signal.h>
+#include <csignal>
+#include <condition_variable>
 
 using namespace tinyb;
 
+#define BT_MEAS_INTERVAL_INDEX 6
+
+struct es_measurement {
+    uint16_t reserved;
+    uint8_t sampling_func;
+    uint32_t meas_period;
+    uint32_t update_interval;
+    uint8_t application;
+    uint8_t meas_uncertainty;
+};
+
+
 const std::string BT_UUID_ESS         = "0000181a-0000-1000-8000-00805f9b34fb";
+const std::string BT_UUID_CUD         = "00002901-0000-1000-8000-00805f9b34fb";
 const std::string BT_UUID_TEMPERATURE = "00002a6e-0000-1000-8000-00805f9b34fb";
+const std::string BT_UUID_MEASUREMENT = "0000290c-0000-1000-8000-00805f9b34fb";
+const std::string BT_NOFITY_FLAG = "notify";
 
-static bool interrupted = false;
+std::condition_variable cv;
 
-static void signal_handler(int signal_value)
+
+static void signal_handler(int signum)
 {
-    interrupted = true;
+    if (signum == SIGINT) {
+        cv.notify_all();
+    }
 }
 
-static void add_signal_handler()
+
+static void wait_ctrl_c()
 {
-    struct sigaction action;
-    action.sa_handler = signal_handler;
-    action.sa_flags = 0;
-    sigemptyset (&action.sa_mask);
-    sigaction (SIGINT, &action, NULL);
+    std::mutex m;
+    std::unique_lock<std::mutex> lock(m);
+    std::signal(SIGINT, signal_handler);
+    cv.wait(lock);
 }
+
+
+void data_callback(BluetoothGattCharacteristic &c, std::vector<unsigned char> &data, void *userdata)
+{
+    // unsigned char *data_c;
+    unsigned int size = data.size();
+    if (size == 2) {
+        int16_t* raw_data = reinterpret_cast<int16_t*>(data.data());
+        std::cout << "Raw data = " << std::hex << std::setfill('0') << std::setw(4) << *raw_data  << ". ";
+        uint16_t temp = (*raw_data + 50) / 100;
+        std::cout << "Temperature = " << std::dec << temp << "C " << std::endl;
+    }
+}
+
 
 /** This program reads the temperature from a device running the Environmental Sensing Senvice.
  */
@@ -129,34 +171,28 @@ int main(int argc, char **argv)
     std::cout << "Getting environmental service" << std::endl;
     std::unique_ptr<BluetoothGattService> environmental_service = ess_device->find(const_cast<std::string*>(&BT_UUID_ESS));
     std::cout << "Getting temperature characteristic" << std::endl;
-    BluetoothGattCharacteristic *temp_characteristic = environmental_service->find(const_cast<std::string*>(&BT_UUID_TEMPERATURE)).release();
+    std::unique_ptr<BluetoothGattCharacteristic> temp_characteristic = environmental_service->find(const_cast<std::string*>(&BT_UUID_TEMPERATURE));
 
-    if (temp_characteristic != NULL) {
-        std::cout << "Starting temperature readings" << std::endl;
-        bool bt_error = false;
-        /* Activate the temperature measurements by enabling notifications */
-        add_signal_handler();
-        while (!bt_error && !interrupted) {
-            /* Read temperature data and display it */
-            try {
-                std::vector<unsigned char> response = temp_characteristic->read_value();
-                unsigned int size = response.size();
-                if (size == 2) {
-                    int16_t* data = reinterpret_cast<int16_t*>(response.data());
-                    std::cout << "Raw data = " << std::hex << std::setfill('0') << std::setw(4) << *data  << ". ";
-                    uint16_t ambient_temp = (*data + 50) / 100;
-                    std::cout << "Temperature = " << std::dec << ambient_temp << "C " << std::endl;
-                }
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            } catch (BluetoothException& e) {
-                std::cout << "Read_value failed. " << e.what() << std::endl;
-                bt_error = true;
-            }
-        }
-        delete temp_characteristic;
+    std::vector<std::string> list_flags = temp_characteristic->get_flags();
+    if (std::find(list_flags.begin(), list_flags.end(), BT_NOFITY_FLAG) != list_flags.end()) {
+        std::unique_ptr<BluetoothGattDescriptor> meas = temp_characteristic->find(const_cast<std::string*>(&BT_UUID_MEASUREMENT));
+        std::unique_ptr<BluetoothGattDescriptor> cud = temp_characteristic->find(const_cast<std::string*>(&BT_UUID_CUD));
+        std::vector<unsigned char> name_bytes = cud->read_value();
+        std::string name(reinterpret_cast<char *>(name_bytes.data()), name_bytes.size());
+        std::cout << "Sensor name is '" << name << "'" << std::endl;
+        std::vector<unsigned char> meas_bytes = meas->read_value();
+        int notification_interval = meas_bytes[BT_MEAS_INTERVAL_INDEX];
+        std::cout << "Temperature notification interval = " << notification_interval << " secs" << std::endl;
+        std::cout << "Starting temperature notifications. " << std::endl;
+        temp_characteristic->enable_value_notifications(data_callback, nullptr);
+        wait_ctrl_c();
+        temp_characteristic->disable_value_notifications();
+    } else {
+        std::cout << "Sensor does not support notifications" << std::endl;
     }
 
     /* Disconnect from the device */
+    std::cout << "Disconnecting" << std::endl;
     try {
         ess_device->disconnect();
         delete ess_device;
