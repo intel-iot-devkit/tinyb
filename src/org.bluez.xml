@@ -77,9 +77,11 @@ THE SOFTWARE.
   <interface name="org.bluez.GattCharacteristic1">
     <method name="ReadValue">
       <arg name="value" type="ay" direction="out"/>
+      <arg name="options" type="a{sv}" direction="in"/>
     </method>
     <method name="WriteValue">
       <arg name="value" type="ay" direction="in"/>
+      <arg name="options" type="a{sv}" direction="in"/>
     </method>
     <method name="StartNotify"/>
     <method name="StopNotify"/>
@@ -93,9 +95,11 @@ THE SOFTWARE.
   <interface name="org.bluez.GattDescriptor1">
     <method name="ReadValue">
       <arg name="value" type="ay" direction="out"/>
+      <arg name="options" type="a{sv}" direction="in"/>
     </method>
     <method name="WriteValue">
       <arg name="value" type="ay" direction="in"/>
+      <arg name="options" type="a{sv}" direction="in"/>
     </method>
     <property name="UUID" type="s" access="read"/>
     <property name="Characteristic" type="o" access="read"/>

@@ -80,6 +80,7 @@ public:
       * @return A vector<uchar> containing data from this descriptor
       */
     std::vector<unsigned char> read_value (
+        uint16_t offset = 0
     );
 
     /** Writes the value of this descriptor.
@@ -88,7 +89,8 @@ public:
       * @return TRUE if value was written succesfully
       */
     bool write_value (
-        const std::vector<unsigned char> &arg_value
+        const std::vector<unsigned char> &arg_value,
+        uint16_t offset = 0
     );
 
     /**

@@ -120,16 +120,27 @@ std::unique_ptr<BluetoothGattCharacteristic> BluetoothGattCharacteristic::make(
 }
 
 /* D-Bus method calls: */
-std::vector<unsigned char> BluetoothGattCharacteristic::read_value ()
+std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t offset)
 {
     GError *error = NULL;
     GBytes *result_gbytes;
+
+    GVariantDict dict;
+    g_variant_dict_init(&dict, NULL);
+
+    if (offset != 0)
+        g_variant_dict_insert_value(&dict, "offset", g_variant_new_uint16(offset));
+
+    GVariant *variant = g_variant_dict_end(&dict);
+
     gatt_characteristic1_call_read_value_sync(
         object,
         &result_gbytes,
+        variant,
         NULL,
         &error
     );
+
     handle_error(error);
 
     std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
@@ -141,19 +152,29 @@ std::vector<unsigned char> BluetoothGattCharacteristic::read_value ()
 }
 
 bool BluetoothGattCharacteristic::write_value (
-    const std::vector<unsigned char> &arg_value)
+    const std::vector<unsigned char> &arg_value, uint16_t offset)
 {
     GError *error = NULL;
     bool result = true;
 
     GBytes *arg_value_gbytes = from_vector_to_gbytes(arg_value);
 
+    GVariantDict dict;
+    g_variant_dict_init(&dict, NULL);
+
+    if (offset != 0)
+        g_variant_dict_insert_value(&dict, "offset", g_variant_new_uint16(offset));
+
+    GVariant *variant = g_variant_dict_end(&dict);
+
     result = gatt_characteristic1_call_write_value_sync(
         object,
         arg_value_gbytes,
+        variant,
         NULL,
         &error
     );
+
     handle_error(error);
 
     /* freeing the GBytes allocated inside from_vector_to_gbytes function */

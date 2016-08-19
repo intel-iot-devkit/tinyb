@@ -97,6 +97,7 @@ public:
       * @return A std::vector<unsgined char> containing the value of this characteristic.
       */
     std::vector<unsigned char> read_value (
+        uint16_t offset = 0
     );
 
     /** Writes the value of this characteristic.
@@ -104,7 +105,7 @@ public:
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    bool write_value (const std::vector<unsigned char> &arg_value);
+    bool write_value (const std::vector<unsigned char> &arg_value, uint16_t offset = 0);
 
     /**
      * Enables notifications (including at BLE level) for changes of the
