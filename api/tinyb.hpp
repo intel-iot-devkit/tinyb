@@ -30,3 +30,4 @@
 #include "tinyb/BluetoothGattService.hpp"
 #include "tinyb/BluetoothGattCharacteristic.hpp"
 #include "tinyb/BluetoothGattDescriptor.hpp"
+#include "tinyb/BluetoothUUID.hpp"

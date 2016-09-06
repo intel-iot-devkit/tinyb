@@ -51,6 +51,7 @@ enum class BluetoothType {
     class BluetoothNotificationHandler;
     class BluetoothGattDescriptor;
     class BluetoothException;
+    class BluetoothUUID;
 }
 
 

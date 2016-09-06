@@ -30,7 +30,10 @@ set_target_properties(notifications
     PROPERTIES
     CXX_STANDARD 11)
 
-
+add_executable (uuid uuid.cpp)
+set_target_properties(uuid
+    PROPERTIES
+    CXX_STANDARD 11)
 
 include_directories(${PROJECT_SOURCE_DIR}/api)
 
@@ -39,3 +42,4 @@ target_link_libraries (checkinit tinyb)
 target_link_libraries (asynctinyb tinyb)
 target_link_libraries (esstinyb tinyb)
 target_link_libraries (notifications tinyb)
+target_link_libraries (uuid tinyb)
