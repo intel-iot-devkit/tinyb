@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <vector>
 #include <functional>
+#include <map>
 
 /* Forward declaration of types */
 struct _Object;
@@ -374,4 +375,26 @@ public:
       * @return The adapter.
       */
     BluetoothAdapter get_adapter ();
+
+    /** Returns a map containing manufacturer specific advertisement data.
+      * An entry has a uint16_t key and an array of bytes.
+      * @return manufacturer specific advertisement data.
+      */
+    std::map<uint16_t, std::vector<uint8_t>> get_manufacturer_data();
+
+    /** Returns a map containing service advertisement data.
+      * An entry has a UUID string key and an array of bytes.
+      * @return service advertisement data.
+      */
+    std::map<std::string, std::vector<uint8_t>> get_service_data();
+
+     /** Returns the transmission power level (0 means unknown).
+      * @return the transmission power level (0 means unknown).
+      */
+    int16_t get_tx_power ();
+
+     /** Returns true if service discovery has ended.
+      * @return true if the service discovery has ended.
+      */
+    bool get_services_resolved ();
 };

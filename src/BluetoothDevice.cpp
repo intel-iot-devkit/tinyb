@@ -444,3 +444,74 @@ BluetoothAdapter BluetoothDevice::get_adapter ()
 
    return BluetoothAdapter(adapter);
 }
+
+std::map<uint16_t, std::vector<uint8_t>> BluetoothDevice::get_manufacturer_data()
+{
+    std::map<uint16_t, std::vector<uint8_t>> m_data;
+    GVariant *v = device1_dup_manufacturer_data (object);
+
+    if (v == nullptr)
+        return m_data;
+
+    GVariantIter *iter;
+    g_variant_get (v, "a{qv}", &iter);
+
+    GVariant *array;
+    uint16_t key;
+    uint8_t val;
+
+    while (g_variant_iter_loop(iter, "{qv}", &key, &array)) {
+
+        GVariantIter it_array;
+        g_variant_iter_init(&it_array, array);
+        while(g_variant_iter_loop(&it_array, "y", &val)) {
+            m_data[key].push_back(val);
+        }
+    }
+
+    g_variant_iter_free(iter);
+    g_variant_unref(v);
+
+    return m_data;
+}
+
+std::map<std::string, std::vector<uint8_t>> BluetoothDevice::get_service_data()
+{
+    std::map<std::string, std::vector<uint8_t>> m_data;
+    GVariant *v = device1_dup_manufacturer_data (object);
+
+    if (v == nullptr)
+        return m_data;
+
+    GVariantIter *iter;
+    g_variant_get (v, "a{sv}", &iter);
+
+    GVariant *array;
+    const char* key;
+    uint8_t val;
+
+    while (g_variant_iter_loop(iter, "{sv}", &key, &array)) {
+
+        GVariantIter it_array;
+        g_variant_iter_init(&it_array, array);
+        while(g_variant_iter_loop(&it_array, "y", &val)) {
+            m_data[key].push_back(val);
+        }
+    }
+
+    g_variant_iter_free(iter);
+    g_variant_unref(v);
+
+    return m_data;
+}
+
+int16_t BluetoothDevice::get_tx_power ()
+{
+    return device1_get_tx_power (object);
+}
+
+bool BluetoothDevice::get_services_resolved ()
+{
+    return device1_get_services_resolved (object);
+}
+

@@ -269,6 +269,28 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native BluetoothAdapter getAdapter();
 
+    /** Returns a map containing manufacturer specific advertisement data.
+      * An entry has a uint16_t key and an array of bytes.
+      * @return manufacturer specific advertisement data.
+      */
+    public native Map<Short, byte[]> getManufacturerData();
+
+    /** Returns a map containing service advertisement data.
+      * An entry has a UUID string key and an array of bytes.
+      * @return service advertisement data.
+      */
+    public native Map<String, byte[]> getServiceData();
+
+     /** Returns the transmission power level (0 means unknown).
+      * @return the transmission power level (0 means unknown).
+      */
+    public native short getTxPower ();
+
+     /** Returns true if service discovery has ended.
+      * @return true if the service discovery has ended.
+      */
+    public native boolean getServicesResolved ();
+
     private native void delete();
 
     private BluetoothDevice(long instance)
