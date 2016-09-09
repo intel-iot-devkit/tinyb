@@ -444,3 +444,35 @@ BluetoothAdapter BluetoothDevice::get_adapter ()
 
    return BluetoothAdapter(adapter);
 }
+
+std::map<uint16_t, std::vector<uint8_t>> BluetoothDevice::get_manufacturer_data()
+{
+    std::map<uint16_t, std::vector<uint8_t>> m_data;
+    GVariant *v = device1_get_manufacturer_data (object);
+    std::cout << "V is null: " << (v == nullptr) << std::endl;
+    if (v == nullptr)
+        return m_data;
+
+    GVariantIter *iter;
+    g_variant_get (v, "a{qv}", &iter);
+
+    std::cout << "iter is null: " << (iter == nullptr) << std::endl;
+
+    GVariantIter *array;
+    uint16_t key;
+    uint8_t val;
+
+    while (g_variant_iter_loop(iter, "{&qv}", &key, &array)) {
+        std::cout << "MFG key: " << key << " = [";
+
+        while(g_variant_iter_loop(iter, "y", &val)) {
+            std:: cout << val << ", ";
+        }
+        std::cout << "]" <<std::endl;
+    }
+
+    g_variant_iter_free(iter);
+    g_variant_unref(v);
+
+    return m_data;
+}

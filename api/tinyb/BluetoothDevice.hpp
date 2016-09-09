@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <vector>
 #include <functional>
+#include <map>
 
 /* Forward declaration of types */
 struct _Object;
@@ -374,4 +375,6 @@ public:
       * @return The adapter.
       */
     BluetoothAdapter get_adapter ();
+
+    std::map<uint16_t, std::vector<uint8_t>> get_manufacturer_data();
 };

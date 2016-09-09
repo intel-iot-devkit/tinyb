@@ -67,13 +67,19 @@ THE SOFTWARE.
     <property name="UUIDs" type="as" access="read"/>
     <property name="Modalias" type="s" access="read"/>
     <property name="Adapter" type="o" access="read"/>
+    <property name="ManufacturerData" type="a{qv}" access="read"/>
+    <property name="ServiceData" type="a{sv}" access="read"/>
+    <property name="TxPower" type="n" access="read"/>
+    <property name="ServicesResolved" type="b" access="read"/>
   </interface>
+
   <interface name="org.bluez.GattService1">
     <property name="UUID" type="s" access="read"/>
     <property name="Device" type="o" access="read"/>
     <property name="Primary" type="b" access="read"/>
     <property name="Characteristics" type="ao" access="read"/>
   </interface>
+
   <interface name="org.bluez.GattCharacteristic1">
     <method name="ReadValue">
       <arg name="value" type="ay" direction="out"/>
