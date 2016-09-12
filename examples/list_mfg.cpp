@@ -86,7 +86,19 @@ int main(int argc, char **argv)
             std::cout << "Connected = " << (*it)->get_connected() << " ";
             std::cout << std::endl;
 
-            (*it)->get_manufacturer_data();
+            auto mfg = (*it)->get_manufacturer_data();
+
+            if (mfg.empty())
+                continue;
+
+            std::cout << "MFG" << std::endl;
+            for(auto it: mfg) {
+                std::cout << "\t" << it.first << " = [ ";
+                for (auto arr_it: it.second) {
+                    std::cout << (int) arr_it << ", ";
+                }
+                std::cout << "]" << std::endl;
+            }
 
         }
 
