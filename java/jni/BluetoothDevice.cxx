@@ -861,6 +861,140 @@ jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
+jobject Java_tinyb_BluetoothDevice_getManufacturerData(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
+        auto mdata = obj_device->get_manufacturer_data();
+
+        jclass map_cls = search_class(env, "java/util/HashMap");
+        jmethodID map_ctor = search_method(env, map_cls, "<init>",
+                                            "(I)V", false);
+        jmethodID map_put = search_method(env, map_cls, "put",
+                                            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                                            false);
+
+        jclass short_cls = search_class(env, "java/lang/Short");
+        jmethodID short_ctor = search_method(env, short_cls, "<init>",
+                                            "(S)V", false);
+
+        jobject result = env->NewObject(map_cls, map_ctor, mdata.size());
+
+        for (auto it: mdata) {
+            jbyteArray arr = env->NewByteArray(it.second.size());
+            env->SetByteArrayRegion(arr, 0, it.second.size(), (const jbyte *)it.second.data());
+            jobject key = env->NewObject(short_cls, short_ctor, it.first);
+            env->CallObjectMethod(result, map_put, key, arr);
+
+            env->DeleteLocalRef(arr);
+            env->DeleteLocalRef(key);
+        }
+
+        if (!result)
+        {
+            throw std::bad_alloc();
+        }
+
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
+}
+
+jobject Java_tinyb_BluetoothDevice_getServiceData(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
+        auto mdata = obj_device->get_service_data();
+
+        jclass map_cls = search_class(env, "java/util/HashMap");
+        jmethodID map_ctor = search_method(env, map_cls, "<init>",
+                                            "(I)V", false);
+        jmethodID map_put = search_method(env, map_cls, "put",
+                                            "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+                                            false);
+
+        jobject result = env->NewObject(map_cls, map_ctor, mdata.size());
+
+        for (auto it: mdata) {
+            jbyteArray arr = env->NewByteArray(it.second.size());
+            env->SetByteArrayRegion(arr, 0, it.second.size(), (const jbyte *)it.second.data());
+            jobject key = env->NewStringUTF(it.first.c_str());
+            env->CallObjectMethod(result, map_put, key, arr);
+
+            env->DeleteLocalRef(arr);
+            env->DeleteLocalRef(key);
+        }
+
+        if (!result)
+        {
+            throw std::bad_alloc();
+        }
+
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return nullptr;
+}
+
+jshort Java_tinyb_BluetoothDevice_getTXPower(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
+
+        return (jshort)obj_device->get_tx_power();
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return 0;
+}
+
+jboolean Java_tinyb_BluetoothDevice_getServicesResolved(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
+
+        return obj_device->get_services_resolved() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
+}
+
 void Java_tinyb_BluetoothDevice_delete(JNIEnv *env, jobject obj)
 {
     try {
