@@ -120,7 +120,11 @@ public class HelloTinyB {
         /*
          * After we find the device we can stop looking for other devices.
          */
-        manager.stopDiscovery();
+        try {
+            manager.stopDiscovery();
+        } catch (BluetoothException e) {
+            System.err.println("Discovery could not be stopped.");
+        }
 
         if (sensor == null) {
             System.err.println("No sensor found with the provided address.");
