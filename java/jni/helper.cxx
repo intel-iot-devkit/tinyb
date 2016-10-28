@@ -52,6 +52,17 @@ jclass search_class(JNIEnv *env, const char *clazz_name)
     return clazz;
 }
 
+jclass search_class(JNIEnv *env, jobject obj)
+{
+    jclass clazz = env->GetObjectClass(obj);
+    if (!clazz)
+    {
+        std::string error = "no class found: ";
+        throw std::runtime_error(error);
+    }
+    return clazz;
+}
+
 jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
                 const char *prototype, bool is_static)
 {

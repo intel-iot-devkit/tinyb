@@ -32,6 +32,7 @@ jfieldID getInstanceField(JNIEnv *env, jobject obj);
 
 jclass search_class(JNIEnv *env, const char *clazz_name);
 jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object);
+jclass search_class(JNIEnv *env, jobject obj);
 jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
                         const char *prototype, bool is_static);
 jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,

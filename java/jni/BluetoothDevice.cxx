@@ -394,7 +394,7 @@ void Java_tinyb_BluetoothDevice_enablePairedNotifications(JNIEnv *env, jobject o
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_device->enable_paired_notifications([ callback_ptr ] (bool v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
@@ -484,7 +484,7 @@ void Java_tinyb_BluetoothDevice_enableTrustedNotifications(JNIEnv *env, jobject 
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_device->enable_trusted_notifications([ callback_ptr ] (bool v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
@@ -574,7 +574,7 @@ void Java_tinyb_BluetoothDevice_enableBlockedNotifications(JNIEnv *env, jobject 
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_device->enable_blocked_notifications([ callback_ptr ] (bool v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
@@ -664,7 +664,7 @@ void Java_tinyb_BluetoothDevice_enableRSSINotifications(JNIEnv *env, jobject obj
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_device->enable_rssi_notifications([ callback_ptr ] (int16_t v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 jclass short_cls = search_class(*jni_env, "java/lang/Short");
                 jmethodID constructor = search_method(*jni_env, short_cls, "<init>", "(S)V", false);
@@ -734,7 +734,7 @@ void Java_tinyb_BluetoothDevice_enableConnectedNotifications(JNIEnv *env, jobjec
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_device->enable_connected_notifications([ callback_ptr ] (bool v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
