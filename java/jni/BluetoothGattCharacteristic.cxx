@@ -139,7 +139,7 @@ void Java_tinyb_BluetoothGattCharacteristic_enableValueNotifications(JNIEnv *env
         std::shared_ptr<JNIGlobalRef> callback_ptr(new JNIGlobalRef(callback));
         obj_gatt_char->enable_value_notifications([ callback_ptr ] (std::vector<unsigned char> &v)
             {
-                jclass notification = search_class(*jni_env, JAVA_PACKAGE "/BluetoothNotification");
+                jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
                 unsigned int size = v.size();
 
