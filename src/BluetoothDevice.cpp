@@ -81,6 +81,59 @@ void BluetoothNotificationHandler::on_properties_changed_device(GDBusProxy *prox
                 connected_callback(new_value);
                 continue;
             }
+            auto mfg_callback = c->mfg_callback;
+            if (mfg_callback != nullptr && g_ascii_strncasecmp(key, "manufacturerdata", 16) == 0) {
+                std::map<uint16_t, std::vector<uint8_t>> new_value;
+
+                GVariantIter *iter;
+                g_variant_get (value, "a{qv}", &iter);
+
+                GVariant *array;
+                uint16_t key;
+                uint8_t val;
+
+                while (g_variant_iter_loop(iter, "{qv}", &key, &array)) {
+                    GVariantIter it_array;
+                    g_variant_iter_init(&it_array, array);
+                    while(g_variant_iter_loop(&it_array, "y", &val)) {
+                        new_value[key].push_back(val);
+                    }
+                }
+
+                g_variant_iter_free(iter);
+                mfg_callback(new_value);
+                continue;
+            }
+            auto service_callback = c->service_callback;
+            if (service_callback != nullptr && g_ascii_strncasecmp(key, "servicedata", 11) == 0) {
+                std::map<std::string, std::vector<uint8_t>> new_value;
+
+                GVariantIter *iter;
+                g_variant_get (value, "a{sv}", &iter);
+
+                GVariant *array;
+                const char* key;
+                uint8_t val;
+
+                while (g_variant_iter_loop(iter, "{sv}", &key, &array)) {
+                    GVariantIter it_array;
+                    g_variant_iter_init(&it_array, array);
+                    while(g_variant_iter_loop(&it_array, "y", &val)) {
+                        new_value[key].push_back(val);
+                    }
+                }
+
+                g_variant_iter_free(iter);
+                service_callback(new_value);
+                continue;
+            }
+            auto services_resolved_callback = c->services_resolved_callback;
+            if (services_resolved_callback != nullptr && g_ascii_strncasecmp(key, "servicesresolved", 16) == 0) {
+                bool new_value;
+                g_variant_get(value, "b", &new_value);
+                services_resolved_callback(new_value);
+                continue;
+            }
         }
         g_variant_iter_free (iter);
     }
@@ -475,6 +528,19 @@ std::map<uint16_t, std::vector<uint8_t>> BluetoothDevice::get_manufacturer_data(
     return m_data;
 }
 
+void BluetoothDevice::enable_manufacturer_data_notifications(
+    std::function<void(BluetoothDevice &, std::map<uint16_t, std::vector<uint8_t>> &, void *)> callback,
+    void *userdata) {
+    mfg_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_manufacturer_data_notifications(
+    std::function<void(std::map<uint16_t, std::vector<uint8_t>> &)> callback) {
+    mfg_callback = callback;
+}
+void BluetoothDevice::disable_manufacturer_data_notifications() {
+    mfg_callback = nullptr;
+}
+
 std::map<std::string, std::vector<uint8_t>> BluetoothDevice::get_service_data()
 {
     std::map<std::string, std::vector<uint8_t>> m_data;
@@ -505,6 +571,19 @@ std::map<std::string, std::vector<uint8_t>> BluetoothDevice::get_service_data()
     return m_data;
 }
 
+void BluetoothDevice::enable_service_data_notifications(
+    std::function<void(BluetoothDevice &, std::map<std::string, std::vector<uint8_t>> &, void *)> callback,
+    void *userdata) {
+    service_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_service_data_notifications(
+    std::function<void(std::map<std::string, std::vector<uint8_t>> &)> callback) {
+    service_callback = callback;
+}
+void BluetoothDevice::disable_service_data_notifications() {
+    service_callback = nullptr;
+}
+
 int16_t BluetoothDevice::get_tx_power ()
 {
     return device1_get_tx_power (object);
@@ -513,5 +592,18 @@ int16_t BluetoothDevice::get_tx_power ()
 bool BluetoothDevice::get_services_resolved ()
 {
     return device1_get_services_resolved (object);
+}
+
+void BluetoothDevice::enable_services_resolved_notifications(
+    std::function<void(BluetoothDevice &, bool, void *)> callback,
+    void *userdata) {
+    services_resolved_callback = std::bind(callback, std::ref(*this), std::placeholders::_1, userdata);
+}
+void BluetoothDevice::enable_services_resolved_notifications(
+    std::function<void(bool)> callback) {
+    services_resolved_callback = callback;
+}
+void BluetoothDevice::disable_services_resolved_notifications() {
+    services_resolved_callback = nullptr;
 }
 
