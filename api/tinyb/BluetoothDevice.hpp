@@ -68,6 +68,9 @@ protected:
     std::function<void(bool)> paired_callback;
     std::function<void(bool)> connected_callback;
     std::function<void(bool)> blocked_callback;
+    std::function<void(std::map<uint16_t, std::vector<uint8_t>> &)> mfg_callback;
+    std::function<void(std::map<std::string, std::vector<uint8_t>> &)> service_callback;
+    std::function<void(bool)> services_resolved_callback;
 
 public:
 
@@ -381,12 +384,67 @@ public:
       * @return manufacturer specific advertisement data.
       */
     std::map<uint16_t, std::vector<uint8_t>> get_manufacturer_data();
+    /**
+     * Enables notifications for changes of the manufacturer data of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous connected callback, if any was installed.
+     * @param callback A function of the form void(BluetoothDevice&, bool, void *), where
+     * BluetoothDevice& is the device for which the callback was set, bool will contain the
+     * new value of the connected property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
+    void enable_manufacturer_data_notifications(
+        std::function<void(BluetoothDevice &device, std::map<uint16_t, std::vector<uint8_t>> &mfgdata, void *userdata)> callback,
+        void *userdata);
+    /**
+     * Enables notifications for changes in the manufacturer data of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous connected callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the connected property
+     */
+    void enable_manufacturer_data_notifications(
+        std::function<void(std::map<uint16_t, std::vector<uint8_t>> &mfgdata)> callback);
+    /**
+     * Disables notifications for changes in the manufacturer data of the device
+     * and uninstalls any callback.
+     */
+    void disable_manufacturer_data_notifications();
+
 
     /** Returns a map containing service advertisement data.
       * An entry has a UUID string key and an array of bytes.
       * @return service advertisement data.
       */
     std::map<std::string, std::vector<uint8_t>> get_service_data();
+    /**
+     * Enables notifications for changes of the service data of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous connected callback, if any was installed.
+     * @param callback A function of the form void(BluetoothDevice&, bool, void *), where
+     * BluetoothDevice& is the device for which the callback was set, bool will contain the
+     * new value of the connected property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
+    void enable_service_data_notifications(
+        std::function<void(BluetoothDevice &device, std::map<std::string, std::vector<uint8_t>> &servicedata, void *userdata)> callback,
+        void *userdata);
+    /**
+     * Enables notifications for changes in the manufacturer data of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous connected callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the connected property
+     */
+    void enable_service_data_notifications(
+        std::function<void(std::map<std::string, std::vector<uint8_t>> &servicedata)> callback);
+    /**
+     * Disables notifications for changes in the service data of the device
+     * and uninstalls any callback.
+     */
+    void disable_service_data_notifications();
 
      /** Returns the transmission power level (0 means unknown).
       * @return the transmission power level (0 means unknown).
@@ -397,4 +455,32 @@ public:
       * @return true if the service discovery has ended.
       */
     bool get_services_resolved ();
+    /**
+     * Enables notifications for changes of the services resolved status of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous services resolved callback, if any was installed.
+     * @param callback A function of the form void(BluetoothDevice&, bool, void *), where
+     * BluetoothDevice& is the device for which the callback was set, bool will contain the
+     * new value of the services resolved property and void * contains optional, user set data
+     * @param userdata The data which will be delivered to the callback when it is triggered.
+     * Memory must be managed by user.
+     */
+    void enable_services_resolved_notifications(
+        std::function<void(BluetoothDevice &device, bool services_resolved, void *userdata)> callback,
+        void *userdata);
+    /**
+     * Enables notifications for changes of the services resolved status of the device
+     * and triggers the callback when the value changes.
+     * Uninstalls the previous services resolved callback, if any was installed.
+     * @param callback A function of the form void(bool), where
+     * bool will contain the new value of the services resolved property
+     */
+    void enable_services_resolved_notifications(
+        std::function<void(bool connec)> callback);
+    /**
+     * Disables notifications for changes of the services resolved status of the device
+     * and uninstalls any callback.
+     */
+    void disable_services_resolved_notifications();
+
 };
