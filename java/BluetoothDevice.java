@@ -275,11 +275,41 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native Map<Short, byte[]> getManufacturerData();
 
+    /**
+     * Enables notifications for the manufacturer data property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Map<Short, byte[]> > object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the manufacturer data
+     * property.
+     */
+    public native void enableManufacturerDataNotifications(BluetoothNotification<Map<Short, byte[]> > callback);
+    /**
+     * Disables notifications of the manufacturer data property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
+     public native void disableManufacturerDataNotifications();
+
+
     /** Returns a map containing service advertisement data.
       * An entry has a UUID string key and an array of bytes.
       * @return service advertisement data.
       */
     public native Map<String, byte[]> getServiceData();
+
+    /**
+     * Enables notifications for the service data property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Map<String, byte[]> > object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the service data
+     * property.
+     */
+    public native void enableServiceDataNotifications(BluetoothNotification<Map<String, byte[]> > callback);
+    /**
+     * Disables notifications of the service data property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
+     public native void disableServiceDataNotifications();
+
 
      /** Returns the transmission power level (0 means unknown).
       * @return the transmission power level (0 means unknown).
@@ -291,10 +321,25 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean getServicesResolved ();
 
+    /**
+     * Enables notifications for the services resolved property and calls run function of the
+     * BluetoothNotification object.
+     * @param callback A BluetoothNotification<Boolean> object. Its run function will be called
+     * when a notification is issued. The run function will deliver the new value of the services resolved
+     * property.
+     */
+    public native void enableServicesResolvedNotifications(BluetoothNotification<Boolean> callback);
+    /**
+     * Disables notifications of the services resolved property and unregisters the callback
+     * object passed through the corresponding enable method.
+     */
+     public native void disableServicesResolvedNotifications();
+
     private native void delete();
 
     private BluetoothDevice(long instance)
     {
         super(instance);
     }
+
 }
