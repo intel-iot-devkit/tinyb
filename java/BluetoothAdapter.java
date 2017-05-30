@@ -230,6 +230,14 @@ public class BluetoothAdapter extends BluetoothObject
       * @return The local ID of the adapter.
       */
     public native String getModalias();
+    
+    /** Returns the interface name of the adapter.
+     * @return The interface name of the adapter.
+     */
+    public String getInterfaceName() {
+        String[] path = getObjectPath().split("/");
+        return path[path.length-1];
+    }
 
     private native void delete();
 
