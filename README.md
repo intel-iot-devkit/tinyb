@@ -65,6 +65,10 @@ To build Java bindings:
 ~~~~~~~~~~~~~
 -DBUILDJAVA=ON
 ~~~~~~~~~~~~~
+To build examples:
+~~~~~~~~~~~~~
+-DBUILDEXAMPLES=ON
+~~~~~~~~~~~~~
 To build documentation run: 
 ~~~~~~~~~~~~~
 make doc
