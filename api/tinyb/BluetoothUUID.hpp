@@ -1,6 +1,5 @@
 #pragma once
 #include<cstdint>
-#include<cinttypes>
 #include<string>
 #include "BluetoothObject.hpp"
 
