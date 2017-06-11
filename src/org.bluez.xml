@@ -41,6 +41,7 @@ THE SOFTWARE.
     <property name="UUIDs" type="as" access="read"/>
     <property name="Modalias" type="s" access="read"/>
   </interface>
+  
   <interface name="org.bluez.Device1">
     <method name="Disconnect"/>
     <method name="Connect"/>
@@ -98,6 +99,7 @@ THE SOFTWARE.
     <property name="Flags" type="as" access="read"/>
     <property name="Descriptors" type="ao" access="read"/>
   </interface>
+
   <interface name="org.bluez.GattDescriptor1">
     <method name="ReadValue">
       <arg name="value" type="ay" direction="out"/>
@@ -111,4 +113,19 @@ THE SOFTWARE.
     <property name="Characteristic" type="o" access="read"/>
     <property name="Value" type="ay" access="read"/>
   </interface>
+
+  <interface name="org.bluez.LEAdvertisement1">
+    <method name="Release">
+      <annotation name="org.freedesktop.DBus.Method.NoReply" value="true"/>
+    </method>
+
+    <annotation name="org.freedesktop.DBus.Properties.PropertiesChanged" value="const"/>
+
+    <property name="Type" type="s" access="read"/>
+    <property name="ServiceUUIDs" type="as" access="read"/>
+    <property name="ManufacturerData" type="a{sv}" access="read"/>
+    <property name="SolicitUUIDs" type="as" access="read"/>
+    <property name="ServiceData" type="a{sv}" access="read"/>
+    <property name="IncludeTxPower" type="b" access="read"/>
+  </interface>  
 </node>

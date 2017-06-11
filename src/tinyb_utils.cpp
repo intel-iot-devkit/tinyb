@@ -25,6 +25,18 @@
 #include "tinyb_utils.hpp"
 #include "BluetoothException.hpp"
 
+std::vector<unsigned char> tinyb::from_chars_to_vector(const gchar *chars)
+{
+    std::vector<unsigned char>::size_type chars_size = strlen((const char*)chars);
+
+    if (chars_size == 0)
+        throw std::runtime_error("Trying to read empty value");
+
+    std::vector<unsigned char> result(chars, chars + chars_size);
+
+    return result;
+}
+
 std::vector<unsigned char> tinyb::from_gbytes_to_vector(const GBytes *bytes)
 {
     gsize result_size;

@@ -123,7 +123,7 @@ std::unique_ptr<BluetoothGattCharacteristic> BluetoothGattCharacteristic::make(
 std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t offset)
 {
     GError *error = NULL;
-    GBytes *result_gbytes;
+    gchar *result_chars;
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -135,18 +135,15 @@ std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t off
 
     gatt_characteristic1_call_read_value_sync(
         object,
-        &result_gbytes,
         variant,
+        &result_chars,
         NULL,
         &error
     );
 
     handle_error(error);
 
-    std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
-
-    /* free the gbytes array */
-    g_bytes_unref(result_gbytes);
+    std::vector<unsigned char> result = from_chars_to_vector(result_chars);
 
     return result;
 }
@@ -157,7 +154,7 @@ bool BluetoothGattCharacteristic::write_value (
     GError *error = NULL;
     bool result = true;
 
-    GBytes *arg_value_gbytes = from_vector_to_gbytes(arg_value);
+    std::string arg_value_str(arg_value.begin(), arg_value.end());
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -169,16 +166,13 @@ bool BluetoothGattCharacteristic::write_value (
 
     result = gatt_characteristic1_call_write_value_sync(
         object,
-        arg_value_gbytes,
+        arg_value_str.c_str(),
         variant,
         NULL,
         &error
     );
 
     handle_error(error);
-
-    /* freeing the GBytes allocated inside from_vector_to_gbytes function */
-    g_bytes_unref(arg_value_gbytes);
 
     return result;
 }
@@ -265,17 +259,10 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
 
 std::vector<unsigned char> BluetoothGattCharacteristic::get_value ()
 {
-    GBytes *value_gbytes = const_cast<GBytes *>(gatt_characteristic1_get_value (object));
+    gchar *value_chars = const_cast<gchar *>(gatt_characteristic1_get_value (object));
     std::vector<unsigned char> result;
 
-    try {
-        result = from_gbytes_to_vector(value_gbytes);
-    } catch (std::exception &e) {
-        g_bytes_unref(value_gbytes);
-        throw e;
-    }
-
-    g_bytes_unref(value_gbytes);
+    result = from_chars_to_vector(value_chars);
 
     return result;
 }
@@ -311,4 +298,5 @@ std::vector<std::unique_ptr<BluetoothGattDescriptor>> BluetoothGattCharacteristi
 
     return vector;
 }
+
 

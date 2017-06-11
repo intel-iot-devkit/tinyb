@@ -127,7 +127,7 @@ BluetoothGattDescriptor *BluetoothGattDescriptor::clone() const
 std::vector<unsigned char> BluetoothGattDescriptor::read_value (uint16_t offset)
 {
     GError *error = NULL;
-    GBytes *result_gbytes;
+    gchar *result_chars;
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -139,17 +139,14 @@ std::vector<unsigned char> BluetoothGattDescriptor::read_value (uint16_t offset)
 
     gatt_descriptor1_call_read_value_sync(
         object,
-        &result_gbytes,
         variant,
+        &result_chars,
         NULL,
         &error
     );
     handle_error(error);
 
-    std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
-
-    /* unref the gbytes pointer */
-    g_bytes_unref(result_gbytes);
+    std::vector<unsigned char> result = from_chars_to_vector(result_chars);
 
     return result;
 }
@@ -160,7 +157,7 @@ bool BluetoothGattDescriptor::write_value (
     GError *error = NULL;
     bool result;
 
-    GBytes *arg_value_gbytes = from_vector_to_gbytes(arg_value);
+    gchar *arg_value_chars = const_cast<gchar*>(reinterpret_cast<const gchar*>(arg_value.data()));
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -172,15 +169,12 @@ bool BluetoothGattDescriptor::write_value (
 
     result = gatt_descriptor1_call_write_value_sync(
         object,
-        arg_value_gbytes,
+        arg_value_chars,
         variant,
         NULL,
         &error
     );
     handle_error(error);
-
-    /* unref the GBytes allocated inside from_vector_to_gbytes function */
-    g_bytes_unref(arg_value_gbytes);
 
     return result;
 }
@@ -236,16 +230,10 @@ BluetoothGattCharacteristic BluetoothGattDescriptor::get_characteristic ()
 
 std::vector<unsigned char> BluetoothGattDescriptor::get_value ()
 {
-    GBytes *value_gbytes = const_cast<GBytes *>(gatt_descriptor1_get_value (object));
+    gchar *value_chars = const_cast<gchar *>(gatt_descriptor1_get_value (object));
     std::vector<unsigned char> result;
-    try {
-        result = from_gbytes_to_vector(value_gbytes);
-    } catch (std::exception &e) {
-        g_bytes_unref(value_gbytes);
-        throw e;
-    }
-
-    g_bytes_unref(value_gbytes);
-
+ 
+    result = from_chars_to_vector(value_chars);
+ 
     return result;
 }

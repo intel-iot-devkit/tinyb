@@ -8250,7 +8250,7 @@ gatt_characteristic1_set_service (GattCharacteristic1 *object, const gchar *valu
  *
  * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
  */
-const GBytes *
+const gchar *
 gatt_characteristic1_get_value (GattCharacteristic1 *object)
 {
   return GATT_CHARACTERISTIC1_GET_IFACE (object)->get_value (object);
@@ -8266,10 +8266,10 @@ gatt_characteristic1_get_value (GattCharacteristic1 *object)
  *
  * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_free().
  */
-GBytes *
+gchar *
 gatt_characteristic1_dup_value (GattCharacteristic1 *object)
 {
-  GBytes *value;
+  gchar *value;
   g_object_get (G_OBJECT (object), "value", &value, NULL);
   return value;
 }
@@ -8284,7 +8284,7 @@ gatt_characteristic1_dup_value (GattCharacteristic1 *object)
  * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
  */
 void
-gatt_characteristic1_set_value (GattCharacteristic1 *object, const GBytes *value)
+gatt_characteristic1_set_value (GattCharacteristic1 *object, const gchar *value)
 {
   g_object_set (G_OBJECT (object), "value", value, NULL);
 }
@@ -8469,33 +8469,17 @@ gatt_characteristic1_call_read_value (
 gboolean
 gatt_characteristic1_call_read_value_finish (
     GattCharacteristic1 *proxy,
-    GBytes **out_value,
+    gchar **out_value,
     GAsyncResult *res,
     GError **error)
 {
   GVariant *_ret;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  *out_value = NULL;
-
   _ret = g_dbus_proxy_call_finish (G_DBUS_PROXY (proxy), res, error);
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
-                 "(ay)",
-                 &iter);
-  if (iter == NULL) {
-    g_variant_unref (_ret);
-    return FALSE;
-  }
-
-  array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", &array[i++]));
-  *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-  g_variant_iter_free(iter);
-
-
+                 "(^ay)",
+                 out_value);
   g_variant_unref (_ret);
 _out:
   return _ret != NULL;
@@ -8518,17 +8502,12 @@ _out:
 gboolean
 gatt_characteristic1_call_read_value_sync (
     GattCharacteristic1 *proxy,
-    GBytes **out_value,
     GVariant *arg_options,
+    gchar **out_value,
     GCancellable *cancellable,
     GError **error)
 {
   GVariant *_ret;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  *out_value = NULL;
-
   _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
     "ReadValue",
     g_variant_new ("(@a{sv})",
@@ -8540,18 +8519,8 @@ gatt_characteristic1_call_read_value_sync (
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
-                 "(ay)",
-                 &iter);
-  if (iter == NULL) {
-    g_variant_unref (_ret);
-    return FALSE;
-  }
-
-  array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_next(iter, "y", &array[i++]));
-  *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-  g_variant_iter_free(iter);
-
+                 "(^ay)",
+                 out_value);
   g_variant_unref (_ret);
 _out:
   return _ret != NULL;
@@ -8575,34 +8544,22 @@ _out:
 void
 gatt_characteristic1_call_write_value (
     GattCharacteristic1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GVariantBuilder *builder;
-  guchar const *data;
-  gsize size;
-  guint i;
-
-  builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
-  if (arg_value != NULL && (data = g_bytes_get_data(arg_value, &size)) != NULL)
-    for (i = 0; i < size; i++)
-      g_variant_builder_add(builder, "y", data[i]);
-
   g_dbus_proxy_call (G_DBUS_PROXY (proxy),
     "WriteValue",
-    g_variant_new ("(ay@a{sv})",
-                   builder,
+    g_variant_new ("(^ay@a{sv})",
+                   arg_value,
                    arg_options),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
     callback,
     user_data);
-
-  g_variant_builder_unref(builder);
 }
 
 /**
@@ -8649,34 +8606,21 @@ _out:
 gboolean
 gatt_characteristic1_call_write_value_sync (
     GattCharacteristic1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GError **error)
 {
   GVariant *_ret;
-  GVariantBuilder *builder;
-  guchar const *data;
-  gsize size;
-  guint i;
-
-  builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
-  if (arg_value != NULL && (data = g_bytes_get_data(arg_value, &size)) != NULL)
-    for (i = 0; i < size; i++)
-      g_variant_builder_add(builder, "y", data[i]);
-
   _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
     "WriteValue",
-    g_variant_new ("(ay@a{sv})",
-                   builder,
+    g_variant_new ("(^ay@a{sv})",
+                   arg_value,
                    arg_options),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
     error);
-
-  g_variant_builder_unref(builder);
-
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
@@ -9152,25 +9096,16 @@ gatt_characteristic1_proxy_get_service (GattCharacteristic1 *object)
   return value;
 }
 
-static const GBytes *
+static const gchar *
 gatt_characteristic1_proxy_get_value (GattCharacteristic1 *object)
 {
   GattCharacteristic1Proxy *proxy = GATT_CHARACTERISTIC1_PROXY (object);
   GVariant *variant;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  GBytes *value = NULL;
+  const gchar *value = NULL;
   variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "Value");
   if (variant != NULL)
     {
-      g_variant_get (variant, "ay", &iter);
-
-      array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-      while (g_variant_iter_loop(iter, "y", &array[i++]));
-      value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-      g_variant_iter_free(iter);
-
+      value = g_variant_get_bytestring (variant);
       g_variant_unref (variant);
     }
   return value;
@@ -9886,13 +9821,13 @@ gatt_characteristic1_skeleton_get_service (GattCharacteristic1 *object)
   return value;
 }
 
-static const GBytes *
+static const gchar *
 gatt_characteristic1_skeleton_get_value (GattCharacteristic1 *object)
 {
   GattCharacteristic1Skeleton *skeleton = GATT_CHARACTERISTIC1_SKELETON (object);
-  const GBytes *value;
+  const gchar *value;
   g_mutex_lock (&skeleton->priv->lock);
-  value = g_value_get_boxed (&(skeleton->priv->properties[2]));
+  value = g_value_get_string (&(skeleton->priv->properties[2]));
   g_mutex_unlock (&skeleton->priv->lock);
   return value;
 }
@@ -10402,7 +10337,7 @@ gatt_descriptor1_set_characteristic (GattDescriptor1 *object, const gchar *value
  *
  * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
  */
-const GBytes *
+const gchar *
 gatt_descriptor1_get_value (GattDescriptor1 *object)
 {
   return GATT_DESCRIPTOR1_GET_IFACE (object)->get_value (object);
@@ -10418,10 +10353,10 @@ gatt_descriptor1_get_value (GattDescriptor1 *object)
  *
  * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_free().
  */
-GBytes *
+gchar *
 gatt_descriptor1_dup_value (GattDescriptor1 *object)
 {
-  GBytes *value;
+  gchar *value;
   g_object_get (G_OBJECT (object), "value", &value, NULL);
   return value;
 }
@@ -10436,7 +10371,7 @@ gatt_descriptor1_dup_value (GattDescriptor1 *object)
  * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
  */
 void
-gatt_descriptor1_set_value (GattDescriptor1 *object, const GBytes *value)
+gatt_descriptor1_set_value (GattDescriptor1 *object, const gchar *value)
 {
   g_object_set (G_OBJECT (object), "value", value, NULL);
 }
@@ -10488,28 +10423,17 @@ gatt_descriptor1_call_read_value (
 gboolean
 gatt_descriptor1_call_read_value_finish (
     GattDescriptor1 *proxy,
-    GBytes **out_value,
+    gchar **out_value,
     GAsyncResult *res,
     GError **error)
 {
   GVariant *_ret;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  *out_value = NULL;
-
   _ret = g_dbus_proxy_call_finish (G_DBUS_PROXY (proxy), res, error);
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
-                 "(ay)",
-                 &iter);
-
-  array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", &array[i++]));
-  *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-  g_variant_iter_free(iter);
-
+                 "(^ay)",
+                 out_value);
   g_variant_unref (_ret);
 _out:
   return _ret != NULL;
@@ -10532,17 +10456,12 @@ _out:
 gboolean
 gatt_descriptor1_call_read_value_sync (
     GattDescriptor1 *proxy,
-    GBytes **out_value,
     GVariant *arg_options,
+    gchar **out_value,
     GCancellable *cancellable,
     GError **error)
 {
   GVariant *_ret;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  *out_value = NULL;
-
   _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
     "ReadValue",
     g_variant_new ("(@a{sv})",
@@ -10554,14 +10473,8 @@ gatt_descriptor1_call_read_value_sync (
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
-                 "(ay)",
-                 &iter);
-
-  array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-  while (g_variant_iter_loop(iter, "y", &array[i++]));
-  *out_value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-  g_variant_iter_free(iter);
-
+                 "(^ay)",
+                 out_value);
   g_variant_unref (_ret);
 _out:
   return _ret != NULL;
@@ -10585,34 +10498,22 @@ _out:
 void
 gatt_descriptor1_call_write_value (
     GattDescriptor1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
     gpointer user_data)
 {
-  GVariantBuilder *builder;
-  guchar const *data;
-  gsize size;
-  guint i;
-
-  builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
-  if (arg_value != NULL && (data = g_bytes_get_data(arg_value, &size)) != NULL)
-    for (i = 0; i < size; i++)
-      g_variant_builder_add(builder, "y", data[i]);
-
   g_dbus_proxy_call (G_DBUS_PROXY (proxy),
     "WriteValue",
-    g_variant_new ("(ay@a{sv})",
-                   builder,
+    g_variant_new ("(^ay@a{sv})",
+                   arg_value,
                    arg_options),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
     callback,
     user_data);
-
-  g_variant_builder_unref(builder);
 }
 
 /**
@@ -10659,34 +10560,21 @@ _out:
 gboolean
 gatt_descriptor1_call_write_value_sync (
     GattDescriptor1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GError **error)
 {
   GVariant *_ret;
-  GVariantBuilder *builder;
-  guchar const *data;
-  gsize size;
-  guint i;
-
-  builder = g_variant_builder_new(G_VARIANT_TYPE("ay"));
-  if (arg_value != NULL && (data = g_bytes_get_data(arg_value, &size)) != NULL)
-    for (i = 0; i < size; i++)
-      g_variant_builder_add(builder, "y", data[i]);
-
   _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
     "WriteValue",
-    g_variant_new ("(ay@a{sv})",
-                   builder,
+    g_variant_new ("(^ay@a{sv})",
+                   arg_value,
                    arg_options),
     G_DBUS_CALL_FLAGS_NONE,
     -1,
     cancellable,
     error);
-
-  g_variant_builder_unref(builder);
-
   if (_ret == NULL)
     goto _out;
   g_variant_get (_ret,
@@ -10942,25 +10830,16 @@ gatt_descriptor1_proxy_get_characteristic (GattDescriptor1 *object)
   return value;
 }
 
-static const GBytes *
+static const gchar *
 gatt_descriptor1_proxy_get_value (GattDescriptor1 *object)
 {
   GattDescriptor1Proxy *proxy = GATT_DESCRIPTOR1_PROXY (object);
   GVariant *variant;
-  GVariantIter *iter;
-  guchar *array;
-  guint i = 0;
-  GBytes *value = NULL;
+  const gchar *value = NULL;
   variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "Value");
   if (variant != NULL)
     {
-      g_variant_get (variant, "ay", &iter);
-
-      array = g_malloc((g_variant_iter_n_children(iter)) * sizeof(guchar));
-      while (g_variant_iter_loop(iter, "y", &array[i++]));
-      value = g_bytes_new_take(array, g_variant_iter_n_children(iter));
-      g_variant_iter_free(iter);
-
+      value = g_variant_get_bytestring (variant);
       g_variant_unref (variant);
     }
   return value;
@@ -11621,13 +11500,13 @@ gatt_descriptor1_skeleton_get_characteristic (GattDescriptor1 *object)
   return value;
 }
 
-static const GBytes *
+static const gchar *
 gatt_descriptor1_skeleton_get_value (GattDescriptor1 *object)
 {
   GattDescriptor1Skeleton *skeleton = GATT_DESCRIPTOR1_SKELETON (object);
-  const GBytes *value;
+  const gchar *value;
   g_mutex_lock (&skeleton->priv->lock);
-  value = g_value_get_boxed (&(skeleton->priv->properties[2]));
+  value = g_value_get_string (&(skeleton->priv->properties[2]));
   g_mutex_unlock (&skeleton->priv->lock);
   return value;
 }
@@ -11677,6 +11556,1736 @@ GattDescriptor1 *
 gatt_descriptor1_skeleton_new (void)
 {
   return GATT_DESCRIPTOR1 (g_object_new (TYPE_GATT_DESCRIPTOR1_SKELETON, NULL));
+}
+
+/* ------------------------------------------------------------------------
+ * Code for interface org.bluez.LEAdvertisement1
+ * ------------------------------------------------------------------------
+ */
+
+/**
+ * SECTION:LEAdvertisement1
+ * @title: LEAdvertisement1
+ * @short_description: Generated C code for the org.bluez.LEAdvertisement1 D-Bus interface
+ *
+ * This section contains code for working with the <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link> D-Bus interface in C.
+ */
+
+/* ---- Introspection data for org.bluez.LEAdvertisement1 ---- */
+
+static const GDBusAnnotationInfo _leadvertisement1_method_release_annotation_info_0 =
+{
+  -1,
+  (gchar *) "org.freedesktop.DBus.Method.NoReply",
+  (gchar *) "true",
+  NULL
+};
+
+static const GDBusAnnotationInfo * const _leadvertisement1_method_release_annotation_info_pointers[] =
+{
+  &_leadvertisement1_method_release_annotation_info_0,
+  NULL
+};
+
+static const _ExtendedGDBusMethodInfo _leadvertisement1_method_info_release =
+{
+  {
+    -1,
+    (gchar *) "Release",
+    NULL,
+    NULL,
+    (GDBusAnnotationInfo **) &_leadvertisement1_method_release_annotation_info_pointers
+  },
+  "handle-release",
+  FALSE
+};
+
+static const _ExtendedGDBusMethodInfo * const _leadvertisement1_method_info_pointers[] =
+{
+  &_leadvertisement1_method_info_release,
+  NULL
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_type_ =
+{
+  {
+    -1,
+    (gchar *) "Type",
+    (gchar *) "s",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "type",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_service_uuids =
+{
+  {
+    -1,
+    (gchar *) "ServiceUUIDs",
+    (gchar *) "as",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "service-uuids",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_manufacturer_data =
+{
+  {
+    -1,
+    (gchar *) "ManufacturerData",
+    (gchar *) "a{sv}",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "manufacturer-data",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_solicit_uuids =
+{
+  {
+    -1,
+    (gchar *) "SolicitUUIDs",
+    (gchar *) "as",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "solicit-uuids",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_service_data =
+{
+  {
+    -1,
+    (gchar *) "ServiceData",
+    (gchar *) "a{sv}",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "service-data",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo _leadvertisement1_property_info_include_tx_power =
+{
+  {
+    -1,
+    (gchar *) "IncludeTxPower",
+    (gchar *) "b",
+    G_DBUS_PROPERTY_INFO_FLAGS_READABLE,
+    NULL
+  },
+  "include-tx-power",
+  FALSE
+};
+
+static const _ExtendedGDBusPropertyInfo * const _leadvertisement1_property_info_pointers[] =
+{
+  &_leadvertisement1_property_info_type_,
+  &_leadvertisement1_property_info_service_uuids,
+  &_leadvertisement1_property_info_manufacturer_data,
+  &_leadvertisement1_property_info_solicit_uuids,
+  &_leadvertisement1_property_info_service_data,
+  &_leadvertisement1_property_info_include_tx_power,
+  NULL
+};
+
+static const GDBusAnnotationInfo _leadvertisement1_annotation_info_0 =
+{
+  -1,
+  (gchar *) "org.freedesktop.DBus.Properties.PropertiesChanged",
+  (gchar *) "const",
+  NULL
+};
+
+static const GDBusAnnotationInfo * const _leadvertisement1_annotation_info_pointers[] =
+{
+  &_leadvertisement1_annotation_info_0,
+  NULL
+};
+
+static const _ExtendedGDBusInterfaceInfo _leadvertisement1_interface_info =
+{
+  {
+    -1,
+    (gchar *) "org.bluez.LEAdvertisement1",
+    (GDBusMethodInfo **) &_leadvertisement1_method_info_pointers,
+    NULL,
+    (GDBusPropertyInfo **) &_leadvertisement1_property_info_pointers,
+    (GDBusAnnotationInfo **) &_leadvertisement1_annotation_info_pointers
+  },
+  "leadvertisement1",
+};
+
+
+/**
+ * leadvertisement1_interface_info:
+ *
+ * Gets a machine-readable description of the <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link> D-Bus interface.
+ *
+ * Returns: (transfer none): A #GDBusInterfaceInfo. Do not free.
+ */
+GDBusInterfaceInfo *
+leadvertisement1_interface_info (void)
+{
+  return (GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct;
+}
+
+/**
+ * leadvertisement1_override_properties:
+ * @klass: The class structure for a #GObject<!-- -->-derived class.
+ * @property_id_begin: The property id to assign to the first overridden property.
+ *
+ * Overrides all #GObject properties in the #LEAdvertisement1 interface for a concrete class.
+ * The properties are overridden in the order they are defined.
+ *
+ * Returns: The last property id.
+ */
+guint
+leadvertisement1_override_properties (GObjectClass *klass, guint property_id_begin)
+{
+  g_object_class_override_property (klass, property_id_begin++, "type");
+  g_object_class_override_property (klass, property_id_begin++, "service-uuids");
+  g_object_class_override_property (klass, property_id_begin++, "manufacturer-data");
+  g_object_class_override_property (klass, property_id_begin++, "solicit-uuids");
+  g_object_class_override_property (klass, property_id_begin++, "service-data");
+  g_object_class_override_property (klass, property_id_begin++, "include-tx-power");
+  return property_id_begin - 1;
+}
+
+
+
+/**
+ * LEAdvertisement1:
+ *
+ * Abstract interface type for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>.
+ */
+
+/**
+ * LEAdvertisement1Iface:
+ * @parent_iface: The parent interface.
+ * @handle_release: Handler for the #LEAdvertisement1::handle-release signal.
+ * @get_include_tx_power: Getter for the #LEAdvertisement1:include-tx-power property.
+ * @get_manufacturer_data: Getter for the #LEAdvertisement1:manufacturer-data property.
+ * @get_service_data: Getter for the #LEAdvertisement1:service-data property.
+ * @get_service_uuids: Getter for the #LEAdvertisement1:service-uuids property.
+ * @get_solicit_uuids: Getter for the #LEAdvertisement1:solicit-uuids property.
+ * @get_type_: Getter for the #LEAdvertisement1:type property.
+ *
+ * Virtual table for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>.
+ */
+
+typedef LEAdvertisement1Iface LEAdvertisement1Interface;
+G_DEFINE_INTERFACE (LEAdvertisement1, leadvertisement1, G_TYPE_OBJECT);
+
+static void
+leadvertisement1_default_init (LEAdvertisement1Iface *iface)
+{
+  /* GObject signals for incoming D-Bus method calls: */
+  /**
+   * LEAdvertisement1::handle-release:
+   * @object: A #LEAdvertisement1.
+   * @invocation: A #GDBusMethodInvocation.
+   *
+   * Signal emitted when a remote caller is invoking the <link linkend="gdbus-method-org-bluez-LEAdvertisement1.Release">Release()</link> D-Bus method.
+   *
+   * If a signal handler returns %TRUE, it means the signal handler will handle the invocation (e.g. take a reference to @invocation and eventually call leadvertisement1_complete_release() or e.g. g_dbus_method_invocation_return_error() on it) and no order signal handlers will run. If no signal handler handles the invocation, the %G_DBUS_ERROR_UNKNOWN_METHOD error is returned.
+   *
+   * Returns: %TRUE if the invocation was handled, %FALSE to let other signal handlers run.
+   */
+  g_signal_new ("handle-release",
+    G_TYPE_FROM_INTERFACE (iface),
+    G_SIGNAL_RUN_LAST,
+    G_STRUCT_OFFSET (LEAdvertisement1Iface, handle_release),
+    g_signal_accumulator_true_handled,
+    NULL,
+    g_cclosure_marshal_generic,
+    G_TYPE_BOOLEAN,
+    1,
+    G_TYPE_DBUS_METHOD_INVOCATION);
+
+  /* GObject properties for D-Bus properties: */
+  /**
+   * LEAdvertisement1:type:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.Type">"Type"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_string ("type", "Type", "Type", NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  /**
+   * LEAdvertisement1:service-uuids:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceUUIDs">"ServiceUUIDs"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_boxed ("service-uuids", "ServiceUUIDs", "ServiceUUIDs", G_TYPE_STRV, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  /**
+   * LEAdvertisement1:manufacturer-data:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ManufacturerData">"ManufacturerData"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_variant ("manufacturer-data", "ManufacturerData", "ManufacturerData", G_VARIANT_TYPE ("a{sv}"), NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  /**
+   * LEAdvertisement1:solicit-uuids:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.SolicitUUIDs">"SolicitUUIDs"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_boxed ("solicit-uuids", "SolicitUUIDs", "SolicitUUIDs", G_TYPE_STRV, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  /**
+   * LEAdvertisement1:service-data:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceData">"ServiceData"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_variant ("service-data", "ServiceData", "ServiceData", G_VARIANT_TYPE ("a{sv}"), NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  /**
+   * LEAdvertisement1:include-tx-power:
+   *
+   * Represents the D-Bus property <link linkend="gdbus-property-org-bluez-LEAdvertisement1.IncludeTxPower">"IncludeTxPower"</link>.
+   *
+   * Since the D-Bus property for this #GObject property is readable but not writable, it is meaningful to read from it on both the client- and service-side. It is only meaningful, however, to write to it on the service-side.
+   */
+  g_object_interface_install_property (iface,
+    g_param_spec_boolean ("include-tx-power", "IncludeTxPower", "IncludeTxPower", FALSE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+}
+
+/**
+ * leadvertisement1_get_type_: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.Type">"Type"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * <warning>The returned value is only valid until the property changes so on the client-side it is only safe to use this function on the thread where @object was constructed. Use leadvertisement1_dup_type_() if on another thread.</warning>
+ *
+ * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
+ */
+const gchar *
+leadvertisement1_get_type_ (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_type_ (object);
+}
+
+/**
+ * leadvertisement1_dup_type_: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets a copy of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.Type">"Type"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_free().
+ */
+gchar *
+leadvertisement1_dup_type_ (LEAdvertisement1 *object)
+{
+  gchar *value;
+  g_object_get (G_OBJECT (object), "type", &value, NULL);
+  return value;
+}
+
+/**
+ * leadvertisement1_set_type_: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.Type">"Type"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_type_ (LEAdvertisement1 *object, const gchar *value)
+{
+  g_object_set (G_OBJECT (object), "type", value, NULL);
+}
+
+/**
+ * leadvertisement1_get_service_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceUUIDs">"ServiceUUIDs"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * <warning>The returned value is only valid until the property changes so on the client-side it is only safe to use this function on the thread where @object was constructed. Use leadvertisement1_dup_service_uuids() if on another thread.</warning>
+ *
+ * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
+ */
+const gchar *const *
+leadvertisement1_get_service_uuids (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_service_uuids (object);
+}
+
+/**
+ * leadvertisement1_dup_service_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets a copy of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceUUIDs">"ServiceUUIDs"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_strfreev().
+ */
+gchar **
+leadvertisement1_dup_service_uuids (LEAdvertisement1 *object)
+{
+  gchar **value;
+  g_object_get (G_OBJECT (object), "service-uuids", &value, NULL);
+  return value;
+}
+
+/**
+ * leadvertisement1_set_service_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceUUIDs">"ServiceUUIDs"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_service_uuids (LEAdvertisement1 *object, const gchar *const *value)
+{
+  g_object_set (G_OBJECT (object), "service-uuids", value, NULL);
+}
+
+/**
+ * leadvertisement1_get_manufacturer_data: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ManufacturerData">"ManufacturerData"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * <warning>The returned value is only valid until the property changes so on the client-side it is only safe to use this function on the thread where @object was constructed. Use leadvertisement1_dup_manufacturer_data() if on another thread.</warning>
+ *
+ * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
+ */
+GVariant *
+leadvertisement1_get_manufacturer_data (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_manufacturer_data (object);
+}
+
+/**
+ * leadvertisement1_dup_manufacturer_data: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets a copy of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ManufacturerData">"ManufacturerData"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_variant_unref().
+ */
+GVariant *
+leadvertisement1_dup_manufacturer_data (LEAdvertisement1 *object)
+{
+  GVariant *value;
+  g_object_get (G_OBJECT (object), "manufacturer-data", &value, NULL);
+  return value;
+}
+
+/**
+ * leadvertisement1_set_manufacturer_data: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ManufacturerData">"ManufacturerData"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_manufacturer_data (LEAdvertisement1 *object, GVariant *value)
+{
+  g_object_set (G_OBJECT (object), "manufacturer-data", value, NULL);
+}
+
+/**
+ * leadvertisement1_get_solicit_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.SolicitUUIDs">"SolicitUUIDs"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * <warning>The returned value is only valid until the property changes so on the client-side it is only safe to use this function on the thread where @object was constructed. Use leadvertisement1_dup_solicit_uuids() if on another thread.</warning>
+ *
+ * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
+ */
+const gchar *const *
+leadvertisement1_get_solicit_uuids (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_solicit_uuids (object);
+}
+
+/**
+ * leadvertisement1_dup_solicit_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets a copy of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.SolicitUUIDs">"SolicitUUIDs"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_strfreev().
+ */
+gchar **
+leadvertisement1_dup_solicit_uuids (LEAdvertisement1 *object)
+{
+  gchar **value;
+  g_object_get (G_OBJECT (object), "solicit-uuids", &value, NULL);
+  return value;
+}
+
+/**
+ * leadvertisement1_set_solicit_uuids: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.SolicitUUIDs">"SolicitUUIDs"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_solicit_uuids (LEAdvertisement1 *object, const gchar *const *value)
+{
+  g_object_set (G_OBJECT (object), "solicit-uuids", value, NULL);
+}
+
+/**
+ * leadvertisement1_get_service_data: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceData">"ServiceData"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * <warning>The returned value is only valid until the property changes so on the client-side it is only safe to use this function on the thread where @object was constructed. Use leadvertisement1_dup_service_data() if on another thread.</warning>
+ *
+ * Returns: (transfer none): The property value or %NULL if the property is not set. Do not free the returned value, it belongs to @object.
+ */
+GVariant *
+leadvertisement1_get_service_data (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_service_data (object);
+}
+
+/**
+ * leadvertisement1_dup_service_data: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets a copy of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceData">"ServiceData"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: (transfer full): The property value or %NULL if the property is not set. The returned value should be freed with g_variant_unref().
+ */
+GVariant *
+leadvertisement1_dup_service_data (LEAdvertisement1 *object)
+{
+  GVariant *value;
+  g_object_get (G_OBJECT (object), "service-data", &value, NULL);
+  return value;
+}
+
+/**
+ * leadvertisement1_set_service_data: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.ServiceData">"ServiceData"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_service_data (LEAdvertisement1 *object, GVariant *value)
+{
+  g_object_set (G_OBJECT (object), "service-data", value, NULL);
+}
+
+/**
+ * leadvertisement1_get_include_tx_power: (skip)
+ * @object: A #LEAdvertisement1.
+ *
+ * Gets the value of the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.IncludeTxPower">"IncludeTxPower"</link> D-Bus property.
+ *
+ * Since this D-Bus property is readable, it is meaningful to use this function on both the client- and service-side.
+ *
+ * Returns: The property value.
+ */
+gboolean 
+leadvertisement1_get_include_tx_power (LEAdvertisement1 *object)
+{
+  return LEADVERTISEMENT1_GET_IFACE (object)->get_include_tx_power (object);
+}
+
+/**
+ * leadvertisement1_set_include_tx_power: (skip)
+ * @object: A #LEAdvertisement1.
+ * @value: The value to set.
+ *
+ * Sets the <link linkend="gdbus-property-org-bluez-LEAdvertisement1.IncludeTxPower">"IncludeTxPower"</link> D-Bus property to @value.
+ *
+ * Since this D-Bus property is not writable, it is only meaningful to use this function on the service-side.
+ */
+void
+leadvertisement1_set_include_tx_power (LEAdvertisement1 *object, gboolean value)
+{
+  g_object_set (G_OBJECT (object), "include-tx-power", value, NULL);
+}
+
+/**
+ * leadvertisement1_call_release:
+ * @proxy: A #LEAdvertisement1Proxy.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @callback: A #GAsyncReadyCallback to call when the request is satisfied or %NULL.
+ * @user_data: User data to pass to @callback.
+ *
+ * Asynchronously invokes the <link linkend="gdbus-method-org-bluez-LEAdvertisement1.Release">Release()</link> D-Bus method on @proxy.
+ * When the operation is finished, @callback will be invoked in the <link linkend="g-main-context-push-thread-default">thread-default main loop</link> of the thread you are calling this method from.
+ * You can then call leadvertisement1_call_release_finish() to get the result of the operation.
+ *
+ * See leadvertisement1_call_release_sync() for the synchronous, blocking version of this method.
+ */
+void
+leadvertisement1_call_release (
+    LEAdvertisement1 *proxy,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  g_dbus_proxy_call (G_DBUS_PROXY (proxy),
+    "Release",
+    g_variant_new ("()"),
+    G_DBUS_CALL_FLAGS_NONE,
+    -1,
+    cancellable,
+    callback,
+    user_data);
+}
+
+/**
+ * leadvertisement1_call_release_finish:
+ * @proxy: A #LEAdvertisement1Proxy.
+ * @res: The #GAsyncResult obtained from the #GAsyncReadyCallback passed to leadvertisement1_call_release().
+ * @error: Return location for error or %NULL.
+ *
+ * Finishes an operation started with leadvertisement1_call_release().
+ *
+ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
+ */
+gboolean
+leadvertisement1_call_release_finish (
+    LEAdvertisement1 *proxy,
+    GAsyncResult *res,
+    GError **error)
+{
+  GVariant *_ret;
+  _ret = g_dbus_proxy_call_finish (G_DBUS_PROXY (proxy), res, error);
+  if (_ret == NULL)
+    goto _out;
+  g_variant_get (_ret,
+                 "()");
+  g_variant_unref (_ret);
+_out:
+  return _ret != NULL;
+}
+
+/**
+ * leadvertisement1_call_release_sync:
+ * @proxy: A #LEAdvertisement1Proxy.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @error: Return location for error or %NULL.
+ *
+ * Synchronously invokes the <link linkend="gdbus-method-org-bluez-LEAdvertisement1.Release">Release()</link> D-Bus method on @proxy. The calling thread is blocked until a reply is received.
+ *
+ * See leadvertisement1_call_release() for the asynchronous version of this method.
+ *
+ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
+ */
+gboolean
+leadvertisement1_call_release_sync (
+    LEAdvertisement1 *proxy,
+    GCancellable *cancellable,
+    GError **error)
+{
+  GVariant *_ret;
+  _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
+    "Release",
+    g_variant_new ("()"),
+    G_DBUS_CALL_FLAGS_NONE,
+    -1,
+    cancellable,
+    error);
+  if (_ret == NULL)
+    goto _out;
+  g_variant_get (_ret,
+                 "()");
+  g_variant_unref (_ret);
+_out:
+  return _ret != NULL;
+}
+
+/**
+ * leadvertisement1_complete_release:
+ * @object: A #LEAdvertisement1.
+ * @invocation: (transfer full): A #GDBusMethodInvocation.
+ *
+ * Helper function used in service implementations to finish handling invocations of the <link linkend="gdbus-method-org-bluez-LEAdvertisement1.Release">Release()</link> D-Bus method. If you instead want to finish handling an invocation by returning an error, use g_dbus_method_invocation_return_error() or similar.
+ *
+ * This method will free @invocation, you cannot use it afterwards.
+ */
+void
+leadvertisement1_complete_release (
+    LEAdvertisement1 *object,
+    GDBusMethodInvocation *invocation)
+{
+  g_dbus_method_invocation_return_value (invocation,
+    g_variant_new ("()"));
+}
+
+/* ------------------------------------------------------------------------ */
+
+/**
+ * LEAdvertisement1Proxy:
+ *
+ * The #LEAdvertisement1Proxy structure contains only private data and should only be accessed using the provided API.
+ */
+
+/**
+ * LEAdvertisement1ProxyClass:
+ * @parent_class: The parent class.
+ *
+ * Class structure for #LEAdvertisement1Proxy.
+ */
+
+struct _LEAdvertisement1ProxyPrivate
+{
+  GData *qdata;
+};
+
+static void leadvertisement1_proxy_iface_init (LEAdvertisement1Iface *iface);
+
+#if GLIB_VERSION_MAX_ALLOWED >= GLIB_VERSION_2_38
+G_DEFINE_TYPE_WITH_CODE (LEAdvertisement1Proxy, leadvertisement1_proxy, G_TYPE_DBUS_PROXY,
+                         G_ADD_PRIVATE (LEAdvertisement1Proxy)
+                         G_IMPLEMENT_INTERFACE (TYPE_LEADVERTISEMENT1, leadvertisement1_proxy_iface_init));
+
+#else
+G_DEFINE_TYPE_WITH_CODE (LEAdvertisement1Proxy, leadvertisement1_proxy, G_TYPE_DBUS_PROXY,
+                         G_IMPLEMENT_INTERFACE (TYPE_LEADVERTISEMENT1, leadvertisement1_proxy_iface_init));
+
+#endif
+static void
+leadvertisement1_proxy_finalize (GObject *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  g_datalist_clear (&proxy->priv->qdata);
+  G_OBJECT_CLASS (leadvertisement1_proxy_parent_class)->finalize (object);
+}
+
+static void
+leadvertisement1_proxy_get_property (GObject      *object,
+  guint         prop_id,
+  GValue       *value,
+  GParamSpec   *pspec G_GNUC_UNUSED)
+{
+  const _ExtendedGDBusPropertyInfo *info;
+  GVariant *variant;
+  g_assert (prop_id != 0 && prop_id - 1 < 6);
+  info = _leadvertisement1_property_info_pointers[prop_id - 1];
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (object), info->parent_struct.name);
+  if (info->use_gvariant)
+    {
+      g_value_set_variant (value, variant);
+    }
+  else
+    {
+      if (variant != NULL)
+        g_dbus_gvariant_to_gvalue (variant, value);
+    }
+  if (variant != NULL)
+    g_variant_unref (variant);
+}
+
+static void
+leadvertisement1_proxy_set_property_cb (GDBusProxy *proxy,
+  GAsyncResult *res,
+  gpointer      user_data)
+{
+  const _ExtendedGDBusPropertyInfo *info = user_data;
+  GError *error;
+  GVariant *_ret;
+  error = NULL;
+  _ret = g_dbus_proxy_call_finish (proxy, res, &error);
+  if (!_ret)
+    {
+      g_warning ("Error setting property '%s' on interface org.bluez.LEAdvertisement1: %s (%s, %d)",
+                 info->parent_struct.name, 
+                 error->message, g_quark_to_string (error->domain), error->code);
+      g_error_free (error);
+    }
+  else
+    {
+      g_variant_unref (_ret);
+    }
+}
+
+static void
+leadvertisement1_proxy_set_property (GObject      *object,
+  guint         prop_id,
+  const GValue *value,
+  GParamSpec   *pspec G_GNUC_UNUSED)
+{
+  const _ExtendedGDBusPropertyInfo *info;
+  GVariant *variant;
+  g_assert (prop_id != 0 && prop_id - 1 < 6);
+  info = _leadvertisement1_property_info_pointers[prop_id - 1];
+  variant = g_dbus_gvalue_to_gvariant (value, G_VARIANT_TYPE (info->parent_struct.signature));
+  g_dbus_proxy_call (G_DBUS_PROXY (object),
+    "org.freedesktop.DBus.Properties.Set",
+    g_variant_new ("(ssv)", "org.bluez.LEAdvertisement1", info->parent_struct.name, variant),
+    G_DBUS_CALL_FLAGS_NONE,
+    -1,
+    NULL, (GAsyncReadyCallback) leadvertisement1_proxy_set_property_cb, (GDBusPropertyInfo *) &info->parent_struct);
+  g_variant_unref (variant);
+}
+
+static void
+leadvertisement1_proxy_g_signal (GDBusProxy *proxy,
+  const gchar *sender_name G_GNUC_UNUSED,
+  const gchar *signal_name,
+  GVariant *parameters)
+{
+  _ExtendedGDBusSignalInfo *info;
+  GVariantIter iter;
+  GVariant *child;
+  GValue *paramv;
+  guint num_params;
+  guint n;
+  guint signal_id;
+  info = (_ExtendedGDBusSignalInfo *) g_dbus_interface_info_lookup_signal ((GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct, signal_name);
+  if (info == NULL)
+    return;
+  num_params = g_variant_n_children (parameters);
+  paramv = g_new0 (GValue, num_params + 1);
+  g_value_init (&paramv[0], TYPE_LEADVERTISEMENT1);
+  g_value_set_object (&paramv[0], proxy);
+  g_variant_iter_init (&iter, parameters);
+  n = 1;
+  while ((child = g_variant_iter_next_value (&iter)) != NULL)
+    {
+      _ExtendedGDBusArgInfo *arg_info = (_ExtendedGDBusArgInfo *) info->parent_struct.args[n - 1];
+      if (arg_info->use_gvariant)
+        {
+          g_value_init (&paramv[n], G_TYPE_VARIANT);
+          g_value_set_variant (&paramv[n], child);
+          n++;
+        }
+      else
+        g_dbus_gvariant_to_gvalue (child, &paramv[n++]);
+      g_variant_unref (child);
+    }
+  signal_id = g_signal_lookup (info->signal_name, TYPE_LEADVERTISEMENT1);
+  g_signal_emitv (paramv, signal_id, 0, NULL);
+  for (n = 0; n < num_params + 1; n++)
+    g_value_unset (&paramv[n]);
+  g_free (paramv);
+}
+
+static void
+leadvertisement1_proxy_g_properties_changed (GDBusProxy *_proxy,
+  GVariant *changed_properties,
+  const gchar *const *invalidated_properties)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (_proxy);
+  guint n;
+  const gchar *key;
+  GVariantIter *iter;
+  _ExtendedGDBusPropertyInfo *info;
+  g_variant_get (changed_properties, "a{sv}", &iter);
+  while (g_variant_iter_next (iter, "{&sv}", &key, NULL))
+    {
+      info = (_ExtendedGDBusPropertyInfo *) g_dbus_interface_info_lookup_property ((GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct, key);
+      g_datalist_remove_data (&proxy->priv->qdata, key);
+      if (info != NULL)
+        g_object_notify (G_OBJECT (proxy), info->hyphen_name);
+    }
+  g_variant_iter_free (iter);
+  for (n = 0; invalidated_properties[n] != NULL; n++)
+    {
+      info = (_ExtendedGDBusPropertyInfo *) g_dbus_interface_info_lookup_property ((GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct, invalidated_properties[n]);
+      g_datalist_remove_data (&proxy->priv->qdata, invalidated_properties[n]);
+      if (info != NULL)
+        g_object_notify (G_OBJECT (proxy), info->hyphen_name);
+    }
+}
+
+static const gchar *
+leadvertisement1_proxy_get_type_ (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  const gchar *value = NULL;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "Type");
+  if (variant != NULL)
+    {
+      value = g_variant_get_string (variant, NULL);
+      g_variant_unref (variant);
+    }
+  return value;
+}
+
+static const gchar *const *
+leadvertisement1_proxy_get_service_uuids (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  const gchar *const *value = NULL;
+  value = g_datalist_get_data (&proxy->priv->qdata, "ServiceUUIDs");
+  if (value != NULL)
+    return value;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "ServiceUUIDs");
+  if (variant != NULL)
+    {
+      value = g_variant_get_strv (variant, NULL);
+      g_datalist_set_data_full (&proxy->priv->qdata, "ServiceUUIDs", (gpointer) value, g_free);
+      g_variant_unref (variant);
+    }
+  return value;
+}
+
+static GVariant *
+leadvertisement1_proxy_get_manufacturer_data (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  GVariant *value = NULL;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "ManufacturerData");
+  value = variant;
+  if (variant != NULL)
+    g_variant_unref (variant);
+  return value;
+}
+
+static const gchar *const *
+leadvertisement1_proxy_get_solicit_uuids (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  const gchar *const *value = NULL;
+  value = g_datalist_get_data (&proxy->priv->qdata, "SolicitUUIDs");
+  if (value != NULL)
+    return value;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "SolicitUUIDs");
+  if (variant != NULL)
+    {
+      value = g_variant_get_strv (variant, NULL);
+      g_datalist_set_data_full (&proxy->priv->qdata, "SolicitUUIDs", (gpointer) value, g_free);
+      g_variant_unref (variant);
+    }
+  return value;
+}
+
+static GVariant *
+leadvertisement1_proxy_get_service_data (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  GVariant *value = NULL;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "ServiceData");
+  value = variant;
+  if (variant != NULL)
+    g_variant_unref (variant);
+  return value;
+}
+
+static gboolean 
+leadvertisement1_proxy_get_include_tx_power (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Proxy *proxy = LEADVERTISEMENT1_PROXY (object);
+  GVariant *variant;
+  gboolean value = 0;
+  variant = g_dbus_proxy_get_cached_property (G_DBUS_PROXY (proxy), "IncludeTxPower");
+  if (variant != NULL)
+    {
+      value = g_variant_get_boolean (variant);
+      g_variant_unref (variant);
+    }
+  return value;
+}
+
+static void
+leadvertisement1_proxy_init (LEAdvertisement1Proxy *proxy)
+{
+#if GLIB_VERSION_MAX_ALLOWED >= GLIB_VERSION_2_38
+  proxy->priv = leadvertisement1_proxy_get_instance_private (proxy);
+#else
+  proxy->priv = G_TYPE_INSTANCE_GET_PRIVATE (proxy, TYPE_LEADVERTISEMENT1_PROXY, LEAdvertisement1ProxyPrivate);
+#endif
+
+  g_dbus_proxy_set_interface_info (G_DBUS_PROXY (proxy), leadvertisement1_interface_info ());
+}
+
+static void
+leadvertisement1_proxy_class_init (LEAdvertisement1ProxyClass *klass)
+{
+  GObjectClass *gobject_class;
+  GDBusProxyClass *proxy_class;
+
+  gobject_class = G_OBJECT_CLASS (klass);
+  gobject_class->finalize     = leadvertisement1_proxy_finalize;
+  gobject_class->get_property = leadvertisement1_proxy_get_property;
+  gobject_class->set_property = leadvertisement1_proxy_set_property;
+
+  proxy_class = G_DBUS_PROXY_CLASS (klass);
+  proxy_class->g_signal = leadvertisement1_proxy_g_signal;
+  proxy_class->g_properties_changed = leadvertisement1_proxy_g_properties_changed;
+
+  leadvertisement1_override_properties (gobject_class, 1);
+
+#if GLIB_VERSION_MAX_ALLOWED < GLIB_VERSION_2_38
+  g_type_class_add_private (klass, sizeof (LEAdvertisement1ProxyPrivate));
+#endif
+}
+
+static void
+leadvertisement1_proxy_iface_init (LEAdvertisement1Iface *iface)
+{
+  iface->get_type_ = leadvertisement1_proxy_get_type_;
+  iface->get_service_uuids = leadvertisement1_proxy_get_service_uuids;
+  iface->get_manufacturer_data = leadvertisement1_proxy_get_manufacturer_data;
+  iface->get_solicit_uuids = leadvertisement1_proxy_get_solicit_uuids;
+  iface->get_service_data = leadvertisement1_proxy_get_service_data;
+  iface->get_include_tx_power = leadvertisement1_proxy_get_include_tx_power;
+}
+
+/**
+ * leadvertisement1_proxy_new:
+ * @connection: A #GDBusConnection.
+ * @flags: Flags from the #GDBusProxyFlags enumeration.
+ * @name: (allow-none): A bus name (well-known or unique) or %NULL if @connection is not a message bus connection.
+ * @object_path: An object path.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @callback: A #GAsyncReadyCallback to call when the request is satisfied.
+ * @user_data: User data to pass to @callback.
+ *
+ * Asynchronously creates a proxy for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>. See g_dbus_proxy_new() for more details.
+ *
+ * When the operation is finished, @callback will be invoked in the <link linkend="g-main-context-push-thread-default">thread-default main loop</link> of the thread you are calling this method from.
+ * You can then call leadvertisement1_proxy_new_finish() to get the result of the operation.
+ *
+ * See leadvertisement1_proxy_new_sync() for the synchronous, blocking version of this constructor.
+ */
+void
+leadvertisement1_proxy_new (
+    GDBusConnection     *connection,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GAsyncReadyCallback  callback,
+    gpointer             user_data)
+{
+  g_async_initable_new_async (TYPE_LEADVERTISEMENT1_PROXY, G_PRIORITY_DEFAULT, cancellable, callback, user_data, "g-flags", flags, "g-name", name, "g-connection", connection, "g-object-path", object_path, "g-interface-name", "org.bluez.LEAdvertisement1", NULL);
+}
+
+/**
+ * leadvertisement1_proxy_new_finish:
+ * @res: The #GAsyncResult obtained from the #GAsyncReadyCallback passed to leadvertisement1_proxy_new().
+ * @error: Return location for error or %NULL
+ *
+ * Finishes an operation started with leadvertisement1_proxy_new().
+ *
+ * Returns: (transfer full) (type LEAdvertisement1Proxy): The constructed proxy object or %NULL if @error is set.
+ */
+LEAdvertisement1 *
+leadvertisement1_proxy_new_finish (
+    GAsyncResult        *res,
+    GError             **error)
+{
+  GObject *ret;
+  GObject *source_object;
+  source_object = g_async_result_get_source_object (res);
+  ret = g_async_initable_new_finish (G_ASYNC_INITABLE (source_object), res, error);
+  g_object_unref (source_object);
+  if (ret != NULL)
+    return LEADVERTISEMENT1 (ret);
+  else
+    return NULL;
+}
+
+/**
+ * leadvertisement1_proxy_new_sync:
+ * @connection: A #GDBusConnection.
+ * @flags: Flags from the #GDBusProxyFlags enumeration.
+ * @name: (allow-none): A bus name (well-known or unique) or %NULL if @connection is not a message bus connection.
+ * @object_path: An object path.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @error: Return location for error or %NULL
+ *
+ * Synchronously creates a proxy for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>. See g_dbus_proxy_new_sync() for more details.
+ *
+ * The calling thread is blocked until a reply is received.
+ *
+ * See leadvertisement1_proxy_new() for the asynchronous version of this constructor.
+ *
+ * Returns: (transfer full) (type LEAdvertisement1Proxy): The constructed proxy object or %NULL if @error is set.
+ */
+LEAdvertisement1 *
+leadvertisement1_proxy_new_sync (
+    GDBusConnection     *connection,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GError             **error)
+{
+  GInitable *ret;
+  ret = g_initable_new (TYPE_LEADVERTISEMENT1_PROXY, cancellable, error, "g-flags", flags, "g-name", name, "g-connection", connection, "g-object-path", object_path, "g-interface-name", "org.bluez.LEAdvertisement1", NULL);
+  if (ret != NULL)
+    return LEADVERTISEMENT1 (ret);
+  else
+    return NULL;
+}
+
+
+/**
+ * leadvertisement1_proxy_new_for_bus:
+ * @bus_type: A #GBusType.
+ * @flags: Flags from the #GDBusProxyFlags enumeration.
+ * @name: A bus name (well-known or unique).
+ * @object_path: An object path.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @callback: A #GAsyncReadyCallback to call when the request is satisfied.
+ * @user_data: User data to pass to @callback.
+ *
+ * Like leadvertisement1_proxy_new() but takes a #GBusType instead of a #GDBusConnection.
+ *
+ * When the operation is finished, @callback will be invoked in the <link linkend="g-main-context-push-thread-default">thread-default main loop</link> of the thread you are calling this method from.
+ * You can then call leadvertisement1_proxy_new_for_bus_finish() to get the result of the operation.
+ *
+ * See leadvertisement1_proxy_new_for_bus_sync() for the synchronous, blocking version of this constructor.
+ */
+void
+leadvertisement1_proxy_new_for_bus (
+    GBusType             bus_type,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GAsyncReadyCallback  callback,
+    gpointer             user_data)
+{
+  g_async_initable_new_async (TYPE_LEADVERTISEMENT1_PROXY, G_PRIORITY_DEFAULT, cancellable, callback, user_data, "g-flags", flags, "g-name", name, "g-bus-type", bus_type, "g-object-path", object_path, "g-interface-name", "org.bluez.LEAdvertisement1", NULL);
+}
+
+/**
+ * leadvertisement1_proxy_new_for_bus_finish:
+ * @res: The #GAsyncResult obtained from the #GAsyncReadyCallback passed to leadvertisement1_proxy_new_for_bus().
+ * @error: Return location for error or %NULL
+ *
+ * Finishes an operation started with leadvertisement1_proxy_new_for_bus().
+ *
+ * Returns: (transfer full) (type LEAdvertisement1Proxy): The constructed proxy object or %NULL if @error is set.
+ */
+LEAdvertisement1 *
+leadvertisement1_proxy_new_for_bus_finish (
+    GAsyncResult        *res,
+    GError             **error)
+{
+  GObject *ret;
+  GObject *source_object;
+  source_object = g_async_result_get_source_object (res);
+  ret = g_async_initable_new_finish (G_ASYNC_INITABLE (source_object), res, error);
+  g_object_unref (source_object);
+  if (ret != NULL)
+    return LEADVERTISEMENT1 (ret);
+  else
+    return NULL;
+}
+
+/**
+ * leadvertisement1_proxy_new_for_bus_sync:
+ * @bus_type: A #GBusType.
+ * @flags: Flags from the #GDBusProxyFlags enumeration.
+ * @name: A bus name (well-known or unique).
+ * @object_path: An object path.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @error: Return location for error or %NULL
+ *
+ * Like leadvertisement1_proxy_new_sync() but takes a #GBusType instead of a #GDBusConnection.
+ *
+ * The calling thread is blocked until a reply is received.
+ *
+ * See leadvertisement1_proxy_new_for_bus() for the asynchronous version of this constructor.
+ *
+ * Returns: (transfer full) (type LEAdvertisement1Proxy): The constructed proxy object or %NULL if @error is set.
+ */
+LEAdvertisement1 *
+leadvertisement1_proxy_new_for_bus_sync (
+    GBusType             bus_type,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GError             **error)
+{
+  GInitable *ret;
+  ret = g_initable_new (TYPE_LEADVERTISEMENT1_PROXY, cancellable, error, "g-flags", flags, "g-name", name, "g-bus-type", bus_type, "g-object-path", object_path, "g-interface-name", "org.bluez.LEAdvertisement1", NULL);
+  if (ret != NULL)
+    return LEADVERTISEMENT1 (ret);
+  else
+    return NULL;
+}
+
+
+/* ------------------------------------------------------------------------ */
+
+/**
+ * LEAdvertisement1Skeleton:
+ *
+ * The #LEAdvertisement1Skeleton structure contains only private data and should only be accessed using the provided API.
+ */
+
+/**
+ * LEAdvertisement1SkeletonClass:
+ * @parent_class: The parent class.
+ *
+ * Class structure for #LEAdvertisement1Skeleton.
+ */
+
+struct _LEAdvertisement1SkeletonPrivate
+{
+  GValue *properties;
+  GList *changed_properties;
+  GSource *changed_properties_idle_source;
+  GMainContext *context;
+  GMutex lock;
+};
+
+static void
+_leadvertisement1_skeleton_handle_method_call (
+  GDBusConnection *connection G_GNUC_UNUSED,
+  const gchar *sender G_GNUC_UNUSED,
+  const gchar *object_path G_GNUC_UNUSED,
+  const gchar *interface_name,
+  const gchar *method_name,
+  GVariant *parameters,
+  GDBusMethodInvocation *invocation,
+  gpointer user_data)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (user_data);
+  _ExtendedGDBusMethodInfo *info;
+  GVariantIter iter;
+  GVariant *child;
+  GValue *paramv;
+  guint num_params;
+  guint num_extra;
+  guint n;
+  guint signal_id;
+  GValue return_value = G_VALUE_INIT;
+  info = (_ExtendedGDBusMethodInfo *) g_dbus_method_invocation_get_method_info (invocation);
+  g_assert (info != NULL);
+  num_params = g_variant_n_children (parameters);
+  num_extra = info->pass_fdlist ? 3 : 2;  paramv = g_new0 (GValue, num_params + num_extra);
+  n = 0;
+  g_value_init (&paramv[n], TYPE_LEADVERTISEMENT1);
+  g_value_set_object (&paramv[n++], skeleton);
+  g_value_init (&paramv[n], G_TYPE_DBUS_METHOD_INVOCATION);
+  g_value_set_object (&paramv[n++], invocation);
+  if (info->pass_fdlist)
+    {
+#ifdef G_OS_UNIX
+      g_value_init (&paramv[n], G_TYPE_UNIX_FD_LIST);
+      g_value_set_object (&paramv[n++], g_dbus_message_get_unix_fd_list (g_dbus_method_invocation_get_message (invocation)));
+#else
+      g_assert_not_reached ();
+#endif
+    }
+  g_variant_iter_init (&iter, parameters);
+  while ((child = g_variant_iter_next_value (&iter)) != NULL)
+    {
+      _ExtendedGDBusArgInfo *arg_info = (_ExtendedGDBusArgInfo *) info->parent_struct.in_args[n - num_extra];
+      if (arg_info->use_gvariant)
+        {
+          g_value_init (&paramv[n], G_TYPE_VARIANT);
+          g_value_set_variant (&paramv[n], child);
+          n++;
+        }
+      else
+        g_dbus_gvariant_to_gvalue (child, &paramv[n++]);
+      g_variant_unref (child);
+    }
+  signal_id = g_signal_lookup (info->signal_name, TYPE_LEADVERTISEMENT1);
+  g_value_init (&return_value, G_TYPE_BOOLEAN);
+  g_signal_emitv (paramv, signal_id, 0, &return_value);
+  if (!g_value_get_boolean (&return_value))
+    g_dbus_method_invocation_return_error (invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD, "Method %s is not implemented on interface %s", method_name, interface_name);
+  g_value_unset (&return_value);
+  for (n = 0; n < num_params + num_extra; n++)
+    g_value_unset (&paramv[n]);
+  g_free (paramv);
+}
+
+static GVariant *
+_leadvertisement1_skeleton_handle_get_property (
+  GDBusConnection *connection G_GNUC_UNUSED,
+  const gchar *sender G_GNUC_UNUSED,
+  const gchar *object_path G_GNUC_UNUSED,
+  const gchar *interface_name G_GNUC_UNUSED,
+  const gchar *property_name,
+  GError **error,
+  gpointer user_data)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (user_data);
+  GValue value = G_VALUE_INIT;
+  GParamSpec *pspec;
+  _ExtendedGDBusPropertyInfo *info;
+  GVariant *ret;
+  ret = NULL;
+  info = (_ExtendedGDBusPropertyInfo *) g_dbus_interface_info_lookup_property ((GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct, property_name);
+  g_assert (info != NULL);
+  pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (skeleton), info->hyphen_name);
+  if (pspec == NULL)
+    {
+      g_set_error (error, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "No property with name %s", property_name);
+    }
+  else
+    {
+      g_value_init (&value, pspec->value_type);
+      g_object_get_property (G_OBJECT (skeleton), info->hyphen_name, &value);
+      ret = g_dbus_gvalue_to_gvariant (&value, G_VARIANT_TYPE (info->parent_struct.signature));
+      g_value_unset (&value);
+    }
+  return ret;
+}
+
+static gboolean
+_leadvertisement1_skeleton_handle_set_property (
+  GDBusConnection *connection G_GNUC_UNUSED,
+  const gchar *sender G_GNUC_UNUSED,
+  const gchar *object_path G_GNUC_UNUSED,
+  const gchar *interface_name G_GNUC_UNUSED,
+  const gchar *property_name,
+  GVariant *variant,
+  GError **error,
+  gpointer user_data)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (user_data);
+  GValue value = G_VALUE_INIT;
+  GParamSpec *pspec;
+  _ExtendedGDBusPropertyInfo *info;
+  gboolean ret;
+  ret = FALSE;
+  info = (_ExtendedGDBusPropertyInfo *) g_dbus_interface_info_lookup_property ((GDBusInterfaceInfo *) &_leadvertisement1_interface_info.parent_struct, property_name);
+  g_assert (info != NULL);
+  pspec = g_object_class_find_property (G_OBJECT_GET_CLASS (skeleton), info->hyphen_name);
+  if (pspec == NULL)
+    {
+      g_set_error (error, G_DBUS_ERROR, G_DBUS_ERROR_INVALID_ARGS, "No property with name %s", property_name);
+    }
+  else
+    {
+      if (info->use_gvariant)
+        g_value_set_variant (&value, variant);
+      else
+        g_dbus_gvariant_to_gvalue (variant, &value);
+      g_object_set_property (G_OBJECT (skeleton), info->hyphen_name, &value);
+      g_value_unset (&value);
+      ret = TRUE;
+    }
+  return ret;
+}
+
+static const GDBusInterfaceVTable _leadvertisement1_skeleton_vtable =
+{
+  _leadvertisement1_skeleton_handle_method_call,
+  _leadvertisement1_skeleton_handle_get_property,
+  _leadvertisement1_skeleton_handle_set_property,
+  {NULL}
+};
+
+static GDBusInterfaceInfo *
+leadvertisement1_skeleton_dbus_interface_get_info (GDBusInterfaceSkeleton *skeleton G_GNUC_UNUSED)
+{
+  return leadvertisement1_interface_info ();
+}
+
+static GDBusInterfaceVTable *
+leadvertisement1_skeleton_dbus_interface_get_vtable (GDBusInterfaceSkeleton *skeleton G_GNUC_UNUSED)
+{
+  return (GDBusInterfaceVTable *) &_leadvertisement1_skeleton_vtable;
+}
+
+static GVariant *
+leadvertisement1_skeleton_dbus_interface_get_properties (GDBusInterfaceSkeleton *_skeleton)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (_skeleton);
+
+  GVariantBuilder builder;
+  guint n;
+  g_variant_builder_init (&builder, G_VARIANT_TYPE ("a{sv}"));
+  if (_leadvertisement1_interface_info.parent_struct.properties == NULL)
+    goto out;
+  for (n = 0; _leadvertisement1_interface_info.parent_struct.properties[n] != NULL; n++)
+    {
+      GDBusPropertyInfo *info = _leadvertisement1_interface_info.parent_struct.properties[n];
+      if (info->flags & G_DBUS_PROPERTY_INFO_FLAGS_READABLE)
+        {
+          GVariant *value;
+          value = _leadvertisement1_skeleton_handle_get_property (g_dbus_interface_skeleton_get_connection (G_DBUS_INTERFACE_SKELETON (skeleton)), NULL, g_dbus_interface_skeleton_get_object_path (G_DBUS_INTERFACE_SKELETON (skeleton)), "org.bluez.LEAdvertisement1", info->name, NULL, skeleton);
+          if (value != NULL)
+            {
+              g_variant_take_ref (value);
+              g_variant_builder_add (&builder, "{sv}", info->name, value);
+              g_variant_unref (value);
+            }
+        }
+    }
+out:
+  return g_variant_builder_end (&builder);
+}
+
+static gboolean _leadvertisement1_emit_changed (gpointer user_data);
+
+static void
+leadvertisement1_skeleton_dbus_interface_flush (GDBusInterfaceSkeleton *_skeleton)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (_skeleton);
+  gboolean emit_changed = FALSE;
+
+  g_mutex_lock (&skeleton->priv->lock);
+  if (skeleton->priv->changed_properties_idle_source != NULL)
+    {
+      g_source_destroy (skeleton->priv->changed_properties_idle_source);
+      skeleton->priv->changed_properties_idle_source = NULL;
+      emit_changed = TRUE;
+    }
+  g_mutex_unlock (&skeleton->priv->lock);
+
+  if (emit_changed)
+    _leadvertisement1_emit_changed (skeleton);
+}
+
+static void leadvertisement1_skeleton_iface_init (LEAdvertisement1Iface *iface);
+#if GLIB_VERSION_MAX_ALLOWED >= GLIB_VERSION_2_38
+G_DEFINE_TYPE_WITH_CODE (LEAdvertisement1Skeleton, leadvertisement1_skeleton, G_TYPE_DBUS_INTERFACE_SKELETON,
+                         G_ADD_PRIVATE (LEAdvertisement1Skeleton)
+                         G_IMPLEMENT_INTERFACE (TYPE_LEADVERTISEMENT1, leadvertisement1_skeleton_iface_init));
+
+#else
+G_DEFINE_TYPE_WITH_CODE (LEAdvertisement1Skeleton, leadvertisement1_skeleton, G_TYPE_DBUS_INTERFACE_SKELETON,
+                         G_IMPLEMENT_INTERFACE (TYPE_LEADVERTISEMENT1, leadvertisement1_skeleton_iface_init));
+
+#endif
+static void
+leadvertisement1_skeleton_finalize (GObject *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  guint n;
+  for (n = 0; n < 6; n++)
+    g_value_unset (&skeleton->priv->properties[n]);
+  g_free (skeleton->priv->properties);
+  g_list_free_full (skeleton->priv->changed_properties, (GDestroyNotify) _changed_property_free);
+  if (skeleton->priv->changed_properties_idle_source != NULL)
+    g_source_destroy (skeleton->priv->changed_properties_idle_source);
+  g_main_context_unref (skeleton->priv->context);
+  g_mutex_clear (&skeleton->priv->lock);
+  G_OBJECT_CLASS (leadvertisement1_skeleton_parent_class)->finalize (object);
+}
+
+static void
+leadvertisement1_skeleton_get_property (GObject      *object,
+  guint         prop_id,
+  GValue       *value,
+  GParamSpec   *pspec G_GNUC_UNUSED)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  g_assert (prop_id != 0 && prop_id - 1 < 6);
+  g_mutex_lock (&skeleton->priv->lock);
+  g_value_copy (&skeleton->priv->properties[prop_id - 1], value);
+  g_mutex_unlock (&skeleton->priv->lock);
+}
+
+static gboolean
+_leadvertisement1_emit_changed (gpointer user_data)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (user_data);
+  GList *l;
+  GVariantBuilder builder;
+  GVariantBuilder invalidated_builder;
+  guint num_changes;
+
+  g_mutex_lock (&skeleton->priv->lock);
+  g_variant_builder_init (&builder, G_VARIANT_TYPE ("a{sv}"));
+  g_variant_builder_init (&invalidated_builder, G_VARIANT_TYPE ("as"));
+  for (l = skeleton->priv->changed_properties, num_changes = 0; l != NULL; l = l->next)
+    {
+      ChangedProperty *cp = l->data;
+      GVariant *variant;
+      const GValue *cur_value;
+
+      cur_value = &skeleton->priv->properties[cp->prop_id - 1];
+      if (!_g_value_equal (cur_value, &cp->orig_value))
+        {
+          variant = g_dbus_gvalue_to_gvariant (cur_value, G_VARIANT_TYPE (cp->info->parent_struct.signature));
+          g_variant_builder_add (&builder, "{sv}", cp->info->parent_struct.name, variant);
+          g_variant_unref (variant);
+          num_changes++;
+        }
+    }
+  if (num_changes > 0)
+    {
+      GList *connections, *ll;
+      GVariant *signal_variant;
+      signal_variant = g_variant_ref_sink (g_variant_new ("(sa{sv}as)", "org.bluez.LEAdvertisement1",
+                                           &builder, &invalidated_builder));
+      connections = g_dbus_interface_skeleton_get_connections (G_DBUS_INTERFACE_SKELETON (skeleton));
+      for (ll = connections; ll != NULL; ll = ll->next)
+        {
+          GDBusConnection *connection = ll->data;
+
+          g_dbus_connection_emit_signal (connection,
+                                         NULL, g_dbus_interface_skeleton_get_object_path (G_DBUS_INTERFACE_SKELETON (skeleton)),
+                                         "org.freedesktop.DBus.Properties",
+                                         "PropertiesChanged",
+                                         signal_variant,
+                                         NULL);
+        }
+      g_variant_unref (signal_variant);
+      g_list_free_full (connections, g_object_unref);
+    }
+  else
+    {
+      g_variant_builder_clear (&builder);
+      g_variant_builder_clear (&invalidated_builder);
+    }
+  g_list_free_full (skeleton->priv->changed_properties, (GDestroyNotify) _changed_property_free);
+  skeleton->priv->changed_properties = NULL;
+  skeleton->priv->changed_properties_idle_source = NULL;
+  g_mutex_unlock (&skeleton->priv->lock);
+  return FALSE;
+}
+
+static void
+_leadvertisement1_schedule_emit_changed (LEAdvertisement1Skeleton *skeleton, const _ExtendedGDBusPropertyInfo *info, guint prop_id, const GValue *orig_value)
+{
+  ChangedProperty *cp;
+  GList *l;
+  cp = NULL;
+  for (l = skeleton->priv->changed_properties; l != NULL; l = l->next)
+    {
+      ChangedProperty *i_cp = l->data;
+      if (i_cp->info == info)
+        {
+          cp = i_cp;
+          break;
+        }
+    }
+  if (cp == NULL)
+    {
+      cp = g_new0 (ChangedProperty, 1);
+      cp->prop_id = prop_id;
+      cp->info = info;
+      skeleton->priv->changed_properties = g_list_prepend (skeleton->priv->changed_properties, cp);
+      g_value_init (&cp->orig_value, G_VALUE_TYPE (orig_value));
+      g_value_copy (orig_value, &cp->orig_value);
+    }
+}
+
+static void
+leadvertisement1_skeleton_notify (GObject      *object,
+  GParamSpec *pspec G_GNUC_UNUSED)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  g_mutex_lock (&skeleton->priv->lock);
+  if (skeleton->priv->changed_properties != NULL &&
+      skeleton->priv->changed_properties_idle_source == NULL)
+    {
+      skeleton->priv->changed_properties_idle_source = g_idle_source_new ();
+      g_source_set_priority (skeleton->priv->changed_properties_idle_source, G_PRIORITY_DEFAULT);
+      g_source_set_callback (skeleton->priv->changed_properties_idle_source, _leadvertisement1_emit_changed, g_object_ref (skeleton), (GDestroyNotify) g_object_unref);
+      g_source_set_name (skeleton->priv->changed_properties_idle_source, "[generated] _leadvertisement1_emit_changed");
+      g_source_attach (skeleton->priv->changed_properties_idle_source, skeleton->priv->context);
+      g_source_unref (skeleton->priv->changed_properties_idle_source);
+    }
+  g_mutex_unlock (&skeleton->priv->lock);
+}
+
+static void
+leadvertisement1_skeleton_set_property (GObject      *object,
+  guint         prop_id,
+  const GValue *value,
+  GParamSpec   *pspec)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  g_assert (prop_id != 0 && prop_id - 1 < 6);
+  g_mutex_lock (&skeleton->priv->lock);
+  g_object_freeze_notify (object);
+  if (!_g_value_equal (value, &skeleton->priv->properties[prop_id - 1]))
+    {
+      if (g_dbus_interface_skeleton_get_connection (G_DBUS_INTERFACE_SKELETON (skeleton)) != NULL)
+        _leadvertisement1_schedule_emit_changed (skeleton, _leadvertisement1_property_info_pointers[prop_id - 1], prop_id, &skeleton->priv->properties[prop_id - 1]);
+      g_value_copy (value, &skeleton->priv->properties[prop_id - 1]);
+      g_object_notify_by_pspec (object, pspec);
+    }
+  g_mutex_unlock (&skeleton->priv->lock);
+  g_object_thaw_notify (object);
+}
+
+static void
+leadvertisement1_skeleton_init (LEAdvertisement1Skeleton *skeleton)
+{
+#if GLIB_VERSION_MAX_ALLOWED >= GLIB_VERSION_2_38
+  skeleton->priv = leadvertisement1_skeleton_get_instance_private (skeleton);
+#else
+  skeleton->priv = G_TYPE_INSTANCE_GET_PRIVATE (skeleton, TYPE_LEADVERTISEMENT1_SKELETON, LEAdvertisement1SkeletonPrivate);
+#endif
+
+  g_mutex_init (&skeleton->priv->lock);
+  skeleton->priv->context = g_main_context_ref_thread_default ();
+  skeleton->priv->properties = g_new0 (GValue, 6);
+  g_value_init (&skeleton->priv->properties[0], G_TYPE_STRING);
+  g_value_init (&skeleton->priv->properties[1], G_TYPE_STRV);
+  g_value_init (&skeleton->priv->properties[2], G_TYPE_VARIANT);
+  g_value_init (&skeleton->priv->properties[3], G_TYPE_STRV);
+  g_value_init (&skeleton->priv->properties[4], G_TYPE_VARIANT);
+  g_value_init (&skeleton->priv->properties[5], G_TYPE_BOOLEAN);
+}
+
+static const gchar *
+leadvertisement1_skeleton_get_type_ (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  const gchar *value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_string (&(skeleton->priv->properties[0]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static const gchar *const *
+leadvertisement1_skeleton_get_service_uuids (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  const gchar *const *value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_boxed (&(skeleton->priv->properties[1]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static GVariant *
+leadvertisement1_skeleton_get_manufacturer_data (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  GVariant *value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_variant (&(skeleton->priv->properties[2]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static const gchar *const *
+leadvertisement1_skeleton_get_solicit_uuids (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  const gchar *const *value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_boxed (&(skeleton->priv->properties[3]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static GVariant *
+leadvertisement1_skeleton_get_service_data (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  GVariant *value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_variant (&(skeleton->priv->properties[4]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static gboolean 
+leadvertisement1_skeleton_get_include_tx_power (LEAdvertisement1 *object)
+{
+  LEAdvertisement1Skeleton *skeleton = LEADVERTISEMENT1_SKELETON (object);
+  gboolean value;
+  g_mutex_lock (&skeleton->priv->lock);
+  value = g_value_get_boolean (&(skeleton->priv->properties[5]));
+  g_mutex_unlock (&skeleton->priv->lock);
+  return value;
+}
+
+static void
+leadvertisement1_skeleton_class_init (LEAdvertisement1SkeletonClass *klass)
+{
+  GObjectClass *gobject_class;
+  GDBusInterfaceSkeletonClass *skeleton_class;
+
+  gobject_class = G_OBJECT_CLASS (klass);
+  gobject_class->finalize = leadvertisement1_skeleton_finalize;
+  gobject_class->get_property = leadvertisement1_skeleton_get_property;
+  gobject_class->set_property = leadvertisement1_skeleton_set_property;
+  gobject_class->notify       = leadvertisement1_skeleton_notify;
+
+
+  leadvertisement1_override_properties (gobject_class, 1);
+
+  skeleton_class = G_DBUS_INTERFACE_SKELETON_CLASS (klass);
+  skeleton_class->get_info = leadvertisement1_skeleton_dbus_interface_get_info;
+  skeleton_class->get_properties = leadvertisement1_skeleton_dbus_interface_get_properties;
+  skeleton_class->flush = leadvertisement1_skeleton_dbus_interface_flush;
+  skeleton_class->get_vtable = leadvertisement1_skeleton_dbus_interface_get_vtable;
+
+#if GLIB_VERSION_MAX_ALLOWED < GLIB_VERSION_2_38
+  g_type_class_add_private (klass, sizeof (LEAdvertisement1SkeletonPrivate));
+#endif
+}
+
+static void
+leadvertisement1_skeleton_iface_init (LEAdvertisement1Iface *iface)
+{
+  iface->get_type_ = leadvertisement1_skeleton_get_type_;
+  iface->get_service_uuids = leadvertisement1_skeleton_get_service_uuids;
+  iface->get_manufacturer_data = leadvertisement1_skeleton_get_manufacturer_data;
+  iface->get_solicit_uuids = leadvertisement1_skeleton_get_solicit_uuids;
+  iface->get_service_data = leadvertisement1_skeleton_get_service_data;
+  iface->get_include_tx_power = leadvertisement1_skeleton_get_include_tx_power;
+}
+
+/**
+ * leadvertisement1_skeleton_new:
+ *
+ * Creates a skeleton object for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>.
+ *
+ * Returns: (transfer full) (type LEAdvertisement1Skeleton): The skeleton object.
+ */
+LEAdvertisement1 *
+leadvertisement1_skeleton_new (void)
+{
+  return LEADVERTISEMENT1 (g_object_new (TYPE_LEADVERTISEMENT1_SKELETON, NULL));
 }
 
 /* ------------------------------------------------------------------------
@@ -11755,6 +13364,15 @@ object_default_init (ObjectIface *iface)
    * Connect to the #GObject::notify signal to get informed of property changes.
    */
   g_object_interface_install_property (iface, g_param_spec_object ("gatt-descriptor1", "gatt-descriptor1", "gatt-descriptor1", TYPE_GATT_DESCRIPTOR1, G_PARAM_READWRITE|G_PARAM_STATIC_STRINGS));
+
+  /**
+   * Object:leadvertisement1:
+   *
+   * The #LEAdvertisement1 instance corresponding to the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link>, if any.
+   *
+   * Connect to the #GObject::notify signal to get informed of property changes.
+   */
+  g_object_interface_install_property (iface, g_param_spec_object ("leadvertisement1", "leadvertisement1", "leadvertisement1", TYPE_LEADVERTISEMENT1, G_PARAM_READWRITE|G_PARAM_STATIC_STRINGS));
 
 }
 
@@ -11841,6 +13459,23 @@ GattDescriptor1 *object_get_gatt_descriptor1 (Object *object)
   if (ret == NULL)
     return NULL;
   return GATT_DESCRIPTOR1 (ret);
+}
+
+/**
+ * object_get_leadvertisement1:
+ * @object: A #Object.
+ *
+ * Gets the #LEAdvertisement1 instance for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link> on @object, if any.
+ *
+ * Returns: (transfer full): A #LEAdvertisement1 that must be freed with g_object_unref() or %NULL if @object does not implement the interface.
+ */
+LEAdvertisement1 *object_get_leadvertisement1 (Object *object)
+{
+  GDBusInterface *ret;
+  ret = g_dbus_object_get_interface (G_DBUS_OBJECT (object), "org.bluez.LEAdvertisement1");
+  if (ret == NULL)
+    return NULL;
+  return LEADVERTISEMENT1 (ret);
 }
 
 
@@ -11944,6 +13579,26 @@ GattDescriptor1 *object_peek_gatt_descriptor1 (Object *object)
   return GATT_DESCRIPTOR1 (ret);
 }
 
+/**
+ * object_peek_leadvertisement1: (skip)
+ * @object: A #Object.
+ *
+ * Like object_get_leadvertisement1() but doesn't increase the reference count on the returned object.
+ *
+ * <warning>It is not safe to use the returned object if you are on another thread than the one where the #GDBusObjectManagerClient or #GDBusObjectManagerServer for @object is running.</warning>
+ *
+ * Returns: (transfer none): A #LEAdvertisement1 or %NULL if @object does not implement the interface. Do not free the returned object, it is owned by @object.
+ */
+LEAdvertisement1 *object_peek_leadvertisement1 (Object *object)
+{
+  GDBusInterface *ret;
+  ret = g_dbus_object_get_interface (G_DBUS_OBJECT (object), "org.bluez.LEAdvertisement1");
+  if (ret == NULL)
+    return NULL;
+  g_object_unref (ret);
+  return LEADVERTISEMENT1 (ret);
+}
+
 
 static void
 object_notify (GDBusObject *object, GDBusInterface *interface)
@@ -12036,6 +13691,11 @@ object_proxy_get_property (GObject      *gobject,
       g_value_take_object (value, interface);
       break;
 
+    case 6:
+      interface = g_dbus_object_get_interface (G_DBUS_OBJECT (object), "org.bluez.LEAdvertisement1");
+      g_value_take_object (value, interface);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (gobject, prop_id, pspec);
       break;
@@ -12055,6 +13715,7 @@ object_proxy_class_init (ObjectProxyClass *klass)
   g_object_class_override_property (gobject_class, 3, "gatt-service1");
   g_object_class_override_property (gobject_class, 4, "gatt-characteristic1");
   g_object_class_override_property (gobject_class, 5, "gatt-descriptor1");
+  g_object_class_override_property (gobject_class, 6, "leadvertisement1");
 }
 
 /**
@@ -12186,6 +13847,19 @@ object_skeleton_set_property (GObject      *gobject,
         }
       break;
 
+    case 6:
+      interface = g_value_get_object (value);
+      if (interface != NULL)
+        {
+          g_warn_if_fail (IS_LEADVERTISEMENT1 (interface));
+          g_dbus_object_skeleton_add_interface (G_DBUS_OBJECT_SKELETON (object), interface);
+        }
+      else
+        {
+          g_dbus_object_skeleton_remove_interface_by_name (G_DBUS_OBJECT_SKELETON (object), "org.bluez.LEAdvertisement1");
+        }
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (gobject, prop_id, pspec);
       break;
@@ -12228,6 +13902,11 @@ object_skeleton_get_property (GObject      *gobject,
       g_value_take_object (value, interface);
       break;
 
+    case 6:
+      interface = g_dbus_object_get_interface (G_DBUS_OBJECT (object), "org.bluez.LEAdvertisement1");
+      g_value_take_object (value, interface);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (gobject, prop_id, pspec);
       break;
@@ -12247,6 +13926,7 @@ object_skeleton_class_init (ObjectSkeletonClass *klass)
   g_object_class_override_property (gobject_class, 3, "gatt-service1");
   g_object_class_override_property (gobject_class, 4, "gatt-characteristic1");
   g_object_class_override_property (gobject_class, 5, "gatt-descriptor1");
+  g_object_class_override_property (gobject_class, 6, "leadvertisement1");
 }
 
 /**
@@ -12324,6 +14004,18 @@ void object_skeleton_set_gatt_descriptor1 (ObjectSkeleton *object, GattDescripto
   g_object_set (G_OBJECT (object), "gatt-descriptor1", interface_, NULL);
 }
 
+/**
+ * object_skeleton_set_leadvertisement1:
+ * @object: A #ObjectSkeleton.
+ * @interface_: (allow-none): A #LEAdvertisement1 or %NULL to clear the interface.
+ *
+ * Sets the #LEAdvertisement1 instance for the D-Bus interface <link linkend="gdbus-interface-org-bluez-LEAdvertisement1.top_of_page">org.bluez.LEAdvertisement1</link> on @object.
+ */
+void object_skeleton_set_leadvertisement1 (ObjectSkeleton *object, LEAdvertisement1 *interface_)
+{
+  g_object_set (G_OBJECT (object), "leadvertisement1", interface_, NULL);
+}
+
 
 /* ------------------------------------------------------------------------
  * Code for ObjectManager client
@@ -12391,6 +14083,7 @@ object_manager_client_get_proxy_type (GDBusObjectManagerClient *manager G_GNUC_U
       g_hash_table_insert (lookup_hash, (gpointer) "org.bluez.GattService1", GSIZE_TO_POINTER (TYPE_GATT_SERVICE1_PROXY));
       g_hash_table_insert (lookup_hash, (gpointer) "org.bluez.GattCharacteristic1", GSIZE_TO_POINTER (TYPE_GATT_CHARACTERISTIC1_PROXY));
       g_hash_table_insert (lookup_hash, (gpointer) "org.bluez.GattDescriptor1", GSIZE_TO_POINTER (TYPE_GATT_DESCRIPTOR1_PROXY));
+      g_hash_table_insert (lookup_hash, (gpointer) "org.bluez.LEAdvertisement1", GSIZE_TO_POINTER (TYPE_LEADVERTISEMENT1_PROXY));
       g_once_init_leave (&once_init_value, 1);
     }
   ret = (GType) GPOINTER_TO_SIZE (g_hash_table_lookup (lookup_hash, interface_name));

@@ -866,7 +866,7 @@ struct _GattCharacteristic1Iface
   gboolean (*handle_write_value) (
     GattCharacteristic1 *object,
     GDBusMethodInvocation *invocation,
-    const GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options);
 
   const gchar *const * (*get_descriptors) (GattCharacteristic1 *object);
@@ -879,7 +879,7 @@ struct _GattCharacteristic1Iface
 
   const gchar * (*get_uuid) (GattCharacteristic1 *object);
 
-  const GBytes * (*get_value) (GattCharacteristic1 *object);
+  const gchar * (*get_value) (GattCharacteristic1 *object);
 
 };
 
@@ -919,20 +919,20 @@ void gatt_characteristic1_call_read_value (
 
 gboolean gatt_characteristic1_call_read_value_finish (
     GattCharacteristic1 *proxy,
-    GBytes **out_value,
+    gchar **out_value,
     GAsyncResult *res,
     GError **error);
 
 gboolean gatt_characteristic1_call_read_value_sync (
     GattCharacteristic1 *proxy,
-    GBytes **out_value,
     GVariant *arg_options,
+    gchar **out_value,
     GCancellable *cancellable,
     GError **error);
 
 void gatt_characteristic1_call_write_value (
     GattCharacteristic1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -945,7 +945,7 @@ gboolean gatt_characteristic1_call_write_value_finish (
 
 gboolean gatt_characteristic1_call_write_value_sync (
     GattCharacteristic1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GError **error);
@@ -993,9 +993,9 @@ const gchar *gatt_characteristic1_get_service (GattCharacteristic1 *object);
 gchar *gatt_characteristic1_dup_service (GattCharacteristic1 *object);
 void gatt_characteristic1_set_service (GattCharacteristic1 *object, const gchar *value);
 
-const GBytes *gatt_characteristic1_get_value (GattCharacteristic1 *object);
-GBytes *gatt_characteristic1_dup_value (GattCharacteristic1 *object);
-void gatt_characteristic1_set_value (GattCharacteristic1 *object, const GBytes *value);
+const gchar *gatt_characteristic1_get_value (GattCharacteristic1 *object);
+gchar *gatt_characteristic1_dup_value (GattCharacteristic1 *object);
+void gatt_characteristic1_set_value (GattCharacteristic1 *object, const gchar *value);
 
 gboolean gatt_characteristic1_get_notifying (GattCharacteristic1 *object);
 void gatt_characteristic1_set_notifying (GattCharacteristic1 *object, gboolean value);
@@ -1138,14 +1138,14 @@ struct _GattDescriptor1Iface
   gboolean (*handle_write_value) (
     GattDescriptor1 *object,
     GDBusMethodInvocation *invocation,
-    const GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options);
 
   const gchar * (*get_characteristic) (GattDescriptor1 *object);
 
   const gchar * (*get_uuid) (GattDescriptor1 *object);
 
-  const GBytes * (*get_value) (GattDescriptor1 *object);
+  const gchar * (*get_value) (GattDescriptor1 *object);
 
 };
 
@@ -1177,20 +1177,20 @@ void gatt_descriptor1_call_read_value (
 
 gboolean gatt_descriptor1_call_read_value_finish (
     GattDescriptor1 *proxy,
-    GBytes **out_value,
+    gchar **out_value,
     GAsyncResult *res,
     GError **error);
 
 gboolean gatt_descriptor1_call_read_value_sync (
     GattDescriptor1 *proxy,
-    GBytes **out_value,
     GVariant *arg_options,
+    gchar **out_value,
     GCancellable *cancellable,
     GError **error);
 
 void gatt_descriptor1_call_write_value (
     GattDescriptor1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GAsyncReadyCallback callback,
@@ -1203,7 +1203,7 @@ gboolean gatt_descriptor1_call_write_value_finish (
 
 gboolean gatt_descriptor1_call_write_value_sync (
     GattDescriptor1 *proxy,
-    GBytes *arg_value,
+    const gchar *arg_value,
     GVariant *arg_options,
     GCancellable *cancellable,
     GError **error);
@@ -1219,9 +1219,9 @@ const gchar *gatt_descriptor1_get_characteristic (GattDescriptor1 *object);
 gchar *gatt_descriptor1_dup_characteristic (GattDescriptor1 *object);
 void gatt_descriptor1_set_characteristic (GattDescriptor1 *object, const gchar *value);
 
-const GBytes *gatt_descriptor1_get_value (GattDescriptor1 *object);
-GBytes *gatt_descriptor1_dup_value (GattDescriptor1 *object);
-void gatt_descriptor1_set_value (GattDescriptor1 *object, const GBytes *value);
+const gchar *gatt_descriptor1_get_value (GattDescriptor1 *object);
+gchar *gatt_descriptor1_dup_value (GattDescriptor1 *object);
+void gatt_descriptor1_set_value (GattDescriptor1 *object, const gchar *value);
 
 
 /* ---- */
@@ -1328,6 +1328,202 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC (GattDescriptor1Skeleton, g_object_unref)
 GattDescriptor1 *gatt_descriptor1_skeleton_new (void);
 
 
+/* ------------------------------------------------------------------------ */
+/* Declarations for org.bluez.LEAdvertisement1 */
+
+#define TYPE_LEADVERTISEMENT1 (leadvertisement1_get_type ())
+#define LEADVERTISEMENT1(o) (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_LEADVERTISEMENT1, LEAdvertisement1))
+#define IS_LEADVERTISEMENT1(o) (G_TYPE_CHECK_INSTANCE_TYPE ((o), TYPE_LEADVERTISEMENT1))
+#define LEADVERTISEMENT1_GET_IFACE(o) (G_TYPE_INSTANCE_GET_INTERFACE ((o), TYPE_LEADVERTISEMENT1, LEAdvertisement1Iface))
+
+struct _LEAdvertisement1;
+typedef struct _LEAdvertisement1 LEAdvertisement1;
+typedef struct _LEAdvertisement1Iface LEAdvertisement1Iface;
+
+struct _LEAdvertisement1Iface
+{
+  GTypeInterface parent_iface;
+
+
+  gboolean (*handle_release) (
+    LEAdvertisement1 *object,
+    GDBusMethodInvocation *invocation);
+
+  gboolean  (*get_include_tx_power) (LEAdvertisement1 *object);
+
+  GVariant * (*get_manufacturer_data) (LEAdvertisement1 *object);
+
+  GVariant * (*get_service_data) (LEAdvertisement1 *object);
+
+  const gchar *const * (*get_service_uuids) (LEAdvertisement1 *object);
+
+  const gchar *const * (*get_solicit_uuids) (LEAdvertisement1 *object);
+
+  const gchar * (*get_type_) (LEAdvertisement1 *object);
+
+};
+
+GType leadvertisement1_get_type (void) G_GNUC_CONST;
+
+GDBusInterfaceInfo *leadvertisement1_interface_info (void);
+guint leadvertisement1_override_properties (GObjectClass *klass, guint property_id_begin);
+
+
+/* D-Bus method call completion functions: */
+void leadvertisement1_complete_release (
+    LEAdvertisement1 *object,
+    GDBusMethodInvocation *invocation);
+
+
+
+/* D-Bus method calls: */
+void leadvertisement1_call_release (
+    LEAdvertisement1 *proxy,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data);
+
+gboolean leadvertisement1_call_release_finish (
+    LEAdvertisement1 *proxy,
+    GAsyncResult *res,
+    GError **error);
+
+gboolean leadvertisement1_call_release_sync (
+    LEAdvertisement1 *proxy,
+    GCancellable *cancellable,
+    GError **error);
+
+
+
+/* D-Bus property accessors: */
+const gchar *leadvertisement1_get_type_ (LEAdvertisement1 *object);
+gchar *leadvertisement1_dup_type_ (LEAdvertisement1 *object);
+void leadvertisement1_set_type_ (LEAdvertisement1 *object, const gchar *value);
+
+const gchar *const *leadvertisement1_get_service_uuids (LEAdvertisement1 *object);
+gchar **leadvertisement1_dup_service_uuids (LEAdvertisement1 *object);
+void leadvertisement1_set_service_uuids (LEAdvertisement1 *object, const gchar *const *value);
+
+GVariant *leadvertisement1_get_manufacturer_data (LEAdvertisement1 *object);
+GVariant *leadvertisement1_dup_manufacturer_data (LEAdvertisement1 *object);
+void leadvertisement1_set_manufacturer_data (LEAdvertisement1 *object, GVariant *value);
+
+const gchar *const *leadvertisement1_get_solicit_uuids (LEAdvertisement1 *object);
+gchar **leadvertisement1_dup_solicit_uuids (LEAdvertisement1 *object);
+void leadvertisement1_set_solicit_uuids (LEAdvertisement1 *object, const gchar *const *value);
+
+GVariant *leadvertisement1_get_service_data (LEAdvertisement1 *object);
+GVariant *leadvertisement1_dup_service_data (LEAdvertisement1 *object);
+void leadvertisement1_set_service_data (LEAdvertisement1 *object, GVariant *value);
+
+gboolean leadvertisement1_get_include_tx_power (LEAdvertisement1 *object);
+void leadvertisement1_set_include_tx_power (LEAdvertisement1 *object, gboolean value);
+
+
+/* ---- */
+
+#define TYPE_LEADVERTISEMENT1_PROXY (leadvertisement1_proxy_get_type ())
+#define LEADVERTISEMENT1_PROXY(o) (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_LEADVERTISEMENT1_PROXY, LEAdvertisement1Proxy))
+#define LEADVERTISEMENT1_PROXY_CLASS(k) (G_TYPE_CHECK_CLASS_CAST ((k), TYPE_LEADVERTISEMENT1_PROXY, LEAdvertisement1ProxyClass))
+#define LEADVERTISEMENT1_PROXY_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TYPE_LEADVERTISEMENT1_PROXY, LEAdvertisement1ProxyClass))
+#define IS_LEADVERTISEMENT1_PROXY(o) (G_TYPE_CHECK_INSTANCE_TYPE ((o), TYPE_LEADVERTISEMENT1_PROXY))
+#define IS_LEADVERTISEMENT1_PROXY_CLASS(k) (G_TYPE_CHECK_CLASS_TYPE ((k), TYPE_LEADVERTISEMENT1_PROXY))
+
+typedef struct _LEAdvertisement1Proxy LEAdvertisement1Proxy;
+typedef struct _LEAdvertisement1ProxyClass LEAdvertisement1ProxyClass;
+typedef struct _LEAdvertisement1ProxyPrivate LEAdvertisement1ProxyPrivate;
+
+struct _LEAdvertisement1Proxy
+{
+  /*< private >*/
+  GDBusProxy parent_instance;
+  LEAdvertisement1ProxyPrivate *priv;
+};
+
+struct _LEAdvertisement1ProxyClass
+{
+  GDBusProxyClass parent_class;
+};
+
+GType leadvertisement1_proxy_get_type (void) G_GNUC_CONST;
+
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (LEAdvertisement1Proxy, g_object_unref)
+#endif
+
+void leadvertisement1_proxy_new (
+    GDBusConnection     *connection,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GAsyncReadyCallback  callback,
+    gpointer             user_data);
+LEAdvertisement1 *leadvertisement1_proxy_new_finish (
+    GAsyncResult        *res,
+    GError             **error);
+LEAdvertisement1 *leadvertisement1_proxy_new_sync (
+    GDBusConnection     *connection,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GError             **error);
+
+void leadvertisement1_proxy_new_for_bus (
+    GBusType             bus_type,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GAsyncReadyCallback  callback,
+    gpointer             user_data);
+LEAdvertisement1 *leadvertisement1_proxy_new_for_bus_finish (
+    GAsyncResult        *res,
+    GError             **error);
+LEAdvertisement1 *leadvertisement1_proxy_new_for_bus_sync (
+    GBusType             bus_type,
+    GDBusProxyFlags      flags,
+    const gchar         *name,
+    const gchar         *object_path,
+    GCancellable        *cancellable,
+    GError             **error);
+
+
+/* ---- */
+
+#define TYPE_LEADVERTISEMENT1_SKELETON (leadvertisement1_skeleton_get_type ())
+#define LEADVERTISEMENT1_SKELETON(o) (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_LEADVERTISEMENT1_SKELETON, LEAdvertisement1Skeleton))
+#define LEADVERTISEMENT1_SKELETON_CLASS(k) (G_TYPE_CHECK_CLASS_CAST ((k), TYPE_LEADVERTISEMENT1_SKELETON, LEAdvertisement1SkeletonClass))
+#define LEADVERTISEMENT1_SKELETON_GET_CLASS(o) (G_TYPE_INSTANCE_GET_CLASS ((o), TYPE_LEADVERTISEMENT1_SKELETON, LEAdvertisement1SkeletonClass))
+#define IS_LEADVERTISEMENT1_SKELETON(o) (G_TYPE_CHECK_INSTANCE_TYPE ((o), TYPE_LEADVERTISEMENT1_SKELETON))
+#define IS_LEADVERTISEMENT1_SKELETON_CLASS(k) (G_TYPE_CHECK_CLASS_TYPE ((k), TYPE_LEADVERTISEMENT1_SKELETON))
+
+typedef struct _LEAdvertisement1Skeleton LEAdvertisement1Skeleton;
+typedef struct _LEAdvertisement1SkeletonClass LEAdvertisement1SkeletonClass;
+typedef struct _LEAdvertisement1SkeletonPrivate LEAdvertisement1SkeletonPrivate;
+
+struct _LEAdvertisement1Skeleton
+{
+  /*< private >*/
+  GDBusInterfaceSkeleton parent_instance;
+  LEAdvertisement1SkeletonPrivate *priv;
+};
+
+struct _LEAdvertisement1SkeletonClass
+{
+  GDBusInterfaceSkeletonClass parent_class;
+};
+
+GType leadvertisement1_skeleton_get_type (void) G_GNUC_CONST;
+
+#if GLIB_CHECK_VERSION(2, 44, 0)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC (LEAdvertisement1Skeleton, g_object_unref)
+#endif
+
+LEAdvertisement1 *leadvertisement1_skeleton_new (void);
+
+
 /* ---- */
 
 #define TYPE_OBJECT (object_get_type ())
@@ -1351,11 +1547,13 @@ Device1 *object_get_device1 (Object *object);
 GattService1 *object_get_gatt_service1 (Object *object);
 GattCharacteristic1 *object_get_gatt_characteristic1 (Object *object);
 GattDescriptor1 *object_get_gatt_descriptor1 (Object *object);
+LEAdvertisement1 *object_get_leadvertisement1 (Object *object);
 Adapter1 *object_peek_adapter1 (Object *object);
 Device1 *object_peek_device1 (Object *object);
 GattService1 *object_peek_gatt_service1 (Object *object);
 GattCharacteristic1 *object_peek_gatt_characteristic1 (Object *object);
 GattDescriptor1 *object_peek_gatt_descriptor1 (Object *object);
+LEAdvertisement1 *object_peek_leadvertisement1 (Object *object);
 
 #define TYPE_OBJECT_PROXY (object_proxy_get_type ())
 #define OBJECT_PROXY(o) (G_TYPE_CHECK_INSTANCE_CAST ((o), TYPE_OBJECT_PROXY, ObjectProxy))
@@ -1423,6 +1621,7 @@ void object_skeleton_set_device1 (ObjectSkeleton *object, Device1 *interface_);
 void object_skeleton_set_gatt_service1 (ObjectSkeleton *object, GattService1 *interface_);
 void object_skeleton_set_gatt_characteristic1 (ObjectSkeleton *object, GattCharacteristic1 *interface_);
 void object_skeleton_set_gatt_descriptor1 (ObjectSkeleton *object, GattDescriptor1 *interface_);
+void object_skeleton_set_leadvertisement1 (ObjectSkeleton *object, LEAdvertisement1 *interface_);
 
 /* ---- */
 
