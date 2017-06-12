@@ -123,7 +123,7 @@ std::unique_ptr<BluetoothGattCharacteristic> BluetoothGattCharacteristic::make(
 std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t offset)
 {
     GError *error = NULL;
-    gchar *result_chars;
+    GVariant *result_variant;
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -136,14 +136,15 @@ std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t off
     gatt_characteristic1_call_read_value_sync(
         object,
         variant,
-        &result_chars,
+        &result_variant,
         NULL,
         &error
     );
 
     handle_error(error);
 
-    std::vector<unsigned char> result = from_chars_to_vector(result_chars);
+    GBytes *result_gbytes = g_variant_get_data_as_bytes(result_variant);
+    std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
 
     return result;
 }
@@ -154,7 +155,10 @@ bool BluetoothGattCharacteristic::write_value (
     GError *error = NULL;
     bool result = true;
 
-    std::string arg_value_str(arg_value.begin(), arg_value.end());
+    gboolean trusted = true;
+    GBytes *arg_value_gbytes = from_vector_to_gbytes(arg_value);
+    GVariant *value = g_variant_new_from_bytes(
+        G_VARIANT_TYPE_BYTESTRING, arg_value_gbytes, trusted);
 
     GVariantDict dict;
     g_variant_dict_init(&dict, NULL);
@@ -166,7 +170,7 @@ bool BluetoothGattCharacteristic::write_value (
 
     result = gatt_characteristic1_call_write_value_sync(
         object,
-        arg_value_str.c_str(),
+        value,
         variant,
         NULL,
         &error
@@ -259,10 +263,10 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
 
 std::vector<unsigned char> BluetoothGattCharacteristic::get_value ()
 {
-    gchar *value_chars = const_cast<gchar *>(gatt_characteristic1_get_value (object));
-    std::vector<unsigned char> result;
+    GVariant *value_variant = gatt_characteristic1_get_value (object);
+    GBytes *value_gbytes = g_variant_get_data_as_bytes(value_variant);
 
-    result = from_chars_to_vector(value_chars);
+    std::vector<unsigned char> result = from_gbytes_to_vector(value_gbytes);
 
     return result;
 }
