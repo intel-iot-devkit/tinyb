@@ -25,7 +25,7 @@
 #pragma once
 
 #include "BluetoothObject.hpp"
-#include "generated-code.h"
+#include "orgbluez-dbus.h"
 
 #include <cstring>
 #include <vector>
