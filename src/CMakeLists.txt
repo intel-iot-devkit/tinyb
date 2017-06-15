@@ -44,6 +44,7 @@ add_custom_command(OUTPUT orgbluez-dbus.c orgbluez-dbus.h
     --interface-prefix org.bluez 
     --generate-c-code orgbluez-dbus 
     --c-generate-object-manager ${PROJECT_SOURCE_DIR}/src/org.bluez.xml
+  DEPENDS ${PROJECT_SOURCE_DIR}/src/org.bluez.xml
   COMMENT "Generating dbus code from org.bluez.xml")
 
 add_library (tinyb SHARED ${tinyb_LIB_SRCS})
