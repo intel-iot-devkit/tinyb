@@ -34,6 +34,7 @@ public class BluetoothManager
 
     static {
         try {
+            System.loadLibrary("tinyb");
             System.loadLibrary("javatinyb");
         } catch (UnsatisfiedLinkError e) {
             System.err.println("Native code library failed to load.\n" + e);
