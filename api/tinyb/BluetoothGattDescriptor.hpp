@@ -25,6 +25,7 @@
 #pragma once
 #include "BluetoothObject.hpp"
 #include <vector>
+#include <functional>
 
 /* Forward declaration of types */
 struct _Object;
