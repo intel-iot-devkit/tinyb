@@ -544,7 +544,7 @@ void BluetoothDevice::disable_manufacturer_data_notifications() {
 std::map<std::string, std::vector<uint8_t>> BluetoothDevice::get_service_data()
 {
     std::map<std::string, std::vector<uint8_t>> m_data;
-    GVariant *v = device1_dup_manufacturer_data (object);
+    GVariant *v = device1_dup_service_data (object);
 
     if (v == nullptr)
         return m_data;
