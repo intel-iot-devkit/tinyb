@@ -220,6 +220,7 @@ void Java_tinyb_BluetoothGattDescriptor_enableValueNotifications(JNIEnv *env, jo
                 jni_env->SetByteArrayRegion(result, 0, (jsize)size, (const jbyte *)&v[0]);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {

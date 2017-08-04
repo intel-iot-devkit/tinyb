@@ -402,6 +402,7 @@ void Java_tinyb_BluetoothDevice_enablePairedNotifications(JNIEnv *env, jobject o
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -492,6 +493,7 @@ void Java_tinyb_BluetoothDevice_enableTrustedNotifications(JNIEnv *env, jobject 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -582,6 +584,7 @@ void Java_tinyb_BluetoothDevice_enableBlockedNotifications(JNIEnv *env, jobject 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -672,6 +675,7 @@ void Java_tinyb_BluetoothDevice_enableRSSINotifications(JNIEnv *env, jobject obj
                 jobject result = jni_env->NewObject(short_cls, constructor, (jshort) v);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -742,6 +746,7 @@ void Java_tinyb_BluetoothDevice_enableConnectedNotifications(JNIEnv *env, jobjec
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -945,6 +950,7 @@ void Java_tinyb_BluetoothDevice_enableManufacturerDataNotifications(JNIEnv *env,
                 }
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -1055,6 +1061,7 @@ void Java_tinyb_BluetoothDevice_enableServiceDataNotifications(JNIEnv *env, jobj
                 }
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
@@ -1147,6 +1154,7 @@ void Java_tinyb_BluetoothDevice_enableServicesResolvedNotifications(JNIEnv *env,
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
+                jni_env->DeleteLocalRef(result);
 
             });
     } catch (std::bad_alloc &e) {
