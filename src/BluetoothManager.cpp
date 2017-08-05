@@ -169,6 +169,7 @@ std::vector<std::unique_ptr<BluetoothObject>> BluetoothManager::get_objects(
         if (p_adapter != nullptr)
             vector.push_back(std::move(p_adapter));
     }
+    g_list_free_full(objects, g_object_unref);
     return vector;
 }
 
@@ -324,6 +325,7 @@ std::vector<std::unique_ptr<BluetoothAdapter>> BluetoothManager::get_adapters()
         if (p != nullptr)
             vector.push_back(std::move(p));
     }
+    g_list_free_full(objects, g_object_unref);
 
     return vector;
 }
@@ -340,6 +342,7 @@ std::vector<std::unique_ptr<BluetoothDevice>> BluetoothManager::get_devices()
         if (p != nullptr)
             vector.push_back(std::move(p));
     }
+    g_list_free_full(objects, g_object_unref);
 
     return vector;
 }
@@ -356,6 +359,7 @@ std::vector<std::unique_ptr<BluetoothGattService>> BluetoothManager::get_service
         if (p != nullptr)
             vector.push_back(std::move(p));
     }
+    g_list_free_full(objects, g_object_unref);
 
     return vector;
 }

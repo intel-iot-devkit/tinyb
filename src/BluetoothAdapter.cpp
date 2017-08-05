@@ -162,6 +162,7 @@ std::vector<std::unique_ptr<BluetoothDevice>> BluetoothAdapter::get_devices()
         if (p != nullptr)
             vector.push_back(std::move(p));
     }
+    g_list_free_full(objects, g_object_unref);
 
     return vector;
 }
