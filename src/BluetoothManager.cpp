@@ -287,6 +287,7 @@ BluetoothManager::BluetoothManager() : event_list()
         Adapter1 *adapter = object_get_adapter1(object);
         if (adapter != NULL) {
             default_adapter = std::unique_ptr<BluetoothAdapter>(new BluetoothAdapter(adapter));
+            g_object_unref(adapter);
             break;
         }
     }

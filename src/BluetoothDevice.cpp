@@ -194,6 +194,7 @@ std::unique_ptr<BluetoothDevice> BluetoothDevice::make(Object *object,
         (device = object_get_device1(object)) != NULL) {
 
         std::unique_ptr<BluetoothDevice> p(new BluetoothDevice(device));
+        g_object_unref(device);
 
         if ((name == nullptr || *name == p->get_name()) &&
             (identifier == nullptr || *identifier == p->get_address()) &&
@@ -496,7 +497,9 @@ BluetoothAdapter BluetoothDevice::get_adapter ()
         throw BluetoothException(error_msg);
    }
 
-   return BluetoothAdapter(adapter);
+   auto res = BluetoothAdapter(adapter);
+   g_object_unref(adapter);
+   return res;
 }
 
 std::map<uint16_t, std::vector<uint8_t>> BluetoothDevice::get_manufacturer_data()

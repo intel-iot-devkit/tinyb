@@ -109,6 +109,7 @@ std::unique_ptr<BluetoothGattCharacteristic> BluetoothGattCharacteristic::make(
 
         std::unique_ptr<BluetoothGattCharacteristic> p(
             new BluetoothGattCharacteristic(characteristic));
+        g_object_unref(characteristic);
 
         if ((name == nullptr) &&
             (identifier == nullptr || *identifier == p->get_uuid()) &&
@@ -260,7 +261,9 @@ BluetoothGattService BluetoothGattCharacteristic::get_service ()
         throw BluetoothException(error_msg);
     }
 
-    return BluetoothGattService(service);
+    auto res = BluetoothGattService(service);
+    g_object_unref(service);
+    return res;
 }
 
 std::vector<unsigned char> BluetoothGattCharacteristic::get_value ()

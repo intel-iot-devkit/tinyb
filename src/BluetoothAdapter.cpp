@@ -139,6 +139,7 @@ std::unique_ptr<BluetoothAdapter> BluetoothAdapter::make(Object *object,
         (adapter = object_get_adapter1(object)) != NULL) {
 
         std::unique_ptr<BluetoothAdapter> p(new BluetoothAdapter(adapter));
+        g_object_unref(adapter);
 
         if ((name == nullptr || *name == p->get_name()) &&
             (identifier == nullptr || *identifier == p->get_address()) &&

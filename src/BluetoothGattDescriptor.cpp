@@ -106,6 +106,7 @@ std::unique_ptr<BluetoothGattDescriptor> BluetoothGattDescriptor::make(
 
         std::unique_ptr<BluetoothGattDescriptor> p(
             new BluetoothGattDescriptor(descriptor));
+        g_object_unref(descriptor);
 
         if ((name == nullptr) &&
             (identifier == nullptr || *identifier == p->get_uuid()) &&
@@ -231,7 +232,9 @@ BluetoothGattCharacteristic BluetoothGattDescriptor::get_characteristic ()
         throw BluetoothException(error_msg);
     }
 
-    return BluetoothGattCharacteristic(characteristic);
+    auto res = BluetoothGattCharacteristic(characteristic);
+    g_object_unref(characteristic);
+    return res;
 }
 
 std::vector<unsigned char> BluetoothGattDescriptor::get_value ()
