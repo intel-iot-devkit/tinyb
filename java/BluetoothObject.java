@@ -26,9 +26,10 @@ package tinyb;
 
 import java.util.*;
 
-public abstract class BluetoothObject implements Cloneable
+public abstract class BluetoothObject implements Cloneable,AutoCloseable
 {
     protected long nativeInstance;
+    private boolean isValid;
 
     static {
         try {
@@ -57,11 +58,12 @@ public abstract class BluetoothObject implements Cloneable
     protected BluetoothObject(long instance)
     {
         nativeInstance = instance;
+        isValid = true;
     }
 
     protected void finalize()
     {
-        delete();
+        close();
     }
 
     public boolean equals(Object obj)
@@ -76,5 +78,17 @@ public abstract class BluetoothObject implements Cloneable
     public int hashCode() {
         String objectPath = getObjectPath();
         return objectPath.hashCode();
+    }
+
+    /**
+     * Release the native memory associated with this object
+     * The object should not be used following a call to close
+     */
+    @Override
+    public synchronized void close() {
+        if (!isValid)
+            return;
+        isValid = false;
+        delete();
     }
 }
