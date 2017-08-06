@@ -77,6 +77,7 @@ std::unique_ptr<BluetoothGattService> BluetoothGattService::make(
 
         std::unique_ptr<BluetoothGattService> p(
             new BluetoothGattService(service));
+        g_object_unref(service);
 
         if ((name == nullptr) &&
             (identifier == nullptr || *identifier == p->get_uuid()) &&
@@ -117,7 +118,9 @@ BluetoothDevice BluetoothGattService::get_device ()
         throw BluetoothException(error_msg);
     }
 
-    return BluetoothDevice(device);
+    auto res = BluetoothDevice(device);
+    g_object_unref(device);
+    return res;
 }
 
 bool BluetoothGattService::get_primary ()
