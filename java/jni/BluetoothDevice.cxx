@@ -1098,7 +1098,7 @@ void Java_tinyb_BluetoothDevice_disableServiceDataNotifications(JNIEnv *env, job
 
 
 
-jshort Java_tinyb_BluetoothDevice_getTXPower(JNIEnv *env, jobject obj)
+jshort Java_tinyb_BluetoothDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
