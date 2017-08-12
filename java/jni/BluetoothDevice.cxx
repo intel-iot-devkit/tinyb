@@ -34,7 +34,7 @@
 
 using namespace tinyb;
 
-jobject Java_tinyb_BluetoothAdapter_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_BluetoothDevice_getBluetoothType(JNIEnv *env, jobject obj)
 {
     try {
         (void)obj;
