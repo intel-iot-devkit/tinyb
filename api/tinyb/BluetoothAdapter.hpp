@@ -48,14 +48,6 @@ friend class tinyb::BluetoothNotificationHandler;
 private:
     Adapter1 *object;
 
-    /** Removes a device from the list of devices available on this adapter.
-      * @param[in] arg_device The path of the device on DBus
-      * @return TRUE if device was successfully removed
-      */
-    bool remove_device (
-        const std::string &arg_device
-    );
-
 protected:
     BluetoothAdapter(Adapter1 *object);
 
@@ -97,6 +89,14 @@ public:
 
     /* D-Bus method calls: */
 
+    /** Removes a device from the list of devices available on this adapter.
+      * @param[in] arg_device The path of the device on DBus
+      * @return TRUE if device was successfully removed
+      */
+    bool remove_device (
+        const std::string &arg_device
+    );
+    
     /** Turns on device discovery if it is disabled.
       * @return TRUE if discovery was successfully enabled
       */
