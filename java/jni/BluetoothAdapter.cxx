@@ -134,6 +134,36 @@ jobject Java_tinyb_BluetoothAdapter_getDevices(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
+jint Java_tinyb_BluetoothAdapter_removeDevices(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
+        std::vector<std::unique_ptr<tinyb::BluetoothDevice>> array = obj_adapter->get_devices();
+        
+        for (unsigned int i =0;i<array.size();i++) {
+            std::unique_ptr<tinyb::BluetoothDevice> *obj_device = &array.at(i);
+            std::string path = obj_device->get()->get_object_path();
+            // printf("PATH:%s\n", path.c_str());
+            // fflush(stdout);
+            obj_adapter->remove_device(path.c_str());
+            
+        }
+        return array.size();
+        
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return 0;
+}
+
 jstring Java_tinyb_BluetoothAdapter_getAddress(JNIEnv *env, jobject obj)
 {
     try {

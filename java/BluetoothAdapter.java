@@ -87,6 +87,14 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native List<BluetoothDevice> getDevices();
 
+    /**
+     * Remove all the known devices
+     * 
+     * @return The number of devices removed from internal list
+     * @throws BluetoothException 
+     */
+    public native int removeDevices() throws BluetoothException;
+    
     /* D-Bus property accessors: */
     /** Returns the hardware address of this adapter.
       * @return The hardware address of this adapter.

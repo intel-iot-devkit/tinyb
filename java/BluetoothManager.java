@@ -32,6 +32,11 @@ public class BluetoothManager
     private long nativeInstance;
     private static BluetoothManager inst;
 
+    /**
+     * The thread to watch for nearby devices
+     */
+    private Thread nearbyThread = null;
+    
     static {
         try {
             System.loadLibrary("tinyb");
@@ -201,6 +206,83 @@ public class BluetoothManager
       */
     public native boolean stopDiscovery() throws BluetoothException;
 
+    /**
+     * When called, each new device found will fire an event to the passed
+     * listener<p>
+     *
+     * This method will create a new thread to handle the discovery process
+     * which is a simple polling of the current list (getDevices)
+     * <p>
+     *
+     * The thread is stopped when the nearbyStopDiscovery is called<p>
+     *
+     * @param listener
+     * @param pollingRate The polling rate is miliseconds (1000 = 1s)
+     * @param onlyManufacturerFilled If true, then only if the manufacturer data is filled, the event will be fired
+     */
+    public void startNearbyDiscovery(final BluetoothDeviceDiscoveryListener listener, final int pollingRate, final boolean onlyManufacturerFilled) {
+        //--- If alreay started, does nothing
+        if ((nearbyThread != null) && nearbyThread.isAlive()) return;
+        
+        //--- Remove all devices to have a clean start
+        getAdapters().get(0).removeDevices();
+        
+        //--- Start the bluez discovery
+        startDiscovery();
+
+        //--- Thread to poll the devices list
+        nearbyThread = new Thread() {
+            public void run() {
+                //--- The key is the address
+                HashMap<String, BluetoothDevice> discovered = new HashMap<String, BluetoothDevice>();
+                try {
+                    while (Thread.interrupted() == false) {
+                        List<BluetoothDevice> list = getDevices();
+                        for (BluetoothDevice d:list) {
+                            if (!discovered.containsKey(d.getAddress())) {
+                                if (onlyManufacturerFilled) {
+                                    if (!d.getManufacturerData().isEmpty()) {
+                                        discovered.put(d.getAddress(), d);
+                                        if (listener != null) listener.bluetoothDeviceDiscovered(d);
+                                    }
+                                    
+                                } else {
+                                    discovered.put(d.getAddress(), d);
+                                    if (listener != null) listener.bluetoothDeviceDiscovered(d);
+                                }
+                            }
+                        }
+                        //--- Polling rate of 1 second
+                        sleep(pollingRate);
+                    }
+
+                } catch (InterruptedException ex) {
+                    //--- Stopped by user or jvm
+                }
+                stopDiscovery();
+                
+            }
+        };
+        nearbyThread.start();
+
+    }
+
+    /**
+     * Stop the nearby thread
+     */
+    public void stopNearbyDiscovery() {
+        if ((nearbyThread != null) && nearbyThread.isAlive()) nearbyThread.interrupt();
+
+    }
+
+    /**
+     * Interface to implement to receive the device discovery event
+     */
+    public interface BluetoothDeviceDiscoveryListener {
+
+        public void bluetoothDeviceDiscovered(BluetoothDevice device);
+    }
+    
     private native void init() throws BluetoothException;
     private native void delete();
     private BluetoothManager()
