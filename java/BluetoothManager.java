@@ -43,7 +43,6 @@ public class BluetoothManager
             System.loadLibrary("javatinyb");
         } catch (UnsatisfiedLinkError e) {
             System.err.println("Native code library failed to load.\n" + e);
-            System.exit(-1);
         }
     }
 
@@ -297,8 +296,6 @@ public class BluetoothManager
     {
         if (inst == null)
         {
-            inst = new BluetoothManager();
-            inst.init();
             String nativeAPIVersion = getNativeAPIVersion();
             String APIVersion = BluetoothManager.class.getPackage().getSpecificationVersion();
             if (APIVersion.equals(nativeAPIVersion) == false) {
@@ -318,6 +315,8 @@ public class BluetoothManager
                     System.err.println("Java library is out of date. Please update the Java library.");
                 else System.err.println("Native library is out of date. Please update the native library.");
             }
+            inst = new BluetoothManager();
+            inst.init();
         }
         return inst;
     }
