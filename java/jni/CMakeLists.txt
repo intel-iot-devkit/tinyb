@@ -19,6 +19,8 @@ include_directories(
 
 file(GLOB JNI_SOURCES "*.cxx")
 
+set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
+
 add_library (javatinyb SHARED ${JNI_SOURCES})
 target_link_libraries(javatinyb ${JNI_LIBRARIES} tinyb)
 
