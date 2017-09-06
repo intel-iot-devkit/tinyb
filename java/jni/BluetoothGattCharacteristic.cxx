@@ -141,6 +141,7 @@ void Java_tinyb_BluetoothGattCharacteristic_enableValueNotifications(JNIEnv *env
             {
                 jclass notification = search_class(*jni_env, **callback_ptr);
                 jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
+                jni_env->DeleteLocalRef(notification);
                 unsigned int size = v.size();
 
                 jbyteArray result = jni_env->NewByteArray((jsize)size);

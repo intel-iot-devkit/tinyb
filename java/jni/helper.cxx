@@ -191,6 +191,7 @@ jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
     jfieldID b_type_field = search_field(env, b_type_enum, field_name, "L" JAVA_PACKAGE "/BluetoothType;", true);
 
     jobject result = env->GetStaticObjectField(b_type_enum, b_type_field);
+    env->DeleteLocalRef(b_type_enum);
     return result;
 }
 
@@ -207,6 +208,7 @@ jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
 
     *add = search_method(env, arraylist_class, "add", "(Ljava/lang/Object;)Z", false);
 
+    env->DeleteLocalRef(arraylist_class);
     return result;
 }
 
