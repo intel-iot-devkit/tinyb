@@ -98,6 +98,12 @@ public class BluetoothDevice extends BluetoothObject
       * @return TRUE if the device connected and paired
       */
     public native boolean pair() throws BluetoothException;
+	
+	/** Remove this device from the system (like an unpair).
+	  * @return TRUE if the device has been removed
+      * @throws BluetoothException 
+      */
+     public native boolean remove() throws BluetoothException;
 
     /** Cancels an initiated pairing operation
       * @return TRUE if the paring is cancelled successfully
