@@ -135,6 +135,12 @@ public:
       */
     bool pair (
     );
+	
+	/** Remove the current device (like an unpair).
+      * @return true if the device has been removed from the system.
+      */
+    bool remove_device(
+	);
 
     /** Cancels an initiated pairing operation
       * @return TRUE if the paring is cancelled successfully

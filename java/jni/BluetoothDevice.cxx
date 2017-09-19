@@ -176,6 +176,26 @@ jboolean Java_tinyb_BluetoothDevice_pair(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
+jboolean Java_tinyb_BluetoothDevice_remove(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
+
+        return obj_device->remove_device() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
+}
+
 jboolean Java_tinyb_BluetoothDevice_cancelPairing(JNIEnv *env, jobject obj)
 {
     try {

@@ -298,6 +298,12 @@ bool BluetoothDevice::pair ()
     return result;
 }
 
+// Remove the device (like an unpair)
+bool BluetoothDevice::remove_device(){
+    BluetoothAdapter ba = get_adapter();
+    return ba.remove_device(get_object_path());
+}
+
 bool BluetoothDevice::cancel_pairing ()
 {
     GError *error = NULL;
