@@ -322,9 +322,9 @@ void Java_tinyb_BluetoothAdapter_enablePoweredNotifications(JNIEnv *env, jobject
 
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-                jni_env->DeleteLocalRef(boolean_cls);
 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+                jni_env->DeleteLocalRef(boolean_cls);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
                 jni_env->DeleteLocalRef(result);
@@ -416,9 +416,9 @@ void Java_tinyb_BluetoothAdapter_enableDiscoverableNotifications(JNIEnv *env, jo
 
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-                jni_env->DeleteLocalRef(boolean_cls);
 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+                jni_env->DeleteLocalRef(boolean_cls);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
                 jni_env->DeleteLocalRef(result);
@@ -533,9 +533,9 @@ void Java_tinyb_BluetoothAdapter_enablePairableNotifications(JNIEnv *env, jobjec
 
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-                jni_env->DeleteLocalRef(boolean_cls);
 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+                jni_env->DeleteLocalRef(boolean_cls);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
                 jni_env->DeleteLocalRef(result);
@@ -670,9 +670,9 @@ void Java_tinyb_BluetoothAdapter_enableDiscoveringNotifications(JNIEnv *env, job
 
                 jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
                 jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-                jni_env->DeleteLocalRef(boolean_cls);
 
                 jobject result = jni_env->NewObject(boolean_cls, constructor, v ? JNI_TRUE : JNI_FALSE);
+                jni_env->DeleteLocalRef(boolean_cls);
 
                 jni_env->CallVoidMethod(**callback_ptr, method, result);
                 jni_env->DeleteLocalRef(result);
