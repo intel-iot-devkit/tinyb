@@ -36,7 +36,6 @@ public abstract class BluetoothObject implements Cloneable,AutoCloseable
             System.loadLibrary("javatinyb");
         } catch (UnsatisfiedLinkError e) {
             System.err.println("Native code library failed to load.\n" + e);
-            System.exit(-1);
         }
     }
 
