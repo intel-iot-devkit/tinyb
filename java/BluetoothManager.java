@@ -205,6 +205,11 @@ public class BluetoothManager
       */
     public native boolean stopDiscovery() throws BluetoothException;
 
+    /** Returns if the discovers is running or not.
+      * @return TRUE if discovery is running
+      */
+    public native boolean getDiscovering() throws BluetoothException;  
+
     /**
      * When called, each new device found will fire an event to the passed
      * listener<p>
