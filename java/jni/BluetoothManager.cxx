@@ -370,6 +370,25 @@ jboolean Java_tinyb_BluetoothManager_stopDiscovery(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
+jboolean Java_tinyb_BluetoothManager_getDiscovering(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+        return manager->get_discovering() ? JNI_TRUE : JNI_FALSE;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return JNI_FALSE;
+}
+
 void Java_tinyb_BluetoothManager_init(JNIEnv *env, jobject obj)
 {
     try {

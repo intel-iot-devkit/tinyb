@@ -391,3 +391,11 @@ bool BluetoothManager::stop_discovery()
     else
         return false;
 }
+
+bool BluetoothManager::get_discovering()
+{
+    if (default_adapter != NULL)
+        return default_adapter->get_discovering();
+    else
+        return false;
+}

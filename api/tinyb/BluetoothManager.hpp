@@ -238,4 +238,10 @@ public:
       */
     bool stop_discovery(
     );
+
+    /** Returns if the discovers is running or not.
+      * @return TRUE if discovery is running
+      */
+    bool get_discovering(
+    );
 };
