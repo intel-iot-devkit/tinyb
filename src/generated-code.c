@@ -219,11 +219,42 @@ static const _ExtendedGDBusMethodInfo _adapter1_method_info_remove_device =
   FALSE
 };
 
+static const _ExtendedGDBusArgInfo _adapter1_method_info_set_discovery_filter_IN_ARG_filter =
+{
+  {
+    -1,
+    (gchar *) "filter",
+    (gchar *) "a{sv}",
+    NULL
+  },
+  FALSE
+};
+
+static const _ExtendedGDBusArgInfo * const _adapter1_method_info_set_discovery_filter_IN_ARG_pointers[] =
+{
+  &_adapter1_method_info_set_discovery_filter_IN_ARG_filter,
+  NULL
+};
+
+static const _ExtendedGDBusMethodInfo _adapter1_method_info_set_discovery_filter =
+{
+  {
+    -1,
+    (gchar *) "SetDiscoveryFilter",
+    (GDBusArgInfo **) &_adapter1_method_info_set_discovery_filter_IN_ARG_pointers,
+    NULL,
+    NULL
+  },
+  "handle-set-discovery-filter",
+  FALSE
+};
+
 static const _ExtendedGDBusMethodInfo * const _adapter1_method_info_pointers[] =
 {
   &_adapter1_method_info_start_discovery,
   &_adapter1_method_info_stop_discovery,
   &_adapter1_method_info_remove_device,
+  &_adapter1_method_info_set_discovery_filter,
   NULL
 };
 
@@ -467,6 +498,7 @@ adapter1_override_properties (GObjectClass *klass, guint property_id_begin)
  * Adapter1Iface:
  * @parent_iface: The parent interface.
  * @handle_remove_device: Handler for the #Adapter1::handle-remove-device signal.
+ * @handle_set_discovery_filter: Handler for the #Adapter1::handle-set-discovery-filter signal.
  * @handle_start_discovery: Handler for the #Adapter1::handle-start-discovery signal.
  * @handle_stop_discovery: Handler for the #Adapter1::handle-stop-discovery signal.
  * @get_address: Getter for the #Adapter1:address property.
@@ -558,6 +590,29 @@ adapter1_default_init (Adapter1Iface *iface)
     G_TYPE_BOOLEAN,
     2,
     G_TYPE_DBUS_METHOD_INVOCATION, G_TYPE_STRING);
+
+  /**
+   * Adapter1::handle-set-discovery-filter:
+   * @object: A #Adapter1.
+   * @invocation: A #GDBusMethodInvocation.
+   * @arg_filter: Argument passed by remote caller.
+   *
+   * Signal emitted when a remote caller is invoking the <link linkend="gdbus-method-org-bluez-Adapter1.SetDiscoveryFilter">SetDiscoveryFilter()</link> D-Bus method.
+   *
+   * If a signal handler returns %TRUE, it means the signal handler will handle the invocation (e.g. take a reference to @invocation and eventually call adapter1_complete_set_discovery_filter() or e.g. g_dbus_method_invocation_return_error() on it) and no order signal handlers will run. If no signal handler handles the invocation, the %G_DBUS_ERROR_UNKNOWN_METHOD error is returned.
+   *
+   * Returns: %TRUE if the invocation was handled, %FALSE to let other signal handlers run.
+   */
+  g_signal_new ("handle-set-discovery-filter",
+    G_TYPE_FROM_INTERFACE (iface),
+    G_SIGNAL_RUN_LAST,
+    G_STRUCT_OFFSET (Adapter1Iface, handle_set_discovery_filter),
+    g_signal_accumulator_true_handled,
+    NULL,
+    g_cclosure_marshal_generic,
+    G_TYPE_BOOLEAN,
+    2,
+    G_TYPE_DBUS_METHOD_INVOCATION, G_TYPE_VARIANT);
 
   /* GObject properties for D-Bus properties: */
   /**
@@ -1425,6 +1480,104 @@ _out:
 }
 
 /**
+ * adapter1_call_set_discovery_filter:
+ * @proxy: A #Adapter1Proxy.
+ * @arg_filter: Argument to pass with the method invocation.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @callback: A #GAsyncReadyCallback to call when the request is satisfied or %NULL.
+ * @user_data: User data to pass to @callback.
+ *
+ * Asynchronously invokes the <link linkend="gdbus-method-org-bluez-Adapter1.SetDiscoveryFilter">SetDiscoveryFilter()</link> D-Bus method on @proxy.
+ * When the operation is finished, @callback will be invoked in the <link linkend="g-main-context-push-thread-default">thread-default main loop</link> of the thread you are calling this method from.
+ * You can then call adapter1_call_set_discovery_filter_finish() to get the result of the operation.
+ *
+ * See adapter1_call_set_discovery_filter_sync() for the synchronous, blocking version of this method.
+ */
+void
+adapter1_call_set_discovery_filter (
+    Adapter1 *proxy,
+    GVariant *arg_filter,
+    GCancellable *cancellable,
+    GAsyncReadyCallback callback,
+    gpointer user_data)
+{
+  g_dbus_proxy_call (G_DBUS_PROXY (proxy),
+    "SetDiscoveryFilter",
+    g_variant_new ("(@a{sv})",
+                   arg_filter),
+    G_DBUS_CALL_FLAGS_NONE,
+    -1,
+    cancellable,
+    callback,
+    user_data);
+}
+
+/**
+ * adapter1_call_set_discovery_filter_finish:
+ * @proxy: A #Adapter1Proxy.
+ * @res: The #GAsyncResult obtained from the #GAsyncReadyCallback passed to adapter1_call_set_discovery_filter().
+ * @error: Return location for error or %NULL.
+ *
+ * Finishes an operation started with adapter1_call_set_discovery_filter().
+ *
+ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
+ */
+gboolean
+adapter1_call_set_discovery_filter_finish (
+    Adapter1 *proxy,
+    GAsyncResult *res,
+    GError **error)
+{
+  GVariant *_ret;
+  _ret = g_dbus_proxy_call_finish (G_DBUS_PROXY (proxy), res, error);
+  if (_ret == NULL)
+    goto _out;
+  g_variant_get (_ret,
+                 "()");
+  g_variant_unref (_ret);
+_out:
+  return _ret != NULL;
+}
+
+/**
+ * adapter1_call_set_discovery_filter_sync:
+ * @proxy: A #Adapter1Proxy.
+ * @arg_filter: Argument to pass with the method invocation.
+ * @cancellable: (allow-none): A #GCancellable or %NULL.
+ * @error: Return location for error or %NULL.
+ *
+ * Synchronously invokes the <link linkend="gdbus-method-org-bluez-Adapter1.SetDiscoveryFilter">SetDiscoveryFilter()</link> D-Bus method on @proxy. The calling thread is blocked until a reply is received.
+ *
+ * See adapter1_call_set_discovery_filter() for the asynchronous version of this method.
+ *
+ * Returns: (skip): %TRUE if the call succeded, %FALSE if @error is set.
+ */
+gboolean
+adapter1_call_set_discovery_filter_sync (
+    Adapter1 *proxy,
+    GVariant *arg_filter,
+    GCancellable *cancellable,
+    GError **error)
+{
+  GVariant *_ret;
+  _ret = g_dbus_proxy_call_sync (G_DBUS_PROXY (proxy),
+    "SetDiscoveryFilter",
+    g_variant_new ("(@a{sv})",
+                   arg_filter),
+    G_DBUS_CALL_FLAGS_NONE,
+    -1,
+    cancellable,
+    error);
+  if (_ret == NULL)
+    goto _out;
+  g_variant_get (_ret,
+                 "()");
+  g_variant_unref (_ret);
+_out:
+  return _ret != NULL;
+}
+
+/**
  * adapter1_complete_start_discovery:
  * @object: A #Adapter1.
  * @invocation: (transfer full): A #GDBusMethodInvocation.
@@ -1471,6 +1624,24 @@ adapter1_complete_stop_discovery (
  */
 void
 adapter1_complete_remove_device (
+    Adapter1 *object,
+    GDBusMethodInvocation *invocation)
+{
+  g_dbus_method_invocation_return_value (invocation,
+    g_variant_new ("()"));
+}
+
+/**
+ * adapter1_complete_set_discovery_filter:
+ * @object: A #Adapter1.
+ * @invocation: (transfer full): A #GDBusMethodInvocation.
+ *
+ * Helper function used in service implementations to finish handling invocations of the <link linkend="gdbus-method-org-bluez-Adapter1.SetDiscoveryFilter">SetDiscoveryFilter()</link> D-Bus method. If you instead want to finish handling an invocation by returning an error, use g_dbus_method_invocation_return_error() or similar.
+ *
+ * This method will free @invocation, you cannot use it afterwards.
+ */
+void
+adapter1_complete_set_discovery_filter (
     Adapter1 *object,
     GDBusMethodInvocation *invocation)
 {

@@ -28,6 +28,9 @@ THE SOFTWARE.
     <method name="RemoveDevice">
       <arg name="device" type="o" direction="in"/>
     </method>
+    <method name="SetDiscoveryFilter">
+      <arg name="filter" type="a{sv}" direction="in"/>
+    </method>
     <property name="Address" type="s" access="read"/>
     <property name="Name" type="s" access="read"/>
     <property name="Alias" type="s" access="readwrite"/>

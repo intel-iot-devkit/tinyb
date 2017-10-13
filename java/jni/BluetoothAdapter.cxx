@@ -787,3 +787,24 @@ void Java_tinyb_BluetoothAdapter_delete(JNIEnv *env, jobject obj)
     }
 }
 
+void Java_tinyb_BluetoothAdapter_setRssiDiscoveryFilter(JNIEnv *env, jobject obj, jint rssi)
+{
+    try {
+        BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
+
+        std::vector<BluetoothUUID> native_uuids;
+        native_uuids.reserve(0);
+
+        obj_adapter->set_discovery_filter(native_uuids, (int16_t) rssi, 0, TransportType::AUTO);
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+}

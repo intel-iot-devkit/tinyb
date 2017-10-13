@@ -238,7 +238,13 @@ public class BluetoothAdapter extends BluetoothObject
       * @return The local ID of the adapter.
       */
     public native String getModalias();
-    
+
+    /** This method sets RSSI device discovery filter for the caller. When this method is called
+      * with 0, filter is removed.
+      * @param rssi a rssi value
+      */
+    public native void setRssiDiscoveryFilter(int rssi);
+
     /** Returns the interface name of the adapter.
      * @return The interface name of the adapter.
      */

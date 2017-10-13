@@ -211,6 +211,57 @@ bool BluetoothAdapter::remove_device (
     return result;
 }
 
+bool BluetoothAdapter::set_discovery_filter (std::vector<BluetoothUUID> uuids,
+    int16_t rssi, uint16_t pathloss, const TransportType &transport)
+{
+    GError *error = NULL;
+    bool result = true;
+    GVariantDict dict;
+    g_variant_dict_init(&dict, NULL);
+
+    if (uuids.size() > 0)
+    {
+        GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("a(s)"));
+
+        for (std::vector<BluetoothUUID>::iterator i = uuids.begin(); i != uuids.end(); ++i)
+            g_variant_builder_add(builder, "(s)", (*i).get_string().c_str());
+
+        GVariant *uuids_variant = g_variant_new("a(s)", builder);
+        g_variant_builder_unref(builder);
+        g_variant_dict_insert_value(&dict, "UUIDs", uuids_variant);
+    }
+
+    if (rssi != 0)
+        g_variant_dict_insert_value(&dict, "RSSI", g_variant_new_int16(rssi));
+
+    if (pathloss != 0)
+        g_variant_dict_insert_value(&dict, "Pathloss", g_variant_new_uint16(pathloss));
+
+    std::string transport_str;
+
+    if (transport == TransportType::AUTO)
+        transport_str = "auto";
+    else if (transport == TransportType::BREDR)
+        transport_str = "bredr";
+    else if (transport == TransportType::LE)
+        transport_str = "le";
+
+    if (!transport_str.empty())
+        g_variant_dict_insert_value(&dict, "Transport", g_variant_new_string(transport_str.c_str()));
+
+    GVariant *variant = g_variant_dict_end(&dict);
+
+    result = adapter1_call_set_discovery_filter_sync(
+        object,
+        variant,
+        NULL,
+        &error
+    );
+
+    handle_error(error);
+    return result;
+}
+
 /* D-Bus property accessors: */
 std::string BluetoothAdapter::get_address ()
 {
