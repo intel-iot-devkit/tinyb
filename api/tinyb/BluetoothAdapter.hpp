@@ -34,12 +34,6 @@ typedef struct _Object Object;
 struct _Adapter1;
 typedef struct _Adapter1 Adapter1;
 
-enum class TransportType {
-    AUTO,
-    BREDR,
-    LE
-};
-
 /**
   * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
   * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt

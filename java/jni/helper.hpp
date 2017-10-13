@@ -42,6 +42,7 @@ std::string from_jstring_to_string(JNIEnv *env, jstring str);
 tinyb::BluetoothType from_int_to_btype(int type);
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
 jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add);
+tinyb::TransportType from_int_to_transport_type(int type);
 
 template <typename T>
 T *getInstance(JNIEnv *env, jobject obj)
