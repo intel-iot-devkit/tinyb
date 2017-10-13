@@ -183,6 +183,31 @@ tinyb::BluetoothType from_int_to_btype(int type)
     return result;
 }
 
+tinyb::TransportType from_int_to_transport_type(int type)
+{
+    tinyb::TransportType result = tinyb::TransportType::AUTO;
+
+    switch (type)
+    {
+        case 0:
+            result = tinyb::TransportType::AUTO;
+            break;
+
+        case 1:
+            result = tinyb::TransportType::BREDR;
+            break;
+
+        case 2:
+            result = tinyb::TransportType::LE;
+            break;
+
+        default:
+            result = tinyb::TransportType::AUTO;
+            break;
+    }
+
+    return result;
+}
 
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {

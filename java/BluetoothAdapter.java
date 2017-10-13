@@ -239,11 +239,36 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native String getModalias();
 
+    /** This method sets the device discovery filter for the caller. When this method is called
+     * with no filter parameter, filter is removed.
+     * <p>
+     * When a remote device is found that advertises any UUID from UUIDs, it will be reported if:
+     * <ul><li>Pathloss and RSSI are both empty.</li>
+     * <li>only Pathloss param is set, device advertise TX pwer, and computed pathloss is less than Pathloss param.</li>
+     * <li>only RSSI param is set, and received RSSI is higher than RSSI param.</li>
+     * </ul>
+     * <p>
+     * If one or more discovery filters have been set, the RSSI delta-threshold,
+     * that is imposed by StartDiscovery by default, will not be applied.
+     * <p>
+     * If "auto" transport is requested, scan will use LE, BREDR, or both, depending on what's
+     * currently enabled on the controller.
+     *
+     * @param uuids a list of device UUIDs
+     * @param rssi a rssi value
+     * @param pathloss a pathloss value
+     */
+    public void setDiscoveryFilter(List<Integer> uuids, int rssi, int pathloss, TransportType transportType) {
+        setDiscoveryFilter(uuids, rssi, pathloss, transportType.ordinal());
+    }
+
     /** This method sets RSSI device discovery filter for the caller. When this method is called
       * with 0, filter is removed.
       * @param rssi a rssi value
       */
-    public native void setRssiDiscoveryFilter(int rssi);
+    public void setRssiDiscoveryFilter(int rssi) {
+        setDiscoveryFilter(Collections.EMPTY_LIST, rssi, 0, TransportType.AUTO);
+    }
 
     /** Returns the interface name of the adapter.
      * @return The interface name of the adapter.
@@ -254,6 +279,8 @@ public class BluetoothAdapter extends BluetoothObject
     }
 
     private native void delete();
+
+    private native void setDiscoveryFilter(List<Integer> uuids, int rssi, int pathloss, int transportType);
 
     private BluetoothAdapter(long instance)
     {
