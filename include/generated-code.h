@@ -42,6 +42,11 @@ struct _Adapter1Iface
     Adapter1 *object,
     GDBusMethodInvocation *invocation);
 
+  gboolean (*handle_set_discovery_filter) (
+    Adapter1 *object,
+    GDBusMethodInvocation *invocation,
+    GVariant *arg_filter);
+
   const gchar * (*get_address) (Adapter1 *object);
 
   const gchar * (*get_alias) (Adapter1 *object);
@@ -140,6 +145,23 @@ gboolean adapter1_call_remove_device_sync (
     GCancellable *cancellable,
     GError **error);
 
+void adapter1_call_set_discovery_filter (
+        Adapter1 *proxy,
+        GVariant *arg_filter,
+        GCancellable *cancellable,
+        GAsyncReadyCallback callback,
+        gpointer user_data);
+
+gboolean adapter1_call_set_discovery_filter_finish (
+        Adapter1 *proxy,
+        GAsyncResult *res,
+        GError **error);
+
+gboolean adapter1_call_set_discovery_filter_sync (
+        Adapter1 *proxy,
+        GVariant *arg_filter,
+        GCancellable *cancellable,
+        GError **error);
 
 
 /* D-Bus property accessors: */
