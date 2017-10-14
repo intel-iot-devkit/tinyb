@@ -792,8 +792,21 @@ void Java_tinyb_BluetoothAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jo
     try {
         BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
 
+        jclass cList = env->FindClass("java/util/List");
+
+        jmethodID mSize = env->GetMethodID(cList, "size", "()I");
+        jmethodID mGet = env->GetMethodID(cList, "get", "(I)Ljava/lang/Object;");
+
+        jint size = env->CallIntMethod(uuids, mSize);
         std::vector<BluetoothUUID> native_uuids;
-        native_uuids.reserve(0);
+
+        for (jint i = 0; i < size; i++) {
+            jstring strObj = (jstring) env->CallObjectMethod(uuids, mGet, i);
+            const char * chr = env->GetStringUTFChars(strObj, NULL);
+            BluetoothUUID uuid(chr);
+            native_uuids.push_back(uuid);
+            env->ReleaseStringUTFChars(strObj, chr);
+        }
 
         TransportType t_type = from_int_to_transport_type((int) transportType);
 

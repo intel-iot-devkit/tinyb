@@ -221,12 +221,12 @@ bool BluetoothAdapter::set_discovery_filter (std::vector<BluetoothUUID> uuids,
 
     if (uuids.size() > 0)
     {
-        GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("a(s)"));
+        GVariantBuilder *builder = g_variant_builder_new(G_VARIANT_TYPE("as"));
 
         for (std::vector<BluetoothUUID>::iterator i = uuids.begin(); i != uuids.end(); ++i)
-            g_variant_builder_add(builder, "(s)", (*i).get_string().c_str());
+            g_variant_builder_add(builder, "s", (*i).get_string().c_str());
 
-        GVariant *uuids_variant = g_variant_new("a(s)", builder);
+        GVariant *uuids_variant = g_variant_new("as", builder);
         g_variant_builder_unref(builder);
         g_variant_dict_insert_value(&dict, "UUIDs", uuids_variant);
     }
