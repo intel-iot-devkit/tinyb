@@ -30,11 +30,11 @@ endif ()
 message (INFO " - libtinyb Version ${VERSION}")
 
 #parse the version information into pieces.
-string (REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")
-string (REGEX REPLACE "^v[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${VERSION}")
-string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${VERSION}")
-string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+\\-([0-9]+).*" "\\1" VERSION_COMMIT "${VERSION}")
-string (REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+-[0-9]+\\-(.*)" "\\1" VERSION_SHA1 "${VERSION}")
+string (REGEX REPLACE "^([0-9]+).*" "\\1" VERSION_MAJOR "${VERSION}")
+string (REGEX REPLACE "^[0-9]+.([0-9]+).*" "\\1" VERSION_MINOR "${VERSION}")
+string (REGEX REPLACE "^[0-9]+.[0-9]+.([0-9]+).*" "\\1" VERSION_PATCH "${VERSION}")
+string (REGEX REPLACE "^[0-9]+.[0-9]+.[0-9]+-([0-9]+).*" "\\1" VERSION_COMMIT "${VERSION}")
+string (REGEX REPLACE "^[0-9]+.[0-9]+.[0-9]+-[0-9]+-(.*)" "\\1" VERSION_SHA1 "${VERSION}")
 set (VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 set (VERSION_API "${VERSION_MAJOR}.${VERSION_MINOR}")
 string(TIMESTAMP BUILD_TSTAMP "%Y-%m-%d %H:%M:%S")
@@ -51,6 +51,8 @@ set (tinyb_VERSION_MAJOR ${VERSION_MAJOR})
 set (tinyb_VERSION_MINOR ${VERSION_MINOR})
 set (tinyb_VERSION_PATCH ${VERSION_PATCH})
 set (tinyb_VERSION_STRING "${tinyb_VERSION_MAJOR}.${tinyb_VERSION_MINOR}.${tinyb_VERSION_PATCH}")
+
+message (INFO " - libtinyb Version-string ${tinyb_VERSION_STRING}")
 
 set (CMAKE_SWIG_FLAGS "")
 
