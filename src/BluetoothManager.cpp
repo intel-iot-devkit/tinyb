@@ -206,6 +206,7 @@ std::weak_ptr<BluetoothEvent> BluetoothManager::find(BluetoothType type,
 void BluetoothManager::handle_event(BluetoothType type, std::string *name,
     std::string *identifier, BluetoothObject *parent, BluetoothObject &object)
 {
+    std::lock_guard<std::mutex> guard(lock);
     for (auto it = event_list.begin();
         it != event_list.end();) {
         if ((*it)->get_type() != BluetoothType::NONE && ((*it)->get_type()) != type) {
