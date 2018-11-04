@@ -51,15 +51,28 @@ JNIEnvContainer::~JNIEnvContainer() {
 void JNIEnvContainer::attach() {
     if (env != nullptr)
         return;
-    jint err = vm->AttachCurrentThreadAsDaemon((void **)&env, NULL);
-    if (err != JNI_OK)
+
+    jint ret;
+    ret = vm->GetEnv((void **)&env, JNI_VERSION_1_8);
+    if (ret == JNI_OK) {
+        shouldDetach = false;
+        return;
+    }
+
+    ret = vm->AttachCurrentThreadAsDaemon((void **)&env, NULL);
+    if (ret == JNI_OK)
+        shouldDetach = true;
+    else
         throw std::runtime_error("Attach to VM failed");
 }
 
 void JNIEnvContainer::detach() {
     if (env == nullptr)
         return;
-    vm->DetachCurrentThread();
+
+    if (shouldDetach)
+        vm->DetachCurrentThread();
+
     env = nullptr;
 }
 
