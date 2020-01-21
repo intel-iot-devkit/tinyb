@@ -99,6 +99,7 @@ public:
 };
 
 GDBusObjectManager *gdbus_manager = NULL;
+GMainContext *manager_context = NULL;
 GThread *manager_thread = NULL;
 
 std::string BluetoothManager::get_class_name() const
@@ -240,7 +241,9 @@ static gpointer init_manager_thread(void *data)
     GMainLoop *loop;
     GDBusObjectManager *gdbus_manager = (GDBusObjectManager *) data;
 
-    loop = g_main_loop_new(NULL, FALSE);
+    g_main_context_push_thread_default(manager_context);
+
+    loop = g_main_loop_new(manager_context, FALSE);
 
     g_signal_connect(gdbus_manager,
         "interface-added",
@@ -252,7 +255,10 @@ static gpointer init_manager_thread(void *data)
          G_CALLBACK(BluetoothEventManager::on_object_added),
          NULL);
 
+    g_main_context_pop_thread_default(manager_context);
+
     g_main_loop_run(loop);
+
     return NULL;
 }
 
@@ -261,6 +267,8 @@ BluetoothManager::BluetoothManager() : event_list()
     GError *error = NULL;
     GList *objects, *l;
 
+    manager_context = g_main_context_new ();
+    g_main_context_push_thread_default(manager_context);
 
     gdbus_manager = object_manager_client_new_for_bus_sync(
             G_BUS_TYPE_SYSTEM,
@@ -277,7 +285,9 @@ BluetoothManager::BluetoothManager() : event_list()
         throw std::runtime_error(error_str);
     }
 
-    manager_thread = g_thread_new(NULL, init_manager_thread, gdbus_manager);
+    g_main_context_pop_thread_default(manager_context);
+
+    manager_thread = g_thread_new("BluetoothManager-Thread", init_manager_thread, gdbus_manager);
 
     objects = g_dbus_object_manager_get_objects(gdbus_manager);
 
