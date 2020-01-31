@@ -106,6 +106,15 @@ public:
     bool disconnect (
     );
 
+    /** An asynchronous connection to this device is initiated, 
+      * connecting each profile flagged as auto-connectable.
+      */
+    void connect_async_start ();
+
+    /** Completion of the initiated asynchronous connection.
+      */
+    bool connect_async_finish ();
+
     /** A connection to this device is established, connecting each profile
       * flagged as auto-connectable.
       * @return TRUE if the device connected

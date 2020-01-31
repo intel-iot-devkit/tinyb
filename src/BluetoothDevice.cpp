@@ -242,6 +242,29 @@ bool BluetoothDevice::disconnect ()
     return result;
 }
 
+void BluetoothDevice::connect_async_start ()
+{
+    device1_call_connect (
+        object, // Device1 *proxy,
+        NULL, // GCancellable *cancellable,
+        NULL, // GAsyncReadyCallback callback,
+        NULL // gpointer user_data)
+    );
+}
+
+bool BluetoothDevice::connect_async_finish ()
+{
+    GError *error = NULL;
+    bool result;
+    result = device1_call_connect_finish (
+        object, // Device1 *proxy,
+        NULL, // GAsyncResult *res,
+        &error // GError **error)
+    );
+    handle_error(error);
+    return result;
+}
+
 bool BluetoothDevice::connect ()
 {
     GError *error = NULL;

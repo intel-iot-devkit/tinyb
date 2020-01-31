@@ -75,6 +75,16 @@ public class BluetoothDevice extends BluetoothObject
       */
     public native boolean disconnect() throws BluetoothException;
 
+    /** An asynchronous connection to this device is initiated, 
+      * connecting each profile flagged as auto-connectable.
+      */
+    public native void connectAsyncStart() throws BluetoothException;
+
+    /** Completion of the initiated asynchronous connection.
+      * @return TRUE if the device connected
+      */
+    public native boolean connectAsyncFinish() throws BluetoothException;
+
     /** A connection to this device is established, connecting each profile
       * flagged as auto-connectable.
       * @return TRUE if the device connected
