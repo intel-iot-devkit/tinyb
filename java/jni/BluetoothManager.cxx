@@ -332,6 +332,36 @@ jboolean Java_tinyb_BluetoothManager_setDefaultAdapter(JNIEnv *env, jobject obj,
     return JNI_FALSE;
 }
 
+jobject Java_tinyb_BluetoothManager_getDefaultAdapter(JNIEnv *env, jobject obj)
+{
+    try {
+        BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
+
+        std::unique_ptr<tinyb::BluetoothAdapter> b_adapter = manager->get_default_adapter();
+        BluetoothAdapter *b_adapter_naked = b_adapter.release();
+        if (!b_adapter_naked)
+        {
+            return nullptr;
+        }
+        jclass clazz = search_class(env, *b_adapter_naked);
+        jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+        jobject result = env->NewObject(clazz, clazz_ctor, (jlong)b_adapter_naked);
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return NULL;
+}
+
 jboolean Java_tinyb_BluetoothManager_startDiscovery(JNIEnv *env, jobject obj)
 {
     try {

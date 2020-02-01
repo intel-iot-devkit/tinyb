@@ -195,6 +195,14 @@ public class BluetoothManager
       */
     public native boolean setDefaultAdapter(BluetoothAdapter adapter);
 
+    /** Gets the default adapter to use for discovery.
+      * <p>
+      * System default is the last detected adapter at initialisation.
+      * </p>
+      * @return the used default adapter
+      */
+    public native BluetoothAdapter getDefaultAdapter();
+
     /** Turns on device discovery on the default adapter if it is disabled.
       * @return TRUE if discovery was successfully enabled
       */
