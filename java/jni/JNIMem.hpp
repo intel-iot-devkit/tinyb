@@ -36,6 +36,7 @@ extern JavaVM* vm;
 class JNIEnvContainer {
 private:    
     JNIEnv *env = nullptr;
+    bool needsDetach = false;
     
 public:
     /* Attaches this thread to the JVM if it is not already attached */

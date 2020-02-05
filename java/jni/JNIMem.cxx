@@ -28,6 +28,7 @@ JavaVM* vm;
 thread_local JNIEnvContainer jni_env;
 
 jint JNI_OnLoad(JavaVM *initVM, void *reserved) {
+    (void)reserved; // warning
     vm = initVM;
     return JNI_VERSION_1_8;
 }
@@ -49,18 +50,37 @@ JNIEnvContainer::~JNIEnvContainer() {
 }
 
 void JNIEnvContainer::attach() {
-    if (env != nullptr)
+    if (env != nullptr) {
         return;
-    jint err = vm->AttachCurrentThreadAsDaemon((void **)&env, NULL);
-    if (err != JNI_OK)
-        throw std::runtime_error("Attach to VM failed");
+    }
+    JNIEnv *newEnv = nullptr;
+    int envRes;
+
+    envRes = vm->GetEnv((void **) &env, JNI_VERSION_1_8) ;
+    if( JNI_EDETACHED == envRes ) {
+        envRes = vm->AttachCurrentThreadAsDaemon((void**) &newEnv, NULL);
+        if( JNI_OK != envRes ) {
+            throw std::runtime_error("Attach to VM failed");
+        }
+        env = newEnv;
+    } else if( JNI_OK != envRes ) {
+        throw std::runtime_error("GetEnv of VM failed");
+    }
+    if (env==NULL) {
+        throw std::runtime_error("GetEnv of VM is NULL");
+    }
+    needsDetach = NULL != newEnv;
 }
 
 void JNIEnvContainer::detach() {
-    if (env == nullptr)
+    if (env == nullptr) {
         return;
-    vm->DetachCurrentThread();
+    }
+    if( needsDetach ) {
+        vm->DetachCurrentThread();
+    }
     env = nullptr;
+    needsDetach = false;
 }
 
 JNIGlobalRef::JNIGlobalRef(jobject object) {
