@@ -321,4 +321,7 @@ public:
       */
     std::unique_ptr<std::string> get_modalias ();
 
+    std::unique_ptr<BluetoothDevice> connect_device (
+        const std::string &arg_address, const std::string &arg_address_type);
+
 };

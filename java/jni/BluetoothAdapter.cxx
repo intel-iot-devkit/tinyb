@@ -823,3 +823,42 @@ void Java_tinyb_BluetoothAdapter_setDiscoveryFilter(JNIEnv *env, jobject obj, jo
         raise_java_exception(env, e);
     }
 }
+
+jobject Java_tinyb_BluetoothAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType)
+{
+    try {
+        BluetoothAdapter *obj_adapter = getInstance<BluetoothAdapter>(env, obj);
+
+        const std::string address = from_jstring_to_string(env, jaddress);
+        const std::string addressType = from_jstring_to_string(env, jaddressType);
+
+        fprintf(stderr, "connectDeviceJ.0\n"); fflush(stderr);
+        std::unique_ptr<tinyb::BluetoothDevice> b_device = obj_adapter->connect_device(address, addressType);
+        fprintf(stderr, "connectDeviceJ.1\n"); fflush(stderr);
+
+        BluetoothDevice *b_device_naked = b_device.release();
+        fprintf(stderr, "connectDeviceJ.2\n"); fflush(stderr);
+        if (!b_device_naked)
+        {
+            return nullptr;
+        }
+        jclass clazz = search_class(env, *b_device_naked);
+        jmethodID clazz_ctor = search_method(env, clazz, "<init>", "(J)V", false);
+
+        jobject result = env->NewObject(clazz, clazz_ctor, (jlong)b_device_naked);
+        fprintf(stderr, "connectDeviceJ.X\n"); fflush(stderr);
+        return result;
+    } catch (std::bad_alloc &e) {
+        raise_java_oom_exception(env, e);
+    } catch (BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    }
+    return NULL;
+}
+

@@ -31,6 +31,10 @@ THE SOFTWARE.
     <method name="SetDiscoveryFilter">
       <arg name="filter" type="a{sv}" direction="in"/>
     </method>
+    <method name="ConnectDevice">
+      <arg name="value" type="o" direction="out"/>
+      <arg name="properties" type="a{sv}" direction="in"/>
+    </method>
     <property name="Address" type="s" access="read"/>
     <property name="Name" type="s" access="read"/>
     <property name="Alias" type="s" access="readwrite"/>

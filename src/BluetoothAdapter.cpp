@@ -408,3 +408,52 @@ std::unique_ptr<std::string> BluetoothAdapter::get_modalias ()
         return std::unique_ptr<std::string>();
     return std::unique_ptr<std::string>(new std::string(modalias));
 }
+
+std::unique_ptr<BluetoothDevice> BluetoothAdapter::connect_device (
+    const std::string &arg_address, const std::string &arg_address_type)
+{
+    bool result = true;
+    GError *error = NULL;
+    GVariantDict dict;
+    gchar *object_path = nullptr;
+
+    g_variant_dict_init(&dict, NULL);
+    g_variant_dict_insert_value(&dict, "Address", g_variant_new_string(arg_address.c_str()));
+    g_variant_dict_insert_value(&dict, "AddressType", g_variant_new_string(arg_address_type.c_str()));
+    GVariant *variant = g_variant_dict_end(&dict);
+
+    result = adapter1_call_connect_device_sync(
+        object,
+        variant,
+        &object_path,
+        NULL,
+        &error
+    );
+    handle_error(error);
+
+    if( result && nullptr != object_path ) {
+
+        Device1 *device = device1_proxy_new_for_bus_sync(
+            G_BUS_TYPE_SYSTEM,
+            G_DBUS_PROXY_FLAGS_NONE,
+            "org.bluez",
+            object_path,
+            NULL,
+            &error);
+        g_free(object_path);
+        handle_error(error);
+
+        if (device == nullptr) {
+            std::string error_msg("Error occured while instantiating device: ");
+            error_msg += error->message;
+            g_error_free(error);
+            throw BluetoothException(error_msg);
+        }
+        std::unique_ptr<BluetoothDevice> p(new BluetoothDevice(device));
+        g_object_unref(device);
+        return p;
+    }
+    g_free(object_path);
+    return std::unique_ptr<BluetoothDevice>();
+}
+

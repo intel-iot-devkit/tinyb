@@ -176,6 +176,32 @@ public class BluetoothAdapter extends BluetoothObject
       */
     public native void setDiscoverableTimout(long value);
 
+    /**
+     * This method connects to device without need of
+     * performing General Discovery. Connection mechanism is
+     * similar to Connect method from Device1 interface with
+     * exception that this method returns success when physical
+     * connection is established. After this method returns,
+     * services discovery will continue and any supported
+     * profile will be connected. There is no need for calling
+     * Connect on Device1 after this call. If connection was
+     * successful this method returns object path to created
+     * device object.
+     * 
+     * @param address The Bluetooth device address of the remote
+     *                device. This parameter is mandatory.
+     * @param addressType The Bluetooth device Address Type. This is
+     *                address type that should be used for initial
+     *                connection. If this parameter is not present
+     *                BR/EDR device is created.
+     *                Possible values:
+     *                <ul>
+     *                <li>{@code public} - Public address</li>
+     *                <li>{@code random} - Random address</li>
+     *                </ul>
+     */
+    public native BluetoothDevice connectDevice(String address, String addressType);
+
     /** Returns the pairable state the adapter.
       * @return The pairable state of the adapter.
       */
