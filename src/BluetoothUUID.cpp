@@ -51,7 +51,7 @@ BluetoothUUID::BluetoothUUID(const std::string &str) : BluetoothUUID(str.c_str()
 std::string BluetoothUUID::get_string()
 {
     char u[37];
-    snprintf(u, 37, "%08lx-%04lx-%04lx-%04lx-%012lx",
+    snprintf(u, 37, "%08lx-%04llx-%04llx-%04lx-%012llx",
         (uuid[0] >> 32),
         ((uuid[0] >> 16) & 0xFFFFULL),
         (uuid[0] & 0xFFFFULL),
@@ -66,9 +66,9 @@ std::string BluetoothUUID::get_short_string()
     if (is_short()) {
         uint32_t suuid = get_short();
         if (suuid & 0xFFFF == suuid)
-            snprintf(u, 9, "%04lx", suuid);
+            snprintf(u, 9, "%04dx", suuid);
         else
-            snprintf(u, 9, "%08lx", suuid);
+            snprintf(u, 9, "%08dx", suuid);
         return std::string(u);
     } else {
         return get_string();

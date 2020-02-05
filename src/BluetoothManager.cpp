@@ -22,7 +22,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "generated-code.h"
+#include "orgbluez-dbus.h"
 #include "BluetoothManager.hpp"
 #include "BluetoothAdapter.hpp"
 #include "BluetoothDevice.hpp"
