@@ -149,6 +149,8 @@ std::vector<unsigned char> BluetoothGattDescriptor::read_value (uint16_t offset)
 
     std::vector<unsigned char> result = from_chars_to_vector(result_chars);
 
+    g_free(result_chars);
+
     return result;
 }
 

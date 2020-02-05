@@ -147,6 +147,9 @@ std::vector<unsigned char> BluetoothGattCharacteristic::read_value (uint16_t off
     GBytes *result_gbytes = g_variant_get_data_as_bytes(result_variant);
     std::vector<unsigned char> result = from_gbytes_to_vector(result_gbytes);
 
+    /* free the gbytes array */
+    g_bytes_unref(result_gbytes);
+
     return result;
 }
 
@@ -176,6 +179,9 @@ bool BluetoothGattCharacteristic::write_value (
         NULL,
         &error
     );
+
+    /* freeing the GBytes allocated inside from_vector_to_gbytes function */
+    g_bytes_unref(arg_value_gbytes);
 
     handle_error(error);
 
@@ -268,8 +274,16 @@ std::vector<unsigned char> BluetoothGattCharacteristic::get_value ()
 {
     GVariant *value_variant = gatt_characteristic1_get_value (object);
     GBytes *value_gbytes = g_variant_get_data_as_bytes(value_variant);
+    std::vector<unsigned char> result;
 
-    std::vector<unsigned char> result = from_gbytes_to_vector(value_gbytes);
+    try {
+        result = from_gbytes_to_vector(value_gbytes);
+    } catch (std::exception &e) {
+        g_bytes_unref(value_gbytes);
+        throw e;
+    }
+
+    g_bytes_unref(value_gbytes);
 
     return result;
 }
