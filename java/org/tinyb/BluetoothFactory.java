@@ -24,8 +24,83 @@
  */
 package org.tinyb;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 public class BluetoothFactory {
-    public static BluetoothManager getDBusBluetoothManager() throws BluetoothException
+    /**
+     * Fully qualified factory class name for D-Bus implementation: {@value}
+     * <p>
+     * This value is exposed for convenience, user implementations are welcome.
+     * </p>
+     */
+    public static final String DBusFactoryImplClassName = "tinyb.dbus.DBusManager";
+
+    /**
+     * Fully qualified factory class name for native HCI implementation: {@value}
+     * <p>
+     * This value is exposed for convenience, user implementations are welcome.
+     * </p>
+     */
+    public static final String HCIFactoryImplClassName = "tinyb.hci.HCIManager";
+
+    /**
+     * Returns an initialized BluetoothManager instance using the given {@code factoryImplClass}.
+     * <p>
+     * The {@code factoryImplClass} must provide the static method
+     * <pre>
+     * public static BluetoothManager getBluetoothManager() throws BluetoothException { .. }
+     * </pre>
+     * </p>
+     * @param factoryImplClass the factory implementation class
+     * @throws BluetoothException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @see #getBluetoothManager(String)
+     */
+    public static synchronized BluetoothManager getBluetoothManager(final Class<?> factoryImplClass)
+            throws BluetoothException, NoSuchMethodException, SecurityException,
+                   IllegalAccessException, IllegalArgumentException, InvocationTargetException
+    {
+        final Method m = factoryImplClass.getMethod("getBluetoothManager");
+        return (BluetoothManager)m.invoke(null);
+    }
+
+    /**
+     * Returns an initialized BluetoothManager instance using the given {@code factoryImplClass}.
+     * <p>
+     * The {@code factoryImplClass} must provide the static method
+     * <pre>
+     * public static synchronized BluetoothManager getBluetoothManager() throws BluetoothException { .. }
+     * </pre>
+     * </p>
+     * @param factoryImplClass the fully qualified factory implementation class name
+     * @throws BluetoothException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @throws ClassNotFoundException
+     * @see {@link #DBusFactoryImplClassName}
+     * @see {@link #HCIFactoryImplClassName}
+     */
+    public static synchronized BluetoothManager getBluetoothManager(final String factoryImplClassName)
+            throws BluetoothException, NoSuchMethodException, SecurityException,
+                   IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
+    {
+        final Class<?> factoryImpl = Class.forName(factoryImplClassName);
+        return getBluetoothManager(factoryImpl);
+    }
+
+    /**
+     * Returns an initialized BluetoothManager instance using a D-Bus implementation.
+     * @throws BluetoothException
+     */
+    public static synchronized BluetoothManager getDBusBluetoothManager() throws BluetoothException
     {
         return tinyb.dbus.DBusManager.getBluetoothManager();
     }

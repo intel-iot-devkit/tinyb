@@ -23,11 +23,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
+import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
@@ -40,6 +42,7 @@ public class ScannerTinyB {
     static long TO_DISCOVER = 60000;
 
     public static void main(final String[] args) throws InterruptedException {
+        String factoryImplClassName = BluetoothFactory.DBusFactoryImplClassName;
         String mac = null;
         int mode = 0;
 
@@ -50,23 +53,33 @@ public class ScannerTinyB {
                 mac = args[++i];
             } else if( arg.equals("-mode") ) {
                 mode = Integer.valueOf(args[++i]).intValue();
+            } else if( arg.equals("-factory") ) {
+                factoryImplClassName = args[++i];
             }
         }
 
         if ( null == mac ) {
-            System.err.println("Run with '-mac <device_address>' argument");
+            System.err.println("Run with '-mac <device_address> [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
             System.exit(-1);
         }
 
         final boolean useAdapter = mode/10 > 0;
         mode = mode %10;
 
-        /*
-         * To start looking of the device, we first must initialize the TinyB library. The way of interacting with the
-         * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
-         * reference to it is obtained through the getBluetoothManager method.
-         */
-        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
+        final BluetoothManager manager;
+        {
+            BluetoothManager _manager = null;
+            try {
+                _manager = BluetoothFactory.getBluetoothManager(factoryImplClassName);
+            } catch (BluetoothException | NoSuchMethodException | SecurityException
+                    | IllegalAccessException | IllegalArgumentException
+                    | InvocationTargetException | ClassNotFoundException e) {
+                System.err.println("Unable to instantiate BluetoothManager via factory "+factoryImplClassName);
+                e.printStackTrace();
+                System.exit(-1);
+            }
+            manager = _manager;
+        }
         final BluetoothAdapter adapter = manager.getDefaultAdapter();
 
         final long t0 = System.currentTimeMillis();;
