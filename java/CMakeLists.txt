@@ -27,6 +27,7 @@ set(JAVA_CLASSES org.tinyb.BluetoothAdapter
                  org.tinyb.BluetoothCallback
                  org.tinyb.BluetoothDevice
                  org.tinyb.BluetoothEvent
+                 org.tinyb.BluetoothFactory
                  org.tinyb.BluetoothGattCharacteristic
                  org.tinyb.BluetoothGattService
                  org.tinyb.BluetoothGattDescriptor

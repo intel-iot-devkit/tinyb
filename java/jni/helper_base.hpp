@@ -2,6 +2,10 @@
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -25,13 +29,11 @@
 #pragma once
 
 #include <vector>
-#include "tinyb/BluetoothObject.hpp"
-#include "tinyb/BluetoothException.hpp"
+#include <memory>
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj);
 
 jclass search_class(JNIEnv *env, const char *clazz_name);
-jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object);
 jclass search_class(JNIEnv *env, jobject obj);
 jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
                         const char *prototype, bool is_static);
@@ -39,10 +41,8 @@ jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,
                         const char *type, bool is_static);
 bool from_jboolean_to_bool(jboolean val);
 std::string from_jstring_to_string(JNIEnv *env, jstring str);
-tinyb::BluetoothType from_int_to_btype(int type);
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name);
 jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add);
-tinyb::TransportType from_int_to_transport_type(int type);
 
 template <typename T>
 T *getInstance(JNIEnv *env, jobject obj)
@@ -113,6 +113,5 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 
 void raise_java_exception(JNIEnv *env, std::exception &e);
 void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e);
-void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e);
 void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e);
 void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e);

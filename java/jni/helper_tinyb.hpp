@@ -2,6 +2,10 @@
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -22,49 +26,14 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#pragma once
+
+#include "helper_base.hpp"
 #include "tinyb/BluetoothObject.hpp"
+#include "tinyb/BluetoothException.hpp"
 
-#include "tinyb_dbus_DBusObject.h"
+jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object);
+tinyb::BluetoothType from_int_to_btype(int type);
+tinyb::TransportType from_int_to_transport_type(int type);
 
-#include "helper_tinyb.hpp"
-
-using namespace tinyb;
-
-jobject Java_tinyb_dbus_DBusObject_getBluetoothType(JNIEnv *env, jobject obj)
-{
-    (void)obj;
-
-    return get_bluetooth_type(env, "NONE");
-}
-
-jobject Java_tinyb_dbus_DBusObject_clone(JNIEnv *env, jobject obj)
-{
-    return generic_clone<BluetoothObject>(env, obj);
-}
-
-void Java_tinyb_dbus_DBusObject_delete(JNIEnv *env, jobject obj)
-{
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
-
-    delete obj_b;
-}
-
-jboolean Java_tinyb_dbus_DBusObject_operatorEqual(JNIEnv *env, jobject obj, jobject other)
-{
-    if (!other)
-    {
-        return JNI_FALSE;
-    }
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
-    BluetoothObject *obj_other = getInstance<BluetoothObject>(env, other);
-
-    return (*obj_b) == (*obj_other);
-}
-
-jstring Java_tinyb_dbus_DBusObject_getObjectPath(JNIEnv *env, jobject obj)
-{
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
-
-    return env->NewStringUTF(obj_b->get_object_path().c_str());
-}
-
+void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e);

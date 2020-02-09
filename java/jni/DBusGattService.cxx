@@ -29,7 +29,7 @@
 
 #include "tinyb_dbus_DBusGattService.h"
 
-#include "helper.hpp"
+#include "helper_tinyb.hpp"
 
 using namespace tinyb;
 

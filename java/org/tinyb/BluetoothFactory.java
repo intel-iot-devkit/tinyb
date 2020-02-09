@@ -104,4 +104,6 @@ public class BluetoothFactory {
     {
         return tinyb.dbus.DBusManager.getBluetoothManager();
     }
+
+    private native static String getNativeAPIVersion();
 }

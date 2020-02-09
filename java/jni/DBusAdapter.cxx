@@ -29,7 +29,7 @@
 #include "tinyb_dbus_DBusAdapter.h"
 
 #include "JNIMem.hpp"
-#include "helper.hpp"
+#include "helper_tinyb.hpp"
 
 using namespace tinyb;
 

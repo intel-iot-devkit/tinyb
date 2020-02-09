@@ -29,7 +29,7 @@
 #include "tinyb_dbus_DBusGattDescriptor.h"
 
 #include "JNIMem.hpp"
-#include "helper.hpp"
+#include "helper_tinyb.hpp"
 
 using namespace tinyb;
 

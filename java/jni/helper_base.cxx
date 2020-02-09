@@ -2,6 +2,10 @@
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -27,18 +31,13 @@
 #include <stdexcept>
 #include <vector>
 
-#include "helper.hpp"
+#include "helper_tinyb.hpp"
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj)
 {
     jclass clazz = env->GetObjectClass(obj);
     // J == long
     return env->GetFieldID(clazz, "nativeInstance", "J");
-}
-
-jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object)
-{
-    return search_class(env, object.get_java_class().c_str());
 }
 
 jclass search_class(JNIEnv *env, const char *clazz_name)
@@ -145,70 +144,6 @@ std::string from_jstring_to_string(JNIEnv *env, jstring str)
     return string_to_write;
 }
 
-tinyb::BluetoothType from_int_to_btype(int type)
-{
-    tinyb::BluetoothType result = tinyb::BluetoothType::NONE;
-
-    switch (type)
-    {
-        case 0:
-            result = tinyb::BluetoothType::NONE;
-            break;
-
-        case 1:
-            result = tinyb::BluetoothType::ADAPTER;
-            break;
-
-        case 2:
-            result = tinyb::BluetoothType::DEVICE;
-            break;
-
-        case 3:
-            result = tinyb::BluetoothType::GATT_SERVICE;
-            break;
-
-        case 4:
-            result = tinyb::BluetoothType::GATT_CHARACTERISTIC;
-            break;
-
-        case 5:
-            result = tinyb::BluetoothType::GATT_CHARACTERISTIC;
-            break;
-
-        default:
-            result = tinyb::BluetoothType::NONE;
-            break;
-    }
-
-    return result;
-}
-
-tinyb::TransportType from_int_to_transport_type(int type)
-{
-    tinyb::TransportType result = tinyb::TransportType::AUTO;
-
-    switch (type)
-    {
-        case 0:
-            result = tinyb::TransportType::AUTO;
-            break;
-
-        case 1:
-            result = tinyb::TransportType::BREDR;
-            break;
-
-        case 2:
-            result = tinyb::TransportType::LE;
-            break;
-
-        default:
-            result = tinyb::TransportType::AUTO;
-            break;
-    }
-
-    return result;
-}
-
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {
     jclass b_type_enum = search_class(env, JAVA_MAIN_PACKAGE "/BluetoothType");
@@ -247,12 +182,6 @@ void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e)
     env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
 }
 
-void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e)
-{
-    env->ThrowNew(env->FindClass("tinyb/BluetoothException"), e.what());
-}
-
-
 void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e)
 {
     env->ThrowNew(env->FindClass("java/lang/OutOfMemoryException"), e.what());
@@ -262,4 +191,5 @@ void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e)
 {
     env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
 }
+
 
