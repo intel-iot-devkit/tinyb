@@ -43,15 +43,6 @@ public class DBusManager implements BluetoothManager
     private long nativeInstance;
     private static DBusManager inst;
 
-    static {
-        try {
-            System.loadLibrary("tinyb");
-            System.loadLibrary("javatinyb");
-        } catch (final UnsatisfiedLinkError e) {
-            System.err.println("Native code library failed to load.\n" + e);
-        }
-    }
-
     private native static String getNativeAPIVersion();
 
     public native BluetoothType getBluetoothType();
@@ -132,25 +123,6 @@ public class DBusManager implements BluetoothManager
     {
         if (inst == null)
         {
-            final String nativeAPIVersion = getNativeAPIVersion();
-            final String APIVersion = DBusManager.class.getPackage().getSpecificationVersion();
-            if ( null != APIVersion && APIVersion.equals(nativeAPIVersion) == false) {
-                final String[] nativeAPIVersionCode = nativeAPIVersion.split("\\D");
-                final String[] APIVersionCode = APIVersion.split("\\D");
-                if (APIVersionCode[0].equals(nativeAPIVersionCode[0]) == false) {
-                    if (Integer.valueOf(APIVersionCode[0]) < Integer.valueOf(nativeAPIVersionCode[0]))
-                        throw new RuntimeException("Java library is out of date. Please update the Java library.");
-                    else throw new RuntimeException("Native library is out of date. Please update the native library.");
-                }
-                else if (APIVersionCode[0].equals("0") == true) {
-                    if (Integer.valueOf(APIVersionCode[1]) < Integer.valueOf(nativeAPIVersionCode[1]))
-                        throw new RuntimeException("Java library is out of date. Please update the Java library.");
-                    else throw new RuntimeException("Native library is out of date. Please update the native library.");
-                }
-                else if (Integer.valueOf(APIVersionCode[1]) < Integer.valueOf(nativeAPIVersionCode[1]))
-                    System.err.println("Java library is out of date. Please update the Java library.");
-                else System.err.println("Native library is out of date. Please update the native library.");
-            }
             inst = new DBusManager();
             inst.init();
         }

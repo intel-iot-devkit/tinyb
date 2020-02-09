@@ -28,6 +28,7 @@
 
 package tinyb.dbus;
 
+import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 
@@ -38,9 +39,11 @@ public class DBusObject implements BluetoothObject
 
     static {
         try {
-            System.loadLibrary("javatinyb");
-        } catch (final UnsatisfiedLinkError e) {
-            System.err.println("Native code library failed to load.\n" + e);
+            System.loadLibrary(BluetoothFactory.JavaNativeLibBasename);
+        } catch (final Throwable  e) {
+            System.err.println("Failed to load native library "+BluetoothFactory.JavaNativeLibBasename);
+            e.printStackTrace();
+            throw e; // fwd exception - end here
         }
     }
 

@@ -6,8 +6,6 @@ Bundle-SymbolicName: org.tinyb
 Bundle-Version: @VERSION_SHORT@
 Export-Package: org.tinyb
 Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
-
-Name: tinyb/
 Package-Title: org.tinyb
 Package-Vendor: ZAFENA AB
 Package-Version: @VERSION_SHORT@
@@ -19,3 +17,17 @@ Implementation-Vendor: ZAFENA AB
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
 Implementation-URL: http://www.zafena.se/
+Extension-Name: org.tinyb
+Trusted-Library: true
+Permissions: all-permissions
+Application-Library-Allowable-Codebase: *
+
+Name: org/tinyb/
+Sealed: true
+
+Name: tinyb/dbus/
+Sealed: true
+
+Name: tinyb/hci/
+Sealed: true
+
