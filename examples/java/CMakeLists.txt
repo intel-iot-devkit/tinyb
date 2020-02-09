@@ -21,3 +21,10 @@ add_custom_command(TARGET Notification
         POST_BUILD
         COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/Notification.dir/Notification.class" "${CMAKE_CURRENT_BINARY_DIR}"
 )
+
+add_jar(ScannerTinyB SOURCES ScannerTinyB.java INCLUDE_JARS "${CMAKE_CURRENT_BINARY_DIR}/../../java/tinyb2.jar" ENTRY_POINT Notification)
+
+add_custom_command(TARGET ScannerTinyB
+        POST_BUILD
+        COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/ScannerTinyB.dir/ScannerTinyB.class" "${CMAKE_CURRENT_BINARY_DIR}"
+)
