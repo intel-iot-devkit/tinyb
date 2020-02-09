@@ -1,15 +1,44 @@
 Tiny Bluetooth LE Library
 =============
 
-[![Build Status](https://travis-ci.org/intel-iot-devkit/tinyb.svg?branch=master)](https://travis-ci.org/intel-iot-devkit/tinyb)
-[![Coverity Scan](https://scan.coverity.com/projects/7546/badge.svg)](https://scan.coverity.com/projects/intel-iot-devkit-tinyb)
+Goals
+============
 
 This project aims to create clean, modern and easy to use Bluetooth LE API.
 TinyB exposes the BLE GATT API for C++, Java and other languages, using BlueZ
-over DBus.
+over DBus and alternative implementations.
+
+TinyB Version 2
+============
+
+Starting with version 2.0.0, the specification has slightly changed and hence its implementation.
+
+Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
+of package *tinyb* has been moved to *tinyb.dbus*.
+The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
+
+General interfaces matching the original implementation 
+and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/)
+were created in package *org.tinyb*.
+
+*org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root
+*org.tinyb.BluetoothManager*, either using the original D-Bus implementation 
+or an alternative implementation.
+
+C++ namespace and implementation kept unchanged.
+
+Build Status
+============
+
+*Outdated information*
+
+[![Build Status](https://travis-ci.org/intel-iot-devkit/tinyb.svg?branch=master)](https://travis-ci.org/intel-iot-devkit/tinyb)
+[![Coverity Scan](https://scan.coverity.com/projects/7546/badge.svg)](https://scan.coverity.com/projects/intel-iot-devkit-tinyb)
 
 API Documentation
 ============
+
+*Outdated information*
 
 Up to date API documentation can be found:
 * for C++: http://iotdk.intel.com/docs/master/tinyb/
@@ -80,12 +109,19 @@ of the Sensor Tag as a first parameter to the program.
 
 Changes
 ============
-  * 0.5.0
-    ** Added notifications API
-    ** Capitalized RSSI and UUID properly in Java
-    ** Added JNI Helper classes for managing lifetime of JNIEnv and Global Refences
-  * 0.4.0 - Added asynchronous methods for discovering BluetoothObjects
-
+- 2.0.0
+  - Java D-Bus implementation details of package 'tinyb' moved to *tinyb.dbus*.
+  - The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
+  - General interfaces matching the original implementation and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/device-api.txt)
+were created in package *org.tinyb*.
+  - Class *org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root *org.tinyb.BluetoothManager*, either using the original D-Bus implementation or an alternative implementation.
+  - C++ namespace and implementation kept unchanged.
+- 0.5.0
+  - Added notifications API
+  - Capitalized RSSI and UUID properly in Java
+  - Added JNI Helper classes for managing lifetime of JNIEnv and Global Refences
+- 0.4.0 
+  - Added asynchronous methods for discovering BluetoothObjects
 
 Common issues
 ============
@@ -95,6 +131,6 @@ If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHO
 Contributing to TinyB
 ============
 
-You must agree to Developer Certificate of Origin and Sign-off your code,
+You shall agree to Developer Certificate of Origin and Sign-off your code,
 using a real name and e-mail address. 
 Please check the [Contribution](CONTRIBUTING.md) document for more details.
