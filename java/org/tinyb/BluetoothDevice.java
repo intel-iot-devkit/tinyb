@@ -31,6 +31,10 @@ package org.tinyb;
 import java.util.List;
 import java.util.Map;
 
+/**
+  * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
+  * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/device-api.txt
+  */
 public interface BluetoothDevice extends BluetoothObject
 {
     @Override
