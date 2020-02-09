@@ -22,49 +22,65 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyb/BluetoothObject.hpp"
+#include "tinyb_dbus_DBusEvent.h"
 
-#include "tinyb_BluetoothObject.h"
-
-#include "helper.hpp"
-
-using namespace tinyb;
-
-jobject Java_tinyb_BluetoothObject_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusEvent_getType(JNIEnv *env, jobject obj)
 {
+    (void)env;
     (void)obj;
 
-    return get_bluetooth_type(env, "NONE");
+    return NULL;
 }
 
-jobject Java_tinyb_BluetoothObject_clone(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusEvent_getName(JNIEnv *env, jobject obj)
 {
-    return generic_clone<BluetoothObject>(env, obj);
+    (void)env;
+    (void)obj;
+
+    return NULL;
 }
 
-void Java_tinyb_BluetoothObject_delete(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusEvent_getIdentifier(JNIEnv *env, jobject obj)
 {
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+    (void)env;
+    (void)obj;
 
-    delete obj_b;
+    return NULL;
 }
 
-jboolean Java_tinyb_BluetoothObject_operatorEqual(JNIEnv *env, jobject obj, jobject other)
+jboolean Java_tinyb_dbus_DBusEvent_executeCallback(JNIEnv *env, jobject obj)
 {
-    if (!other)
-    {
-        return JNI_FALSE;
-    }
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
-    BluetoothObject *obj_other = getInstance<BluetoothObject>(env, other);
+    (void)env;
+    (void)obj;
 
-    return (*obj_b) == (*obj_other);
+    return JNI_FALSE;
 }
 
-jstring Java_tinyb_BluetoothObject_getObjectPath(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusEvent_hasCallback(JNIEnv *env, jobject obj)
 {
-    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+    (void)env;
+    (void)obj;
 
-    return env->NewStringUTF(obj_b->get_object_path().c_str());
+    return JNI_FALSE;
+}
+
+void Java_tinyb_dbus_DBusEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
+                                jstring identifier, jobject parent, jobject callback,
+                                jobject arg_data)
+{
+    (void)env;
+    (void)obj;
+    (void)type;
+    (void)name;
+    (void)identifier;
+    (void)parent;
+    (void)callback;
+    (void)arg_data;
+}
+
+void Java_tinyb_dbus_DBusEvent_delete(JNIEnv *env, jobject obj)
+{
+    (void)env;
+    (void)obj;
 }
 

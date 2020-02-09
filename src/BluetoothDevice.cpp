@@ -148,7 +148,7 @@ std::string BluetoothDevice::get_class_name() const
 
 std::string BluetoothDevice::get_java_class() const
 {
-    return std::string(JAVA_PACKAGE "/BluetoothDevice");
+    return std::string(JAVA_DBUS_PACKAGE "/DBusDevice");
 }
 
 std::string BluetoothDevice::get_object_path() const

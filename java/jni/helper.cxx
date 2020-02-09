@@ -211,9 +211,9 @@ tinyb::TransportType from_int_to_transport_type(int type)
 
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {
-    jclass b_type_enum = search_class(env, JAVA_PACKAGE "/BluetoothType");
+    jclass b_type_enum = search_class(env, JAVA_MAIN_PACKAGE "/BluetoothType");
 
-    jfieldID b_type_field = search_field(env, b_type_enum, field_name, "L" JAVA_PACKAGE "/BluetoothType;", true);
+    jfieldID b_type_field = search_field(env, b_type_enum, field_name, "L" JAVA_MAIN_PACKAGE "/BluetoothType;", true);
 
     jobject result = env->GetStaticObjectField(b_type_enum, b_type_field);
     env->DeleteLocalRef(b_type_enum);

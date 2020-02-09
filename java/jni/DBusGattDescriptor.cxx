@@ -26,14 +26,14 @@
 #include "tinyb/BluetoothGattDescriptor.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "tinyb_BluetoothGattDescriptor.h"
+#include "tinyb_dbus_DBusGattDescriptor.h"
 
 #include "JNIMem.hpp"
 #include "helper.hpp"
 
 using namespace tinyb;
 
-jobject Java_tinyb_BluetoothGattDescriptor_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattDescriptor_getBluetoothType(JNIEnv *env, jobject obj)
 {
     try {
         (void)obj;
@@ -53,7 +53,7 @@ jobject Java_tinyb_BluetoothGattDescriptor_getBluetoothType(JNIEnv *env, jobject
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothGattDescriptor_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattDescriptor_clone(JNIEnv *env, jobject obj)
 {
     try {
         return generic_clone<BluetoothGattDescriptor>(env, obj);
@@ -71,7 +71,7 @@ jobject Java_tinyb_BluetoothGattDescriptor_clone(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jbyteArray Java_tinyb_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_dbus_DBusGattDescriptor_readValue(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
@@ -96,7 +96,7 @@ jbyteArray Java_tinyb_BluetoothGattDescriptor_readValue(JNIEnv *env, jobject obj
     return nullptr;
 }
 
-jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
+jboolean Java_tinyb_dbus_DBusGattDescriptor_writeValue(JNIEnv *env, jobject obj, jbyteArray argValue)
 {
     try {
         if (!argValue)
@@ -127,7 +127,7 @@ jboolean Java_tinyb_BluetoothGattDescriptor_writeValue(JNIEnv *env, jobject obj,
     return JNI_FALSE;
 }
 
-jstring Java_tinyb_BluetoothGattDescriptor_getUUID(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusGattDescriptor_getUUID(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
@@ -148,7 +148,7 @@ jstring Java_tinyb_BluetoothGattDescriptor_getUUID(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothGattDescriptor_getCharacteristic(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattDescriptor_getCharacteristic(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
@@ -178,7 +178,7 @@ jobject Java_tinyb_BluetoothGattDescriptor_getCharacteristic(JNIEnv *env, jobjec
     return nullptr;
 }
 
-jbyteArray Java_tinyb_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
+jbyteArray Java_tinyb_dbus_DBusGattDescriptor_getValue(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);
@@ -204,7 +204,7 @@ jbyteArray Java_tinyb_BluetoothGattDescriptor_getValue(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-void Java_tinyb_BluetoothGattDescriptor_enableValueNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusGattDescriptor_enableValueNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc =
@@ -237,7 +237,7 @@ void Java_tinyb_BluetoothGattDescriptor_enableValueNotifications(JNIEnv *env, jo
     }
 }
 
-void Java_tinyb_BluetoothGattDescriptor_disableValueNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusGattDescriptor_disableValueNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc =
@@ -257,7 +257,7 @@ void Java_tinyb_BluetoothGattDescriptor_disableValueNotifications(JNIEnv *env, j
 }
 
 
-void Java_tinyb_BluetoothGattDescriptor_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusGattDescriptor_delete(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattDescriptor *obj_gatt_desc = getInstance<BluetoothGattDescriptor>(env, obj);

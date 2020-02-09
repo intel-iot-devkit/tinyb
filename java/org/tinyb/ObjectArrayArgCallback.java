@@ -22,18 +22,21 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+package org.tinyb;
 
-public class ObjectArgCallback extends BluetoothCallback
+import tinyb.dbus.DBusObject;
+
+public class ObjectArrayArgCallback extends BluetoothCallback
 {
-    private Object callbackArg;
+    private Object[] callbackArg;
 
-    public ObjectArgCallback(BluetoothObject bObj, Object callbackArg)
+    public ObjectArrayArgCallback(DBusObject bObj, Object[] callbackArg)
     {
         this.bObj = bObj;
         this.callbackArg = callbackArg;
     }
 
+    @Override
     public void run()
     {
     }

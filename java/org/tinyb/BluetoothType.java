@@ -22,65 +22,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyb_BluetoothEvent.h"
+package org.tinyb;
 
-jobject Java_tinyb_BluetoothEvent_getType(JNIEnv *env, jobject obj)
+public enum BluetoothType
 {
-    (void)env;
-    (void)obj;
-
-    return NULL;
+    NONE, ADAPTER, DEVICE,
+    GATT_SERVICE, GATT_CHARACTERISTIC,
+    GATT_DESCRIPTOR;
 }
-
-jstring Java_tinyb_BluetoothEvent_getName(JNIEnv *env, jobject obj)
-{
-    (void)env;
-    (void)obj;
-
-    return NULL;
-}
-
-jstring Java_tinyb_BluetoothEvent_getIdentifier(JNIEnv *env, jobject obj)
-{
-    (void)env;
-    (void)obj;
-
-    return NULL;
-}
-
-jboolean Java_tinyb_BluetoothEvent_executeCallback(JNIEnv *env, jobject obj)
-{
-    (void)env;
-    (void)obj;
-
-    return JNI_FALSE;
-}
-
-jboolean Java_tinyb_BluetoothEvent_hasCallback(JNIEnv *env, jobject obj)
-{
-    (void)env;
-    (void)obj;
-
-    return JNI_FALSE;
-}
-
-void Java_tinyb_BluetoothEvent_init(JNIEnv *env, jobject obj, jobject type, jstring name,
-                                jstring identifier, jobject parent, jobject callback,
-                                jobject arg_data)
-{
-    (void)env;
-    (void)obj;
-    (void)type;
-    (void)name;
-    (void)identifier;
-    (void)parent;
-    (void)callback;
-    (void)arg_data;
-}
-
-void Java_tinyb_BluetoothEvent_delete(JNIEnv *env, jobject obj)
-{
-    (void)env;
-    (void)obj;
-}
-

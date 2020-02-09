@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -22,13 +26,14 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+package org.tinyb;
 
-public enum BluetoothType
+public interface BluetoothEvent
 {
-    NONE, ADAPTER, DEVICE,
-    GATT_SERVICE, GATT_CHARACTERISTIC,
-    GATT_DESCRIPTOR;
+    public BluetoothType getType();
+    public String getName();
+    public String getIdentifier();
+    public boolean executeCallback();
+    public boolean hasCallback();
 
-    private long nativeInstance;
 }

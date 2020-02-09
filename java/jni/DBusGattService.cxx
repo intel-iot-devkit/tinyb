@@ -27,13 +27,13 @@
 #include "tinyb/BluetoothGattCharacteristic.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "tinyb_BluetoothGattService.h"
+#include "tinyb_dbus_DBusGattService.h"
 
 #include "helper.hpp"
 
 using namespace tinyb;
 
-jobject Java_tinyb_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattService_getBluetoothType(JNIEnv *env, jobject obj)
 {
     try {
         (void)obj;
@@ -53,7 +53,7 @@ jobject Java_tinyb_BluetoothGattService_getBluetoothType(JNIEnv *env, jobject ob
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattService_clone(JNIEnv *env, jobject obj)
 {
     try {
         return generic_clone<BluetoothGattService>(env, obj);
@@ -71,7 +71,7 @@ jobject Java_tinyb_BluetoothGattService_clone(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothGattService_getUUID(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusGattService_getUUID(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
@@ -92,7 +92,7 @@ jstring Java_tinyb_BluetoothGattService_getUUID(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattService_getDevice(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
@@ -122,7 +122,7 @@ jobject Java_tinyb_BluetoothGattService_getDevice(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jboolean Java_tinyb_BluetoothGattService_getPrimary(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusGattService_getPrimary(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
@@ -142,7 +142,7 @@ jboolean Java_tinyb_BluetoothGattService_getPrimary(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jobject Java_tinyb_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusGattService_getCharacteristics(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
@@ -165,7 +165,7 @@ jobject Java_tinyb_BluetoothGattService_getCharacteristics(JNIEnv *env, jobject 
     return nullptr;
 }
 
-void Java_tinyb_BluetoothGattService_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusGattService_delete(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);

@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -20,23 +24,21 @@
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
  */
+package org.tinyb;
 
-package tinyb;
-
-import java.util.*;
-import java.time.Duration;
+import java.util.List;
+import java.util.UUID;
 
 /**
   * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
   * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt
   */
-public class BluetoothAdapter extends BluetoothObject
+public interface BluetoothAdapter extends BluetoothObject
 {
-    public native BluetoothType getBluetoothType();
-    public native BluetoothAdapter clone();
-
-    static BluetoothType class_type() { return BluetoothType.ADAPTER; }
+    @Override
+    public BluetoothAdapter clone();
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -46,15 +48,12 @@ public class BluetoothAdapter extends BluetoothObject
       * waiting for
       * @parameter address optionally specify the MAC address of the device you are
       * waiting for
-      * @parameter timeout the function will return after timeout time, a
+      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
       * value of zero means wait forever. If object is not found during this time null will be returned.
       * @return An object matching the name and address or null if not found before
       * timeout expires.
       */
-    public BluetoothDevice find(String name, String address, Duration duration) {
-            BluetoothManager manager = BluetoothManager.getBluetoothManager();
-            return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address, this, duration);
-    }
+    public BluetoothDevice find(String name, String address, long timeoutMS);
 
     /** Find a BluetoothDevice. If parameters name and address are not null,
       * the returned object will have to match them.
@@ -66,64 +65,63 @@ public class BluetoothAdapter extends BluetoothObject
       * waiting for
       * @return An object matching the name and address.
       */
-    public BluetoothDevice find(String name, String address) {
-            return find(name, address, Duration.ZERO);
-    }
+    public BluetoothDevice find(String name, String address);
 
-    /* D-Bus method calls: */
+    /* D-Bus specified API */
+
     /** Turns on device discovery if it is disabled.
       * @return TRUE if discovery was successfully enabled
       */
-    public native boolean startDiscovery() throws BluetoothException;
+    public boolean startDiscovery() throws BluetoothException;
 
     /** Turns off device discovery if it is enabled.
       * @return TRUE if discovery was successfully disabled
       */
-    public native boolean stopDiscovery() throws BluetoothException;
+    public boolean stopDiscovery() throws BluetoothException;
 
     /** Returns a list of BluetoothDevices visible from this adapter.
       * @return A list of BluetoothDevices visible on this adapter,
       * NULL if an error occurred
       */
-    public native List<BluetoothDevice> getDevices();
+    public List<BluetoothDevice> getDevices();
 
     /**
      * Remove all the known devices
-     * 
+     *
      * @return The number of devices removed from internal list
-     * @throws BluetoothException 
+     * @throws BluetoothException
      */
-    public native int removeDevices() throws BluetoothException;
-    
+    public int removeDevices() throws BluetoothException;
+
     /* D-Bus property accessors: */
     /** Returns the hardware address of this adapter.
       * @return The hardware address of this adapter.
       */
-    public native String getAddress();
+    public String getAddress();
 
     /** Returns the system name of this adapter.
       * @return The system name of this adapter.
       */
-    public native String getName();
+    public String getName();
 
     /** Returns the friendly name of this adapter.
       * @return The friendly name of this adapter, or NULL if not set.
       */
-    public native String getAlias();
+    public String getAlias();
 
     /** Sets the friendly name of this adapter.
       */
-    public native void setAlias(String value);
+    public void setAlias(String value);
 
     /** Returns the Bluetooth class of the adapter.
       * @return The Bluetooth class of the adapter.
       */
-    public native long getBluetoothClass();
+    public long getBluetoothClass();
 
     /** Returns the power state the adapter.
       * @return The power state of the adapter.
       */
-    public native boolean getPowered();
+    public boolean getPowered();
 
     /**
      * Enables notifications for the powered property and calls run function of the
@@ -132,21 +130,22 @@ public class BluetoothAdapter extends BluetoothObject
      * when a notification is issued. The run function will deliver the new value of the powered
      * property.
      */
-    public native void enablePoweredNotifications(BluetoothNotification<Boolean> callback);
+    public void enablePoweredNotifications(BluetoothNotification<Boolean> callback);
+
     /**
      * Disables notifications of the powered property and unregisters the callback
      * object passed through the corresponding enable method.
      */
-    public native void disablePoweredNotifications();
+    public void disablePoweredNotifications();
 
     /** Sets the power state the adapter.
       */
-    public native void setPowered(boolean value);
+    public void setPowered(boolean value);
 
     /** Returns the discoverable state the adapter.
       * @return The discoverable state of the adapter.
       */
-    public native boolean getDiscoverable();
+    public boolean getDiscoverable();
 
     /**
      * Enables notifications for the discoverable property and calls run function of the
@@ -155,26 +154,26 @@ public class BluetoothAdapter extends BluetoothObject
      * when a notification is issued. The run function will deliver the new value of the discoverable
      * property.
      */
-    public native void enableDiscoverableNotifications(BluetoothNotification<Boolean> callback);
+    public void enableDiscoverableNotifications(BluetoothNotification<Boolean> callback);
     /**
      * Disables notifications of the discoverable property and unregisters the callback
      * object passed through the corresponding enable method.
      */
-    public native void disableDiscoverableNotifications();
+    public void disableDiscoverableNotifications();
 
     /** Sets the discoverable state the adapter.
       */
-    public native void setDiscoverable(boolean value);
+    public void setDiscoverable(boolean value);
 
     /** Returns the discoverable timeout the adapter.
       * @return The discoverable timeout of the adapter.
       */
-    public native long getDiscoverableTimeout();
+    public long getDiscoverableTimeout();
 
     /** Sets the discoverable timeout the adapter. A value of 0 disables
       * the timeout.
       */
-    public native void setDiscoverableTimout(long value);
+    public void setDiscoverableTimout(long value);
 
     /**
      * This method connects to device without need of
@@ -187,7 +186,7 @@ public class BluetoothAdapter extends BluetoothObject
      * Connect on Device1 after this call. If connection was
      * successful this method returns object path to created
      * device object.
-     * 
+     *
      * @param address The Bluetooth device address of the remote
      *                device. This parameter is mandatory.
      * @param addressType The Bluetooth device Address Type. This is
@@ -200,12 +199,12 @@ public class BluetoothAdapter extends BluetoothObject
      *                <li>{@code random} - Random address</li>
      *                </ul>
      */
-    public native BluetoothDevice connectDevice(String address, String addressType);
+    public BluetoothDevice connectDevice(String address, String addressType);
 
     /** Returns the pairable state the adapter.
       * @return The pairable state of the adapter.
       */
-    public native boolean getPairable();
+    public boolean getPairable();
 
     /**
      * Enables notifications for the pairable property and calls run function of the
@@ -214,32 +213,33 @@ public class BluetoothAdapter extends BluetoothObject
      * when a notification is issued. The run function will deliver the new value of the pairable
      * property.
      */
-    public native void enablePairableNotifications(BluetoothNotification<Boolean> callback);
+    public void enablePairableNotifications(BluetoothNotification<Boolean> callback);
+
     /**
      * Disables notifications of the pairable property and unregisters the callback
      * object passed through the corresponding enable method.
      */
-    public native void disablePairableNotifications();
+    public void disablePairableNotifications();
 
     /** Sets the discoverable state the adapter.
       */
-    public native void setPairable(boolean value);
+    public void setPairable(boolean value);
 
     /** Returns the timeout in seconds after which pairable state turns off
       * automatically, 0 means never.
       * @return The pairable timeout of the adapter.
       */
-    public native long getPairableTimeout();
+    public long getPairableTimeout();
 
     /** Sets the timeout after which pairable state turns off automatically, 0 means never.
       */
-    public native void setPairableTimeout(long value);
+    public void setPairableTimeout(long value);
 
     /** Returns the discovering state the adapter. It can be modified through
       * start_discovery/stop_discovery functions.
       * @return The discovering state of the adapter.
       */
-    public native boolean getDiscovering();
+    public boolean getDiscovering();
 
     /**
      * Enables notifications for the discovering property and calls run function of the
@@ -248,22 +248,23 @@ public class BluetoothAdapter extends BluetoothObject
      * when a notification is issued. The run function will deliver the new value of the discovering
      * property.
      */
-    public native void enableDiscoveringNotifications(BluetoothNotification<Boolean> callback);
+    public void enableDiscoveringNotifications(BluetoothNotification<Boolean> callback);
+
     /**
      * Disables notifications of the discovering property and unregisters the discovering
      * object passed through the corresponding enable method.
      */
-    public native void disableDiscoveringNotifications();
+    public void disableDiscoveringNotifications();
 
     /** Returns the UUIDs of the adapter.
       * @return Array containing the UUIDs of the adapter, ends with NULL.
       */
-    public native String[] getUUIDs();
+    public String[] getUUIDs();
 
     /** Returns the local ID of the adapter.
       * @return The local ID of the adapter.
       */
-    public native String getModalias();
+    public String getModalias();
 
     /** This method sets the device discovery filter for the caller. When this method is called
      * with no filter parameter, filter is removed.
@@ -284,36 +285,10 @@ public class BluetoothAdapter extends BluetoothObject
      * @param rssi a rssi value
      * @param pathloss a pathloss value
      */
-    public void setDiscoveryFilter(List<UUID> uuids, int rssi, int pathloss, TransportType transportType) {
-        List<String> uuidsFmt = new ArrayList<>(uuids.size());
-        for (UUID uuid : uuids) {
-            uuidsFmt.add(uuid.toString());
-        }
-        setDiscoveryFilter(uuidsFmt, rssi, pathloss, transportType.ordinal());
-    }
-
-    /** This method sets RSSI device discovery filter for the caller. When this method is called
-      * with 0, filter is removed.
-      * @param rssi a rssi value
-      */
-    public void setRssiDiscoveryFilter(int rssi) {
-        setDiscoveryFilter(Collections.EMPTY_LIST, rssi, 0, TransportType.AUTO);
-    }
+    public void setDiscoveryFilter(List<UUID> uuids, int rssi, int pathloss, TransportType transportType);
 
     /** Returns the interface name of the adapter.
      * @return The interface name of the adapter.
      */
-    public String getInterfaceName() {
-        String[] path = getObjectPath().split("/");
-        return path[path.length-1];
-    }
-
-    private native void delete();
-
-    private native void setDiscoveryFilter(List<String> uuids, int rssi, int pathloss, int transportType);
-
-    private BluetoothAdapter(long instance)
-    {
-        super(instance);
-    }
+    public String getInterfaceName();
 }

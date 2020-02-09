@@ -1,5 +1,5 @@
-/*
- * Author: Petre Eftime <petre.p.eftime@intel.com>
+/**
+ * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -22,14 +22,22 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+package org.tinyb;
 
-/*
- * This interface is used by notifications.
- * Implement a class inheriting BluetoothNotification and pass an object of that type
- * to the enable*Notifications function. When a notification of that type is received,
- * the run function of the class will be called.
- */
-public interface BluetoothNotification<T> {
-    public void run(T value);
+import tinyb.dbus.DBusObject;
+
+public class ObjectArgCallback extends BluetoothCallback
+{
+    private final Object callbackArg;
+
+    public ObjectArgCallback(final DBusObject bObj, final Object callbackArg)
+    {
+        this.bObj = bObj;
+        this.callbackArg = callbackArg;
+    }
+
+    @Override
+    public void run()
+    {
+    }
 }

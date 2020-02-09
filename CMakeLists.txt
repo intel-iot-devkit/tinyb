@@ -23,11 +23,11 @@ include (GetGitRevisionDescription)
 git_describe (VERSION "--tags")
 
 if ("x_${VERSION}" STREQUAL "x_GIT-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_HEAD-HASH-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_-128-NOTFOUND")
-  message (WARNING " - Install git to compile a production libtinyb!")
-  set (VERSION "v0.5.0-dirty")
+  message (WARNING " - Install git to compile a production libtinyb2!")
+  set (VERSION "v2.0.0-dirty")
 endif ()
 
-message (INFO " - libtinyb Version ${VERSION}")
+message (INFO " - libtinyb2 Version ${VERSION}")
 
 #parse the version information into pieces.
 string (REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")

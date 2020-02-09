@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Petre Eftime <petre.p.eftime@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -22,10 +26,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+package org.tinyb;
 
+@SuppressWarnings("serial")
 public class BluetoothException extends RuntimeException {
-    BluetoothException(String msg) {
+    BluetoothException(final String msg) {
         super(msg);
     }
 }

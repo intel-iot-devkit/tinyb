@@ -75,7 +75,7 @@ protected:
 public:
 
     static std::string java_class() {
-        return std::string(JAVA_PACKAGE "/BluetoothDevice");
+        return std::string(JAVA_DBUS_PACKAGE "/DBusDevice");
     }
     static BluetoothType class_type() { return BluetoothType::DEVICE; }
 

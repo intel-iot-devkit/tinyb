@@ -1,20 +1,27 @@
-import tinyb.*;
-import java.util.*;
-import java.util.concurrent.locks.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.tinyb.BluetoothDevice;
+import org.tinyb.BluetoothException;
+import org.tinyb.BluetoothFactory;
+import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattService;
+import org.tinyb.BluetoothManager;
 
 public class HelloTinyB {
-    private static final float SCALE_LSB = 0.03125f;
     static boolean running = true;
 
-    static void printDevice(BluetoothDevice device) {
+    static void printDevice(final BluetoothDevice device) {
         System.out.print("Address = " + device.getAddress());
         System.out.print(" Name = " + device.getName());
         System.out.print(" Connected = " + device.getConnected());
         System.out.println();
     }
 
-    static float convertCelsius(int raw) {
+    static float convertCelsius(final int raw) {
         return raw / 128f;
     }
 
@@ -23,15 +30,15 @@ public class HelloTinyB {
      * getDevices method. We can the look through the list of devices to find the device with the MAC which we provided
      * as a parameter. We continue looking until we find it, or we try 15 times (1 minutes).
      */
-    static BluetoothDevice getDevice(String address) throws InterruptedException {
-        BluetoothManager manager = BluetoothManager.getBluetoothManager();
+    static BluetoothDevice getDevice(final String address) throws InterruptedException {
+        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
         BluetoothDevice sensor = null;
         for (int i = 0; (i < 15) && running; ++i) {
-            List<BluetoothDevice> list = manager.getDevices();
+            final List<BluetoothDevice> list = manager.getDevices();
             if (list == null)
                 return null;
 
-            for (BluetoothDevice device : list) {
+            for (final BluetoothDevice device : list) {
                 printDevice(device);
                 /*
                  * Here we check if the address matches.
@@ -54,7 +61,7 @@ public class HelloTinyB {
      * http://processors.wiki.ti.com/images/a/a8/BLE_SensorTag_GATT_Server.pdf. The service we are looking for has the
      * short UUID AA00 which we insert into the TI Base UUID: f000XXXX-0451-4000-b000-000000000000
      */
-    static BluetoothGattService getService(BluetoothDevice device, String UUID) throws InterruptedException {
+    static BluetoothGattService getService(final BluetoothDevice device, final String UUID) throws InterruptedException {
         System.out.println("Services exposed by device:");
         BluetoothGattService tempService = null;
         List<BluetoothGattService> bluetoothServices = null;
@@ -63,7 +70,7 @@ public class HelloTinyB {
             if (bluetoothServices == null)
                 return null;
 
-            for (BluetoothGattService service : bluetoothServices) {
+            for (final BluetoothGattService service : bluetoothServices) {
                 System.out.println("UUID: " + service.getUUID());
                 if (service.getUUID().equals(UUID))
                     tempService = service;
@@ -73,12 +80,12 @@ public class HelloTinyB {
         return tempService;
     }
 
-    static BluetoothGattCharacteristic getCharacteristic(BluetoothGattService service, String UUID) {
-        List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+    static BluetoothGattCharacteristic getCharacteristic(final BluetoothGattService service, final String UUID) {
+        final List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
         if (characteristics == null)
             return null;
 
-        for (BluetoothGattCharacteristic characteristic : characteristics) {
+        for (final BluetoothGattCharacteristic characteristic : characteristics) {
             if (characteristic.getUUID().equals(UUID))
                 return characteristic;
         }
@@ -94,7 +101,7 @@ public class HelloTinyB {
      * The API used in this example is based on TinyB v0.3, which only supports polling, but v0.4 will introduce a
      * simplied API for discovering devices and services.
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(final String[] args) throws InterruptedException {
 
         if (args.length < 1) {
             System.err.println("Run with <device_address> argument");
@@ -106,23 +113,23 @@ public class HelloTinyB {
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
          * reference to it is obtained through the getBluetoothManager method.
          */
-        BluetoothManager manager = BluetoothManager.getBluetoothManager();
+        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
 
         /*
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize
          * discovery we can call startDiscovery, which will put the default adapter in discovery mode.
          */
-        boolean discoveryStarted = manager.startDiscovery();
+        final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
-        BluetoothDevice sensor = getDevice(args[0]);
+        final BluetoothDevice sensor = getDevice(args[0]);
 
         /*
          * After we find the device we can stop looking for other devices.
          */
         try {
             manager.stopDiscovery();
-        } catch (BluetoothException e) {
+        } catch (final BluetoothException e) {
             System.err.println("Discovery could not be stopped.");
         }
 
@@ -141,8 +148,8 @@ public class HelloTinyB {
             System.exit(-1);
         }
 
-        Lock lock = new ReentrantLock();
-        Condition cv = lock.newCondition();
+        final Lock lock = new ReentrantLock();
+        final Condition cv = lock.newCondition();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -158,7 +165,7 @@ public class HelloTinyB {
         });
 
 
-        BluetoothGattService tempService = getService(sensor, "f000aa00-0451-4000-b000-000000000000");
+        final BluetoothGattService tempService = getService(sensor, "f000aa00-0451-4000-b000-000000000000");
 
         if (tempService == null) {
             System.err.println("This device does not have the temperature service we are looking for.");
@@ -167,9 +174,9 @@ public class HelloTinyB {
         }
         System.out.println("Found service " + tempService.getUUID());
 
-        BluetoothGattCharacteristic tempValue = getCharacteristic(tempService, "f000aa01-0451-4000-b000-000000000000");
-        BluetoothGattCharacteristic tempConfig = getCharacteristic(tempService, "f000aa02-0451-4000-b000-000000000000");
-        BluetoothGattCharacteristic tempPeriod = getCharacteristic(tempService, "f000aa03-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempValue = getCharacteristic(tempService, "f000aa01-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempConfig = getCharacteristic(tempService, "f000aa02-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempPeriod = getCharacteristic(tempService, "f000aa03-0451-4000-b000-000000000000");
 
         if (tempValue == null || tempConfig == null || tempPeriod == null) {
             System.err.println("Could not find the correct characteristics.");
@@ -184,16 +191,16 @@ public class HelloTinyB {
          * mentioned above. We could also modify the update interval, by writing in the period characteristic, but the
          * default 1s is good enough for our purposes.
          */
-        byte[] config = { 0x01 };
+        final byte[] config = { 0x01 };
         tempConfig.writeValue(config);
 
         /*
          * Each second read the value characteristic and display it in a human readable format.
          */
         while (running) {
-            byte[] tempRaw = tempValue.readValue();
+            final byte[] tempRaw = tempValue.readValue();
             System.out.print("Temp raw = {");
-            for (byte b : tempRaw) {
+            for (final byte b : tempRaw) {
                 System.out.print(String.format("%02x,", b));
             }
             System.out.print("}");
@@ -203,11 +210,11 @@ public class HelloTinyB {
              * raw temperature format to celsius and print it. Conversion for object temperature depends on ambient
              * according to wiki, but assume result is good enough for our purposes without conversion.
              */
-            int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
-            int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
+            final int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
+            final int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
 
-            float objectTempCelsius = convertCelsius(objectTempRaw);
-            float ambientTempCelsius = convertCelsius(ambientTempRaw);
+            final float objectTempCelsius = convertCelsius(objectTempRaw);
+            final float ambientTempCelsius = convertCelsius(ambientTempRaw);
 
             System.out.println(
                     String.format(" Temp: Object = %fC, Ambient = %fC", objectTempCelsius, ambientTempCelsius));

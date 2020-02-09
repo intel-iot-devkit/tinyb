@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -22,33 +26,30 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
-
-import java.util.*;
+package org.tinyb;
 
 /**
   * Provides access to Bluetooth GATT descriptor. Follows the BlueZ adapter API
   * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
   */
-public class BluetoothGattDescriptor extends BluetoothObject
+public interface BluetoothGattDescriptor extends BluetoothObject
 {
-    public native BluetoothType getBluetoothType();
-    public native BluetoothAdapter clone();
-
-    static BluetoothType class_type() { return BluetoothType.GATT_DESCRIPTOR; }
+    @Override
+    public BluetoothGattDescriptor clone();
 
     /* D-Bus method calls: */
+
     /** Reads the value of this descriptor
       * @return A vector<uchar> containing data from this descriptor
       */
-    public native byte[] readValue();
+    public byte[] readValue();
 
     /** Writes the value of this descriptor.
       * @param[in] arg_value The data as vector<uchar>
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    public native boolean writeValue(byte[] argValue) throws BluetoothException;
+    public boolean writeValue(byte[] argValue) throws BluetoothException;
 
     /**
      * Enables notifications for the value and calls run function of the BluetoothNotification
@@ -57,33 +58,27 @@ public class BluetoothGattDescriptor extends BluetoothObject
      * when a notification is issued. The run function will deliver the new value of the value
      * property.
      */
-    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    public void enableValueNotifications(BluetoothNotification<byte[]> callback);
     /**
      * Disables notifications of the value and unregisters the callback object
      * passed through the corresponding enable method.
      */
-    public native void disableValueNotifications();
+    public void disableValueNotifications();
 
     /* D-Bus property accessors: */
+
     /** Get the UUID of this descriptor.
       * @return The 128 byte UUID of this descriptor, NULL if an error occurred
       */
-    public native String getUUID();
+    public String getUUID();
 
     /** Returns the characteristic to which this descriptor belongs to.
       * @return The characteristic.
       */
-    public native BluetoothGattCharacteristic getCharacteristic();
+    public BluetoothGattCharacteristic getCharacteristic();
 
     /** Returns the cached value of this descriptor, if any.
       * @return The cached value of this descriptor.
       */
-    public native byte[] getValue();
-
-    private native void delete();
-
-    private BluetoothGattDescriptor(long instance)
-    {
-        super(instance);
-    }
+    public byte[] getValue();
 }

@@ -20,6 +20,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+Author: Sven Gothel <sgothel@jausoft.com>
+Copyright (c) 2020 Gothel Software e.K.
+
+Permission / License unchanged BSD style.
+
 -->
 <node>
   <interface name="org.bluez.Adapter1">
@@ -139,4 +145,51 @@ THE SOFTWARE.
     <property name="ServiceData" type="a{sv}" access="read"/>
     <property name="IncludeTxPower" type="b" access="read"/>
   </interface>  
+
+  <interface name="org.bluez.AgentManager1">
+    <method name="RegisterAgent">
+      <arg name="agent" type="o" direction="in" />
+      <arg name="capability" type="s" direction="in" />
+    </method>
+    <method name="UnregisterAgent">
+      <arg name="agent" type="o" direction="in" />
+    </method>
+    <method name="RequestDefaultAgent">
+      <arg name="agent" type="o" direction="in" />
+    </method>
+  </interface>
+
+  <interface name="org.bluez.Agent1">
+    <method name="Release"/>
+    <method name="RequestPinCode">
+      <arg name="pincode" type="s" direction="out" />
+      <arg name="device" type="o" direction="in" />
+    </method>
+    <method name="DisplayPinCode">
+      <arg name="device" type="o" direction="in" />
+      <arg name="pincode" type="s" direction="in" />
+    </method>
+    <method name="RequestPasskey">
+      <arg name="passkey" type="u" direction="out" />
+      <arg name="device" type="o" direction="in" />
+    </method>
+    <method name="DisplayPasskey">
+      <arg name="device" type="o" direction="in" />
+      <arg name="passkey" type="u" direction="in" />
+      <arg name="entered" type="q" direction="in" />
+    </method>
+    <method name="RequestConfirmation">
+      <arg name="device" type="o" direction="in" />
+      <arg name="passkey" type="u" direction="in" />
+    </method>
+    <method name="RequestAuthorization">
+      <arg name="device" type="o" direction="in" />
+    </method>
+    <method name="AuthorizeService">
+      <arg name="device" type="o" direction="in" />
+      <arg name="uuid" type="s" direction="in" />
+    </method>
+    <method name="Cancel"/>
+  </interface>
+
 </node>

@@ -27,14 +27,14 @@
 #include "tinyb/BluetoothGattService.hpp"
 #include "tinyb/BluetoothObject.hpp"
 
-#include "tinyb_BluetoothDevice.h"
+#include "tinyb_dbus_DBusDevice.h"
 
 #include "JNIMem.hpp"
 #include "helper.hpp"
 
 using namespace tinyb;
 
-jobject Java_tinyb_BluetoothDevice_getBluetoothType(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_getBluetoothType(JNIEnv *env, jobject obj)
 {
     try {
         (void)obj;
@@ -54,7 +54,7 @@ jobject Java_tinyb_BluetoothDevice_getBluetoothType(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothDevice_clone(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_clone(JNIEnv *env, jobject obj)
 {
     try {
         return generic_clone<BluetoothDevice>(env, obj);
@@ -72,7 +72,7 @@ jobject Java_tinyb_BluetoothDevice_clone(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jboolean Java_tinyb_BluetoothDevice_disconnect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_disconnect(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -92,7 +92,7 @@ jboolean Java_tinyb_BluetoothDevice_disconnect(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_connectAsyncStart(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_connectAsyncStart(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -111,7 +111,7 @@ void Java_tinyb_BluetoothDevice_connectAsyncStart(JNIEnv *env, jobject obj)
     }
 }
 
-jboolean Java_tinyb_BluetoothDevice_connectAsyncFinish(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_connectAsyncFinish(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -131,7 +131,7 @@ jboolean Java_tinyb_BluetoothDevice_connectAsyncFinish(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_connect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_connect(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -151,7 +151,7 @@ jboolean Java_tinyb_BluetoothDevice_connect(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jstring str)
+jboolean Java_tinyb_dbus_DBusDevice_connectProfile(JNIEnv *env, jobject obj, jstring str)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -173,7 +173,7 @@ jboolean Java_tinyb_BluetoothDevice_connectProfile(JNIEnv *env, jobject obj, jst
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, jstring str)
+jboolean Java_tinyb_dbus_DBusDevice_disconnectProfile(JNIEnv *env, jobject obj, jstring str)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -195,7 +195,7 @@ jboolean Java_tinyb_BluetoothDevice_disconnectProfile(JNIEnv *env, jobject obj, 
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_pair(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_pair(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -215,7 +215,7 @@ jboolean Java_tinyb_BluetoothDevice_pair(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_remove(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_remove(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -235,7 +235,7 @@ jboolean Java_tinyb_BluetoothDevice_remove(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_BluetoothDevice_cancelPairing(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_cancelPairing(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -255,7 +255,7 @@ jboolean Java_tinyb_BluetoothDevice_cancelPairing(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jobject Java_tinyb_BluetoothDevice_getServices(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_getServices(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -278,7 +278,7 @@ jobject Java_tinyb_BluetoothDevice_getServices(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothDevice_getAddress(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getAddress(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -299,7 +299,7 @@ jstring Java_tinyb_BluetoothDevice_getAddress(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothDevice_getName(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getName(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -320,7 +320,7 @@ jstring Java_tinyb_BluetoothDevice_getName(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothDevice_getAlias(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getAlias(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -341,7 +341,7 @@ jstring Java_tinyb_BluetoothDevice_getAlias(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-void Java_tinyb_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
+void Java_tinyb_dbus_DBusDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -362,7 +362,7 @@ void Java_tinyb_BluetoothDevice_setAlias(JNIEnv *env, jobject obj, jstring str)
     }
 }
 
-jint Java_tinyb_BluetoothDevice_getBluetoothClass(JNIEnv *env, jobject obj)
+jint Java_tinyb_dbus_DBusDevice_getBluetoothClass(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -382,7 +382,7 @@ jint Java_tinyb_BluetoothDevice_getBluetoothClass(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jshort Java_tinyb_BluetoothDevice_getAppearance(JNIEnv *env, jobject obj)
+jshort Java_tinyb_dbus_DBusDevice_getAppearance(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -402,7 +402,7 @@ jshort Java_tinyb_BluetoothDevice_getAppearance(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jstring Java_tinyb_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getIcon(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -425,7 +425,7 @@ jstring Java_tinyb_BluetoothDevice_getIcon(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jboolean Java_tinyb_BluetoothDevice_getPaired(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getPaired(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -445,7 +445,7 @@ jboolean Java_tinyb_BluetoothDevice_getPaired(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_enablePairedNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enablePairedNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -480,7 +480,7 @@ void Java_tinyb_BluetoothDevice_enablePairedNotifications(JNIEnv *env, jobject o
     }
 }
 
-void Java_tinyb_BluetoothDevice_disablePairedNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disablePairedNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -499,7 +499,7 @@ void Java_tinyb_BluetoothDevice_disablePairedNotifications(JNIEnv *env, jobject 
     }
 }
 
-jboolean Java_tinyb_BluetoothDevice_getTrusted(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getTrusted(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -519,7 +519,7 @@ jboolean Java_tinyb_BluetoothDevice_getTrusted(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_setTrusted(JNIEnv *env, jobject obj, jboolean val)
+void Java_tinyb_dbus_DBusDevice_setTrusted(JNIEnv *env, jobject obj, jboolean val)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -539,7 +539,7 @@ void Java_tinyb_BluetoothDevice_setTrusted(JNIEnv *env, jobject obj, jboolean va
     }
 }
 
-void Java_tinyb_BluetoothDevice_enableTrustedNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableTrustedNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -574,7 +574,7 @@ void Java_tinyb_BluetoothDevice_enableTrustedNotifications(JNIEnv *env, jobject 
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableTrustedNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableTrustedNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -593,7 +593,7 @@ void Java_tinyb_BluetoothDevice_disableTrustedNotifications(JNIEnv *env, jobject
     }
 }
 
-jboolean Java_tinyb_BluetoothDevice_getBlocked(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getBlocked(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -613,7 +613,7 @@ jboolean Java_tinyb_BluetoothDevice_getBlocked(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_setBlocked(JNIEnv *env, jobject obj, jboolean val)
+void Java_tinyb_dbus_DBusDevice_setBlocked(JNIEnv *env, jobject obj, jboolean val)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -633,7 +633,7 @@ void Java_tinyb_BluetoothDevice_setBlocked(JNIEnv *env, jobject obj, jboolean va
     }
 }
 
-void Java_tinyb_BluetoothDevice_enableBlockedNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableBlockedNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -668,7 +668,7 @@ void Java_tinyb_BluetoothDevice_enableBlockedNotifications(JNIEnv *env, jobject 
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableBlockedNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableBlockedNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -687,7 +687,7 @@ void Java_tinyb_BluetoothDevice_disableBlockedNotifications(JNIEnv *env, jobject
     }
 }
 
-jboolean Java_tinyb_BluetoothDevice_getLegacyPairing(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getLegacyPairing(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -707,7 +707,7 @@ jboolean Java_tinyb_BluetoothDevice_getLegacyPairing(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jshort Java_tinyb_BluetoothDevice_getRSSI(JNIEnv *env, jobject obj)
+jshort Java_tinyb_dbus_DBusDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -727,7 +727,7 @@ jshort Java_tinyb_BluetoothDevice_getRSSI(JNIEnv *env, jobject obj)
     return 0;
 }
 
-void Java_tinyb_BluetoothDevice_enableRSSINotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableRSSINotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -762,7 +762,7 @@ void Java_tinyb_BluetoothDevice_enableRSSINotifications(JNIEnv *env, jobject obj
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableRSSINotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableRSSINotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -781,7 +781,7 @@ void Java_tinyb_BluetoothDevice_disableRSSINotifications(JNIEnv *env, jobject ob
     }
 }
 
-jboolean Java_tinyb_BluetoothDevice_getConnected(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getConnected(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -801,7 +801,7 @@ jboolean Java_tinyb_BluetoothDevice_getConnected(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_enableConnectedNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableConnectedNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -836,7 +836,7 @@ void Java_tinyb_BluetoothDevice_enableConnectedNotifications(JNIEnv *env, jobjec
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableConnectedNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableConnectedNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -855,7 +855,7 @@ void Java_tinyb_BluetoothDevice_disableConnectedNotifications(JNIEnv *env, jobje
     }
 }
 
-jobjectArray Java_tinyb_BluetoothDevice_getUUIDs(JNIEnv *env, jobject obj)
+jobjectArray Java_tinyb_dbus_DBusDevice_getUUIDs(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -887,7 +887,7 @@ jobjectArray Java_tinyb_BluetoothDevice_getUUIDs(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jstring Java_tinyb_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
+jstring Java_tinyb_dbus_DBusDevice_getModalias(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -910,7 +910,7 @@ jstring Java_tinyb_BluetoothDevice_getModalias(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_getAdapter(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -940,7 +940,7 @@ jobject Java_tinyb_BluetoothDevice_getAdapter(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jobject Java_tinyb_BluetoothDevice_getManufacturerData(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_getManufacturerData(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -989,7 +989,7 @@ jobject Java_tinyb_BluetoothDevice_getManufacturerData(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-void Java_tinyb_BluetoothDevice_enableManufacturerDataNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableManufacturerDataNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1042,7 +1042,7 @@ void Java_tinyb_BluetoothDevice_enableManufacturerDataNotifications(JNIEnv *env,
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableManufacturerDataNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableManufacturerDataNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1061,7 +1061,7 @@ void Java_tinyb_BluetoothDevice_disableManufacturerDataNotifications(JNIEnv *env
     }
 }
 
-jobject Java_tinyb_BluetoothDevice_getServiceData(JNIEnv *env, jobject obj)
+jobject Java_tinyb_dbus_DBusDevice_getServiceData(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -1106,7 +1106,7 @@ jobject Java_tinyb_BluetoothDevice_getServiceData(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-void Java_tinyb_BluetoothDevice_enableServiceDataNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableServiceDataNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1154,7 +1154,7 @@ void Java_tinyb_BluetoothDevice_enableServiceDataNotifications(JNIEnv *env, jobj
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableServiceDataNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableServiceDataNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1175,7 +1175,7 @@ void Java_tinyb_BluetoothDevice_disableServiceDataNotifications(JNIEnv *env, job
 
 
 
-jshort Java_tinyb_BluetoothDevice_getTxPower(JNIEnv *env, jobject obj)
+jshort Java_tinyb_dbus_DBusDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -1195,7 +1195,7 @@ jshort Java_tinyb_BluetoothDevice_getTxPower(JNIEnv *env, jobject obj)
     return 0;
 }
 
-jboolean Java_tinyb_BluetoothDevice_getServicesResolved(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_getServicesResolved(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -1215,7 +1215,7 @@ jboolean Java_tinyb_BluetoothDevice_getServicesResolved(JNIEnv *env, jobject obj
     return JNI_FALSE;
 }
 
-void Java_tinyb_BluetoothDevice_enableServicesResolvedNotifications(JNIEnv *env, jobject obj, jobject callback)
+void Java_tinyb_dbus_DBusDevice_enableServicesResolvedNotifications(JNIEnv *env, jobject obj, jobject callback)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1250,7 +1250,7 @@ void Java_tinyb_BluetoothDevice_enableServicesResolvedNotifications(JNIEnv *env,
     }
 }
 
-void Java_tinyb_BluetoothDevice_disableServicesResolvedNotifications(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_disableServicesResolvedNotifications(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device =
@@ -1271,7 +1271,7 @@ void Java_tinyb_BluetoothDevice_disableServicesResolvedNotifications(JNIEnv *env
 
 
 
-void Java_tinyb_BluetoothDevice_delete(JNIEnv *env, jobject obj)
+void Java_tinyb_dbus_DBusDevice_delete(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *b_device = getInstance<BluetoothDevice>(env, obj);

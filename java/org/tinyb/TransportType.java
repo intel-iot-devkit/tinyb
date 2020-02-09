@@ -1,4 +1,4 @@
-package tinyb;
+package org.tinyb;
 
 /**
  * TransportType determines type of bluetooth scan.

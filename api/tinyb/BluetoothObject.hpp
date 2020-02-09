@@ -27,7 +27,8 @@
 #include <mutex>
 #include <atomic>
 
-#define JAVA_PACKAGE "tinyb"
+#define JAVA_MAIN_PACKAGE "org/tinyb"
+#define JAVA_DBUS_PACKAGE "tinyb/dbus"
 
 namespace tinyb {
 enum class BluetoothType {
@@ -83,7 +84,7 @@ public:
     static BluetoothType class_type() { return BluetoothType::NONE; }
 
     static std::string java_class() {
-        return std::string(JAVA_PACKAGE "/BluetoothObject");
+        return std::string(JAVA_DBUS_PACKAGE "/DBusObject");
     }
 
     /** Returns the complete Java class of this object

@@ -22,16 +22,22 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import tinyb.*;
-import java.util.*;
-import java.time.*;
-import java.util.concurrent.locks.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.tinyb.BluetoothDevice;
+import org.tinyb.BluetoothFactory;
+import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattService;
+import org.tinyb.BluetoothManager;
+import org.tinyb.BluetoothNotification;
 
 class ValueNotification implements BluetoothNotification<byte[]> {
 
-    public void run(byte[] tempRaw) {
+    public void run(final byte[] tempRaw) {
             System.out.print("Temp raw = {");
-            for (byte b : tempRaw) {
+            for (final byte b : tempRaw) {
                 System.out.print(String.format("%02x,", b));
             }
             System.out.print("}");
@@ -41,11 +47,11 @@ class ValueNotification implements BluetoothNotification<byte[]> {
              * raw temperature format to celsius and print it. Conversion for object temperature depends on ambient
              * according to wiki, but assume result is good enough for our purposes without conversion.
              */
-            int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
-            int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
+            final int objectTempRaw = (tempRaw[0] & 0xff) | (tempRaw[1] << 8);
+            final int ambientTempRaw = (tempRaw[2] & 0xff) | (tempRaw[3] << 8);
 
-            float objectTempCelsius = Notification.convertCelsius(objectTempRaw);
-            float ambientTempCelsius = Notification.convertCelsius(ambientTempRaw);
+            final float objectTempCelsius = Notification.convertCelsius(objectTempRaw);
+            final float ambientTempCelsius = Notification.convertCelsius(ambientTempRaw);
 
             System.out.println(
                     String.format(" Temp: Object = %fC, Ambient = %fC", objectTempCelsius, ambientTempCelsius));
@@ -57,7 +63,7 @@ class ValueNotification implements BluetoothNotification<byte[]> {
 
 class ConnectedNotification implements BluetoothNotification<Boolean> {
 
-    public void run(Boolean connected) {
+    public void run(final Boolean connected) {
             System.out.println("Connected");
     }
 
@@ -67,14 +73,14 @@ public class Notification {
     private static final float SCALE_LSB = 0.03125f;
     static boolean running = true;
 
-    static void printDevice(BluetoothDevice device) {
+    static void printDevice(final BluetoothDevice device) {
         System.out.print("Address = " + device.getAddress());
         System.out.print(" Name = " + device.getName());
         System.out.print(" Connected = " + device.getConnected());
         System.out.println();
     }
 
-    static float convertCelsius(int raw) {
+    static float convertCelsius(final int raw) {
         return raw / 128f;
     }
 
@@ -87,7 +93,7 @@ public class Notification {
      * The API used in this example is based on TinyB v0.3, which only supports polling, but v0.4 will introduce a
      * simplied API for discovering devices and services.
      */
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(final String[] args) throws InterruptedException {
 
         if (args.length < 1) {
             System.err.println("Run with <device_address> argument");
@@ -99,13 +105,13 @@ public class Notification {
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
          * reference to it is obtained through the getBluetoothManager method.
          */
-        BluetoothManager manager = BluetoothManager.getBluetoothManager();
+        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
 
         /*
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize
          * discovery we can call startDiscovery, which will put the default adapter in discovery mode.
          */
-        boolean discoveryStarted = manager.startDiscovery();
+        final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
 
@@ -113,7 +119,7 @@ public class Notification {
          * After discovery is started, new devices will be detected. We can find the device we are interested in
          * through the manager's find method.
          */
-        BluetoothDevice sensor = manager.find(null, args[0], null, Duration.ofSeconds(10));
+        final BluetoothDevice sensor = manager.find(null, args[0], null, 10000);
 
         if (sensor == null) {
             System.err.println("No sensor found with the provided address.");
@@ -137,8 +143,8 @@ public class Notification {
          */
         //manager.stopDiscovery();
 
-        Lock lock = new ReentrantLock();
-        Condition cv = lock.newCondition();
+        final Lock lock = new ReentrantLock();
+        final Condition cv = lock.newCondition();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
@@ -158,7 +164,7 @@ public class Notification {
          * http://processors.wiki.ti.com/images/a/a8/BLE_SensorTag_GATT_Server.pdf. The service we are looking for has the
          * short UUID AA00 which we insert into the TI Base UUID: f000XXXX-0451-4000-b000-000000000000
          */
-        BluetoothGattService tempService = sensor.find( "f000aa00-0451-4000-b000-000000000000");
+        final BluetoothGattService tempService = sensor.find( "f000aa00-0451-4000-b000-000000000000");
 
         if (tempService == null) {
             System.err.println("This device does not have the temperature service we are looking for.");
@@ -167,9 +173,9 @@ public class Notification {
         }
         System.out.println("Found service " + tempService.getUUID());
 
-        BluetoothGattCharacteristic tempValue = tempService.find("f000aa01-0451-4000-b000-000000000000");
-        BluetoothGattCharacteristic tempConfig = tempService.find("f000aa02-0451-4000-b000-000000000000");
-        BluetoothGattCharacteristic tempPeriod = tempService.find("f000aa03-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempValue = tempService.find("f000aa01-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempConfig = tempService.find("f000aa02-0451-4000-b000-000000000000");
+        final BluetoothGattCharacteristic tempPeriod = tempService.find("f000aa03-0451-4000-b000-000000000000");
 
         if (tempValue == null || tempConfig == null || tempPeriod == null) {
             System.err.println("Could not find the correct characteristics.");
@@ -184,10 +190,10 @@ public class Notification {
          * mentioned above. We could also modify the update interval, by writing in the period characteristic, but the
          * default 1s is good enough for our purposes.
          */
-        byte[] config = { 0x01 };
+        final byte[] config = { 0x01 };
         tempConfig.writeValue(config);
-        
-        byte[] period = { 100 };
+
+        final byte[] period = { 100 };
         tempPeriod.writeValue(period);
 
         tempValue.enableValueNotifications(new ValueNotification());

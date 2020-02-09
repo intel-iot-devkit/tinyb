@@ -22,19 +22,49 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+#include "tinyb/BluetoothObject.hpp"
 
-public class ObjectArrayArgCallback extends BluetoothCallback
+#include "tinyb_dbus_DBusObject.h"
+
+#include "helper.hpp"
+
+using namespace tinyb;
+
+jobject Java_tinyb_dbus_DBusObject_getBluetoothType(JNIEnv *env, jobject obj)
 {
-    private Object[] callbackArg;
+    (void)obj;
 
-    public ObjectArrayArgCallback(BluetoothObject bObj, Object[] callbackArg)
-    {
-        this.bObj = bObj;
-        this.callbackArg = callbackArg;
-    }
-
-    public void run()
-    {
-    }
+    return get_bluetooth_type(env, "NONE");
 }
+
+jobject Java_tinyb_dbus_DBusObject_clone(JNIEnv *env, jobject obj)
+{
+    return generic_clone<BluetoothObject>(env, obj);
+}
+
+void Java_tinyb_dbus_DBusObject_delete(JNIEnv *env, jobject obj)
+{
+    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+
+    delete obj_b;
+}
+
+jboolean Java_tinyb_dbus_DBusObject_operatorEqual(JNIEnv *env, jobject obj, jobject other)
+{
+    if (!other)
+    {
+        return JNI_FALSE;
+    }
+    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+    BluetoothObject *obj_other = getInstance<BluetoothObject>(env, other);
+
+    return (*obj_b) == (*obj_other);
+}
+
+jstring Java_tinyb_dbus_DBusObject_getObjectPath(JNIEnv *env, jobject obj)
+{
+    BluetoothObject *obj_b = getInstance<BluetoothObject>(env, obj);
+
+    return env->NewStringUTF(obj_b->get_object_path().c_str());
+}
+

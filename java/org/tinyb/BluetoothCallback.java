@@ -1,6 +1,6 @@
 /*
- * Author: Petre Eftime <petre.p.eftime@intel.com>
- * Copyright (c) 2015 Intel Corporation.
+ * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
+ * Copyright (c) 2016 Intel Corporation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -22,43 +22,16 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "BluetoothObject.hpp"
-#include <glib.h>
+package org.tinyb;
 
-using namespace tinyb;
+import tinyb.dbus.DBusObject;
 
-std::string BluetoothObject::get_java_class() const
+public abstract class BluetoothCallback implements Runnable
 {
-   return std::string(JAVA_DBUS_PACKAGE "/DBusObject");
-}
+    protected DBusObject bObj;
 
-std::string BluetoothObject::get_class_name() const
-{
-   return std::string("BluetoothObject");
-}
-
-std::string BluetoothObject::get_object_path() const
-{
-   return std::string();
-}
-
-BluetoothType BluetoothObject::get_bluetooth_type() const
-{
-   return BluetoothType::NONE;
-}
-
-BluetoothObject *BluetoothObject::clone() const
-{
-    return NULL;
-}
-
-bool BluetoothObject::operator==(const BluetoothObject &other) const
-{
-   return (this->get_bluetooth_type() == other.get_bluetooth_type())
-        && (this->get_object_path() == other.get_object_path());
-}
-
-bool BluetoothObject::operator!=(const BluetoothObject &other) const
-{
-   return !(*this == other);
+    /*
+     * public void run() is missing because it will be implemented
+     * in children classes
+     */
 }

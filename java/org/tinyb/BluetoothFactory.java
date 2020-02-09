@@ -1,6 +1,7 @@
-/*
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -21,15 +22,11 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.tinyb;
 
-package tinyb;
-
-public abstract class BluetoothCallback implements Runnable
-{
-    protected BluetoothObject bObj;
-
-    /*
-     * public void run() is missing because it will be implemented
-     * in children classes
-     */
+public class BluetoothFactory {
+    public static BluetoothManager getDBusBluetoothManager() throws BluetoothException
+    {
+        return tinyb.dbus.DBusManager.getBluetoothManager();
+    }
 }

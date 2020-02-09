@@ -70,7 +70,7 @@ protected:
 public:
 
     static std::string java_class() {
-        return std::string(JAVA_PACKAGE "/BluetoothGattCharacteristic");
+        return std::string(JAVA_DBUS_PACKAGE "/DBusGattCharacteristic");
     }
     static BluetoothType class_type() { return BluetoothType::GATT_CHARACTERISTIC; }
 

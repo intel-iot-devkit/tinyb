@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -22,21 +26,18 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb;
+package org.tinyb;
 
-import java.util.*;
-import java.time.Duration;
+import java.util.List;
 
 /**
   * Provides access to Bluetooth GATT characteristic. Follows the BlueZ adapter API
   * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/gatt-api.txt
   */
-public class BluetoothGattService extends BluetoothObject
+public interface BluetoothGattService extends BluetoothObject
 {
-    public native BluetoothType getBluetoothType();
-    public native BluetoothAdapter clone();
-
-    static BluetoothType class_type() { return BluetoothType.GATT_SERVICE; }
+    @Override
+    public BluetoothGattService clone();
 
     /** Find a BluetoothGattCharacteristic. If parameter UUID is not null,
       * the returned object will have to match it.
@@ -44,16 +45,12 @@ public class BluetoothGattService extends BluetoothObject
       * or connect to devices.
       * @parameter UUID optionally specify the UUID of the BluetoothGattCharacteristic you are
       * waiting for
-      * @parameter timeout the function will return after timeout time, a
+      * @parameter timeoutMS the function will return after timeout time in milliseconds, a
       * value of zero means wait forever. If object is not found during this time null will be returned.
       * @return An object matching the UUID or null if not found before
       * timeout expires or event is canceled.
       */
-    public BluetoothGattCharacteristic find(String UUID, Duration duration) {
-            BluetoothManager manager = BluetoothManager.getBluetoothManager();
-            return (BluetoothGattCharacteristic) manager.find(BluetoothType.GATT_CHARACTERISTIC,
-                null, UUID, this, duration);
-    }
+    public BluetoothGattCharacteristic find(String UUID, long timeoutMS);
 
     /** Find a BluetoothGattCharacteristic. If parameter UUID is not null,
       * the returned object will have to match it.
@@ -64,36 +61,27 @@ public class BluetoothGattService extends BluetoothObject
       * @return An object matching the UUID or null if not found before
       * timeout expires or event is canceled.
       */
-    public BluetoothGattCharacteristic find(String UUID) {
-            return find(UUID, Duration.ZERO);
-    }
+    public BluetoothGattCharacteristic find(String UUID);
 
     /* D-Bus property accessors: */
 
     /** Get the UUID of this service
       * @return The 128 byte UUID of this service, NULL if an error occurred
       */
-    public native String getUUID();
+    public String getUUID();
 
     /** Returns the device to which this service belongs to.
       * @return The device.
       */
-    public native BluetoothDevice getDevice();
+    public BluetoothDevice getDevice();
 
     /** Returns true if this service is a primary service, false if secondary.
       * @return true if this service is a primary service, false if secondary.
       */
-    public native boolean getPrimary();
+    public boolean getPrimary();
 
     /** Returns a list of BluetoothGattCharacteristics this service exposes.
       * @return A list of BluetoothGattCharacteristics exposed by this service
       */
-    public native List<BluetoothGattCharacteristic> getCharacteristics();
-
-    private native void delete();
-
-    private BluetoothGattService(long instance)
-    {
-        super(instance);
-    }
+    public List<BluetoothGattCharacteristic> getCharacteristics();
 }

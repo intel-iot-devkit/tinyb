@@ -1,4 +1,8 @@
-/*
+/**
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
@@ -21,73 +25,30 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+package org.tinyb;
 
-package tinyb;
-
-import java.util.*;
-
-public abstract class BluetoothObject implements Cloneable,AutoCloseable
+public interface BluetoothObject extends Cloneable, AutoCloseable
 {
-    protected long nativeInstance;
-    private boolean isValid;
-
-    static {
-        try {
-            System.loadLibrary("javatinyb");
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Native code library failed to load.\n" + e);
-        }
-    }
-
-    static BluetoothType class_type() { return BluetoothType.NONE; }
-
     /** Returns the BluetoothType of this object
       * @return The BluetoothType of this object
       */
-    public native BluetoothType getBluetoothType();
+    public BluetoothType getBluetoothType();
 
     /** Returns a clone of the BluetoothObject
       * @return A clone of the BluetoothObject
       */
-    public native BluetoothObject clone();
+    public BluetoothObject clone();
 
-    private native void delete();
-    private native boolean operatorEqual(BluetoothObject obj);
+    @Override
+    public boolean equals(Object obj);
 
-    protected BluetoothObject(long instance)
-    {
-        nativeInstance = instance;
-        isValid = true;
-    }
-
-    protected void finalize()
-    {
-        close();
-    }
-
-    public boolean equals(Object obj)
-    {
-        if (obj == null || !(obj instanceof BluetoothObject))
-            return false;
-        return operatorEqual((BluetoothObject)obj);
-    }
-
-    protected native String getObjectPath();
-
-    public int hashCode() {
-        String objectPath = getObjectPath();
-        return objectPath.hashCode();
-    }
+    @Override
+    public int hashCode();
 
     /**
      * Release the native memory associated with this object
      * The object should not be used following a call to close
      */
     @Override
-    public synchronized void close() {
-        if (!isValid)
-            return;
-        isValid = false;
-        delete();
-    }
+    public void close();
 }

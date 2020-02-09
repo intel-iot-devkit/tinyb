@@ -109,7 +109,7 @@ std::string BluetoothManager::get_class_name() const
 
 std::string BluetoothManager::get_java_class() const
 {
-    return std::string(JAVA_PACKAGE "/BluetoothManager");
+    return std::string(JAVA_DBUS_PACKAGE "/DBusManager");
 }
 
 std::string BluetoothManager::get_object_path() const

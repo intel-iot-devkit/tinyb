@@ -38,7 +38,7 @@ std::string BluetoothGattService::get_class_name() const
 
 std::string BluetoothGattService::get_java_class() const
 {
-    return std::string(JAVA_PACKAGE "/BluetoothGattService");
+    return std::string(JAVA_DBUS_PACKAGE "/DBusGattService");
 }
 
 std::string BluetoothGattService::get_object_path() const

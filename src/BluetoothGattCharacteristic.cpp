@@ -60,7 +60,7 @@ std::string BluetoothGattCharacteristic::get_class_name() const
 
 std::string BluetoothGattCharacteristic::get_java_class() const
 {
-    return std::string(JAVA_PACKAGE "/BluetoothGattCharacteristic");
+    return std::string(JAVA_DBUS_PACKAGE "/DBusGattCharacteristic");
 }
 
 std::string BluetoothGattCharacteristic::get_object_path() const
