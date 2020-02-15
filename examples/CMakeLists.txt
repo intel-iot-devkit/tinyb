@@ -40,6 +40,11 @@ set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
 
+add_executable (hci_scanner HCIScanner.cpp)
+set_target_properties(list_mfg
+    PROPERTIES
+    CXX_STANDARD 11)
+
 include_directories(${PROJECT_SOURCE_DIR}/api)
 
 target_link_libraries (hellotinyb tinyb)
@@ -49,3 +54,5 @@ target_link_libraries (esstinyb tinyb)
 target_link_libraries (notifications tinyb)
 target_link_libraries (uuid tinyb)
 target_link_libraries (list_mfg tinyb)
+target_link_libraries (hci_scanner tinyb_hci)
+

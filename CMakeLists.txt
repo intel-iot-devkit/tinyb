@@ -113,7 +113,8 @@ if (DOXYGEN_FOUND)
   endif ()
 endif (DOXYGEN_FOUND)
 
-add_subdirectory (src)
+add_subdirectory (src/tinyb)
+add_subdirectory (src/tinyb_hci)
 
 if (BUILDEXAMPLES)
   add_subdirectory (examples)

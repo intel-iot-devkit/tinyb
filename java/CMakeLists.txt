@@ -44,7 +44,15 @@ set(JAVA_CLASSES org.tinyb.BluetoothAdapter
                  tinyb.dbus.DBusGattDescriptor
                  tinyb.dbus.DBusGattService
                  tinyb.dbus.DBusManager
-                 tinyb.dbus.DBusObject)
+                 tinyb.dbus.DBusObject
+                 tinyb.hci.HCIAdapter
+                 tinyb.hci.HCIDevice
+                 tinyb.hci.HCIEvent
+                 tinyb.hci.HCIGattCharacteristic
+                 tinyb.hci.HCIGattDescriptor
+                 tinyb.hci.HCIGattService
+                 tinyb.hci.HCIManager
+                 tinyb.hci.HCIObject)
 add_custom_command (TARGET tinybjar
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Generating JNI headers.."
@@ -53,6 +61,6 @@ add_custom_command (TARGET tinybjar
 )
 
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir/jni")
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/tinyb.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/tinyb2.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
 
 add_subdirectory (jni)

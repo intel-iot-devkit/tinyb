@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if [ ! -e java/tinyb2.jar -o ! -e examples/java/ScannerTinyB.jar ] ; then
-    echo run from build directory
+if [ ! -e lib/java/tinyb2.jar -o ! -e bin/java/ScannerTinyB.jar -o ! -e lib/libtinyb.so -o ! -e lib/libtinyb_hci.so ] ; then
+    echo run from dist directory
     exit 1
 fi
-java -cp java/tinyb2.jar:examples/java/ScannerTinyB.jar -Djava.library.path=`pwd`/java/jni:`pwd`/src ScannerTinyB $*
+java -cp lib/java/tinyb2.jar:bin/java/ScannerTinyB.jar -Djava.library.path=`pwd`/lib ScannerTinyB $*

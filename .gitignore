@@ -1,4 +1,5 @@
 build*/
+dist*/
 
 # Object files
 *.o
@@ -21,3 +22,4 @@ build*/
 
 # Archive files
 *.jar
+/Debug/

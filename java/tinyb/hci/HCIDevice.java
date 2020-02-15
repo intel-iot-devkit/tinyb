@@ -3,9 +3,6 @@
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -26,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb.dbus;
+package tinyb.hci;
 
 import java.util.List;
 import java.util.Map;
@@ -38,18 +35,49 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 
-public class DBusDevice extends DBusObject implements BluetoothDevice
+import tinyb.dbus.DBusObject;
+
+public class HCIDevice extends HCIObject implements BluetoothDevice
 {
+    private final HCIAdapter adapter;
+    private final String address;
+    private final String name;
+
+    /* pp */ HCIDevice(final HCIAdapter adptr, final String address, final String name)
+    {
+        super(compHash(address, name));
+        this.adapter = adptr;
+        this.address = address;
+        this.name = name;
+    }
+
     @Override
-    public native BluetoothType getBluetoothType();
+    public boolean equals(final Object obj)
+    {
+        if (obj == null || !(obj instanceof HCIDevice)) {
+            return false;
+        }
+        final HCIDevice other = (HCIDevice)obj;
+        return address.equals(other.address) && name.equals(other.name);
+    }
+
     @Override
-    public native DBusDevice clone();
+    public String getAddress() { return address; }
+
+    @Override
+    public String getName() { return name; }
+
+    @Override
+    public BluetoothType getBluetoothType() { return class_type(); }
+
+    @Override
+    public native HCIDevice clone();
 
     static BluetoothType class_type() { return BluetoothType.DEVICE; }
 
     @Override
     public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBusManager.getBluetoothManager();
+        final BluetoothManager manager = HCIManager.getBluetoothManager();
         return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
                 null, UUID, this, timeoutMS);
     }
@@ -74,13 +102,15 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
     @Override
-    public native boolean pair() throws BluetoothException;
+    public boolean pair() throws BluetoothException
+    { throw new UnsupportedOperationException(); } // FIXME
 
      @Override
     public native boolean remove() throws BluetoothException;
 
     @Override
-    public native boolean cancelPairing() throws BluetoothException;
+    public boolean cancelPairing() throws BluetoothException
+    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public native List<BluetoothGattService> getServices();
@@ -88,16 +118,11 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     /* D-Bus property accessors: */
 
     @Override
-    public native String getAddress();
+    public String getAlias() { return null; } // FIXME
 
     @Override
-    public native String getName();
-
-    @Override
-    public native String getAlias();
-
-    @Override
-    public native void setAlias(String value);
+    public void setAlias(final String value)
+    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public native int getBluetoothClass();
@@ -169,7 +194,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native String getModalias();
 
     @Override
-    public native DBusAdapter getAdapter();
+    public native HCIAdapter getAdapter();
 
     @Override
     public native Map<Short, byte[]> getManufacturerData();
@@ -203,10 +228,4 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native void disableServicesResolvedNotifications();
 
     private native void delete();
-
-    private DBusDevice(final long instance)
-    {
-        super(instance);
-    }
-
 }

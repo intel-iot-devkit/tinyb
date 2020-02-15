@@ -8,6 +8,7 @@ endif (JNI_FOUND)
 set (tinyb_LIB_INCLUDE_DIRS
     ${PROJECT_SOURCE_DIR}/api
     ${PROJECT_SOURCE_DIR}/api/tinyb
+    ${PROJECT_SOURCE_DIR}/api/tinyb_hci
     ${PROJECT_SOURCE_DIR}/include
 )
 
