@@ -239,7 +239,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
                 setManufactureSpecificData(company, elem_data+2, elem_len-2);
             } break;
             default:
-                DBG_PRINT("%s-Element @ [%d/%d]: Unhandled type 0x%.2X with %d bytes net\n",
+                fprintf(stderr, "%s-Element @ [%d/%d]: Warning: Unhandled type 0x%.2X with %d bytes net\n",
                         getSourceString().c_str(), offset, data_length, elem_type, elem_len);
                 break;
         }
@@ -291,17 +291,15 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_reports[i]->setRSSI(*i_octets++);
         read_segments++;
     }
-#if VERBOSE_ON
     const int bytes_left = limes - i_octets;
 
     if( segment_count != read_segments ) {
-        DBG_PRINT("AD-Reports: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
+        fprintf(stderr, "AD-Reports: Warning: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     } else {
         DBG_PRINT("AD-Reports: Completed %d reports within %d bytes: Segment read %d == %d, data-ptr %d bytes to limes\n",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     }
-#endif
     return ad_reports;
 }
 

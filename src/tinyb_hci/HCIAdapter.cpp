@@ -325,7 +325,7 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
 
         if( bytes_left < ehdr->plen ) {
             // not enough data ..
-            DBG_PRINT("HCIAdapter::discovery: Incomplete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes < plen %d!\n",
+            fprintf(stderr, "HCIAdapter::discovery: Warning: Incomplete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes < plen %d!\n",
                     hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
             continue;
         } else {
