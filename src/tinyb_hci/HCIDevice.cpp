@@ -50,7 +50,7 @@ HCIDevice::HCIDevice(EInfoReport &r)
 : ts_creation(r.getTimestamp()), mac(r.getAddress())
 {
     if( !r.isSet(EInfoReport::Element::BDADDR) ) {
-        throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString());
+        throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
     }
     update(r);
 }

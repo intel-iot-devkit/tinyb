@@ -85,7 +85,7 @@ uint128_t tinyb_hci::merge_uint128(uint128_t const & base_uuid, uint16_t const u
         std::string msg("uuid16_le_octet_index ");
         msg.append(std::to_string(uuid16_le_octet_index));
         msg.append(", not within [0..14]");
-        throw IllegalArgumentException(msg);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
     }
     uint128_t dest = base_uuid;
 
@@ -120,7 +120,7 @@ uint128_t tinyb_hci::merge_uint128(uint128_t const & base_uuid, uint32_t const u
         std::string msg("uuid32_le_octet_index ");
         msg.append(std::to_string(uuid32_le_octet_index));
         msg.append(", not within [0..12]");
-        throw IllegalArgumentException(msg);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
     }
     uint128_t dest = base_uuid;
 

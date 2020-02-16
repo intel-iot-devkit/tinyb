@@ -57,7 +57,7 @@ namespace tinyb_hci {
       public:
         const std::string msg;
 
-        RuntimeException(std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        RuntimeException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("RuntimeException", m, file, line) {}
 
         virtual ~RuntimeException() noexcept { }
@@ -67,25 +67,25 @@ namespace tinyb_hci {
 
     class InternalError : public RuntimeException {
       public:
-        InternalError(std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        InternalError(std::string const m, const char* file, int line) noexcept
         : RuntimeException("InternalError", m, file, line) {}
     };
 
     class NullPointerException : public RuntimeException {
       public:
-        NullPointerException(std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        NullPointerException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("NullPointerException", m, file, line) {}
     };
 
     class IllegalArgumentException : public RuntimeException {
       public:
-        IllegalArgumentException(std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        IllegalArgumentException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("IllegalArgumentException", m, file, line) {}
     };
 
     class UnsupportedOperationException : public RuntimeException {
       public:
-        UnsupportedOperationException(std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        UnsupportedOperationException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("UnsupportedOperationException", m, file, line) {}
     };
 

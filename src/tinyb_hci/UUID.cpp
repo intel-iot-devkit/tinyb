@@ -61,7 +61,7 @@ std::string UUID32::toString() const {
     if( 8 != count ) {
         std::string msg("UUID string not of length 8 but ");
         msg.append(std::to_string(count));
-        throw InternalError(msg);
+        throw InternalError(msg, E_FILE_LINE);
     }
     return std::string(buffer);
 }
