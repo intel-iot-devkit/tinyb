@@ -39,37 +39,37 @@ UUID128::UUID128(UUID128 const & base_uuid, UUID32 const & uuid32, int const uui
 : UUID(Type::UUID128), value(merge_uint128(base_uuid.value, uuid32.value, uuid32_le_octet_index)) {}
 
 std::string UUID16::toString() const {
-	char buffer[4+1];
-	int count = snprintf(buffer, sizeof(buffer), "%.4X", value);
-	if( 4 != count ) {
-		std::string msg("UUID string not of length 4 but ");
-		msg.append(std::to_string(count));
-		throw InternalError(msg);
-	}
-	return std::string(buffer);
+    char buffer[4+1];
+    int count = snprintf(buffer, sizeof(buffer), "%.4X", value);
+    if( 4 != count ) {
+        std::string msg("UUID string not of length 4 but ");
+        msg.append(std::to_string(count));
+        throw InternalError(msg);
+    }
+    return std::string(buffer);
 }
 
 std::string UUID16::toUUID128String(UUID128 const & base_uuid, int const le_octet_index) const
 {
-	UUID128 u128(base_uuid, *this, le_octet_index);
-	return u128.toString();
+    UUID128 u128(base_uuid, *this, le_octet_index);
+    return u128.toString();
 }
 
 std::string UUID32::toString() const {
-	char buffer[8+1];
-	int count = snprintf(buffer, sizeof(buffer), "%.8X", value);
-	if( 8 != count ) {
-		std::string msg("UUID string not of length 8 but ");
-		msg.append(std::to_string(count));
-		throw InternalError(msg);
-	}
-	return std::string(buffer);
+    char buffer[8+1];
+    int count = snprintf(buffer, sizeof(buffer), "%.8X", value);
+    if( 8 != count ) {
+        std::string msg("UUID string not of length 8 but ");
+        msg.append(std::to_string(count));
+        throw InternalError(msg);
+    }
+    return std::string(buffer);
 }
 
 std::string UUID32::toUUID128String(UUID128 const & base_uuid, int const le_octet_index) const
 {
-	UUID128 u128(base_uuid, *this, le_octet_index);
-	return u128.toString();
+    UUID128 u128(base_uuid, *this, le_octet_index);
+    return u128.toString();
 }
 
 std::string UUID128::toString() const {
@@ -81,33 +81,33 @@ std::string UUID128::toString() const {
     // BE: low-mem - 87654321-0000-1000-8000-00805F9B34FB - high-mem
     //                   0      1    2    3      4    5
     //
-	char buffer[36+1];
-	uint32_t part0, part4;
-	uint16_t part1, part2, part3, part5;
+    char buffer[36+1];
+    uint32_t part0, part4;
+    uint16_t part1, part2, part3, part5;
 #if __BYTE_ORDER == __BIG_ENDIAN
-	part0 = get_uint32(value.data,  0);
-	part1 = get_uint16(value.data,  4);
-	part2 = get_uint16(value.data,  6);
-	part3 = get_uint16(value.data,  8);
-	part4 = get_uint32(value.data, 10);
-	part5 = get_uint16(value.data, 14);
+    part0 = get_uint32(value.data,  0);
+    part1 = get_uint16(value.data,  4);
+    part2 = get_uint16(value.data,  6);
+    part3 = get_uint16(value.data,  8);
+    part4 = get_uint32(value.data, 10);
+    part5 = get_uint16(value.data, 14);
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-	part5 = get_uint16(value.data,  0);
-	part4 = get_uint32(value.data,  2);
-	part3 = get_uint16(value.data,  6);
-	part2 = get_uint16(value.data,  8);
-	part1 = get_uint16(value.data, 10);
-	part0 = get_uint32(value.data, 12);
+    part5 = get_uint16(value.data,  0);
+    part4 = get_uint32(value.data,  2);
+    part3 = get_uint16(value.data,  6);
+    part2 = get_uint16(value.data,  8);
+    part1 = get_uint16(value.data, 10);
+    part0 = get_uint32(value.data, 12);
 #else
 #error "Unexpected __BYTE_ORDER"
 #endif
-	int count = snprintf(buffer, sizeof(buffer), "%.8X-%.4X-%.4X-%.4X-%.8X%.4X",
-						    part0, part1, part2, part3, part4, part5);
-	if( 36 != count ) {
-		std::string msg("UUID string not of length 36 but ");
-		msg.append(std::to_string(count));
-		throw InternalError(msg, E_FILE_LINE);
-	}
-	return std::string(buffer);
+    int count = snprintf(buffer, sizeof(buffer), "%.8X-%.4X-%.4X-%.4X-%.8X%.4X",
+                            part0, part1, part2, part3, part4, part5);
+    if( 36 != count ) {
+        std::string msg("UUID string not of length 36 but ");
+        msg.append(std::to_string(count));
+        throw InternalError(msg, E_FILE_LINE);
+    }
+    return std::string(buffer);
 }
 

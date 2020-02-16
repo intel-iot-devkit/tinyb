@@ -40,10 +40,10 @@ using namespace tinyb_hci;
 HCIDevice::HCIDevice(EInfoReport &r)
 : ts_creation(r.getTimestamp()), mac(r.getAddress())
 {
-	if( !r.isSet(EInfoReport::Element::BDADDR) ) {
-		throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString());
-	}
-	update(r);
+    if( !r.isSet(EInfoReport::Element::BDADDR) ) {
+        throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString());
+    }
+    update(r);
 }
 
 std::string HCIDevice::getAddressString() const {
@@ -58,9 +58,9 @@ std::string HCIDevice::getAddressString() const {
 
 void HCIDevice::addService(std::shared_ptr<UUID> const &uuid)
 {
-	if( 0 > findService(uuid) ) {
-		services.push_back(uuid);
-	}
+    if( 0 > findService(uuid) ) {
+        services.push_back(uuid);
+    }
 }
 void HCIDevice::addServices(std::vector<std::shared_ptr<UUID>> const & services)
 {
@@ -72,60 +72,60 @@ void HCIDevice::addServices(std::vector<std::shared_ptr<UUID>> const & services)
 
 int HCIDevice::findService(std::shared_ptr<UUID> const &uuid) const
 {
-	auto begin = services.begin();
+    auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<UUID> const& p) {
         return *p == *uuid;
     });
     if ( it == std::end(services) ) {
-    	return -1;
+        return -1;
     } else {
-    	return std::distance(begin, it);
+        return std::distance(begin, it);
     }
 }
 
 std::string HCIDevice::toString() const {
-	const uint64_t t0 = getCurrentMilliseconds();
-	std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-	std::string out("Device["+getAddressString()+", '"+getName()+
-			"', age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
-			", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
-	if(services.size() > 0 ) {
-		out.append("\n");
-	    for(auto it = services.begin(); it != services.end(); it++) {
-	    	std::shared_ptr<UUID> p = *it;
-	    	out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->type))).append(" bytes\n");
-	    }
-	}
-	return out;
+    const uint64_t t0 = getCurrentMilliseconds();
+    std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
+    std::string out("Device["+getAddressString()+", '"+getName()+
+            "', age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
+            ", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
+    if(services.size() > 0 ) {
+        out.append("\n");
+        for(auto it = services.begin(); it != services.end(); it++) {
+            std::shared_ptr<UUID> p = *it;
+            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->type))).append(" bytes\n");
+        }
+    }
+    return out;
 }
 
 void HCIDevice::update(EInfoReport const & data) {
-	ts_update = data.getTimestamp();
-	if( data.isSet(EInfoReport::Element::NAME) ) {
-		if( !name.length() || data.name.length() > name.length() ) {
-			name = data.name;
-		}
-	}
-	if( data.isSet(EInfoReport::Element::NAME_SHORT) ) {
-		if( !name.length() ) {
-			name = data.name_short;
-		}
-	}
-	if( data.isSet(EInfoReport::Element::RSSI) ) {
-		rssi = data.rssi;
-	}
-	if( data.isSet(EInfoReport::Element::TX_POWER) ) {
-		tx_power = data.tx_power;
-	}
-	if( data.isSet(EInfoReport::Element::MANUF_DATA) ) {
-		msd = data.msd;
-	}
-	addServices(data.services);
+    ts_update = data.getTimestamp();
+    if( data.isSet(EInfoReport::Element::NAME) ) {
+        if( !name.length() || data.name.length() > name.length() ) {
+            name = data.name;
+        }
+    }
+    if( data.isSet(EInfoReport::Element::NAME_SHORT) ) {
+        if( !name.length() ) {
+            name = data.name_short;
+        }
+    }
+    if( data.isSet(EInfoReport::Element::RSSI) ) {
+        rssi = data.rssi;
+    }
+    if( data.isSet(EInfoReport::Element::TX_POWER) ) {
+        tx_power = data.tx_power;
+    }
+    if( data.isSet(EInfoReport::Element::MANUF_DATA) ) {
+        msd = data.msd;
+    }
+    addServices(data.services);
 }
 
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len)
 : company(company), companyName(std::string(bt_compidtostr(company))), data_len(data_len), data(new uint8_t[data_len]) {
-	memcpy(this->data.get(), data, data_len);
+    memcpy(this->data.get(), data, data_len);
 }
 
 std::string ManufactureSpecificData::toString() const {
@@ -136,79 +136,79 @@ std::string ManufactureSpecificData::toString() const {
 }
 
 static std::string get_string(const uint8_t *buffer, int buffer_len) {
-	const int cstr_len = std::min(buffer_len, 30);
+    const int cstr_len = std::min(buffer_len, 30);
     char cstr[30+1]; // EOS
     memcpy(cstr, buffer, cstr_len);
     cstr[cstr_len] = 0; // EOS
-	return std::string(cstr);
+    return std::string(cstr);
 }
 
 void EInfoReport::setName(const uint8_t *buffer, int buffer_len) {
-	name = get_string(buffer, buffer_len);
-	set(Element::NAME);
+    name = get_string(buffer, buffer_len);
+    set(Element::NAME);
 }
 
 void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) {
-	name_short = get_string(buffer, buffer_len);
-	set(Element::NAME_SHORT);
+    name_short = get_string(buffer, buffer_len);
+    set(Element::NAME_SHORT);
 }
 
 void EInfoReport::addService(std::shared_ptr<UUID> const &uuid)
 {
-	auto begin = services.begin();
+    auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<UUID> const& p) {
         return *p == *uuid;
     });
     if ( it == std::end(services) ) {
-		services.push_back(uuid);
-	}
+        services.push_back(uuid);
+    }
 }
 
 std::string EInfoReport::getAddressString() const {
-	char sa[18];
-	ba2str(&bdaddr, sa);
-	return std::string(sa);
+    char sa[18];
+    ba2str(&bdaddr, sa);
+    return std::string(sa);
 }
 
 std::string EInfoReport::dataSetToString() const {
-	std::string out("DataSet[");
-	if( isSet(Element::EVT_TYPE) ) {
-		out.append("EVT_TYPE, ");
-	}
-	if( isSet(Element::BDADDR) ) {
-		out.append("BDADDR, ");
-	}
-	if( isSet(Element::NAME) ) {
-		out.append("NAME, ");
-	}
-	if( isSet(Element::NAME_SHORT) ) {
-		out.append("NAME_SHORT, ");
-	}
-	if( isSet(Element::RSSI) ) {
-		out.append("RSSI, ");
-	}
-	if( isSet(Element::TX_POWER) ) {
-		out.append("TX_POWER, ");
-	}
-	if( isSet(Element::MANUF_DATA) ) {
-		out.append("MANUF_DATA, ");
-	}
-	out.append("]");
-	return out;
+    std::string out("DataSet[");
+    if( isSet(Element::EVT_TYPE) ) {
+        out.append("EVT_TYPE, ");
+    }
+    if( isSet(Element::BDADDR) ) {
+        out.append("BDADDR, ");
+    }
+    if( isSet(Element::NAME) ) {
+        out.append("NAME, ");
+    }
+    if( isSet(Element::NAME_SHORT) ) {
+        out.append("NAME_SHORT, ");
+    }
+    if( isSet(Element::RSSI) ) {
+        out.append("RSSI, ");
+    }
+    if( isSet(Element::TX_POWER) ) {
+        out.append("TX_POWER, ");
+    }
+    if( isSet(Element::MANUF_DATA) ) {
+        out.append("MANUF_DATA, ");
+    }
+    out.append("]");
+    return out;
 }
 std::string EInfoReport::toString() const {
-	std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-	std::string out("ADRecord["+getAddressString()+", "+name+"/"+name_short+", "+dataSetToString()+
-			        ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
-					", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
-	if(services.size() > 0 ) {
-		out.append("\n");
-	    for(auto it = services.begin(); it != services.end(); it++) {
-	    	std::shared_ptr<UUID> p = *it;
-	    	out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->type))).append(" bytes\n");
-	    }
-	}
-	return out;
+    std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
+    std::string out("ADRecord["+getAddressString()+", "+name+"/"+name_short+", "+dataSetToString()+
+                    ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
+                    ", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
+    if(services.size() > 0 ) {
+        out.append("\n");
+        for(auto it = services.begin(); it != services.end(); it++) {
+            std::shared_ptr<UUID> p = *it;
+            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->type))).append(" bytes\n");
+        }
+    }
+    return out;
 }
 
 // *************************************************
@@ -310,9 +310,9 @@ std::shared_ptr<HCISession> HCIAdapter::open()
 
 std::shared_ptr<HCIDeviceDiscoveryListener> HCIAdapter::setDeviceDiscoveryListener(std::shared_ptr<HCIDeviceDiscoveryListener> l)
 {
-	std::shared_ptr<HCIDeviceDiscoveryListener> o = deviceDiscoveryListener;
-	deviceDiscoveryListener = l;
-	return o;
+    std::shared_ptr<HCIDeviceDiscoveryListener> o = deviceDiscoveryListener;
+    deviceDiscoveryListener = l;
+    return o;
 }
 
 std::shared_ptr<HCISession> HCIAdapter::startDiscovery() {
@@ -369,33 +369,33 @@ bool HCIAdapter::stopDiscovery(HCISession& session) {
 }
 
 void HCIAdapter::addDevice(std::shared_ptr<HCIDevice> const &device) {
-	if( 0 > findDevice(device->mac) ) {
-		discoveredDevices.push_back(device);
-	}
+    if( 0 > findDevice(device->mac) ) {
+        discoveredDevices.push_back(device);
+    }
 }
 
 int HCIAdapter::findDevice(bdaddr_t const & mac) const {
-	auto begin = discoveredDevices.begin();
+    auto begin = discoveredDevices.begin();
     auto it = std::find_if(begin, discoveredDevices.end(), [&](std::shared_ptr<HCIDevice> const& p) {
-    	return !bacmp(&p->mac, &mac);
+        return !bacmp(&p->mac, &mac);
     });
     if ( it == std::end(discoveredDevices) ) {
-    	return -1;
+        return -1;
     } else {
-    	return std::distance(begin, it);
+        return std::distance(begin, it);
     }
 }
 
 std::string HCIAdapter::toString() const {
-	std::string out("Adapter["+getAddress()+", "+getName()+", id="+std::to_string(dev_id)+"]");
-	if(discoveredDevices.size() > 0 ) {
-		out.append("\n");
-	    for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
-	    	std::shared_ptr<HCIDevice> p = *it;
-	    	out.append("  ").append(p->toString()).append("\n");
-	    }
-	}
-	return out;
+    std::string out("Adapter["+getAddress()+", "+getName()+", id="+std::to_string(dev_id)+"]");
+    if(discoveredDevices.size() > 0 ) {
+        out.append("\n");
+        for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
+            std::shared_ptr<HCIDevice> p = *it;
+            out.append("  ").append(p->toString()).append("\n");
+        }
+    }
+    return out;
 }
 
 // *************************************************

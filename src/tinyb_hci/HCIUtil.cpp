@@ -29,7 +29,7 @@
 
 #if _USE_BACKTRACE_
 extern "C" {
-	#include <execinfo.h>
+    #include <execinfo.h>
 }
 #endif
 
@@ -53,21 +53,21 @@ int64_t tinyb_hci::getCurrentMilliseconds() {
 }
 
 const char* RuntimeException::what() const noexcept {
-#if	_USE_BACKTRACE_
-	std::string out(msg);
-	void *buffers[10];
-	size_t nptrs = backtrace(buffers, 10);
-	char **symbols = backtrace_symbols(buffers, nptrs);
-	if( NULL != symbols ) {
-		out.append("\nBacktrace:\n");
-		for(int i=0; i<nptrs; i++) {
-			out.append(symbols[i]).append("\n");
-		}
-		free(symbols);
-	}
-	return out.c_str();
+#if    _USE_BACKTRACE_
+    std::string out(msg);
+    void *buffers[10];
+    size_t nptrs = backtrace(buffers, 10);
+    char **symbols = backtrace_symbols(buffers, nptrs);
+    if( NULL != symbols ) {
+        out.append("\nBacktrace:\n");
+        for(int i=0; i<nptrs; i++) {
+            out.append(symbols[i]).append("\n");
+        }
+        free(symbols);
+    }
+    return out.c_str();
 #else
-	return msg.c_str();
+    return msg.c_str();
 #endif
 }
 

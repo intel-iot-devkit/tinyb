@@ -26,16 +26,16 @@
 #include <tinyb_hci/HCITypes.hpp>
 
 class DeviceDiscoveryListener : public tinyb_hci::HCIDeviceDiscoveryListener {
-	void deviceAdded(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
-		fprintf(stderr, "****** ADDED__: %s\n", device->toString().c_str());
+    void deviceAdded(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
+        fprintf(stderr, "****** ADDED__: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
-	}
-	void deviceUpdated(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
-		fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
+    }
+    void deviceUpdated(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
+        fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
-	}
+    }
 };
 
 int main(int argc, char *argv[])

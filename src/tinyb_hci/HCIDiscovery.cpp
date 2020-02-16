@@ -62,7 +62,7 @@ using namespace tinyb_hci;
 #define AD_TYPE_DEVICE_ID               0x10  /* device ID */
 #define AD_TYPE_MANUFACTURE_SPECIFIC    0xFF
 
-#define HCI_LE_Advertising_Report   	0x3E
+#define HCI_LE_Advertising_Report       0x3E
 
 /**
  * See Bluetooth Core Specification V5.2 [Vol. 3, Part C, 11, p 1392]
@@ -201,16 +201,16 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         }
 
         for(i = 0; i < num_reports && i < 0x19; i++) {
-        	ad_reports[i].setTimestamp(t1);
-        	ad_reports[i].setEvtType(*i_octets++);
+            ad_reports[i].setTimestamp(t1);
+            ad_reports[i].setEvtType(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-        	ad_reports[i].setAddressType(*i_octets++);
+            ad_reports[i].setAddressType(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
             ad_reports[i].setAddress((bdaddr_t const *)i_octets );
             i_octets += 6;
-			DBG_PRINT("[%7.7" PRId64"]   Address[%d/%d] %s\n", td, i, num_reports, ad_reports[i].getAddressString().c_str());
+            DBG_PRINT("[%7.7" PRId64"]   Address[%d/%d] %s\n", td, i, num_reports, ad_reports[i].getAddressString().c_str());
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
             ra_length_data[i] = *i_octets++;
@@ -225,14 +225,14 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
             while( 0 < ( offset = read_ad_struct_elem( &ad_len, &ad_type, &ad_data, 
                                ra_data[i], offset, ra_length_data[i] ) ) )
             {
-            	DBG_PRINT("[%7.7" PRId64"]     AD-Elem[%d/%d] @ [%d/%d]: ad_len %d net, ad_type 0x%.2X\n",
+                DBG_PRINT("[%7.7" PRId64"]     AD-Elem[%d/%d] @ [%d/%d]: ad_len %d net, ad_type 0x%.2X\n",
                     td, i, num_reports, offset, ra_length_data[i], ad_len, ad_type);
 
                 // Guaranteed: ad_len >= 0!
                 switch ( ad_type ) {
                 case AD_TYPE_FLAGS:
-                		// happens
-                		break;
+                        // happens
+                        break;
                     case AD_TYPE_UUID16_SOME:
                     case AD_TYPE_UUID16_ALL:
                         for(int j=0; j<ad_len/2; j++) {
@@ -257,26 +257,26 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
                     case AD_TYPE_NAME_SHORT:
                     case AD_TYPE_NAME_COMPLETE: {
                         if( AD_TYPE_NAME_COMPLETE == ad_type ) {
-                        	ad_reports[i].setName(ad_data, ad_len);
+                            ad_reports[i].setName(ad_data, ad_len);
                         } else {
-                        	ad_reports[i].setShortName(ad_data, ad_len);
+                            ad_reports[i].setShortName(ad_data, ad_len);
                         }
                     } break;
                     case AD_TYPE_TX_POWER:
-                    	ad_reports[i].setTxPower(*ad_data);
-                    	break;
+                        ad_reports[i].setTxPower(*ad_data);
+                        break;
                     case AD_TYPE_DEVICE_ID:
                         // ???
-                    	break;
+                        break;
                     case AD_TYPE_MANUFACTURE_SPECIFIC: {
-                    	uint16_t company = get_uint16(ad_data, 0, true /* littleEndian */);
-                    	ad_reports[i].setManufactureSpecificData(company, ad_data+2, ad_len-2);
+                        uint16_t company = get_uint16(ad_data, 0, true /* littleEndian */);
+                        ad_reports[i].setManufactureSpecificData(company, ad_data+2, ad_len-2);
                     } break;
                 }
             }
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-        	ad_reports[i].setRSSI(*i_octets++);
+            ad_reports[i].setRSSI(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
             DBG_PRINT("[%7.7" PRId64"] Report %d/%d: %s\n", td, i, num_reports, ad_reports[i].toString().c_str());
@@ -284,21 +284,21 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
             int idx = findDevice(ad_reports[i].getAddress());
             std::shared_ptr<HCIDevice> dev;
             if( 0 > idx ) {
-            	if( ad_reports[i].isSet(EInfoReport::Element::BDADDR) ) {
-            		dev = std::shared_ptr<HCIDevice>(new HCIDevice(ad_reports[i]));
-            		addDevice(dev);
-            		if( nullptr != deviceDiscoveryListener ) {
-            			deviceDiscoveryListener->deviceAdded(*this, dev);
-            		}
-            	} else {
-            		dev = nullptr;
-            	}
+                if( ad_reports[i].isSet(EInfoReport::Element::BDADDR) ) {
+                    dev = std::shared_ptr<HCIDevice>(new HCIDevice(ad_reports[i]));
+                    addDevice(dev);
+                    if( nullptr != deviceDiscoveryListener ) {
+                        deviceDiscoveryListener->deviceAdded(*this, dev);
+                    }
+                } else {
+                    dev = nullptr;
+                }
             } else {
-            	dev = getDevice(idx);
-            	dev->update(ad_reports[i]);
-        		if( nullptr != deviceDiscoveryListener ) {
-        			deviceDiscoveryListener->deviceUpdated(*this, dev);
-        		}
+                dev = getDevice(idx);
+                dev->update(ad_reports[i]);
+                if( nullptr != deviceDiscoveryListener ) {
+                    deviceDiscoveryListener->deviceUpdated(*this, dev);
+                }
             }
         }
     }
