@@ -40,11 +40,11 @@ UUID128::UUID128(UUID128 const & base_uuid, UUID32 const & uuid32, int const uui
 
 std::string UUID16::toString() const {
     char buffer[4+1];
-    int count = snprintf(buffer, sizeof(buffer), "%.4X", value);
+    const int count = snprintf(buffer, sizeof(buffer), "%.4X", value);
     if( 4 != count ) {
         std::string msg("UUID string not of length 4 but ");
         msg.append(std::to_string(count));
-        throw InternalError(msg);
+        throw InternalError(msg, E_FILE_LINE);
     }
     return std::string(buffer);
 }

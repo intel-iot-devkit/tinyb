@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     fprintf(stderr, "Adapter: device %s, address %s\n", 
-        adapter.getName().c_str(), adapter.getAddress().c_str());
+        adapter.getName().c_str(), adapter.getAddressString().c_str());
 
     adapter.setDeviceDiscoveryListener(std::shared_ptr<tinyb_hci::HCIDeviceDiscoveryListener>(new DeviceDiscoveryListener()));
 

@@ -28,17 +28,17 @@
 
 #pragma once
 #include <cstring>
+#include <string>
 #include <memory>
-#include <mutex>
-#include <atomic>
 #include <cstdint>
 #include <vector>
-#include <functional>
-#include <map>
 
 extern "C" {
     #include <byteswap.h>
 }
+
+#define JAVA_MAIN_PACKAGE "org/tinyb"
+#define JAVA_HCI_PACKAGE "tinyb/hci"
 
 namespace tinyb_hci {
 
@@ -240,6 +240,18 @@ namespace tinyb_hci {
         uint128_t const * p = (uint128_t const *) ( buffer + byte_offset );
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
+
+    /**
+     * Returns a C++ String taken from buffer with maximum length of min(max_len, max_len).
+     * <p>
+     * The maximum length only delimits the string length and does not contain the EOS null byte.
+     * An EOS null byte will will be added.
+     * </p>
+     * <p>
+     * The source string within buffer is not required to contain an EOS null byte;
+     * </p>
+     */
+    std::string get_string(const uint8_t *buffer, int const buffer_len, int const max_len);
 
     /**
      * Merge the given 'uuid16' into a 'base_uuid' copy at the given little endian 'uuid16_le_octet_index' position.

@@ -28,16 +28,16 @@
 
 #pragma once
 #include <cstring>
+#include <string>
 #include <memory>
 #include <cstdint>
 #include <vector>
-#include <functional>
 
 #include "HCIUtil.hpp"
 
 namespace tinyb_hci {
 
-class UUID128;
+class UUID128; // forward
 
 /**
  * Bluetooth UUID <https://www.bluetooth.com/specifications/assigned-numbers/service-discovery/>

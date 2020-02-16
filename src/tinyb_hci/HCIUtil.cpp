@@ -71,6 +71,14 @@ const char* RuntimeException::what() const noexcept {
 #endif
 }
 
+std::string tinyb_hci::get_string(const uint8_t *buffer, int const buffer_len, int const max_len) {
+    const int cstr_len = std::min(buffer_len, max_len);
+    char cstr[max_len+1]; // EOS
+    memcpy(cstr, buffer, cstr_len);
+    cstr[cstr_len] = 0; // EOS
+    return std::string(cstr);
+}
+
 uint128_t tinyb_hci::merge_uint128(uint128_t const & base_uuid, uint16_t const uuid16, int const uuid16_le_octet_index)
 {
     if( 0 > uuid16_le_octet_index || uuid16_le_octet_index > 14 ) {
