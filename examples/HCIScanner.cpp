@@ -25,6 +25,19 @@
 
 #include <tinyb_hci/HCITypes.hpp>
 
+class DeviceDiscoveryListener : public tinyb_hci::HCIDeviceDiscoveryListener {
+	void deviceAdded(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
+		fprintf(stderr, "****** ADDED__: %s\n", device->toString().c_str());
+        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "%s\n", a.toString().c_str());
+	}
+	void deviceUpdated(tinyb_hci::HCIAdapter const &a, std::shared_ptr<tinyb_hci::HCIDevice> device) {
+		fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
+        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "%s\n", a.toString().c_str());
+	}
+};
+
 int main(int argc, char *argv[])
 {
     int err = 0;
@@ -41,6 +54,8 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Adapter: device %s, address %s\n", 
         adapter.getName().c_str(), adapter.getAddress().c_str());
 
+    adapter.setDeviceDiscoveryListener(std::shared_ptr<tinyb_hci::HCIDeviceDiscoveryListener>(new DeviceDiscoveryListener()));
+
     while( !err ) {
         std::shared_ptr<tinyb_hci::HCISession> session = adapter.startDiscovery();
         if( nullptr == session ) {
@@ -48,16 +63,10 @@ int main(int argc, char *argv[])
             exit(1);
         }
 
-        // do something 
         if( !adapter.discoverDevices(*session, 1000) ) {
             fprintf(stderr, "Adapter discovery failed.\n");
             err = 1;
         }
-
-        fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
-        fprintf(stderr, "Discovery Results HCIAdapter:\n");
-        fprintf(stderr, "%s\n", adapter.toString().c_str());
-        fprintf(stderr, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 
         if( !adapter.stopDiscovery(*session) ) {
             fprintf(stderr, "Adapter stop discovery failed.\n");

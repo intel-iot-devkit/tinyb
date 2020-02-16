@@ -59,6 +59,7 @@ public:
 	Type const type;
 	UUID(Type const type) : type(type) {}
 	virtual ~UUID() {};
+
 	UUID(const UUID &o) noexcept = default;
 	UUID(UUID &&o) noexcept = default;
 	UUID& operator=(const UUID &o) noexcept = default;

@@ -33,7 +33,17 @@
 
 #include "HCITypes.hpp"
 
+#define VERBOSE_ON 1
+
+#ifdef VERBOSE_ON
+    #define DBG_PRINT(...) fprintf(stderr, __VA_ARGS__); fflush(stderr)
+#else
+    #define DBG_PRINT(...)
+#endif
+
 using namespace tinyb_hci;
+
+#define _VERBOSE_ 1
 
 #define AD_FLAGS_LIMITED_MODE_BIT 0x01
 #define AD_FLAGS_GENERAL_MODE_BIT 0x02
@@ -128,16 +138,9 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         evt_le_meta_event *meta;
         int num_reports, i;
         uint8_t *i_octets;
-        uint8_t ra_evt_type[0x19];
-        uint8_t ra_bdaddr_type[0x19];
-        bdaddr_t ra_bdaddr[0x19];
+        EInfoReport ad_reports[0x19];
         uint8_t ra_length_data[0x19];
         uint8_t *ra_data[0x19];
-        uint8_t ra_rssi[0x19];
-        std::string ra_address[0x19];
-        std::string ra_name_short[0x19];
-        std::string ra_name_complete[0x19];
-        std::vector<std::shared_ptr<UUID>> services[0x19];
 
         if( timeoutMS ) {
             struct pollfd p;
@@ -171,16 +174,16 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
 
         // HCI_LE_Advertising_Report == 0x3E == EVT_LE_META_EVENT
         hci_type = buf[0];
-        fprintf(stderr, "[%7.7" PRId64"] hci-type 0x%.2X\n", td, hci_type);
+        DBG_PRINT("[%7.7" PRId64"] hci-type 0x%.2X\n", td, hci_type);
 
         ehdr = (hci_event_hdr*)(void*) ( buf + HCI_TYPE_LEN );
-        fprintf(stderr, "[%7.7" PRId64"] hci-event-hdr event 0x%.2X, plen %d\n",
+        DBG_PRINT("[%7.7" PRId64"] hci-event-hdr event 0x%.2X, plen %d\n",
             td, ehdr->evt, ehdr->plen);
 
         len_read -= (1 + HCI_EVENT_HDR_SIZE);
         meta = (evt_le_meta_event*)(void *) ( buf + ( HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE ) );
 
-        fprintf(stderr, "[%7.7" PRId64"] hci-subevent 0x%.2X, remaining-len %d\n",
+        DBG_PRINT("[%7.7" PRId64"] hci-subevent 0x%.2X, remaining-len %d\n",
             td, meta->subevent, len_read);
 
         //        0x3E                                                           0x02
@@ -190,7 +193,7 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
 
         num_reports = (int) meta->data[0];
         i_octets = meta->data + 1;
-        fprintf(stderr, "[%7.7" PRId64"] num_reports %d\n", td, num_reports);
+        DBG_PRINT("[%7.7" PRId64"] num_reports %d\n", td, num_reports);
 
         if( 0 >= num_reports || num_reports > 0x19 ) {
             ok = false;
@@ -198,19 +201,16 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         }
 
         for(i = 0; i < num_reports && i < 0x19; i++) {
-            ra_evt_type[i] = *i_octets++;
+        	ad_reports[i].setTimestamp(t1);
+        	ad_reports[i].setEvtType(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-            ra_bdaddr_type[i] = *i_octets++;
+        	ad_reports[i].setAddressType(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-            char addr[18];
-            bacpy( &ra_bdaddr[i], (const bdaddr_t *)i_octets );
+            ad_reports[i].setAddress((bdaddr_t const *)i_octets );
             i_octets += 6;
-
-            ba2str( &ra_bdaddr[i], addr );
-            ra_address[i] = std::string(addr);
-            fprintf(stderr, "[%7.7" PRId64"]   Address[%d] %s\n", td, i, ra_address[i].c_str());
+			DBG_PRINT("[%7.7" PRId64"]   Address[%d/%d] %s\n", td, i, num_reports, ad_reports[i].getAddressString().c_str());
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
             ra_length_data[i] = *i_octets++;
@@ -218,93 +218,87 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         for(i = 0; i < num_reports && i < 0x19; i++) {
             int offset = 0;
             uint8_t ad_len, ad_type, *ad_data;
-            char name[30];
-            size_t name_len;
             ra_data[i] = i_octets;
             i_octets += ra_length_data[i];
-            fprintf(stderr, "[%7.7" PRId64"]   AD-Struct[%d] start: size %d\n", td, i, ra_length_data[i]);
+            DBG_PRINT("[%7.7" PRId64"]   AD-Struct[%d/%d] start: size %d\n", td, i, num_reports, ra_length_data[i]);
 
             while( 0 < ( offset = read_ad_struct_elem( &ad_len, &ad_type, &ad_data, 
                                ra_data[i], offset, ra_length_data[i] ) ) )
             {
-                fprintf(stderr, "read_ad_struct_elem: offset %d @ size %d: net ad_len %d, ad_type 0x%.2X\n",
-                    offset, ra_length_data[i], ad_len, ad_type);
+            	DBG_PRINT("[%7.7" PRId64"]     AD-Elem[%d/%d] @ [%d/%d]: ad_len %d net, ad_type 0x%.2X\n",
+                    td, i, num_reports, offset, ra_length_data[i], ad_len, ad_type);
 
                 // Guaranteed: ad_len >= 0!
                 switch ( ad_type ) {
+                case AD_TYPE_FLAGS:
+                		// happens
+                		break;
                     case AD_TYPE_UUID16_SOME:
                     case AD_TYPE_UUID16_ALL:
                         for(int j=0; j<ad_len/2; j++) {
                             const std::shared_ptr<UUID> uuid(new UUID16(ad_data, j*2, true));
-                            services[i].push_back(std::move(uuid));
+                            ad_reports[i].addService(std::move(uuid));
                         }
                         break;
                     case AD_TYPE_UUID32_SOME:
                     case AD_TYPE_UUID32_ALL:
                         for(int j=0; j<ad_len/4; j++) {
                             const std::shared_ptr<UUID> uuid(new UUID32(ad_data, j*4, true));
-                            services[i].push_back(std::move(uuid));
+                            ad_reports[i].addService(std::move(uuid));
                         }
                         break;
                     case AD_TYPE_UUID128_SOME:
                     case AD_TYPE_UUID128_ALL:
                         for(int j=0; j<ad_len/16; j++) {
                             const std::shared_ptr<UUID> uuid(new UUID128(ad_data, j*16, true));
-                            services[i].push_back(std::move(uuid));
+                            ad_reports[i].addService(std::move(uuid));
                         }
                         break;
                     case AD_TYPE_NAME_SHORT:
-                    case AD_TYPE_NAME_COMPLETE:
-                        memset(name, 0, sizeof(name));
-                        name_len = std::min((size_t)ad_len, sizeof(name) - 1); // less EOS
-                        memcpy(name, ad_data, name_len);
+                    case AD_TYPE_NAME_COMPLETE: {
                         if( AD_TYPE_NAME_COMPLETE == ad_type ) {
-                            ra_name_complete[i] = std::string(name);
+                        	ad_reports[i].setName(ad_data, ad_len);
                         } else {
-                            ra_name_short[i] = std::string(name);
+                        	ad_reports[i].setShortName(ad_data, ad_len);
                         }
-                        break;
+                    } break;
                     case AD_TYPE_TX_POWER:
+                    	ad_reports[i].setTxPower(*ad_data);
+                    	break;
                     case AD_TYPE_DEVICE_ID:
                         // ???
-                        break;
+                    	break;
+                    case AD_TYPE_MANUFACTURE_SPECIFIC: {
+                    	uint16_t company = get_uint16(ad_data, 0, true /* littleEndian */);
+                    	ad_reports[i].setManufactureSpecificData(company, ad_data+2, ad_len-2);
+                    } break;
                 }
             }
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-            ra_rssi[i] = *i_octets++;
+        	ad_reports[i].setRSSI(*i_octets++);
         }
         for(i = 0; i < num_reports && i < 0x19; i++) {
-            std::string & use_name = ra_name_complete[i].length()>0 ? 
-                                     ra_name_complete[i] : ra_name_short[i];
+            DBG_PRINT("[%7.7" PRId64"] Report %d/%d: %s\n", td, i, num_reports, ad_reports[i].toString().c_str());
 
-            fprintf(stderr, "[%7.7" PRId64"] Report %d/%d, event-type 0x%.2X\n", td, i, num_reports, ra_evt_type[i]);
-            fprintf(stderr, "[%7.7" PRId64"]   Address %s, name '%s' (short '%s')\n", 
-                td, ra_address[i].c_str(), ra_name_complete[i].c_str(), ra_name_short[i].c_str());
-            fprintf(stderr, "[%7.7" PRId64"]   RSSI %d\n", td, ra_rssi[i]);
-
-            for(int j=0; j<services[i].size(); j++) {
-                const std::shared_ptr<UUID> uuid = services[i].at(j);
-                fprintf(stderr, "[%7.7" PRId64"]   UUID[%d] (%d bytes) %s\n", td, j, uuid->type, uuid->toUUID128String().c_str());
-            }
-
-            int idx = findDevice(ra_bdaddr[i]);
+            int idx = findDevice(ad_reports[i].getAddress());
             std::shared_ptr<HCIDevice> dev;
             if( 0 > idx ) {
-            	dev = std::shared_ptr<HCIDevice>(new HCIDevice(ra_bdaddr[i], use_name, ra_rssi[i]));
-            	addDevice(dev);
+            	if( ad_reports[i].isSet(EInfoReport::Element::BDADDR) ) {
+            		dev = std::shared_ptr<HCIDevice>(new HCIDevice(ad_reports[i]));
+            		addDevice(dev);
+            		if( nullptr != deviceDiscoveryListener ) {
+            			deviceDiscoveryListener->deviceAdded(*this, dev);
+            		}
+            	} else {
+            		dev = nullptr;
+            	}
             } else {
             	dev = getDevice(idx);
-            	if( ra_name_complete[i].length() > 0 ) {
-            		dev->setName(ra_name_complete[i]);
-            	} else if( !dev->name.length() && ra_name_short[i].length() > 0 ) {
-            		dev->setName(ra_name_short[i]);
-            	}
-                dev->setLastRSSI(ra_rssi[i]);
-            }
-            for(int j=0; j<services[i].size(); j++) {
-                const std::shared_ptr<UUID> uuid = services[i].at(j);
-                dev->addService(uuid);
+            	dev->update(ad_reports[i]);
+        		if( nullptr != deviceDiscoveryListener ) {
+        			deviceDiscoveryListener->deviceUpdated(*this, dev);
+        		}
             }
         }
     }
