@@ -196,52 +196,65 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
 
         // Guaranteed: eir_elem_len >= 0!
         switch ( elem_type ) {
-            case AD_Types::FLAGS:
+            case GAP_Types::FLAGS:
                 // FIXME
                 break;
-            case AD_Types::UUID16_SOME:
-            case AD_Types::UUID16_ALL:
+            case GAP_Types::UUID16_INCOMPLETE:
+            case GAP_Types::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID16(elem_data, j*2, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case AD_Types::UUID32_SOME:
-            case AD_Types::UUID32_ALL:
+            case GAP_Types::UUID32_INCOMPLETE:
+            case GAP_Types::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID32(elem_data, j*4, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case AD_Types::UUID128_SOME:
-            case AD_Types::UUID128_ALL:
+            case GAP_Types::UUID128_INCOMPLETE:
+            case GAP_Types::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID128(elem_data, j*16, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case AD_Types::NAME_SHORT:
-            case AD_Types::NAME_COMPLETE: {
-                if( AD_Types::NAME_COMPLETE == elem_type ) {
+            case GAP_Types::NAME_LOCAL_SHORT:
+            case GAP_Types::NAME_LOCAL_COMPLETE: {
+                if( GAP_Types::NAME_LOCAL_COMPLETE == elem_type ) {
                     setName(elem_data, elem_len);
                 } else {
                     setShortName(elem_data, elem_len);
                 }
             } break;
-            case AD_Types::TX_POWER:
+            case GAP_Types::TX_POWER_LEVEL:
                 setTxPower(*elem_data);
                 break;
-            case AD_Types::DEVICE_ID:
-                // FIXME
+
+            case GAP_Types::CLASS_OF_DEVICES:
+            case GAP_Types::DEVICE_ID:
+            case GAP_Types::SOLICIT_UUID16:
+            case GAP_Types::SOLICIT_UUID128:
+            case GAP_Types::SVC_DATA_UUID16:
+            case GAP_Types::PUB_TRGT_ADDR:
+            case GAP_Types::RND_TRGT_ADDR:
+            case GAP_Types::GAP_APPEARANCE:
+            case GAP_Types::SOLICIT_UUID32:
+            case GAP_Types::SVC_DATA_UUID32:
+            case GAP_Types::SVC_DATA_UUID128:
                 break;
-            case AD_Types::MANUFACTURE_SPECIFIC: {
+
+            case GAP_Types::MANUFACTURE_SPECIFIC: {
                 uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
                 setManufactureSpecificData(company, elem_data+2, elem_len-2);
             } break;
-            default:
+
+            default: {
+                // FIXME: Use a data blob!!!!
                 fprintf(stderr, "%s-Element @ [%d/%d]: Warning: Unhandled type 0x%.2X with %d bytes net\n",
                         getSourceString().c_str(), offset, data_length, elem_type, elem_len);
-                break;
+            } break;
         }
     }
     return count;

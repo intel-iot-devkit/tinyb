@@ -43,29 +43,123 @@ enum AD_Type_Const : uint8_t {
     AD_FLAGS_GENERAL_MODE_BIT = 0x02
 };
 
-enum AD_Types : uint8_t {
+/**
+ * ​​Assigned numbers are used in Generic Access Profile (GAP) for inquiry response,
+ * EIR data type values, manufacturer-specific data, advertising data,
+ * low energy UUIDs and appearance characteristics, and class of device.
+ * <p>
+ * Type identifier values as defined in "Assigned Numbers - Generic Access Profile"
+ * <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
+ * </p>
+ * <p>
+ * Also see Bluetooth Core Specification Supplement V9, Part A: 1, p 9 pp
+ * for data format definitions.
+ * </p>
+ * <p>
+ * For data segment layout see Bluetooth Core Specification V5.2 [Vol. 3, Part C, 11, p 1392]
+ * </p>
+ * <p>
+ * https://www.bluetooth.com/specifications/archived-specifications/
+ * </p>
+ */
+enum GAP_Types : uint8_t {
+    // Last sync 2020-02-17 with <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
+    /** Flags */
     FLAGS                   = 0x01,
-    /** 16-bit UUID, more available */
-    UUID16_SOME             = 0x02,
-    /** 16-bit UUID, all listed */
-    UUID16_ALL              = 0x03,
-    /** 32-bit UUID, more available */
-    UUID32_SOME             = 0x04,
-    /** 32-bit UUID, all listed */
-    UUID32_ALL              = 0x05,
-    /** 128-bit UUID, more available */
-    UUID128_SOME            = 0x06,
-    /** 128-bit UUID, all listed */
-    UUID128_ALL             = 0x07,
+    /** Incomplete List of 16-bit Service Class UUID. (Supplement, Part A, section 1.1)*/
+    UUID16_INCOMPLETE       = 0x02,
+    /** Complete List of 16-bit Service Class UUID. (Supplement, Part A, section 1.1) */
+    UUID16_COMPLETE         = 0x03,
+    /** Incomplete List of 32-bit Service Class UUID. (Supplement, Part A, section 1.1) */
+    UUID32_INCOMPLETE       = 0x04,
+    /** Complete List of 32-bit Service Class UUID. (Supplement, Part A, section 1.1) */
+    UUID32_COMPLETE         = 0x05,
+    /** Incomplete List of 128-bit Service Class UUID. (Supplement, Part A, section 1.1) */
+    UUID128_INCOMPLETE      = 0x06,
+    /** Complete List of 128-bit Service Class UUID. (Supplement, Part A, section 1.1) */
+    UUID128_COMPLETE        = 0x07,
+    /** Shortened local name (Supplement, Part A, section 1.2) */
+    NAME_LOCAL_SHORT        = 0x08,
+    /** Complete local name (Supplement, Part A, section 1.2) */
+    NAME_LOCAL_COMPLETE     = 0x09,
+    /** Transmit power level (Supplement, Part A, section 1.5) */
+    TX_POWER_LEVEL          = 0x0A,
 
-    /** shortened local name */
-    NAME_SHORT              = 0x08,
-    /** complete local name */
-    NAME_COMPLETE           = 0x09,
-    /** transmit power level */
-    TX_POWER                = 0x0A,
-    /** device ID */
+    /** Class of device (Supplement, Part A, section 1.6) */
+    CLASS_OF_DEVICES        = 0x0D,
+    /** Simple Pairing Hash C and Simple Pairing Hash C-192 (Supplement, Part A 1.6) */
+    SSP_HASH_C192           = 0x0E,
+    /** Simple Pairing Randomizer R-192 (Supplement, Part A, section 1.6) */
+    SSP_RANDOMIZER_R192     = 0x0F,
+
+    /** Device ID Profile v 1.3 or later */
     DEVICE_ID               = 0x10,
+
+    /** Security Manager TK Value */
+    SEC_MGR_TK_VALUE        = 0x10,
+
+    /** Security Manager Out of Band Flags */
+    SEC_MGR_OOB_FLAGS       = 0x11,
+
+    /** Slave Connection Interval Range */
+    SLAVE_CONN_IVAL_RANGE   = 0x12,
+
+    /** List of 16-bit Service Solicitation UUIDs (Supplement, Part A, section 1.10) */
+    SOLICIT_UUID16          = 0x14,
+
+    /** List of 128-bit Service Solicitation UUIDs (Supplement, Part A, section 1.10) */
+    SOLICIT_UUID128         = 0x15,
+
+    /** Service Data - 16-bit UUID (Supplement, Part A, section 1.11) */
+    SVC_DATA_UUID16         = 0x16,
+
+    /* Public Target Address (Supplement, Part A, section 1.13) */
+    PUB_TRGT_ADDR           = 0x17,
+    /* Random Target Address (Supplement, Part A, section 1.14) */
+    RND_TRGT_ADDR           = 0x18,
+
+    /** (GAP) Appearance (Supplement, Part A, section 1.12) */
+    GAP_APPEARANCE          = 0x19,
+
+    /** Advertising Interval (Supplement, Part A, section 1.15) */
+    ADV_INTERVAL            = 0x1A,
+    /** LE Bluetooth Device Address */
+    LE_BT_DEV_ADDRESS       = 0x1B,
+    /** LE ROLE */
+    LE_ROLE                 = 0x1C,
+
+    /** Simple Pairing Hash C-256 (Supplement, Part A 1.6) */
+    SSP_HASH_C256           = 0x1D,
+    /** Simple Pairing Randomizer R-256 (Supplement, Part A, section 1.6) */
+    SSP_RANDOMIZER_R256     = 0x1E,
+
+    /** List of 32-bit Service Solicitation UUID (Supplement, Part A, section 1.10) */
+    SOLICIT_UUID32          = 0x1F,
+
+    /** Service data, 32-bit UUID (Supplement, Part A, section 1.11) */
+    SVC_DATA_UUID32         = 0x20,
+    /** Service data, 128-bit UUID (Supplement, Part A, section 1.11) */
+    SVC_DATA_UUID128        = 0x21,
+
+    /** LE: LE Secure Connections Confirmation Value (Supplement Part A, Section 1.6) */
+    LE_SEC_CONN_ACK_VALUE   = 0x22,
+
+    /* Indoor Positioning - Indoor Positioning Service v1.0 or later */
+    INDOOR_POSITIONING      = 0x25,
+
+    /* Transport Discovery Data - Transport Discovery Service v1.0 or later */
+    TX_DISCOVERY_DATA       = 0x26,
+
+    /** LE Supported Features (Supplement, Part A, Section 1.19) */
+    LE_SUPP_FEATURES        = 0x27,
+
+    CH_MAP_UPDATE_IND       = 0x28,
+    PB_ADV                  = 0x29,
+    MESH_MESSAGE            = 0x2A,
+    MESH_BEACON             = 0x2B,
+    BIG_INFO                = 0x2C,
+    BROADCAST_CODE          = 0x2D,
+    INFO_DATA_3D            = 0x3D,
 
     /** Manufacturer id code and specific opaque data */
     MANUFACTURE_SPECIFIC    = 0xFF
@@ -222,7 +316,8 @@ public:
      * <p>
      * See Bluetooth Core Specification V5.2 [Vol. 3, Part C, 11, p 1392]
      * and Bluetooth Core Specification Supplement V9, Part A: 1, p 9 + 2 Examples, p25..
-     * and Assigned Numbers <https://www.bluetooth.com/specifications/assigned-numbers/>
+     * and "Assigned Numbers - Generic Access Profile"
+     * <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
      * </p>
      * <p>
      * https://www.bluetooth.com/specifications/archived-specifications/
