@@ -54,7 +54,7 @@ extern "C" {
 
 using namespace tinyb_hci;
 
-static inline bdaddr_t* my_cast(EUI48 *p) {
+static inline bdaddr_t* eui48_to_bdaddr_ptr(EUI48 *p) {
     return static_cast<bdaddr_t *>( static_cast<void *>( p ) );
 }
 
@@ -83,7 +83,7 @@ int HCIAdapter::getDefaultDevId() {
     return hci_get_route(NULL);
 }
 int HCIAdapter::getDevId(EUI48 &mac) {
-    return hci_get_route( my_cast( &mac ) );
+    return hci_get_route( eui48_to_bdaddr_ptr( &mac ) );
 }
 int HCIAdapter::getDevId(const std::string &hcidev) {
     return hci_devid(hcidev.c_str());

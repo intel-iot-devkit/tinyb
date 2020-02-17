@@ -50,6 +50,10 @@ extern "C" {
 
 using namespace tinyb_hci;
 
+static inline const int8_t * const_uint8_to_int8_ptr(const uint8_t* p) {
+    return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
+}
+
 std::string EUI48::toString() const {
     char cstr[17+1];
 
@@ -196,56 +200,56 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
 
         // Guaranteed: eir_elem_len >= 0!
         switch ( elem_type ) {
-            case GAP_Types::FLAGS:
+            case GAP_T::FLAGS:
                 // FIXME
                 break;
-            case GAP_Types::UUID16_INCOMPLETE:
-            case GAP_Types::UUID16_COMPLETE:
+            case GAP_T::UUID16_INCOMPLETE:
+            case GAP_T::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID16(elem_data, j*2, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case GAP_Types::UUID32_INCOMPLETE:
-            case GAP_Types::UUID32_COMPLETE:
+            case GAP_T::UUID32_INCOMPLETE:
+            case GAP_T::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID32(elem_data, j*4, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case GAP_Types::UUID128_INCOMPLETE:
-            case GAP_Types::UUID128_COMPLETE:
+            case GAP_T::UUID128_INCOMPLETE:
+            case GAP_T::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
                     const std::shared_ptr<UUID> uuid(new UUID128(elem_data, j*16, true));
                     addService(std::move(uuid));
                 }
                 break;
-            case GAP_Types::NAME_LOCAL_SHORT:
-            case GAP_Types::NAME_LOCAL_COMPLETE: {
-                if( GAP_Types::NAME_LOCAL_COMPLETE == elem_type ) {
+            case GAP_T::NAME_LOCAL_SHORT:
+            case GAP_T::NAME_LOCAL_COMPLETE: {
+                if( GAP_T::NAME_LOCAL_COMPLETE == elem_type ) {
                     setName(elem_data, elem_len);
                 } else {
                     setShortName(elem_data, elem_len);
                 }
             } break;
-            case GAP_Types::TX_POWER_LEVEL:
-                setTxPower(*elem_data);
+            case GAP_T::TX_POWER_LEVEL:
+                setTxPower(*const_uint8_to_int8_ptr(elem_data));
                 break;
 
-            case GAP_Types::CLASS_OF_DEVICES:
-            case GAP_Types::DEVICE_ID:
-            case GAP_Types::SOLICIT_UUID16:
-            case GAP_Types::SOLICIT_UUID128:
-            case GAP_Types::SVC_DATA_UUID16:
-            case GAP_Types::PUB_TRGT_ADDR:
-            case GAP_Types::RND_TRGT_ADDR:
-            case GAP_Types::GAP_APPEARANCE:
-            case GAP_Types::SOLICIT_UUID32:
-            case GAP_Types::SVC_DATA_UUID32:
-            case GAP_Types::SVC_DATA_UUID128:
+            case GAP_T::SSP_CLASS_OF_DEVICE:
+            case GAP_T::DEVICE_ID:
+            case GAP_T::SOLICIT_UUID16:
+            case GAP_T::SOLICIT_UUID128:
+            case GAP_T::SVC_DATA_UUID16:
+            case GAP_T::PUB_TRGT_ADDR:
+            case GAP_T::RND_TRGT_ADDR:
+            case GAP_T::GAP_APPEARANCE:
+            case GAP_T::SOLICIT_UUID32:
+            case GAP_T::SVC_DATA_UUID32:
+            case GAP_T::SVC_DATA_UUID128:
                 break;
 
-            case GAP_Types::MANUFACTURE_SPECIFIC: {
+            case GAP_T::MANUFACTURE_SPECIFIC: {
                 uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
                 setManufactureSpecificData(company, elem_data+2, elem_len-2);
             } break;
@@ -301,7 +305,8 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports[i]->setRSSI(*i_octets++);
+        ad_reports[i]->setRSSI(*const_uint8_to_int8_ptr(i_octets));
+        i_octets++;
         read_segments++;
     }
     const int bytes_left = limes - i_octets;

@@ -62,7 +62,7 @@ enum AD_Type_Const : uint8_t {
  * https://www.bluetooth.com/specifications/archived-specifications/
  * </p>
  */
-enum GAP_Types : uint8_t {
+enum GAP_T : uint8_t {
     // Last sync 2020-02-17 with <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
     /** Flags */
     FLAGS                   = 0x01,
@@ -85,20 +85,26 @@ enum GAP_Types : uint8_t {
     /** Transmit power level (Supplement, Part A, section 1.5) */
     TX_POWER_LEVEL          = 0x0A,
 
-    /** Class of device (Supplement, Part A, section 1.6) */
-    CLASS_OF_DEVICES        = 0x0D,
-    /** Simple Pairing Hash C and Simple Pairing Hash C-192 (Supplement, Part A 1.6) */
+    /**
+     * SSP: Secure Simple Pairing Out of Band: Supplement, Part A, section 1.6
+     * Supplement, Part A, Section 1.6: SSP OOB Data Block w/ SSP_OOB_LEN ([Vol 3] Part C, Section 5.2.2.7.)
+     * <p>
+     * SSP Class of device (Supplement, Part A, section 1.6).
+     * </p>
+     */
+    SSP_CLASS_OF_DEVICE     = 0x0D,
+    /** SSP: Simple Pairing Hash C and Simple Pairing Hash C-192 (Supplement, Part A 1.6) */
     SSP_HASH_C192           = 0x0E,
-    /** Simple Pairing Randomizer R-192 (Supplement, Part A, section 1.6) */
+    /** SSP: Simple Pairing Randomizer R-192 (Supplement, Part A, section 1.6) */
     SSP_RANDOMIZER_R192     = 0x0F,
 
     /** Device ID Profile v 1.3 or later */
     DEVICE_ID               = 0x10,
 
-    /** Security Manager TK Value */
+    /** Security Manager TK Value (Supplement, Part A, section 1.8) */
     SEC_MGR_TK_VALUE        = 0x10,
 
-    /** Security Manager Out of Band Flags */
+    /** Security Manager Out of Band Flags (Supplement, Part A, section 1.7) */
     SEC_MGR_OOB_FLAGS       = 0x11,
 
     /** Slave Connection Interval Range */
@@ -128,9 +134,9 @@ enum GAP_Types : uint8_t {
     /** LE ROLE */
     LE_ROLE                 = 0x1C,
 
-    /** Simple Pairing Hash C-256 (Supplement, Part A 1.6) */
+    /** SSP: Simple Pairing Hash C-256 (Supplement, Part A 1.6) */
     SSP_HASH_C256           = 0x1D,
-    /** Simple Pairing Randomizer R-256 (Supplement, Part A, section 1.6) */
+    /** SSP: Simple Pairing Randomizer R-256 (Supplement, Part A, section 1.6) */
     SSP_RANDOMIZER_R256     = 0x1E,
 
     /** List of 32-bit Service Solicitation UUID (Supplement, Part A, section 1.10) */
@@ -141,8 +147,13 @@ enum GAP_Types : uint8_t {
     /** Service data, 128-bit UUID (Supplement, Part A, section 1.11) */
     SVC_DATA_UUID128        = 0x21,
 
-    /** LE: LE Secure Connections Confirmation Value (Supplement Part A, Section 1.6) */
-    LE_SEC_CONN_ACK_VALUE   = 0x22,
+    /** SSP: LE Secure Connections Confirmation Value (Supplement Part A, Section 1.6) */
+    SSP_LE_SEC_CONN_ACK_VALUE   = 0x22,
+    /** SSP: LE Secure Connections Random Value (Supplement Part A, Section 1.6) */
+    SSP_LE_SEC_CONN_RND_VALUE   = 0x23,
+
+    /* URI (Supplement, Part A, section 1.18) */
+    URI                     = 0x24,
 
     /* Indoor Positioning - Indoor Positioning Service v1.0 or later */
     INDOOR_POSITIONING      = 0x25,
@@ -260,7 +271,7 @@ private:
 
     std::string name;
     std::string name_short;
-    uint8_t rssi = 0;
+    int8_t rssi = 0;
     int8_t tx_power = 0;
     std::shared_ptr<ManufactureSpecificData> msd = nullptr;
     std::vector<std::shared_ptr<UUID>> services;
@@ -273,7 +284,7 @@ private:
     void setAddress(EUI48 const &a) { mac = a; set(Element::BDADDR); }
     void setName(const uint8_t *buffer, int buffer_len);
     void setShortName(const uint8_t *buffer, int buffer_len);
-    void setRSSI(uint8_t v) { rssi = v; set(Element::RSSI); }
+    void setRSSI(int8_t v) { rssi = v; set(Element::RSSI); }
     void setTxPower(int8_t v) { tx_power = v; set(Element::TX_POWER); }
     void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) {
         msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
@@ -334,8 +345,8 @@ public:
     EUI48 const & getAddress() const { return mac; }
     std::string const & getName() const { return name; }
     std::string const & getShortName() const { return name_short; }
-    uint8_t getRSSI() const { return rssi; }
-    uint8_t getTxPower() const { return tx_power; }
+    int8_t getRSSI() const { return rssi; }
+    int8_t getTxPower() const { return tx_power; }
 
     std::shared_ptr<ManufactureSpecificData> getManufactureSpecificData() const { return msd; }
     std::vector<std::shared_ptr<UUID>> getServices() const { return services; }

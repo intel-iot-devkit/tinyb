@@ -242,7 +242,7 @@ friend class HCIAdapter;
 private:
     uint64_t ts_update;
     std::string name;
-    uint8_t rssi = 0;
+    int8_t rssi = 0;
     int8_t tx_power = 0;
     std::shared_ptr<ManufactureSpecificData> msd = nullptr;
     std::vector<std::shared_ptr<UUID>> services;
@@ -263,8 +263,8 @@ public:
     EUI48 const & getAddress() const { return mac; }
     std::string getAddressString() const { return mac.toString(); }
     std::string const & getName() const { return name; }
-    uint8_t getRSSI() const { return rssi; }
-    uint8_t getTxPower() const { return tx_power; }
+    int8_t getRSSI() const { return rssi; }
+    int8_t getTxPower() const { return tx_power; }
     std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const { return msd; }
 
     std::vector<std::shared_ptr<UUID>> getServices() const { return services; }
