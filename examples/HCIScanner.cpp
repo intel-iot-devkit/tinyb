@@ -106,7 +106,10 @@ int main(int argc, char *argv[])
                         const uint64_t t3 = tinyb_hci::getCurrentMilliseconds();
                         const uint64_t td0 = t3 - t0;
                         const uint64_t td1 = t3 - t1;
-                        fprintf(stderr, "Connection: Success in connect %" PRIu64 "d ms, total %" PRIu64 " ms, handle 0x%X\n", td1, td0, handle);
+                        fprintf(stderr, "Connection: Success in connect-only %" PRIu64
+                                        " ms, discovered to post-connect %" PRIu64
+                                        " ms, total %" PRIu64 " ms, handle 0x%X\n",
+                                td1, (t3 - p->getCreationTimestamp()), td0, handle);
                         fprintf(stderr, "Connection: Success to %s\n", p->toString().c_str());
                         k++;
                         done = true;
