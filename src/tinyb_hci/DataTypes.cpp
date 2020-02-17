@@ -68,6 +68,26 @@ std::string EUI48::toString() const {
     return std::string(cstr);
 }
 
+EUI48::EUI48(const std::string str) {
+    if( 17 != str.length() ) {
+        std::string msg("EUI48 string not of length 17 but ");
+        msg.append(std::to_string(str.length()));
+        msg.append(": "+str);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+                     &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
+    {
+        std::string msg("EUI48 string not in format '00:00:00:00:00:00' but "+str);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
+    }
+
+    // sscanf provided host data type, in which we store the values,
+    // hence no endian conversion
+}
+
+const EUI48 EUI48_ANY_DEVICE; // default ctor is zero bytes!
+
 // *************************************************
 // *************************************************
 // *************************************************
@@ -118,31 +138,34 @@ void EInfoReport::addService(std::shared_ptr<UUID> const &uuid)
     }
 }
 
-std::string EInfoReport::dataSetToString() const {
-    std::string out("DataSet[");
-    if( isSet(Element::EVT_TYPE) ) {
+std::string EInfoReport::dataSetToString(const uint32_t data_set) {
+    std::string out("[");
+    if( isSet(data_set, Element::EVT_TYPE) ) {
         out.append("EVT_TYPE, ");
     }
-    if( isSet(Element::BDADDR) ) {
+    if( isSet(data_set, Element::BDADDR) ) {
         out.append("BDADDR, ");
     }
-    if( isSet(Element::NAME) ) {
+    if( isSet(data_set, Element::NAME) ) {
         out.append("NAME, ");
     }
-    if( isSet(Element::NAME_SHORT) ) {
+    if( isSet(data_set, Element::NAME_SHORT) ) {
         out.append("NAME_SHORT, ");
     }
-    if( isSet(Element::RSSI) ) {
+    if( isSet(data_set, Element::RSSI) ) {
         out.append("RSSI, ");
     }
-    if( isSet(Element::TX_POWER) ) {
+    if( isSet(data_set, Element::TX_POWER) ) {
         out.append("TX_POWER, ");
     }
-    if( isSet(Element::MANUF_DATA) ) {
+    if( isSet(data_set, Element::MANUF_DATA) ) {
         out.append("MANUF_DATA, ");
     }
     out.append("]");
     return out;
+}
+std::string EInfoReport::dataSetToString() const {
+    return std::string("DataSet"+dataSetToString(data_set));
 }
 std::string EInfoReport::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";

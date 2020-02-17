@@ -99,7 +99,7 @@ private:
     static int getDevId(const std::string &hcidev);
 
     static const int to_send_req_poll_ms = 1000;
-    static const int to_connect_ms = 10000;
+    static const int to_connect_ms = 5000;
 
     EUI48 mac;
     std::string name;
@@ -170,7 +170,7 @@ public:
      * </p>
      */
     bool startDiscovery(HCISession& s,
-                        uint16_t interval=0x0010, uint16_t window=0x0010,
+                        uint16_t interval=0x0004, uint16_t window=0x0004,
                         uint8_t own_mac_type=LE_Address_T::LE_PUBLIC);
 
     /**
@@ -180,10 +180,46 @@ public:
     bool stopDiscovery(HCISession& s);
 
     /**
-     * Discovery devices up until timeoutMS in milliseconds.
-     * @return true if no error, otherwise false.
+     * Discovery devices up until 'timeoutMS' in milliseconds
+     * or until 'waitForDeviceCount' and 'waitForDevice'
+     * devices matching 'ad_type_req' criteria has been
+     * reached.
+     *
+     * <p>
+     * 'waitForDeviceCount' is the number of successfully
+     * scanned devices matching 'ad_type_req'
+     * before returning if 'timeoutMS' hasn't been reached.
+     * <br>
+     * Default value is '1', i.e. wait for only one device.
+     * A value of <= 0 denotes infinitive, here 'timeoutMS'
+     * will end the discovery process.
+     * </p>
+     *
+     * <p>
+     * 'waitForDevice' is a EUI48 denoting a specific device
+     * to wait for.
+     * <br>
+     * Default value is 'EUI48_ANY_DEVICE', i.e. wait for any device.
+     * </p>
+     *
+     * <p>
+     * 'ad_type_req' is a bitmask of 'EInfoReport::Element'
+     * denoting required data to be received before
+     * adding or updating the devices in the discovered list.
+     * <br>
+     * Default value is: 'EInfoReport::Element::NAME',
+     * while 'EInfoReport::Element::BDADDR|EInfoReport::Element::RSSI' is implicit
+     * and guarantedd by the AD protocol.
+     * </p>
+     *
+     * @return number of successfully scanned devices matching above criteria
+     *         or -1 if an error has occurred.
      */
-    bool discoverDevices(HCISession& s, int timeoutMS);
+    int discoverDevices(HCISession& s,
+                        const int waitForDeviceCount=1,
+                        const EUI48 &waitForDevice=EUI48_ANY_DEVICE,
+                        const int timeoutMS=to_send_req_poll_ms,
+                        const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
 
     /** Returns discovered devices from a discovery */
     std::vector<std::shared_ptr<HCIDevice>> getDevices() { return discoveredDevices; }

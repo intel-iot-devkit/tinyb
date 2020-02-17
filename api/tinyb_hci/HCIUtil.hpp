@@ -95,7 +95,7 @@ namespace tinyb_hci {
     // *************************************************
      */
 
-    struct uint128_t {
+    struct __attribute__((packed)) uint128_t {
         uint8_t data[16];
 
         bool operator==(uint128_t const &o) const {
@@ -208,6 +208,11 @@ namespace tinyb_hci {
     #error "Unexpected __BYTE_ORDER"
 #endif
 
+    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v)
+    {
+        uint16_t * p = (uint16_t *) ( buffer + byte_offset );
+        *p = v;
+    }
     inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset)
     {
         uint16_t const * p = (uint16_t const *) ( buffer + byte_offset );
@@ -219,6 +224,11 @@ namespace tinyb_hci {
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
 
+    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v)
+    {
+        uint32_t * p = (uint32_t *) ( buffer + byte_offset );
+        *p = v;
+    }
     inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset)
     {
         uint32_t const * p = (uint32_t const *) ( buffer + byte_offset );
@@ -230,6 +240,11 @@ namespace tinyb_hci {
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
 
+    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v)
+    {
+        uint128_t * p = (uint128_t *) ( buffer + byte_offset );
+        *p = v;
+    }
     inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset)
     {
         uint128_t const * p = (uint128_t const *) ( buffer + byte_offset );

@@ -30,7 +30,7 @@ using namespace tinyb_hci;
 // BASE_UUID '00000000-0000-1000-8000-00805F9B34FB'
 static uint8_t bt_base_uuid_be[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
                                      0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB };
-UUID128 tinyb_hci::BT_BASE_UUID = UUID128( bt_base_uuid_be );
+UUID128 tinyb_hci::BT_BASE_UUID = UUID128( bt_base_uuid_be, 0, false );
 
 UUID128::UUID128(UUID128 const & base_uuid, UUID16 const & uuid16, int const uuid16_le_octet_index)
 : UUID(Type::UUID128), value(merge_uint128(base_uuid.value, uuid16.value, uuid16_le_octet_index)) {}
@@ -42,7 +42,7 @@ std::string UUID16::toString() const {
     char buffer[4+1];
     const int count = snprintf(buffer, sizeof(buffer), "%.4X", value);
     if( 4 != count ) {
-        std::string msg("UUID string not of length 4 but ");
+        std::string msg("UUID16 string not of length 4 but ");
         msg.append(std::to_string(count));
         throw InternalError(msg, E_FILE_LINE);
     }
@@ -59,7 +59,7 @@ std::string UUID32::toString() const {
     char buffer[8+1];
     int count = snprintf(buffer, sizeof(buffer), "%.8X", value);
     if( 8 != count ) {
-        std::string msg("UUID string not of length 8 but ");
+        std::string msg("UUID32 string not of length 8 but ");
         msg.append(std::to_string(count));
         throw InternalError(msg, E_FILE_LINE);
     }
@@ -84,6 +84,9 @@ std::string UUID128::toString() const {
     char buffer[36+1];
     uint32_t part0, part4;
     uint16_t part1, part2, part3, part5;
+
+    // snprintf uses host data type, in which values are stored,
+    // hence no endian conversion
 #if __BYTE_ORDER == __BIG_ENDIAN
     part0 = get_uint32(value.data,  0);
     part1 = get_uint16(value.data,  4);
@@ -104,10 +107,50 @@ std::string UUID128::toString() const {
     int count = snprintf(buffer, sizeof(buffer), "%.8X-%.4X-%.4X-%.4X-%.8X%.4X",
                             part0, part1, part2, part3, part4, part5);
     if( 36 != count ) {
-        std::string msg("UUID string not of length 36 but ");
+        std::string msg("UUID128 string not of length 36 but ");
         msg.append(std::to_string(count));
         throw InternalError(msg, E_FILE_LINE);
     }
     return std::string(buffer);
 }
 
+UUID128::UUID128(const std::string str)
+: UUID(Type::UUID128)
+{
+    uint32_t part0, part4;
+    uint16_t part1, part2, part3, part5;
+
+    if( 36 != str.length() ) {
+        std::string msg("UUID128 string not of length 36 but ");
+        msg.append(std::to_string(str.length()));
+        msg.append(": "+str);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    if ( sscanf(str.c_str(), "%08x-%04hx-%04hx-%04hx-%08x%04hx",
+                     &part0, &part1, &part2, &part3, &part4, &part5) != 6 )
+    {
+        std::string msg("UUID128 string not in format '00000000-0000-1000-8000-00805F9B34FB' but "+str);
+        throw IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    uint128_t value;
+
+    // sscanf provided host data type, in which we store the values,
+    // hence no endian conversion
+#if __BYTE_ORDER == __BIG_ENDIAN
+    put_uint32(value.data,  0, part0);
+    put_uint16(value.data,  4, part1);
+    put_uint16(value.data,  6, part2);
+    put_uint16(value.data,  8, part3);
+    put_uint32(value.data, 10, part4);
+    put_uint16(value.data, 14, part5);
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+    put_uint16(value.data,  0, part5);
+    put_uint32(value.data,  2, part4);
+    put_uint16(value.data,  6, part3);
+    put_uint16(value.data,  8, part2);
+    put_uint16(value.data, 10, part1);
+    put_uint32(value.data, 12, part0);
+#else
+#error "Unexpected __BYTE_ORDER"
+#endif
+}

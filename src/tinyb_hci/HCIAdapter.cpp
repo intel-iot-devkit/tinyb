@@ -277,9 +277,12 @@ std::string HCIAdapter::toString() const {
 
 // *************************************************
 
-bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
+int HCIAdapter::discoverDevices(HCISession& session,
+                                const int waitForDeviceCount,
+                                const EUI48 &waitForDevice,
+                                const int timeoutMS,
+                                const uint32_t ad_type_req)
 {
-    bool ok = true;
     uint8_t buf[HCI_MAX_EVENT_SIZE];
     struct hci_filter nf, of;
     socklen_t olen;
@@ -306,9 +309,14 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         return false;
     }
 
+    const uint32_t ad_req = static_cast<uint32_t>(EInfoReport::Element::BDADDR) |
+                            static_cast<uint32_t>(EInfoReport::Element::RSSI) |
+                            ad_type_req;
+    bool done = false;
     int64_t t1;
+    int matchedDeviceCount = 0;
 
-    while ( ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
+    while ( !done && ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
         uint8_t hci_type;
         hci_event_hdr *ehdr;
         evt_le_meta_event *meta;
@@ -319,25 +327,23 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
 
             p.fd = session.dd(); p.events = POLLIN;
             while ((n = poll(&p, 1, timeoutMS)) < 0) {
-                if (errno == EAGAIN /* || errno == EINTR */ ) {
-                    // cont temp unavail, but end on interruption
+                if (errno == EAGAIN || errno == EINTR ) {
+                    // cont temp unavail or interruption
                     continue;
                 }
-                ok = false;
-                goto done;
+                goto errout;
             }
             if (!n) {
-                goto done; // timeout
+                goto done; // timeout: exit but no error
             }
         }
 
         while ((bytes_left = read(session.dd(), buf, sizeof(buf))) < 0) {
-            if (errno == EAGAIN /* || errno == EINTR */ ) {
-                // cont temp unavail, but end on interruption
+            if (errno == EAGAIN || errno == EINTR ) {
+                // cont temp unavail or interruption
                 continue;
             }
-            ok = false;
-            goto done;
+            goto errout;
         }
 
         if( bytes_left < HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE + EVT_LE_META_EVENT_SIZE ) {
@@ -373,12 +379,24 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
 
         for(int i = 0; i < num_reports && i < 0x19; i++) {
             std::shared_ptr<EInfoReport> ad_report = ad_reports.at(i);
+            const bool matches = ( ad_req == ( ad_req & ad_report->getDataSet() ) ) &&
+                                 ( EUI48_ANY_DEVICE == waitForDevice || ad_report->getAddress() == waitForDevice );
+            if( matches ) {
+                matchedDeviceCount++;
+                if( 0 < waitForDeviceCount && waitForDeviceCount <= matchedDeviceCount ) {
+                    done = true;
+                }
+            }
+            DBG_PRINT("AD Report %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d\n",
+                    i, num_reports, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
+                    matchedDeviceCount, waitForDeviceCount, done);
             DBG_PRINT("AD Report %d/%d: %s\n", i, num_reports, ad_report->toString().c_str());
 
             int idx = findDevice(ad_report->getAddress());
             std::shared_ptr<HCIDevice> dev;
             if( 0 > idx ) {
-                if( ad_report->isSet(EInfoReport::Element::BDADDR) ) {
+                if( matches ) {
+                    // only add new devices if matching
                     dev = std::shared_ptr<HCIDevice>(new HCIDevice(*ad_report));
                     addDevice(dev);
                     if( nullptr != deviceDiscoveryListener ) {
@@ -388,6 +406,7 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
                     dev = nullptr;
                 }
             } else {
+                // always update
                 dev = getDevice(idx);
                 dev->update(*ad_report);
                 if( nullptr != deviceDiscoveryListener ) {
@@ -397,8 +416,11 @@ bool HCIAdapter::discoverDevices(HCISession& session, int timeoutMS)
         }
 
     }
-
 done:
     setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
-    return ok;
+    return matchedDeviceCount;
+
+errout:
+    setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
+    return -1;
 }

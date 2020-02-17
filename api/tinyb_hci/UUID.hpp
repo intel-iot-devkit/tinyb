@@ -75,7 +75,7 @@ public:
 
 class UUID16 : public UUID {
 public:
-    uint16_t const value;
+    uint16_t value;
 
     UUID16(uint16_t const v)
     : UUID(Type::UUID16), value(v) { }
@@ -103,7 +103,7 @@ public:
 
 class UUID32 : public UUID {
 public:
-    uint32_t const value;
+    uint32_t value;
 
     UUID32(uint32_t const v)
     : UUID(Type::UUID32), value(v) {}
@@ -131,15 +131,14 @@ public:
 
 class UUID128 : public UUID {
 public:
-    uint128_t const value;
+    uint128_t value;
 
-    /** Creates an instance by given big-endian byte array of 16 bytes */
-    UUID128(uint8_t const bigEndianBytes[])
-    : UUID128(bigEndianBytes, 0, false)
-    { }
+    UUID128() : UUID(Type::UUID128) { bzero(value.data, sizeof(value)); }
 
     UUID128(uint128_t const v)
     : UUID(Type::UUID128), value(v) {}
+
+    UUID128(const std::string str);
 
     UUID128(uint8_t const * const buffer, int const byte_offset, bool const littleEndian)
     : UUID(Type::UUID128), value(get_uint128(buffer, byte_offset, littleEndian)) { }

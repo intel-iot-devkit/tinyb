@@ -187,9 +187,10 @@ enum GAP_T : uint8_t {
  * or simply network device MAC address (Media Access Control address).
  */
 struct __attribute__((packed)) EUI48 {
-    uint8_t b[6];
+    uint8_t b[6]; // == sizeof(EUI48)
 
     EUI48() { bzero(b, sizeof(EUI48)); }
+    EUI48(const std::string mac);
     EUI48(const EUI48 &o) noexcept = default;
     EUI48(EUI48 &&o) noexcept = default;
     EUI48& operator=(const EUI48 &o) noexcept = default;
@@ -207,6 +208,8 @@ inline bool operator==(const EUI48& lhs, const EUI48& rhs)
 inline bool operator!=(const EUI48& lhs, const EUI48& rhs)
 { return !(lhs == rhs); }
 
+/** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
+static const EUI48 EUI48_ANY_DEVICE;
 
 // *************************************************
 // *************************************************
@@ -298,6 +301,9 @@ private:
                        uint8_t const * data, int offset, int const size);
 
 public:
+    static bool isSet(const uint32_t data_set, Element bit) { return 0 != (data_set & static_cast<uint32_t>(bit)); }
+    static std::string dataSetToString(const uint32_t data_Set);
+
     /**
      * Reads a complete Advertising Data (AD) Report
      * and returns the number of AD reports in form of a sharable list of EInfoReport;
@@ -339,6 +345,7 @@ public:
     Source getSource() const { return source; }
     uint64_t getTimestamp() const { return timestamp; }
     bool isSet(Element bit) const { return 0 != (data_set & static_cast<uint32_t>(bit)); }
+    uint32_t getDataSet() const { return data_set; }
 
     uint8_t getEvtType() const { return evt_type; }
     uint8_t getAddressType() const { return mac_type; }
