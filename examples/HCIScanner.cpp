@@ -40,7 +40,7 @@ class DeviceDiscoveryListener : public tinyb_hci::HCIDeviceDiscoveryListener {
 
 int main(int argc, char *argv[])
 {
-    int err = 0;
+    bool ok = true;
 
     tinyb_hci::HCIAdapter adapter; // default
     if( !adapter.hasDevId() ) {
@@ -56,25 +56,54 @@ int main(int argc, char *argv[])
 
     adapter.setDeviceDiscoveryListener(std::shared_ptr<tinyb_hci::HCIDeviceDiscoveryListener>(new DeviceDiscoveryListener()));
 
-    while( !err ) {
-        std::shared_ptr<tinyb_hci::HCISession> session = adapter.startDiscovery();
-        if( nullptr == session ) {
+    std::shared_ptr<tinyb_hci::HCISession> session = adapter.open();
+
+    while( ok && nullptr != session ) {
+        ok = adapter.startDiscovery(*session);
+        if( !ok) {
             fprintf(stderr, "Adapter start discovery failed.\n");
-            exit(1);
+            goto out;
         }
 
         if( !adapter.discoverDevices(*session, 1000) ) {
             fprintf(stderr, "Adapter discovery failed.\n");
-            err = 1;
+            ok = false;
         }
 
         if( !adapter.stopDiscovery(*session) ) {
             fprintf(stderr, "Adapter stop discovery failed.\n");
-            err = 1;
+            ok = false;
+        }
+
+        if( ok ) {
+            const uint64_t t0 = tinyb_hci::getCurrentMilliseconds();
+            std::vector<std::shared_ptr<tinyb_hci::HCIDevice>> discoveredDevices = adapter.getDevices();
+            int i=0, j=0, k=0;
+            for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
+                i++;
+                std::shared_ptr<tinyb_hci::HCIDevice> p = *it;
+                const uint64_t lup = p->getLastUpdateAge(t0);
+                if( 2000 > lup && p->hasName() ) {
+                    // less than 2s old ..
+                    j++;
+                    const uint16_t handle = adapter.le_connect(*session, p->getAddress());
+                    if( 0 == handle ) {
+                        fprintf(stderr, "Connection: Failed %s\n", p->toString().c_str());
+                    } else {
+                        const uint64_t td = tinyb_hci::getCurrentMilliseconds() - t0;
+                        fprintf(stderr, "Connection: Success in %d ms, handle 0x%X made to %s\n", td, handle, p->toString().c_str());
+                        k++;
+                    }
+                }
+            }
+            fprintf(stderr, "Connection: Got %d devices, tried connected to %d with %d succeeded\n", i, j, k);
         }
     }
 
 out:
-    return err;
+    if( nullptr != session ) {
+        session->close();
+    }
+    return 0;
 }
 

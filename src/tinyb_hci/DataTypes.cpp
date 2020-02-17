@@ -50,7 +50,7 @@ extern "C" {
 
 using namespace tinyb_hci;
 
-static inline const int8_t * const_uint8_to_int8_ptr(const uint8_t* p) {
+static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
@@ -233,7 +233,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
                 }
             } break;
             case GAP_T::TX_POWER_LEVEL:
-                setTxPower(*const_uint8_to_int8_ptr(elem_data));
+                setTxPower(*const_uint8_to_const_int8_ptr(elem_data));
                 break;
 
             case GAP_T::SSP_CLASS_OF_DEVICE:
@@ -305,7 +305,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports[i]->setRSSI(*const_uint8_to_int8_ptr(i_octets));
+        ad_reports[i]->setRSSI(*const_uint8_to_const_int8_ptr(i_octets));
         i_octets++;
         read_segments++;
     }

@@ -54,9 +54,13 @@ extern "C" {
 
 using namespace tinyb_hci;
 
+static inline const bdaddr_t* const_eui48_to_const_bdaddr_ptr(const EUI48 *p) {
+    return static_cast<const bdaddr_t *>( static_cast<void *>( const_cast<EUI48 *>( p ) ) );
+}
 static inline bdaddr_t* eui48_to_bdaddr_ptr(EUI48 *p) {
     return static_cast<bdaddr_t *>( static_cast<void *>( p ) );
 }
+
 
 // *************************************************
 // *************************************************
@@ -164,39 +168,33 @@ std::shared_ptr<HCIDeviceDiscoveryListener> HCIAdapter::setDeviceDiscoveryListen
     return o;
 }
 
-std::shared_ptr<HCISession> HCIAdapter::startDiscovery() {
-    const uint8_t own_type = LE_PUBLIC_ADDRESS;
+bool HCIAdapter::startDiscovery(HCISession &s,
+                                uint16_t interval, uint16_t window,
+                                uint8_t own_mac_type)
+{
     const uint8_t scan_type = 0x01;
     const uint8_t filter_type = 0;
     const uint8_t filter_policy = 0x00;
-    const uint16_t interval = htobs(0x0010);
-    const uint16_t window = htobs(0x0010);
     const uint8_t filter_dup = 0x01;
     
-    std::shared_ptr<HCISession> session = open();
-    if( nullptr == session ) {
-        return nullptr;
+    if( !s.isOpen() ) {
+        fprintf(stderr, "Session not open\n");
+        return false;
     }
-
-    if( !session->isOpen() ) {
-        fprintf(stderr, "New session not open\n");
-        return nullptr;
-    }
-    int err = hci_le_set_scan_parameters(session->dd(), scan_type, interval, window,
-                        own_type, filter_policy, to_send_req_poll_ms);
+    int err = hci_le_set_scan_parameters(s.dd(), scan_type,
+                        cpu_to_le(interval), cpu_to_le(window),
+                        own_mac_type, filter_policy, to_send_req_poll_ms);
     if (err < 0) {
         perror("Set scan parameters failed");
-        session->close();
-        return nullptr;
+        return false;
     }
 
-    err = hci_le_set_scan_enable(session->dd(), 0x01, filter_dup, to_send_req_poll_ms);
+    err = hci_le_set_scan_enable(s.dd(), 0x01, filter_dup, to_send_req_poll_ms);
     if (err < 0) {
         perror("Start scan failed");
-        session->close();
-        return nullptr;
+        return false;
     }
-    return session;
+    return true;
 }
 
 bool HCIAdapter::stopDiscovery(HCISession& session) {
@@ -213,7 +211,6 @@ bool HCIAdapter::stopDiscovery(HCISession& session) {
     } else {
         res = true;
     }
-    session.close();
     return res;
 }
 
@@ -233,6 +230,37 @@ int HCIAdapter::findDevice(EUI48 const & mac) const {
     } else {
         return std::distance(begin, it);
     }
+}
+
+uint16_t HCIAdapter::le_connect(HCISession &s, EUI48 const & peer_mac,
+        uint16_t interval, uint16_t window,
+        uint16_t min_interval, uint16_t max_interval,
+        uint16_t latency, uint16_t supervision_timeout,
+        uint16_t min_ce_length, uint16_t max_ce_length,
+        uint8_t initiator_filter,
+        uint8_t peer_mac_type,
+        uint8_t own_mac_type )
+{
+    if( !s.isOpen() ) {
+        fprintf(stderr, "Session not open\n");
+        return 0;
+    }
+    uint16_t handle = 0;
+    bdaddr_t bdmac;
+    memcpy(&bdmac, const_eui48_to_const_bdaddr_ptr(&peer_mac), sizeof(bdaddr_t));
+
+    int err = hci_le_create_conn(s.dd(),
+                cpu_to_le(interval), cpu_to_le(window),
+                initiator_filter, peer_mac_type, bdmac, own_mac_type,
+                cpu_to_le(min_interval), cpu_to_le(max_interval),
+                cpu_to_le(latency), cpu_to_le(supervision_timeout),
+                cpu_to_le(min_ce_length), cpu_to_le(max_ce_length),
+                &handle, to_connect_ms);
+    if (err < 0) {
+        perror("Could not create connection");
+        return 0;
+    }
+    return handle;
 }
 
 std::string HCIAdapter::toString() const {

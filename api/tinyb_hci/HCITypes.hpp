@@ -45,6 +45,11 @@ enum HCI_Event_Types : uint8_t {
     LE_Advertising_Report       = 0x3E
 };
 
+enum LE_Address_T : uint8_t {
+    LE_PUBLIC = 0x00,
+    LE_RANDOM = 0x01
+};
+
 /**
 // *************************************************
 // *************************************************
@@ -94,6 +99,7 @@ private:
     static int getDevId(const std::string &hcidev);
 
     static const int to_send_req_poll_ms = 1000;
+    static const int to_connect_ms = 10000;
 
     EUI48 mac;
     std::string name;
@@ -154,10 +160,18 @@ public:
     std::shared_ptr<HCIDeviceDiscoveryListener> setDeviceDiscoveryListener(std::shared_ptr<HCIDeviceDiscoveryListener> l);
 
     /** 
-     * Returns a reference to the newly opened discovery session
-     * if successful, otherwise nullptr is returned.
+     * Starts a new discovery session.
+     * <p>
+     * Returns true if successful, otherwise false;
+     * </p>
+     * <p>
+     * Default parameter values are chosen for using public address resolution
+     * and usual discovery intervals etc.
+     * </p>
      */
-    std::shared_ptr<HCISession> startDiscovery();
+    bool startDiscovery(HCISession& s,
+                        uint16_t interval=0x0010, uint16_t window=0x0010,
+                        uint8_t own_mac_type=LE_Address_T::LE_PUBLIC);
 
     /**
      * Closes the discovery session.
@@ -181,6 +195,25 @@ public:
     int findDevice(EUI48 const & mac) const;
 
     std::shared_ptr<HCIDevice> getDevice(int index) const { return discoveredDevices.at(index); }
+
+    /**
+     * Creates a new connection to the given LE peer_mac device.
+     * <p>
+     * Returns the new connection handle if successful, otherwise 0 is returned.
+     * </p>
+     * <p>
+     * Default parameter values are chosen for using public address resolution
+     * and usual connection latency, interval etc.
+     * </p>
+     */
+    uint16_t le_connect(HCISession& s,EUI48 const & peer_mac,
+            uint16_t interval=0x0004, uint16_t window=0x0004,
+            uint16_t min_interval=0x000F, uint16_t max_interval=0x000F,
+            uint16_t latency=0x0000, uint16_t supervision_timeout=0x0C80,
+            uint16_t min_ce_length=0x0001, uint16_t max_ce_length=0x0001,
+            uint8_t initiator_filter=0,
+            uint8_t peer_mac_type=LE_Address_T::LE_PUBLIC,
+            uint8_t own_mac_type=LE_Address_T::LE_PUBLIC );
 
     std::string toString() const;
 };
@@ -260,9 +293,11 @@ public:
     HCIDevice(EInfoReport &r);
     uint64_t getCreationTimestamp() const { return ts_creation; }
     uint64_t getUpdateTimestamp() const { return ts_update; }
+    uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
     EUI48 const & getAddress() const { return mac; }
     std::string getAddressString() const { return mac.toString(); }
     std::string const & getName() const { return name; }
+    bool hasName() const { return name.length()>0; }
     int8_t getRSSI() const { return rssi; }
     int8_t getTxPower() const { return tx_power; }
     std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const { return msd; }
