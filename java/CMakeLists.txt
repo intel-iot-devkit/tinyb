@@ -10,12 +10,6 @@ else ()
   set (JAR $ENV{JAVA_HOME_NATIVE}/bin/jar)
 endif ()
 
-
-# Check that we can use javah
-if(NOT Java_JAVAH_EXECUTABLE)
-    message(FATAL_ERROR "Cannot locate javah executable.")
-endif(NOT Java_JAVAH_EXECUTABLE)
-
 set(CMAKE_JNI_TARGET TRUE)
 file(GLOB_RECURSE JAVA_SOURCES "*.java")
 add_jar(tinybjar ${JAVA_SOURCES}
@@ -23,41 +17,11 @@ add_jar(tinybjar ${JAVA_SOURCES}
                   OUTPUT_NAME tinyb2
 )
 
-set(JAVA_CLASSES org.tinyb.BluetoothAdapter
-                 org.tinyb.BluetoothCallback
-                 org.tinyb.BluetoothDevice
-                 org.tinyb.BluetoothEvent
-                 org.tinyb.BluetoothFactory
-                 org.tinyb.BluetoothGattCharacteristic
-                 org.tinyb.BluetoothGattService
-                 org.tinyb.BluetoothGattDescriptor
-                 org.tinyb.BluetoothManager
-                 org.tinyb.BluetoothObject
-                 org.tinyb.BluetoothType
-                 org.tinyb.BluetoothException
-                 org.tinyb.ObjectArgCallback
-                 org.tinyb.ObjectArrayArgCallback
-                 tinyb.dbus.DBusAdapter
-                 tinyb.dbus.DBusDevice
-                 tinyb.dbus.DBusEvent
-                 tinyb.dbus.DBusGattCharacteristic
-                 tinyb.dbus.DBusGattDescriptor
-                 tinyb.dbus.DBusGattService
-                 tinyb.dbus.DBusManager
-                 tinyb.dbus.DBusObject
-                 tinyb.hci.HCIAdapter
-                 tinyb.hci.HCIDevice
-                 tinyb.hci.HCIEvent
-                 tinyb.hci.HCIGattCharacteristic
-                 tinyb.hci.HCIGattDescriptor
-                 tinyb.hci.HCIGattService
-                 tinyb.hci.HCIManager
-                 tinyb.hci.HCIObject)
 add_custom_command (TARGET tinybjar
   POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E echo "Generating JNI headers.."
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir"
-  COMMAND ${Java_JAVAH_EXECUTABLE} -d jni/ -jni ${JAVA_CLASSES}
+  COMMAND ${JAVAC} -h jni/ ${JAVA_SOURCES}
 )
 
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir/jni")
