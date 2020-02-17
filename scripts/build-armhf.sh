@@ -4,7 +4,7 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 echo rootdir $rootdir
 
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-armhf
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-armhf
 
 cd $rootdir
 rm -rf dist-armhf

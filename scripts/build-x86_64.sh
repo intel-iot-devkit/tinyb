@@ -4,9 +4,7 @@ sdir=`dirname $(readlink -f $0)`
 rootdir=`dirname $sdir`
 echo rootdir $rootdir
 
-#
-# export JAVA_HOME=/opt-linux-x86_64/jdk1.8.0_121
-#
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 cd $rootdir
 rm -rf dist-x86_64
