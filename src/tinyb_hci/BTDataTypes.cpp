@@ -32,12 +32,12 @@
 
 #include  <algorithm>
 
-#include "DataTypes.hpp"
+#include "BTDataTypes.hpp"
 
-extern "C" {
-    // bt_compidtostr
-    #include <bluetooth/bluetooth.h>
-}
+/**
+ * TODO libbluetooth replacement:
+ * -  bt_compidtostr
+ */
 
 #define VERBOSE_ON 1
 
@@ -52,6 +52,10 @@ using namespace tinyb_hci;
 
 static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
+}
+
+static std::string bt_compidtostr(const uint16_t companyid) {
+    return std::to_string(companyid);
 }
 
 std::string EUI48::toString() const {

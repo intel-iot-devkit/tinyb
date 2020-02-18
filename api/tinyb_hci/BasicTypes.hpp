@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HCIUTIL_HPP_
-#define HCIUTIL_HPP_
+#ifndef BASICTYPES_HPP_
+#define BASICTYPES_HPP_
 
 #pragma once
 #include <cstring>
@@ -36,9 +36,6 @@
 extern "C" {
     #include <byteswap.h>
 }
-
-#define JAVA_MAIN_PACKAGE "org/tinyb"
-#define JAVA_HCI_PACKAGE "tinyb/hci"
 
 namespace tinyb_hci {
 
@@ -314,4 +311,4 @@ namespace tinyb_hci {
 
 } // namespace tinyb_hci
 
-#endif /* HCIUTIL_HPP_ */
+#endif /* BASICTYPES_HPP_ */

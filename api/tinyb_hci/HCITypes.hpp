@@ -37,7 +37,10 @@
 #include <atomic>
 
 #include "UUID.hpp"
-#include "DataTypes.hpp"
+#include "BTDataTypes.hpp"
+
+#define JAVA_MAIN_PACKAGE "org/tinyb"
+#define JAVA_HCI_PACKAGE "tinyb/hci"
 
 namespace tinyb_hci {
 

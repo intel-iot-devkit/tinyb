@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "HCIUtil.hpp"
+#include "BasicTypes.hpp"
 
 // #define _USE_BACKTRACE_ 1
 

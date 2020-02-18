@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef DATATYPES_HPP_
-#define DATATYPES_HPP_
+#ifndef BTDATATYPES_HPP_
+#define BTDATATYPES_HPP_
 
 #pragma once
 #include <cstring>
@@ -33,7 +33,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "HCIUtil.hpp"
+#include "BasicTypes.hpp"
 #include "UUID.hpp"
 
 namespace tinyb_hci {
@@ -370,4 +370,4 @@ public:
 
 } // namespace tinyb_hci
 
-#endif /* DATATYPES_HPP_ */
+#endif /* BTDATATYPES_HPP_ */

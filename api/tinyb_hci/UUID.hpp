@@ -33,7 +33,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "HCIUtil.hpp"
+#include "BasicTypes.hpp"
 
 namespace tinyb_hci {
 
