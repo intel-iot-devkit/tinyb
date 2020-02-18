@@ -42,12 +42,16 @@ extern "C" {
 
 using namespace tinyb_hci;
 
+static inline const bdaddr_t* const_eui48_to_const_bdaddr_ptr(const EUI48 *p) {
+    return static_cast<const bdaddr_t *>( static_cast<void *>( const_cast<EUI48 *>( p ) ) );
+}
+
 // *************************************************
 // *************************************************
 // *************************************************
 
-HCIDevice::HCIDevice(EInfoReport &r)
-: ts_creation(r.getTimestamp()), mac(r.getAddress())
+HCIDevice::HCIDevice(HCIAdapter const & a, EInfoReport const & r)
+: adapter(a), ts_creation(r.getTimestamp()), mac(r.getAddress())
 {
     if( !r.isSet(EInfoReport::Element::BDADDR) ) {
         throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
@@ -120,6 +124,37 @@ void HCIDevice::update(EInfoReport const & data) {
         msd = data.getManufactureSpecificData();
     }
     addServices(data.getServices());
+}
+
+uint16_t HCIDevice::le_connect(HCISession &s,
+        uint16_t interval, uint16_t window,
+        uint16_t min_interval, uint16_t max_interval,
+        uint16_t latency, uint16_t supervision_timeout,
+        uint16_t min_ce_length, uint16_t max_ce_length,
+        uint8_t initiator_filter,
+        uint8_t peer_mac_type,
+        uint8_t own_mac_type )
+{
+    if( !s.isOpen() ) {
+        fprintf(stderr, "Session not open\n");
+        return 0;
+    }
+    uint16_t handle = 0;
+    bdaddr_t bdmac;
+    memcpy(&bdmac, const_eui48_to_const_bdaddr_ptr(&mac), sizeof(bdaddr_t));
+
+    int err = hci_le_create_conn(s.dd(),
+                cpu_to_le(interval), cpu_to_le(window),
+                initiator_filter, peer_mac_type, bdmac, own_mac_type,
+                cpu_to_le(min_interval), cpu_to_le(max_interval),
+                cpu_to_le(latency), cpu_to_le(supervision_timeout),
+                cpu_to_le(min_ce_length), cpu_to_le(max_ce_length),
+                &handle, to_connect_ms);
+    if (err < 0) {
+        perror("Could not create connection");
+        return 0;
+    }
+    return handle;
 }
 
 // *************************************************

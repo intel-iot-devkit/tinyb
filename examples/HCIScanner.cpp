@@ -90,18 +90,18 @@ int main(int argc, char *argv[])
 
         if( ok && 0 < deviceCount ) {
             const uint64_t t1 = tinyb_hci::getCurrentMilliseconds();
-            std::vector<std::shared_ptr<tinyb_hci::HCIDevice>> discoveredDevices = adapter.getDevices();
+            std::vector<std::shared_ptr<tinyb_hci::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
             int i=0, j=0, k=0;
             for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
                 i++;
-                std::shared_ptr<tinyb_hci::HCIDevice> p = *it;
-                const uint64_t lup = p->getLastUpdateAge(t1);
+                std::shared_ptr<tinyb_hci::HCIDevice> device = *it;
+                const uint64_t lup = device->getLastUpdateAge(t1);
                 if( 2000 > lup ) {
                     // less than 2s old ..
                     j++;
-                    const uint16_t handle = adapter.le_connect(*session, p->getAddress());
+                    const uint16_t handle = device->le_connect(*session);
                     if( 0 == handle ) {
-                        fprintf(stderr, "Connection: Failed %s\n", p->toString().c_str());
+                        fprintf(stderr, "Connection: Failed %s\n", device->toString().c_str());
                     } else {
                         const uint64_t t3 = tinyb_hci::getCurrentMilliseconds();
                         const uint64_t td0 = t3 - t0;
@@ -109,8 +109,8 @@ int main(int argc, char *argv[])
                         fprintf(stderr, "Connection: Success in connect-only %" PRIu64
                                         " ms, discovered to post-connect %" PRIu64
                                         " ms, total %" PRIu64 " ms, handle 0x%X\n",
-                                td1, (t3 - p->getCreationTimestamp()), td0, handle);
-                        fprintf(stderr, "Connection: Success to %s\n", p->toString().c_str());
+                                td1, (t3 - device->getCreationTimestamp()), td0, handle);
+                        fprintf(stderr, "Connection: Success to %s\n", device->toString().c_str());
                         k++;
                         done = true;
                     }

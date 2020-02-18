@@ -99,19 +99,23 @@ private:
     static int getDevId(const std::string &hcidev);
 
     static const int to_send_req_poll_ms = 1000;
-    static const int to_connect_ms = 5000;
+
+    /** Returns index >= 0 if found, otherwise -1 */
+    static int findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devices, EUI48 const & mac);
 
     EUI48 mac;
     std::string name;
 
     std::vector<std::shared_ptr<HCISession>> sessions;
-    std::vector<std::shared_ptr<HCIDevice>> discoveredDevices;
+    std::vector<std::shared_ptr<HCIDevice>> scannedDevices; // all devices scanned
+    std::vector<std::shared_ptr<HCIDevice>> discoveredDevices; // matching all requirements for export
     std::shared_ptr<HCIDeviceDiscoveryListener> deviceDiscoveryListener = nullptr;
 
     bool validateDevInfo();
     void sessionClosed(HCISession& s);
 
-    void addDevice(std::shared_ptr<HCIDevice> const &device);
+    bool addScannedDevice(std::shared_ptr<HCIDevice> const &device);
+    bool addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device);
 
 protected:
 
@@ -222,34 +226,15 @@ public:
                         const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
 
     /** Returns discovered devices from a discovery */
-    std::vector<std::shared_ptr<HCIDevice>> getDevices() { return discoveredDevices; }
+    std::vector<std::shared_ptr<HCIDevice>> getDiscoveredDevices() { return discoveredDevices; }
 
     /** Discards all discovered devices. */
-    void removeDevices() { discoveredDevices.clear(); }
+    void removeDiscoveredDevices();
 
     /** Returns index >= 0 if found, otherwise -1 */
-    int findDevice(EUI48 const & mac) const;
+    int findDiscoveredDevice(EUI48 const & mac) const;
 
-    std::shared_ptr<HCIDevice> getDevice(int index) const { return discoveredDevices.at(index); }
-
-    /**
-     * Creates a new connection to the given LE peer_mac device.
-     * <p>
-     * Returns the new connection handle if successful, otherwise 0 is returned.
-     * </p>
-     * <p>
-     * Default parameter values are chosen for using public address resolution
-     * and usual connection latency, interval etc.
-     * </p>
-     */
-    uint16_t le_connect(HCISession& s,EUI48 const & peer_mac,
-            uint16_t interval=0x0004, uint16_t window=0x0004,
-            uint16_t min_interval=0x000F, uint16_t max_interval=0x000F,
-            uint16_t latency=0x0000, uint16_t supervision_timeout=0x0C80,
-            uint16_t min_ce_length=0x0001, uint16_t max_ce_length=0x0001,
-            uint8_t initiator_filter=0,
-            uint8_t peer_mac_type=LE_Address_T::LE_PUBLIC,
-            uint8_t own_mac_type=LE_Address_T::LE_PUBLIC );
+    std::shared_ptr<HCIDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }
 
     std::string toString() const;
 };
@@ -309,12 +294,17 @@ class HCIDevice : public HCIObject
 {
 friend class HCIAdapter;
 private:
+    static const int to_connect_ms = 5000;
+
+    HCIAdapter const & adapter;
     uint64_t ts_update;
     std::string name;
     int8_t rssi = 0;
     int8_t tx_power = 0;
     std::shared_ptr<ManufactureSpecificData> msd = nullptr;
     std::vector<std::shared_ptr<UUID>> services;
+
+    HCIDevice(HCIAdapter const & adapter, EInfoReport const & r);
 
     void addService(std::shared_ptr<UUID> const &uuid);
     void addServices(std::vector<std::shared_ptr<UUID>> const & services);
@@ -326,7 +316,6 @@ public:
     /** Device mac address */
     const EUI48 mac;
 
-    HCIDevice(EInfoReport &r);
     uint64_t getCreationTimestamp() const { return ts_creation; }
     uint64_t getUpdateTimestamp() const { return ts_update; }
     uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
@@ -344,6 +333,25 @@ public:
     int findService(std::shared_ptr<UUID> const &uuid) const;
 
     std::string toString() const;
+
+    /**
+     * Creates a new connection to this device.
+     * <p>
+     * Returns the new connection handle if successful, otherwise 0 is returned.
+     * </p>
+     * <p>
+     * Default parameter values are chosen for using public address resolution
+     * and usual connection latency, interval etc.
+     * </p>
+     */
+    uint16_t le_connect(HCISession& s,
+            uint16_t interval=0x0004, uint16_t window=0x0004,
+            uint16_t min_interval=0x000F, uint16_t max_interval=0x000F,
+            uint16_t latency=0x0000, uint16_t supervision_timeout=0x0C80,
+            uint16_t min_ce_length=0x0001, uint16_t max_ce_length=0x0001,
+            uint8_t initiator_filter=0,
+            uint8_t peer_mac_type=LE_Address_T::LE_PUBLIC,
+            uint8_t own_mac_type=LE_Address_T::LE_PUBLIC );
 };
 
 inline bool operator<(const HCIDevice& lhs, const HCIDevice& rhs)
