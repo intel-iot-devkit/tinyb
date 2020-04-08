@@ -30,34 +30,23 @@
 #include <vector>
 #include <cstdio>
 
-#include  <algorithm>
+#include <algorithm>
 
-#include <inttypes.h>
-#include <unistd.h>
-#include <poll.h>
+#include "BTIoctl.hpp"
+#include "HCIIoctl.hpp"
 
-extern "C" {
-    #include <bluetooth/bluetooth.h>
-    #include <bluetooth/hci.h>
-    #include <bluetooth/hci_lib.h>
-}
-
+#include "HCIComm.hpp"
 #include "HCITypes.hpp"
 
-#define VERBOSE_ON 1
-
-#ifdef VERBOSE_ON
-    #define DBG_PRINT(...) fprintf(stderr, __VA_ARGS__); fflush(stderr)
-#else
-    #define DBG_PRINT(...)
-#endif
-
-using namespace tinyb_hci;
-
-static inline bdaddr_t* eui48_to_bdaddr_ptr(EUI48 *p) {
-    return static_cast<bdaddr_t *>( static_cast<void *>( p ) );
+extern "C" {
+    #include <inttypes.h>
+    #include <unistd.h>
+    #include <poll.h>
 }
 
+#include "dbt_debug.hpp"
+
+using namespace direct_bt;
 
 // *************************************************
 // *************************************************
@@ -65,13 +54,23 @@ static inline bdaddr_t* eui48_to_bdaddr_ptr(EUI48 *p) {
 
 std::atomic_int HCISession::name_counter(0);
 
+void HCISession::disconnect(const uint8_t reason) {
+    connectedDevice = nullptr;
+
+    if( !hciComm.isLEConnected() ) {
+        return;
+    }
+    if( !hciComm.le_disconnect(reason) ) {
+        DBG_PRINT("HCISession::disconnect: errno %d %s", errno, strerror(errno));
+    }
+}
+
 bool HCISession::close() 
 {
-    if( 0 > _dd ) {
+    if( !hciComm.isOpen() ) {
         return false;
     }
-    hci_close_dev(_dd);
-    _dd = -1;
+    hciComm.close();
     adapter.sessionClosed(*this);
     return true;
 }
@@ -80,60 +79,34 @@ bool HCISession::close()
 // *************************************************
 // *************************************************
 
-int HCIAdapter::getDefaultDevId() {
-    return hci_get_route(NULL);
-}
-int HCIAdapter::getDevId(EUI48 &mac) {
-    return hci_get_route( eui48_to_bdaddr_ptr( &mac ) );
-}
-int HCIAdapter::getDevId(const std::string &hcidev) {
-    return hci_devid(hcidev.c_str());
-}
-
 bool HCIAdapter::validateDevInfo() {
-    if( 0 > dev_id ) {
+    if( !mgmt.isOpen() || 0 > dev_id ) {
         return false;
     }
-    struct hci_dev_info dev_info;
-    bzero(&dev_info, sizeof(dev_info));
-    if( 0 > hci_devinfo(dev_id, &dev_info) ) {
-        return false;
-    }
-    memcpy(&mac, &dev_info.bdaddr, sizeof(mac));
-    name = std::string(dev_info.name);
+
+    adapterInfo = mgmt.getAdapter(dev_id);
     return true;
 }
 
 void HCIAdapter::sessionClosed(HCISession& s) 
 {
-    auto it = std::find_if(sessions.begin(), sessions.end(), [&](std::shared_ptr<HCISession> const& p) {
-        return *p == s;
-    });
-    if ( it != std::end(sessions) ) {
-        sessions.erase(it);
-    }
+    session = nullptr;
 }
 
 HCIAdapter::HCIAdapter()
-: dev_id(getDefaultDevId())
+: mgmt(MgmtHandler::get()), dev_id(mgmt.getDefaultAdapterIdx())
 {
     valid = validateDevInfo();
 }
 
 HCIAdapter::HCIAdapter(EUI48 &mac) 
-: dev_id(getDevId(mac))
-{
-    valid = validateDevInfo();
-}
-
-HCIAdapter::HCIAdapter(const std::string &hcidev)
-: dev_id(getDevId(hcidev))
+: mgmt(MgmtHandler::get()), dev_id(mgmt.findAdapterIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 HCIAdapter::HCIAdapter(const int dev_id) 
-: dev_id(dev_id)
+: mgmt(MgmtHandler::get()), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
@@ -141,7 +114,7 @@ HCIAdapter::HCIAdapter(const int dev_id)
 HCIAdapter::~HCIAdapter() {
     scannedDevices.clear();
     discoveredDevices.clear();
-    sessions.clear();
+    session = nullptr;
 }
 
 std::shared_ptr<HCISession> HCIAdapter::open() 
@@ -149,14 +122,14 @@ std::shared_ptr<HCISession> HCIAdapter::open()
     if( !valid ) {
         return nullptr;
     }
-    int dd = hci_open_dev(dev_id);
-    if( 0 > dd ) {
+    HCISession * s = new HCISession( *this, dev_id, HCI_CHANNEL_RAW );
+    if( !s->isOpen() ) {
+        delete s;
         perror("Could not open device");
         return nullptr;
     }
-    std::shared_ptr<HCISession> s(new HCISession(*this, dd));
-    sessions.push_back(s);
-    return s;
+    session = std::shared_ptr<HCISession>( s );
+    return session;
 }
 
 std::shared_ptr<HCIDeviceDiscoveryListener> HCIAdapter::setDeviceDiscoveryListener(std::shared_ptr<HCIDeviceDiscoveryListener> l)
@@ -166,50 +139,25 @@ std::shared_ptr<HCIDeviceDiscoveryListener> HCIAdapter::setDeviceDiscoveryListen
     return o;
 }
 
-bool HCIAdapter::startDiscovery(HCISession &s,
-                                uint16_t interval, uint16_t window,
-                                uint8_t own_mac_type)
+bool HCIAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
+                                uint16_t interval, uint16_t window)
 {
-    const uint8_t scan_type = 0x01;
-    const uint8_t filter_type = 0;
-    const uint8_t filter_policy = 0x00;
-    const uint8_t filter_dup = 0x01;
-    
-    if( !s.isOpen() ) {
+    if( !session.isOpen() ) {
         fprintf(stderr, "Session not open\n");
         return false;
     }
-    int err = hci_le_set_scan_parameters(s.dd(), scan_type,
-                        cpu_to_le(interval), cpu_to_le(window),
-                        own_mac_type, filter_policy, to_send_req_poll_ms);
-    if (err < 0) {
-        perror("Set scan parameters failed");
-        return false;
-    }
-
-    err = hci_le_set_scan_enable(s.dd(), 0x01, filter_dup, to_send_req_poll_ms);
-    if (err < 0) {
-        perror("Start scan failed");
+    if( !session.hciComm.le_enable_scan(own_mac_type, interval, window) ) {
+        perror("Start scanning failed");
         return false;
     }
     return true;
 }
 
-bool HCIAdapter::stopDiscovery(HCISession& session) {
-    const uint8_t filter_dup = 0x01;
-
+void HCIAdapter::stopDiscovery(HCISession& session) {
     if( !session.isOpen() ) {
-        fprintf(stderr, "Session not open\n");
-        return false;
+        return;
     }
-    bool res;
-    if( 0 > hci_le_set_scan_enable(session.dd(), 0x00, filter_dup, to_send_req_poll_ms) ) {
-        perror("Stop scan failed");
-        res = false;
-    } else {
-        res = true;
-    }
-    return res;
+    session.hciComm.le_disable_scan();
 }
 
 int HCIAdapter::findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devices, EUI48 const & mac) {
@@ -224,6 +172,18 @@ int HCIAdapter::findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devic
     }
 }
 
+int HCIAdapter::findScannedDeviceIdx(EUI48 const & mac) const {
+    return findDevice(scannedDevices, mac);
+}
+
+std::shared_ptr<HCIDevice> HCIAdapter::findScannedDevice (EUI48 const & mac) const {
+    const int idx = findDevice(scannedDevices, mac);
+    if( 0 <= idx ) {
+        return scannedDevices.at(idx);
+    }
+    return nullptr;
+}
+
 bool HCIAdapter::addScannedDevice(std::shared_ptr<HCIDevice> const &device) {
     if( 0 > findDevice(scannedDevices, device->mac) ) {
         scannedDevices.push_back(device);
@@ -232,16 +192,24 @@ bool HCIAdapter::addScannedDevice(std::shared_ptr<HCIDevice> const &device) {
     return false;
 }
 
+int HCIAdapter::findDiscoveredDeviceIdx(EUI48 const & mac) const {
+    return findDevice(discoveredDevices, mac);
+}
+
+std::shared_ptr<HCIDevice> HCIAdapter::findDiscoveredDevice (EUI48 const & mac) const {
+    const int idx = findDevice(discoveredDevices, mac);
+    if( 0 <= idx ) {
+        return discoveredDevices.at(idx);
+    }
+    return nullptr;
+}
+
 bool HCIAdapter::addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device) {
-    if( 0 > findDiscoveredDevice(device->mac) ) {
+    if( 0 > findDiscoveredDeviceIdx(device->mac) ) {
         discoveredDevices.push_back(device);
         return true;
     }
     return false;
-}
-
-int HCIAdapter::findDiscoveredDevice(EUI48 const & mac) const {
-    return findDevice(discoveredDevices, mac);
 }
 
 void HCIAdapter::removeDiscoveredDevices() {
@@ -271,10 +239,11 @@ int HCIAdapter::discoverDevices(HCISession& session,
                                 const uint32_t ad_type_req)
 {
     uint8_t buf[HCI_MAX_EVENT_SIZE];
-    struct hci_filter nf, of;
+    hci_ufilter nf, of;
     socklen_t olen;
     int bytes_left = -1;
     const int64_t t0 = getCurrentMilliseconds();
+    int err;
 
     if( !session.isOpen() ) {
         fprintf(stderr, "Session not open\n");
@@ -283,16 +252,16 @@ int HCIAdapter::discoverDevices(HCISession& session,
 
     olen = sizeof(of);
     if (getsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-        fprintf(stderr, "Could not get socket options\n");
+        perror("Could not get socket options");
         return false;
     }
 
-    hci_filter_clear(&nf);
-    hci_filter_set_ptype(HCI_EVENT_PKT, &nf);
-    hci_filter_set_event(EVT_LE_META_EVENT, &nf);
+    HCIComm::filter_clear(&nf);
+    HCIComm::filter_set_ptype(HCI_EVENT_PKT, &nf);
+    HCIComm::filter_set_event(HCI_EV_LE_META, &nf);
 
     if (setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
-        fprintf(stderr, "Could not set socket options\n");
+        perror("Could not set socket options");
         return false;
     }
 
@@ -306,7 +275,7 @@ int HCIAdapter::discoverDevices(HCISession& session,
     while ( !done && ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
         uint8_t hci_type;
         hci_event_hdr *ehdr;
-        evt_le_meta_event *meta;
+        hci_ev_le_meta *meta;
         loop++;
 
         if( timeoutMS ) {
@@ -322,7 +291,10 @@ int HCIAdapter::discoverDevices(HCISession& session,
                 goto errout;
             }
             if (!n) {
-                goto done; // timeout: exit but no error
+                // A timeout is not considered an error for discovery.
+                // errno = ETIMEDOUT;
+                // goto errout;
+                goto done;
             }
         }
 
@@ -334,16 +306,16 @@ int HCIAdapter::discoverDevices(HCISession& session,
             goto errout;
         }
 
-        if( bytes_left < HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE + EVT_LE_META_EVENT_SIZE ) {
+        if( bytes_left < HCI_TYPE_LEN + (int)sizeof(hci_event_hdr) + (int)sizeof(hci_ev_le_meta) ) {
             // not enough data ..
             continue;
         }
         hci_type = buf[0]; // sizeof HCI_TYPE_LEN
 
-        ehdr = (hci_event_hdr*)(void*) ( buf + HCI_TYPE_LEN ); // sizeof HCI_EVENT_HDR_SIZE
+        ehdr = (hci_event_hdr*)(void*) ( buf + HCI_TYPE_LEN ); // sizeof hci_event_hdr
 
         bytes_left -= (HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE);
-        meta = (evt_le_meta_event*)(void *) ( buf + ( HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE ) ); // sizeof EVT_LE_META_EVENT_SIZE
+        meta = (hci_ev_le_meta*)(void *) ( buf + ( HCI_TYPE_LEN + (int)sizeof(hci_event_hdr) ) ); // sizeof hci_ev_le_meta
 
         if( bytes_left < ehdr->plen ) {
             // not enough data ..
@@ -351,18 +323,18 @@ int HCIAdapter::discoverDevices(HCISession& session,
                     loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
             continue;
         } else {
-            DBG_PRINT("HCIAdapter::discovery[%d]: Complete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes >= plen %d\n",
+            DBG_PRINT("HCIAdapter::discovery[%d]: Complete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes >= plen %d",
                     loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
         }
 
-        // HCI_LE_Advertising_Report == 0x3E == EVT_LE_META_EVENT
+        // HCI_LE_Advertising_Report == 0x3E == HCI_EV_LE_META
         //        0x3E                                                           0x02
-        if ( HCI_Event_Types::LE_Advertising_Report != ehdr->evt || meta->subevent != EVT_LE_ADVERTISING_REPORT ) {
+        if ( HCI_Event_Types::LE_Advertising_Report != ehdr->evt || meta->subevent != HCI_EV_LE_ADVERTISING_REPORT ) {
             continue; // next ..
         }
-        bytes_left -= EVT_LE_META_EVENT_SIZE;
+        bytes_left -= sizeof(hci_ev_le_meta);
 
-        std::vector<std::shared_ptr<EInfoReport>> ad_reports = EInfoReport::read_ad_reports(meta->data, bytes_left);
+        std::vector<std::shared_ptr<EInfoReport>> ad_reports = EInfoReport::read_ad_reports(((uint8_t*)(void *)meta)+1, bytes_left);
         const int num_reports = ad_reports.size();
 
         for(int i = 0; i < num_reports && i < 0x19; i++) {
@@ -375,17 +347,17 @@ int HCIAdapter::discoverDevices(HCISession& session,
                     done = true;
                 }
             }
-            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d\n",
+            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
                     loop-1, i, num_reports, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
                     matchedDeviceCount, waitForDeviceCount, done);
-            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: %s\n", loop-1, i, num_reports, ad_report->toString().c_str());
+            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: %s", loop-1, i, num_reports, ad_report->toString().c_str());
 
             int idx = findDevice(scannedDevices, ad_report->getAddress());
             std::shared_ptr<HCIDevice> dev;
             if( 0 > idx ) {
                 // new device
                 dev = std::shared_ptr<HCIDevice>(new HCIDevice(*this, *ad_report));
-                addScannedDevice(dev);
+                scannedDevices.push_back(dev);
             } else {
                 // existing device
                 dev = scannedDevices.at(idx);
@@ -412,6 +384,8 @@ done:
     return matchedDeviceCount;
 
 errout:
+    err = errno;
     setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
+    errno = err;
     return -1;
 }

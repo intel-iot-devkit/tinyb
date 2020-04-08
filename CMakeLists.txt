@@ -12,7 +12,8 @@ set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -fno-omit-fra
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 set (LIB_INSTALL_DIR "lib${LIB_SUFFIX}" CACHE PATH "Installation path for libraries")
 
-# Set CMAKE_LIB_INSTALL_DIR if not defined
+# Set CMAKE_INSTALL_XXXDIR (XXX {BIN LIB ..} if not defined
+# (was: CMAKE_LIB_INSTALL_DIR)
 include(GNUInstallDirs)
 
 # Appends the cmake/modules path to MAKE_MODULE_PATH variable.
@@ -76,6 +77,10 @@ ENDIF(DEBUG)
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
 
+add_subdirectory (src/tinyb)
+
+add_subdirectory (src/direct_bt)
+
 option (BUILDJAVA "Build Java API." OFF)
 
 IF(BUILDJAVA)
@@ -113,9 +118,14 @@ if (DOXYGEN_FOUND)
   endif ()
 endif (DOXYGEN_FOUND)
 
-add_subdirectory (src/tinyb)
-add_subdirectory (src/tinyb_hci)
-
 if (BUILDEXAMPLES)
   add_subdirectory (examples)
 endif (BUILDEXAMPLES)
+
+if (BUILD_TESTING)
+  enable_testing ()
+  add_subdirectory (test/ieee11073)
+  add_subdirectory (test/direct_bt)
+endif(BUILD_TESTING)
+
+

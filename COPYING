@@ -19,3 +19,32 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
 LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Tinyb2's direct_bt imports certain information from Linux Kernel's BlueZ protocol stack,
+allowing the use of these kernel services via system calls.
+Therefore, the license has been aligned with this project.
+
+Related files are
+- <api/direct_bt/BTIoctl.hpp>,
+- <api/direct_bt/HCIIoctl.hpp> and 
+- <api/direct_bt/L2CAPIoctl.hpp>.
+
+See Linus Torvalds's Linux Kernel license exception regarding kernel syscalls (ioctl):
+<https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note>
+
+<quote>
+NOTE! This copyright does *not* cover user programs that use kernel
+ services by normal system calls - this is merely considered normal use
+ of the kernel, and does *not* fall under the heading of "derived work".
+</quote>
+
+...
+
+This documentation of our usage is certainly a better than GOOG's approach: 
+<https://android.googlesource.com/platform/system/bluetooth/+/eclair-release/bluez-clean-headers/bluetooth?autodive=0/>,
+which removes all authorship and origin.
+

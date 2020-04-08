@@ -13,7 +13,10 @@ rm -rf build-armhf
 mkdir build-armhf
 cd build-armhf
 cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-armhf -DBUILDJAVA=ON -DBUILDEXAMPLES=ON ..
+# cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-armhf -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
+cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-armhf -DBUILDEXAMPLES=ON -DDEBUG=ON -DBUILD_TESTING=ON ..
 make
+make test
 make install
 cp -a examples/* $rootdir/dist-armhf/bin
 

@@ -1,5 +1,4 @@
 /*
- * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
@@ -21,14 +20,24 @@
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
  */
 
-#include "direct_bt/HCITypes.hpp"
+#ifndef LINUX_KERNEL_TYPES_HPP_
+#define LINUX_KERNEL_TYPES_HPP_
 
-#include "tinyb_hci_HCIGattCharacteristic.h"
+typedef uint8_t  __u8;
+typedef int8_t   __s8;
+typedef uint16_t __u16;
+typedef uint16_t __le16;
+typedef uint16_t __be16;
+typedef uint32_t __u32;
+typedef uint32_t __le32;
+typedef uint32_t __be32;
+typedef uint64_t __u64;
+typedef uint64_t __le64;
+typedef uint64_t __be64;
+typedef EUI48    bdaddr_t;
+#define __packed __attribute__ ((packed))
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
-
-using namespace direct_bt;
-
+#endif /* LINUX_KERNEL_TYPES_HPP_ */

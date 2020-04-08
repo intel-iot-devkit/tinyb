@@ -32,23 +32,57 @@
 
 #include  <algorithm>
 
-#include "BTDataTypes.hpp"
+#include "BTTypes.hpp"
 
-/**
- * TODO libbluetooth replacement:
- * -  bt_compidtostr
- */
+#include "dbt_debug.hpp"
 
-#define VERBOSE_ON 1
+std::string EUI48::toString() const {
+    const int length = 17;
+    std::string str;
+    str.reserve(length+1); // including EOS for snprintf
+    str.resize(length);
 
-#ifdef VERBOSE_ON
-    #define DBG_PRINT(...) fprintf(stderr, __VA_ARGS__); fflush(stderr)
-#else
-    #define DBG_PRINT(...)
-#endif
+    const int count = snprintf(&str[0], str.capacity(), "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
+                                b[5], b[4], b[3], b[2], b[1], b[0]);
+    if( length != count ) {
+        throw direct_bt::InternalError("EUI48 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+    }
+    return str;
+}
 
+EUI48::EUI48(const std::string str) {
+    if( 17 != str.length() ) {
+        std::string msg("EUI48 string not of length 17 but ");
+        msg.append(std::to_string(str.length()));
+        msg.append(": "+str);
+        throw direct_bt::IllegalArgumentException(msg, E_FILE_LINE);
+    }
+    if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+                     &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
+    {
+        std::string msg("EUI48 string not in format '00:00:00:00:00:00' but "+str);
+        throw direct_bt::IllegalArgumentException(msg, E_FILE_LINE);
+    }
 
-using namespace tinyb_hci;
+    // sscanf provided host data type, in which we store the values,
+    // hence no endian conversion
+}
+
+EUI48::EUI48(const uint8_t * _b) {
+    memcpy(b, _b, sizeof(b));
+}
+
+const EUI48 EUI48_ANY_DEVICE; // default ctor is zero bytes!
+static uint8_t _EUI48_ALL_DEVICE[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+static uint8_t _EUI48_LOCAL_DEVICE[] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
+const EUI48 EUI48_ALL_DEVICE( _EUI48_ALL_DEVICE );
+const EUI48 EUI48_LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
+
+// *************************************************
+// *************************************************
+// *************************************************
+
+using namespace direct_bt;
 
 static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
@@ -57,44 +91,6 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
 static std::string bt_compidtostr(const uint16_t companyid) {
     return std::to_string(companyid);
 }
-
-std::string EUI48::toString() const {
-    char cstr[17+1];
-
-    const int count = sprintf(cstr, "%2.2X:%2.2X:%2.2X:%2.2X:%2.2X:%2.2X",
-        b[5], b[4], b[3], b[2], b[1], b[0]);
-
-    if( 17 != count ) {
-        std::string msg("EUI48 string not of length 17 but ");
-        msg.append(std::to_string(count));
-        throw InternalError(msg, E_FILE_LINE);
-    }
-    return std::string(cstr);
-}
-
-EUI48::EUI48(const std::string str) {
-    if( 17 != str.length() ) {
-        std::string msg("EUI48 string not of length 17 but ");
-        msg.append(std::to_string(str.length()));
-        msg.append(": "+str);
-        throw IllegalArgumentException(msg, E_FILE_LINE);
-    }
-    if ( sscanf(str.c_str(), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
-                     &b[5], &b[4], &b[3], &b[2], &b[1], &b[0]) != 6 )
-    {
-        std::string msg("EUI48 string not in format '00:00:00:00:00:00' but "+str);
-        throw IllegalArgumentException(msg, E_FILE_LINE);
-    }
-
-    // sscanf provided host data type, in which we store the values,
-    // hence no endian conversion
-}
-
-const EUI48 EUI48_ANY_DEVICE; // default ctor is zero bytes!
-
-// *************************************************
-// *************************************************
-// *************************************************
 
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len)
 : company(company), companyName(std::string(bt_compidtostr(company))), data_len(data_len), data(new uint8_t[data_len]) {
@@ -131,10 +127,10 @@ void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) {
     set(Element::NAME_SHORT);
 }
 
-void EInfoReport::addService(std::shared_ptr<UUID> const &uuid)
+void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
 {
     auto begin = services.begin();
-    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<UUID> const& p) {
+    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<uuid_t> const& p) {
         return *p == *uuid;
     });
     if ( it == std::end(services) ) {
@@ -179,8 +175,8 @@ std::string EInfoReport::toString() const {
     if(services.size() > 0 ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
-            std::shared_ptr<UUID> p = *it;
-            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->type))).append(" bytes\n");
+            std::shared_ptr<uuid_t> p = *it;
+            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes\n");
         }
     }
     return out;
@@ -221,7 +217,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
 
     while( 0 < ( offset = next_data_elem( &elem_len, &elem_type, &elem_data, data, offset, data_length ) ) )
     {
-        DBG_PRINT("%s-Element[%d] @ [%d/%d]: type 0x%.2X with %d bytes net\n",
+        DBG_PRINT("%s-Element[%d] @ [%d/%d]: type 0x%.2X with %d bytes net",
                 getSourceString().c_str(), count, offset, data_length, elem_type, elem_len);
         count++;
 
@@ -233,21 +229,21 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
             case GAP_T::UUID16_INCOMPLETE:
             case GAP_T::UUID16_COMPLETE:
                 for(int j=0; j<elem_len/2; j++) {
-                    const std::shared_ptr<UUID> uuid(new UUID16(elem_data, j*2, true));
+                    const std::shared_ptr<uuid_t> uuid(new uuid16_t(elem_data, j*2, true));
                     addService(std::move(uuid));
                 }
                 break;
             case GAP_T::UUID32_INCOMPLETE:
             case GAP_T::UUID32_COMPLETE:
                 for(int j=0; j<elem_len/4; j++) {
-                    const std::shared_ptr<UUID> uuid(new UUID32(elem_data, j*4, true));
+                    const std::shared_ptr<uuid_t> uuid(new uuid32_t(elem_data, j*4, true));
                     addService(std::move(uuid));
                 }
                 break;
             case GAP_T::UUID128_INCOMPLETE:
             case GAP_T::UUID128_COMPLETE:
                 for(int j=0; j<elem_len/16; j++) {
-                    const std::shared_ptr<UUID> uuid(new UUID128(elem_data, j*16, true));
+                    const std::shared_ptr<uuid_t> uuid(new uuid128_t(elem_data, j*16, true));
                     addService(std::move(uuid));
                 }
                 break;
@@ -296,7 +292,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     std::vector<std::shared_ptr<EInfoReport>> ad_reports;
 
     if( 0 >= num_reports || num_reports > 0x19 ) {
-        DBG_PRINT("AD-Reports: Invalid reports count: %d\n", num_reports);
+        DBG_PRINT("AD-Reports: Invalid reports count: %d", num_reports);
         return ad_reports;
     }
     uint8_t const *limes = data + data_length;
@@ -342,7 +338,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         fprintf(stderr, "AD-Reports: Warning: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     } else {
-        DBG_PRINT("AD-Reports: Completed %d reports within %d bytes: Segment read %d == %d, data-ptr %d bytes to limes\n",
+        DBG_PRINT("AD-Reports: Completed %d reports within %d bytes: Segment read %d == %d, data-ptr %d bytes to limes",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     }
     return ad_reports;

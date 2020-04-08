@@ -12,8 +12,10 @@ mkdir -p dist-x86_64/bin
 rm -rf build-x86_64
 mkdir build-x86_64
 cd build-x86_64
-cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-x86_64 -DBUILDJAVA=ON -DBUILDEXAMPLES=ON ..
+# cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-x86_64 -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
+cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-x86_64 -DBUILDEXAMPLES=ON -DDEBUG=ON -DBUILD_TESTING=ON ..
 make
+make test
 make install
 cp -a examples/* $rootdir/dist-x86_64/bin
 

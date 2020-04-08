@@ -23,10 +23,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef BASICTYPES_HPP_
-#define BASICTYPES_HPP_
+#ifndef BASIC_TYPES_HPP_
+#define BASIC_TYPES_HPP_
 
-#pragma once
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,10 +33,11 @@
 #include <vector>
 
 extern "C" {
+    #include <endian.h>
     #include <byteswap.h>
 }
 
-namespace tinyb_hci {
+namespace direct_bt {
 
     /**
      * Returns current monotonic time in milliseconds.
@@ -48,7 +48,7 @@ namespace tinyb_hci {
 
     class RuntimeException : public std::exception {
       protected:
-        RuntimeException(std::string const type, std::string const m, const char* file=__FILE__, int line=__LINE__) noexcept
+        RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
         : msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)) { }
 
       public:
@@ -80,10 +80,28 @@ namespace tinyb_hci {
         : RuntimeException("IllegalArgumentException", m, file, line) {}
     };
 
+    class IllegalStateException : public RuntimeException {
+      public:
+        IllegalStateException(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("IllegalStateException", m, file, line) {}
+    };
+
+    class InvalidStateException : public RuntimeException {
+      public:
+            InvalidStateException(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("InvalidStateException", m, file, line) {}
+    };
+
     class UnsupportedOperationException : public RuntimeException {
       public:
         UnsupportedOperationException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("UnsupportedOperationException", m, file, line) {}
+    };
+
+    class IndexOutOfBoundsException : public RuntimeException {
+      public:
+        IndexOutOfBoundsException(const int index, const int count, const int length, const char* file, int line) noexcept
+        : RuntimeException("IndexOutOfBoundsException", "Index "+std::to_string(index)+", count "+std::to_string(count)+", data length "+std::to_string(length), file, line) {}
     };
 
     /**
@@ -205,10 +223,25 @@ namespace tinyb_hci {
     #error "Unexpected __BYTE_ORDER"
 #endif
 
+    inline void put_uint8(uint8_t * buffer, int const byte_offset, const uint8_t v)
+    {
+        uint8_t * p = (uint8_t *) ( buffer + byte_offset );
+        *p = v;
+    }
+    inline uint8_t get_uint8(uint8_t const * buffer, int const byte_offset)
+    {
+        uint8_t const * p = (uint8_t const *) ( buffer + byte_offset );
+        return *p;
+    }
     inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v)
     {
         uint16_t * p = (uint16_t *) ( buffer + byte_offset );
         *p = v;
+    }
+    inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v, bool littleEndian)
+    {
+        uint16_t * p = (uint16_t *) ( buffer + byte_offset );
+        *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
     }
     inline uint16_t get_uint16(uint8_t const * buffer, int const byte_offset)
     {
@@ -226,6 +259,11 @@ namespace tinyb_hci {
         uint32_t * p = (uint32_t *) ( buffer + byte_offset );
         *p = v;
     }
+    inline void put_uint32(uint8_t * buffer, int const byte_offset, const uint32_t v, bool littleEndian)
+    {
+        uint32_t * p = (uint32_t *) ( buffer + byte_offset );
+        *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
+    }
     inline uint32_t get_uint32(uint8_t const * buffer, int const byte_offset)
     {
         uint32_t const * p = (uint32_t const *) ( buffer + byte_offset );
@@ -241,6 +279,11 @@ namespace tinyb_hci {
     {
         uint128_t * p = (uint128_t *) ( buffer + byte_offset );
         *p = v;
+    }
+    inline void put_uint128(uint8_t * buffer, int const byte_offset, const uint128_t v, bool littleEndian)
+    {
+        uint128_t * p = (uint128_t *) ( buffer + byte_offset );
+        *p = littleEndian ? cpu_to_le(v) : cpu_to_be(v);
     }
     inline uint128_t get_uint128(uint8_t const * buffer, int const byte_offset)
     {
@@ -285,7 +328,7 @@ namespace tinyb_hci {
      * BE: uuid16 -> value.data[2+3]
      * </pre>
      */
-    uint128_t merge_uint128(uint128_t const & base_uuid, uint16_t const uuid16, int const uuid16_le_octet_index);
+    uint128_t merge_uint128(uint16_t const uuid16, uint128_t const & base_uuid, int const uuid16_le_octet_index);
 
     /**
      * Merge the given 'uuid32' into a 'base_uuid' copy at the given little endian 'uuid32_le_octet_index' position.
@@ -307,8 +350,30 @@ namespace tinyb_hci {
      * BE: uuid32 -> value.data[0..3]
      * </pre>
      */
-    uint128_t merge_uint128(uint128_t const & base_uuid, uint32_t const uuid32, int const uuid32_le_octet_index);
+    uint128_t merge_uint128(uint32_t const uuid32, uint128_t const & base_uuid, int const uuid32_le_octet_index);
 
-} // namespace tinyb_hci
+    std::string uint8HexString(const uint8_t v, const bool leading0X);
+    std::string uint16HexString(const uint16_t v, const bool leading0X);
+    std::string uint32HexString(const uint32_t v, const bool leading0X);
 
-#endif /* BASICTYPES_HPP_ */
+    /**
+     * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.
+     * <p>
+     * Otherwise orders MSB left -> LSB right, usual for readable integer values.
+     * </p>
+     */
+    std::string bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X);
+
+    std::string int32SeparatedString(const int32_t v, const char separator=',');
+    std::string uint32SeparatedString(const uint32_t v, const char separator=',');
+    std::string uint64SeparatedString(const uint64_t v, const char separator=',');
+
+    /** trim in place */
+    void trimInPlace(std::string &s);
+
+    /** trim copy */
+    std::string trimCopy(const std::string &s);
+
+} // namespace direct_bt
+
+#endif /* BASIC_TYPES_HPP_ */

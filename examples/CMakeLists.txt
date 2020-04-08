@@ -5,42 +5,42 @@ include_directories(
   ${GIO-UNIX_INCLUDE_DIRS}
 )
 
-add_executable (hellotinyb hellotinyb.cpp)
+add_executable (hellotinyb tinyb/hellotinyb.cpp)
 set_target_properties(hellotinyb
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (checkinit checkinit.cpp)
+add_executable (checkinit tinyb/checkinit.cpp)
 set_target_properties(checkinit
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (asynctinyb asynctinyb.cpp)
+add_executable (asynctinyb tinyb/asynctinyb.cpp)
 set_target_properties(asynctinyb
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (esstinyb esstinyb.cpp)
+add_executable (esstinyb tinyb/esstinyb.cpp)
 set_target_properties(esstinyb
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (notifications notifications.cpp)
+add_executable (notifications tinyb/notifications.cpp)
 set_target_properties(notifications
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (uuid uuid.cpp)
+add_executable (uuid tinyb/uuid.cpp)
 set_target_properties(uuid
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (list_mfg list_mfg.cpp)
+add_executable (list_mfg tinyb/list_mfg.cpp)
 set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (hci_scanner HCIScanner.cpp)
+add_executable (dbt_scanner direct_bt_scanner/dbt_scanner.cpp)
 set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
@@ -54,5 +54,7 @@ target_link_libraries (esstinyb tinyb)
 target_link_libraries (notifications tinyb)
 target_link_libraries (uuid tinyb)
 target_link_libraries (list_mfg tinyb)
-target_link_libraries (hci_scanner tinyb_hci)
+target_link_libraries (dbt_scanner direct_bt)
+
+install(TARGETS dbt_scanner RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "tinyb_hci/HCITypes.hpp"
+#include "direct_bt/HCITypes.hpp"
 
 #include "JNIMem.hpp"
 #include "helper_base.hpp"
