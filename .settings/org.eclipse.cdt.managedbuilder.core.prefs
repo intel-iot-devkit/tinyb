@@ -1,0 +1,13 @@
+eclipse.preferences.version=1
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/CPATH/delimiter=\:
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/CPATH/operation=remove
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/CPLUS_INCLUDE_PATH/delimiter=\:
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/CPLUS_INCLUDE_PATH/operation=remove
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/C_INCLUDE_PATH/delimiter=\:
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/C_INCLUDE_PATH/operation=remove
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/append=true
+environment/buildEnvironmentInclude/cdt.managedbuild.config.gnu.so.debug.368873367/appendContributed=true
+environment/buildEnvironmentLibrary/cdt.managedbuild.config.gnu.so.debug.368873367/LIBRARY_PATH/delimiter=\:
+environment/buildEnvironmentLibrary/cdt.managedbuild.config.gnu.so.debug.368873367/LIBRARY_PATH/operation=remove
+environment/buildEnvironmentLibrary/cdt.managedbuild.config.gnu.so.debug.368873367/append=true
+environment/buildEnvironmentLibrary/cdt.managedbuild.config.gnu.so.debug.368873367/appendContributed=true

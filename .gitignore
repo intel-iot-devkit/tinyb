@@ -17,8 +17,8 @@ dist*/
 *~
 
 # Eclipse files
-.cproject
-.project
+#.cproject
+#.project
 
 # Archive files
 *.jar
