@@ -90,6 +90,7 @@ bool HCIAdapter::validateDevInfo() {
 
 void HCIAdapter::sessionClosed(HCISession& s) 
 {
+    (void)s;
     session = nullptr;
 }
 

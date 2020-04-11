@@ -108,7 +108,7 @@ std::string AttErrorRsp::getPlainErrorString(const ErrorCode errorCode) {
     if( 0x80 <= errorCode && errorCode <= 0x9F ) {
         return "Application Error";
     }
-    if( 0xE0 <= errorCode && errorCode <= 0xFF ) {
+    if( 0xE0 <= errorCode /* && errorCode <= 0xFF */ ) {
         return "Common Profile and Services Error";
     }
     return "Error Reserved for future use";

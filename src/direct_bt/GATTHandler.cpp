@@ -163,6 +163,7 @@ static void gatthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
     INFO_PRINT("GATTHandler.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d]",
             sig, info->si_code, info->si_errno, info->si_signo,
             info->si_pid, info->si_uid, info->si_fd);
+    (void)ucontext;
 
     if( SIGINT != sig ) {
         return;

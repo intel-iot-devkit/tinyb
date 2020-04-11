@@ -53,14 +53,16 @@ namespace direct_bt {
 
 int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
 {
-	struct sockaddr_hci a;
+	sockaddr_hci a;
 	int dd, err;
 
-	if (0 > dev_id ) {
+	/**
+	 * dev_id is unsigned and hence always >= 0
+	if ( 0 > dev_id ) {
 		errno = ENODEV;
 		ERR_PRINT("hci_open_dev: invalid dev_id errno %d %s", errno, strerror(errno));
 		return -1;
-	}
+	} */
 
 	// Create a loose HCI socket
 	dd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
@@ -70,7 +72,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
 	}
 
 	// Bind socket to the HCI device
-	bzero(&a, sizeof(a));
+	bzero((void *)&a, sizeof(a));
 	a.hci_family = AF_BLUETOOTH;
 	a.hci_dev = dev_id;
 	a.hci_channel = channel;
@@ -515,7 +517,7 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
 	hci_cp_le_create_conn cp;
 	hci_ev_le_conn_complete rp;
 
-	bzero(&cp, sizeof(cp));
+	bzero((void*)&cp, sizeof(cp));
 	cp.scan_interval = cpu_to_le(interval);
 	cp.scan_window = cpu_to_le(window);
 	cp.filter_policy = initiator_filter;

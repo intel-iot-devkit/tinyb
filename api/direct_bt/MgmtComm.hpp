@@ -356,8 +356,8 @@ namespace direct_bt {
             uint16_t getDevID() const { return btohs( pdu.get_uint16(2) ); }
             uint16_t getParamSize() const { return btohs( pdu.get_uint16(4) ); }
 
-            virtual const int getDataOffset() const { return 6; }
-            virtual const int getDataSize() const { return getParamSize(); }
+            virtual int getDataOffset() const { return 6; }
+            virtual int getDataSize() const { return getParamSize(); }
             virtual const uint8_t* getData() const { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
 
             virtual bool validate(const MgmtRequest &req) const {
@@ -390,8 +390,8 @@ namespace direct_bt {
             MgmtRequest::Opcode getReqOpcode() const { return static_cast<MgmtRequest::Opcode>( btohs( pdu.get_uint16(6) ) ); }
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(8) ); }
 
-            const int getDataOffset() const override { return 9; }
-            const int getDataSize() const override { return getParamSize()-3; }
+            int getDataOffset() const override { return 9; }
+            int getDataSize() const override { return getParamSize()-3; }
             const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
 
             bool validate(const MgmtRequest &req) const override {
@@ -418,8 +418,8 @@ namespace direct_bt {
             MgmtRequest::Opcode getReqOpcode() const { return static_cast<MgmtRequest::Opcode>( btohs( pdu.get_uint16(6) ) ); }
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(8) ); }
 
-            const int getDataOffset() const override { return 9; }
-            const int getDataSize() const override { return 0; }
+            int getDataOffset() const override { return 9; }
+            int getDataSize() const override { return 0; }
             const uint8_t* getData() const override { return nullptr; }
 
             bool validate(const MgmtRequest &req) const override {
@@ -447,13 +447,13 @@ namespace direct_bt {
             }
 
             const EUI48 getMAC() const { return EUI48(pdu.get_ptr(getDataOffset()+0)); }
-            const uint8_t getVersion() const { return pdu.get_uint8(getDataOffset()+6); }
-            const uint16_t getManufacturer() const { return pdu.get_uint16(getDataOffset()+7); }
-            const uint32_t getSupportedSetting() const { return pdu.get_uint32(getDataOffset()+9); }
-            const uint32_t getCurrentSetting() const { return pdu.get_uint32(getDataOffset()+13); }
-            const uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
-                                                        | ( pdu.get_uint8(getDataOffset()+18) << 8 )
-                                                        | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
+            uint8_t getVersion() const { return pdu.get_uint8(getDataOffset()+6); }
+            uint16_t getManufacturer() const { return pdu.get_uint16(getDataOffset()+7); }
+            uint32_t getSupportedSetting() const { return pdu.get_uint32(getDataOffset()+9); }
+            uint32_t getCurrentSetting() const { return pdu.get_uint32(getDataOffset()+13); }
+            uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
+                                                  | ( pdu.get_uint8(getDataOffset()+18) << 8 )
+                                                  | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
             const std::string getName() const { return std::string( (const char*)pdu.get_ptr(getDataOffset()+20) ); }
             const std::string getShortName() const { return std::string( (const char*)pdu.get_ptr(getDataOffset()+20+MgmtConst::MAX_NAME_LENGTH) ); }
     };

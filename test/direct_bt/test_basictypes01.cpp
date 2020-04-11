@@ -6,6 +6,7 @@
 #include <cppunit.h>
 
 #include <direct_bt/BasicTypes.hpp>
+#include <direct_bt/BTAddress.hpp>
 
 using namespace direct_bt;
 
@@ -56,6 +57,14 @@ class Cppunit_tests : public Cppunit {
             test_uint64_t("uint64_t one", 1, 1, "1");
             test_uint64_t("uint64_t thousand", 1000, 5, "1,000");
             test_uint64_t("UINT64_MAX", UINT64_MAX, 26, "18,446,744,073,709,551,615");
+        }
+        {
+            EUI48 mac01;
+            PRINTM("EUI48 size: whole0 "+std::to_string(sizeof(EUI48)));
+            PRINTM("EUI48 size: whole1 "+std::to_string(sizeof(mac01)));
+            PRINTM("EUI48 size:  data1 "+std::to_string(sizeof(mac01.b)));
+            CHECKM("EUI48 struct and data size not matching", sizeof(EUI48), sizeof(mac01));
+            CHECKM("EUI48 struct and data size not matching", sizeof(mac01), sizeof(mac01.b));
         }
 
     }

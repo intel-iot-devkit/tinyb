@@ -909,7 +909,7 @@ namespace direct_bt {
             : AttPDUMsg(source, length) {}
 
             virtual std::string addValueString() const { return ""; }
-            virtual std::string elementString(const int idx) const { return "not implemented"; }
+            virtual std::string elementString(const int idx) const { (void)idx; return "not implemented"; }
 
             std::string valueString() const override {
                 std::string res = "size "+std::to_string(getPDUValueSize())+", "+addValueString()+"elements[count "+std::to_string(getElementCount())+", "+

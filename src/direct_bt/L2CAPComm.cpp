@@ -50,7 +50,7 @@ extern "C" {
 using namespace direct_bt;
 
 int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter, const bool blocking) {
-    struct sockaddr_l2 a;
+    sockaddr_l2 a;
     int dd, err;
 
     // Create a loose L2CAP socket
@@ -65,7 +65,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
 
     // Bind socket to the L2CAP adapter
     // BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
-    bzero(&a, sizeof(a));
+    bzero((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
     a.l2_psm = htobs(psm);
     a.l2_bdaddr = adapterAddress;
@@ -115,7 +115,7 @@ std::string L2CAPComm::getStateString(const State state) {
 L2CAPComm::State L2CAPComm::connect() {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
 
-    struct sockaddr_l2 req;
+    sockaddr_l2 req;
     int err, res;
 
     if( 0 <= _dd ) {
@@ -128,7 +128,7 @@ L2CAPComm::State L2CAPComm::connect() {
     }
 
     // actual request to connect to remote device
-    bzero(&req, sizeof(req));
+    bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
     req.l2_psm = htobs(psm);
     req.l2_bdaddr = device->getAddress();
