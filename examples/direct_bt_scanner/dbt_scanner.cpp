@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 
     const int64_t t0 = direct_bt::getCurrentMilliseconds();
 
-    std::shared_ptr<direct_bt::DBTSession> session = adapter.open();
+    std::shared_ptr<direct_bt::HCISession> session = adapter.open();
 
     while( ok && !done && nullptr != session ) {
         ok = adapter.startDiscovery(*session);

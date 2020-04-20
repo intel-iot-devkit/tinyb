@@ -39,8 +39,8 @@ using namespace direct_bt;
 void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        MgmtHandler *manager = &MgmtHandler::get(); // special: static singleton
-        setInstance<MgmtHandler>(env, obj, manager);
+        DBTManager *manager = &DBTManager::get(); // special: static singleton
+        setInstance<DBTManager>(env, obj, manager);
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
@@ -50,7 +50,7 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
 void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
-        MgmtHandler *manager = getInstance<MgmtHandler>(env, obj); // special: static singleton
+        DBTManager *manager = getInstance<DBTManager>(env, obj); // special: static singleton
         manager->setJavaObject(nullptr);
         // delete manager;
         (void) manager;
@@ -62,7 +62,7 @@ static const std::string _adapterClazzCtorArgs("(JLjava/lang/String;Ljava/lang/S
 jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobject obj)
 {
     try {
-        MgmtHandler *manager = getInstance<MgmtHandler>(env, obj);
+        DBTManager *manager = getInstance<DBTManager>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: Manager %s", manager->toString().c_str());
         int defAdapterIdx = manager->getDefaultAdapterIdx();
         DBTAdapter * adapter = new DBTAdapter(defAdapterIdx);
@@ -74,7 +74,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobj
             delete adapter;
             throw BluetoothException("Invalid default adapter dev-id "+std::to_string(defAdapterIdx), E_FILE_LINE);
         }
-        std::shared_ptr<direct_bt::DBTSession> session = adapter->open();
+        std::shared_ptr<direct_bt::HCISession> session = adapter->open();
         if( nullptr == session ) {
             delete adapter;
             throw BluetoothException("Couldn't open default adapter "+std::to_string(defAdapterIdx), E_FILE_LINE);

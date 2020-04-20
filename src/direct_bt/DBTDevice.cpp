@@ -132,7 +132,7 @@ void DBTDevice::update(EInfoReport const & data) {
     addServices(data.getServices());
 }
 
-uint16_t DBTDevice::le_connect(DBTSession &session,
+uint16_t DBTDevice::le_connect(HCISession &session,
         uint8_t peer_mac_type, uint8_t own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,

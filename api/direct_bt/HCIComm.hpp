@@ -30,6 +30,7 @@
 #include <string>
 #include <cstdint>
 #include <memory>
+#include <mutex>
 
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
@@ -50,6 +51,7 @@ namespace direct_bt {
             static int hci_open_dev(const uint16_t dev_id, const uint16_t channel);
             static int hci_close_dev(int dd);
 
+            std::recursive_mutex mtx;
             const int timeoutMS;
             const uint16_t dev_id;
             const uint16_t channel;
@@ -77,9 +79,13 @@ namespace direct_bt {
             bool le_disconnect(const uint8_t reason=0);
 
             bool isOpen() const { return 0 <= _dd; }
+            /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
             int dd() const { return _dd; }
+            /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
+            std::recursive_mutex & mutex() { return mtx; }
 
             bool isLEConnected() const { return 0 < le_conn_handle; }
+            /** Return the le connection handle, 0 if not connected. */
             uint16_t leConnHandle() const { return le_conn_handle; }
 
             void le_disable_scan();

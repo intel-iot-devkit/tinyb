@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef MGMT_COMM_HPP_
-#define MGMT_COMM_HPP_
+#ifndef MGMT_TYPES_HPP_
+#define MGMT_TYPES_HPP_
 
 #include <cstring>
 #include <string>
@@ -35,7 +35,6 @@
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
-#include "JavaUplink.hpp"
 
 namespace direct_bt {
 
@@ -487,82 +486,6 @@ namespace direct_bt {
             }
     };
 
-    // *************************************************
-    // *************************************************
-    // *************************************************
-
-
-    /**
-     * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
-     */
-    class MgmtHandler : public JavaUplink {
-        private:
-            std::recursive_mutex mtx;
-            const int ibuffer_size = 512;
-            uint8_t ibuffer[512];
-            std::vector<std::shared_ptr<const AdapterInfo>> adapters;
-            HCIComm comm;
-
-            int read(uint8_t* buffer, const int capacity, const int timeoutMS);
-            int write(const uint8_t * buffer, const int length);
-
-            MgmtHandler();
-            MgmtHandler(const MgmtHandler&) = delete;
-            void operator=(const MgmtHandler&) = delete;
-            void close();
-
-            bool initAdapter(const uint16_t dev_id);
-
-        public:
-            /**
-             * Retrieves the singleton instance.
-             * <p>
-             * First call will open and initialize the bluetooth kernel.
-             * </p>
-             */
-            static MgmtHandler& get() {
-                /**
-                 * Thread safe starting with C++11 6.7:
-                 *
-                 * If control enters the declaration concurrently while the variable is being initialized,
-                 * the concurrent execution shall wait for completion of the initialization.
-                 *
-                 * (Magic Statics)
-                 *
-                 * Avoiding non-working double checked locking.
-                 */
-                static MgmtHandler s;
-                return s;
-            }
-            ~MgmtHandler() { close(); }
-
-            std::string get_java_class() const override {
-                return java_class();
-            }
-            static std::string java_class() {
-                return std::string(JAVA_DBT_PACKAGE "Manager");
-            }
-
-            /** Returns true if this mgmt instance is open and hence valid, otherwise false */
-            bool isOpen() const {
-                return comm.isOpen();
-            }
-            bool setMode(const int dev_id, const MgmtModeReq::Opcode opc, const uint8_t mode);
-
-            /**
-             * In case response size check or devID and optional opcode validation fails,
-             * function returns NULL.
-             */
-            std::shared_ptr<MgmtEvent> send(MgmtRequest &req, uint8_t* buffer, const int capacity, const int timeoutMS);
-
-            const std::vector<std::shared_ptr<const AdapterInfo>> getAdapters() const { return adapters; }
-            int getDefaultAdapterIdx() const { return adapters.size() > 0 ? 0 : -1; }
-            int findAdapterIdx(const EUI48 &mac) const;
-            std::shared_ptr<const AdapterInfo> getAdapter(const int idx) const;
-
-            std::string toString() const override { return "MgmtHandler["+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]"; }
-    };
-
 } // namespace direct_bt
 
-#endif /* MGMT_COMM_HPP_ */
+#endif /* MGMT_TYPES_HPP_ */

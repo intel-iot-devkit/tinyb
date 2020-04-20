@@ -177,6 +177,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
+        adapter->setDeviceDiscoveryListener(nullptr);
         delete adapter;
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
 }
@@ -185,7 +186,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobjec
 {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        std::shared_ptr<direct_bt::DBTSession> session = adapter->getOpenSession();
+        std::shared_ptr<direct_bt::HCISession> session = adapter->getOpenSession();
         if( nullptr == session ) {
             throw BluetoothException("No adapter session: "+adapter->toString(), E_FILE_LINE);
         }
@@ -201,14 +202,13 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject
 {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        std::shared_ptr<direct_bt::DBTSession> session = adapter->getOpenSession();
+        std::shared_ptr<direct_bt::HCISession> session = adapter->getOpenSession();
         if( nullptr == session ) {
             throw BluetoothException("No adapter session: "+adapter->toString(), E_FILE_LINE);
         }
         if( !session->isOpen() ) {
             throw BluetoothException("No open adapter session: "+adapter->toString(), E_FILE_LINE);
         }
-        adapter->setDeviceDiscoveryListener(nullptr);
         adapter->stopDiscovery(*session);
         return JNI_TRUE;
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
@@ -219,7 +219,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_discoverAnyDeviceImpl(JNIEnv *env, jobject
 {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        std::shared_ptr<direct_bt::DBTSession> session = adapter->getOpenSession();
+        std::shared_ptr<direct_bt::HCISession> session = adapter->getOpenSession();
         if( nullptr == session ) {
             throw BluetoothException("No adapter session: "+adapter->toString(), E_FILE_LINE);
         }

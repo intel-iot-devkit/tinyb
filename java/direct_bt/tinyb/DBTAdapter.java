@@ -310,7 +310,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             synchronized( stateLock ) {
                 if ( !running ) {
                     instanceID = globThreadID.addAndGet(1);
-                    final Thread t = new Thread(tg, this, "Adapter-"+instanceID); // Thread name aligned w/ 'Thread-#'
+                    final Thread t = new Thread(tg, this, "DBTAdapter-"+instanceID); // Thread name aligned w/ 'Thread-#'
                     t.setDaemon(true);
                     t.start();
                     while( !running ) {
@@ -358,11 +358,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
                     enable = startDiscoveryImpl();
                 } else {
                     enable = false;
-                    stopDiscoveryImpl();
                 }
                 doDiscovery = enable;
                 if( null != cb ) {
                     cb.run(enable);
+                }
+                if( !v ) {
+                    stopDiscoveryImpl();
                 }
                 stateLock.notifyAll();
                 return enable;
@@ -370,9 +372,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
         public void stop() {
             synchronized( stateLock ) {
-                stopDiscoveryImpl();
                 running = false;
                 doDiscovery = false;
+                stopDiscoveryImpl();
                 stateLock.notifyAll();
             }
         }

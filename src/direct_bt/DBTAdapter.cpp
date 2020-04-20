@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 #include <DBTTypes.hpp>
 
@@ -53,9 +53,9 @@ using namespace direct_bt;
 // *************************************************
 // *************************************************
 
-std::atomic_int DBTSession::name_counter(0);
+std::atomic_int HCISession::name_counter(0);
 
-void DBTSession::disconnect(const uint8_t reason) {
+void HCISession::disconnect(const uint8_t reason) {
     connectedDevice = nullptr;
 
     if( !hciComm.isLEConnected() ) {
@@ -67,7 +67,7 @@ void DBTSession::disconnect(const uint8_t reason) {
     }
 }
 
-bool DBTSession::close() 
+bool HCISession::close() 
 {
     if( !hciComm.isOpen() ) {
         DBG_PRINT("HCISession::close: Not open");
@@ -92,26 +92,26 @@ bool DBTAdapter::validateDevInfo() {
     return true;
 }
 
-void DBTAdapter::sessionClosing(DBTSession& s) 
+void DBTAdapter::sessionClosing(HCISession& s) 
 {
     stopDiscovery(s);
     session = nullptr;
 }
 
 DBTAdapter::DBTAdapter()
-: mgmt(MgmtHandler::get()), dev_id(mgmt.getDefaultAdapterIdx())
+: mgmt(DBTManager::get()), dev_id(mgmt.getDefaultAdapterIdx())
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) 
-: mgmt(MgmtHandler::get()), dev_id(mgmt.findAdapterIdx(mac))
+: mgmt(DBTManager::get()), dev_id(mgmt.findAdapterIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(const int dev_id) 
-: mgmt(MgmtHandler::get()), dev_id(dev_id)
+: mgmt(DBTManager::get()), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
@@ -125,18 +125,18 @@ DBTAdapter::~DBTAdapter() {
     session = nullptr;
 }
 
-std::shared_ptr<DBTSession> DBTAdapter::open() 
+std::shared_ptr<HCISession> DBTAdapter::open() 
 {
     if( !valid ) {
         return nullptr;
     }
-    DBTSession * s = new DBTSession( *this, dev_id, HCI_CHANNEL_RAW );
+    HCISession * s = new HCISession( *this, dev_id, HCI_CHANNEL_RAW );
     if( !s->isOpen() ) {
         delete s;
         perror("Could not open device");
         return nullptr;
     }
-    session = std::shared_ptr<DBTSession>( s );
+    session = std::shared_ptr<HCISession>( s );
     return session;
 }
 
@@ -147,7 +147,7 @@ std::shared_ptr<DBTDeviceDiscoveryListener> DBTAdapter::setDeviceDiscoveryListen
     return o;
 }
 
-bool DBTAdapter::startDiscovery(DBTSession &session, uint8_t own_mac_type,
+bool DBTAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
     if( !session.isOpen() ) {
@@ -161,13 +161,14 @@ bool DBTAdapter::startDiscovery(DBTSession &session, uint8_t own_mac_type,
     return true;
 }
 
-void DBTAdapter::stopDiscovery(DBTSession& session) {
+void DBTAdapter::stopDiscovery(HCISession& session) {
     if( !session.isOpen() ) {
         DBG_PRINT("HCIAdapter::stopDiscovery: Not open");
         return;
     }
     DBG_PRINT("HCIAdapter::stopDiscovery: ...");
     session.hciComm.le_disable_scan();
+    DBG_PRINT("HCIAdapter::stopDiscovery: X");
 }
 
 int DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac) {
@@ -244,12 +245,13 @@ std::string DBTAdapter::toString() const {
 
 // *************************************************
 
-int DBTAdapter::discoverDevices(DBTSession& session,
+int DBTAdapter::discoverDevices(HCISession& session,
                                 const int waitForDeviceCount,
                                 const EUI48 &waitForDevice,
                                 const int timeoutMS,
                                 const uint32_t ad_type_req)
 {
+    const std::lock_guard<std::recursive_mutex> lock(session.mutex()); // RAII-style acquire and relinquish via destructor
     uint8_t buf[HCI_MAX_EVENT_SIZE];
     hci_ufilter nf, of;
     socklen_t olen;

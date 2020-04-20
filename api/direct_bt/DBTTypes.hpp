@@ -40,7 +40,7 @@
 #include "BTAddress.hpp"
 #include "BTTypes.hpp"
 #include "HCIComm.hpp"
-#include "MgmtComm.hpp"
+#include "DBTManager.hpp"
 #include "JavaUplink.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
@@ -55,7 +55,10 @@ namespace direct_bt {
     class DBTAdapter; // forward
     class DBTDevice; // forward
 
-    class DBTSession
+    /**
+     * A HCI session, using an underlying {@link HCIComm} instance
+     */
+    class HCISession
     {
         friend class DBTAdapter; // top manager: adapter open/close
         friend class DBTDevice;  // local device manager: device connect/disconnect
@@ -64,24 +67,35 @@ namespace direct_bt {
             static std::atomic_int name_counter;
             DBTAdapter &adapter;
             HCIComm hciComm;
+            // TODO: Multiple connected devices!
             std::shared_ptr<DBTDevice> connectedDevice;
 
-            DBTSession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
+            /** Opens a new HCI session on the given BT dev_id and HCI channel. */
+            HCISession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
             : adapter(a), hciComm(dev_id, channel, timeoutMS),
               connectedDevice(nullptr), name(name_counter.fetch_add(1))
             {}
 
+            /** add the new {@link DBTDevice} as connected */
             void connected(std::shared_ptr<DBTDevice> device) {
+                // TODO: Multiple connected devices!
                 connectedDevice = device;
             }
 
         public:
             const int name;
 
-            ~DBTSession() { disconnect(); close(); }
+            ~HCISession() { disconnect(); close(); }
 
+            /** Return the {@link DBTAdapter} */
             const DBTAdapter &getAdapter() { return adapter; }
+            /** Return the {@link HCIComm#leConnHandle()}, 0 if not connected. */
             uint16_t getConnectedDeviceHandle() const { return hciComm.leConnHandle(); }
+
+            /**
+             * Return a list of connected {@link DBTDevice}s.
+             * TODO: Multiple connected devices!
+             */
             std::shared_ptr<DBTDevice> getConnectedDevice() { return connectedDevice; }
 
             void disconnect(const uint8_t reason=0);
@@ -89,16 +103,20 @@ namespace direct_bt {
             bool close();
 
             bool isOpen() const { return hciComm.isOpen(); }
+
+            /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
             int dd() const { return hciComm.dd(); }
+            /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
+            std::recursive_mutex & mutex() { return hciComm.mutex(); }
     };
 
-    inline bool operator<(const DBTSession& lhs, const DBTSession& rhs)
+    inline bool operator<(const HCISession& lhs, const HCISession& rhs)
     { return lhs.name < rhs.name; }
 
-    inline bool operator==(const DBTSession& lhs, const DBTSession& rhs)
+    inline bool operator==(const HCISession& lhs, const HCISession& rhs)
     { return lhs.name == rhs.name; }
 
-    inline bool operator!=(const DBTSession& lhs, const DBTSession& rhs)
+    inline bool operator!=(const HCISession& lhs, const HCISession& rhs)
     { return !(lhs == rhs); }
 
 
@@ -219,7 +237,7 @@ namespace direct_bt {
              * and usual connection latency, interval etc.
              * </p>
              */
-            uint16_t le_connect(DBTSession& s,
+            uint16_t le_connect(HCISession& s,
                     const uint8_t peer_mac_type=HCIADDR_LE_PUBLIC, const uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
                     const uint16_t interval=0x0004, const uint16_t window=0x0004,
                     const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
@@ -247,18 +265,18 @@ namespace direct_bt {
             /** Returns index >= 0 if found, otherwise -1 */
             static int findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac);
 
-            MgmtHandler& mgmt;
+            DBTManager& mgmt;
             std::shared_ptr<const AdapterInfo> adapterInfo;
 
-            std::shared_ptr<DBTSession> session;
+            std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> scannedDevices; // all devices scanned
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // matching all requirements for export
             std::shared_ptr<DBTDeviceDiscoveryListener> deviceDiscoveryListener = nullptr;
 
             bool validateDevInfo();
 
-            friend bool DBTSession::close();
-            void sessionClosing(DBTSession& s);
+            friend bool HCISession::close();
+            void sessionClosing(HCISession& s);
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             int findScannedDeviceIdx(EUI48 const & mac) const;
@@ -306,12 +324,12 @@ namespace direct_bt {
              * Returns a reference to the newly opened session
              * if successful, otherwise nullptr is returned.
              */
-            std::shared_ptr<DBTSession> open();
+            std::shared_ptr<HCISession> open();
 
             /**
              * Returns the {@link #open()} session or {@code nullptr} if closed.
              */
-            std::shared_ptr<DBTSession> getOpenSession() { return session; }
+            std::shared_ptr<HCISession> getOpenSession() { return session; }
 
             // device discovery aka device scanning
 
@@ -330,14 +348,14 @@ namespace direct_bt {
              * and usual discovery intervals etc.
              * </p>
              */
-            bool startDiscovery(DBTSession& s, uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+            bool startDiscovery(HCISession& s, uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**
              * Closes the discovery session.
              * @return true if no error, otherwise false.
              */
-            void stopDiscovery(DBTSession& s);
+            void stopDiscovery(HCISession& s);
 
             /**
              * Discovery devices up until 'timeoutMS' in milliseconds
@@ -375,7 +393,7 @@ namespace direct_bt {
              * @return number of successfully scanned devices matching above criteria
              *         or -1 if an error has occurred.
              */
-            int discoverDevices(DBTSession& s,
+            int discoverDevices(HCISession& s,
                                 const int waitForDeviceCount=1,
                                 const EUI48 &waitForDevice=EUI48_ANY_DEVICE,
                                 const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS,

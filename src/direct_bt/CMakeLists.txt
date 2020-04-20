@@ -16,9 +16,10 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BTTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIComm.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/L2CAPComm.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/MgmtComm.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIAdapter.cpp
-  ${PROJECT_SOURCE_DIR}/src/direct_bt/HCIDevice.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/MgmtTypes.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTManager.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTAdapter.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTDevice.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ATTPDUTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/GATTNumbers.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/GATTTypes.cpp

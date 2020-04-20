@@ -96,6 +96,7 @@ int HCIComm::hci_close_dev(int dd)
 }
 
 void HCIComm::close() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return;
     }
@@ -155,6 +156,7 @@ bool HCIComm::send_cmd(const uint16_t opcode, const void *command, const uint8_t
 bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t command_len,
                        const uint16_t exp_event, void *response, const uint8_t response_len)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         ERR_PRINT("hci_send_req: device not open");
         return false;
@@ -358,6 +360,7 @@ done:
 
 bool HCIComm::le_disconnect(const uint8_t reason)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return true;
     }
@@ -389,6 +392,7 @@ bool HCIComm::le_disconnect(const uint8_t reason)
 }
 
 bool HCIComm::le_set_scan_enable(const uint8_t enable, const uint8_t filter_dup) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         ERR_PRINT("hci_le_set_scan_enable: device not open");
         return false;
@@ -419,6 +423,7 @@ bool HCIComm::le_set_scan_parameters(const uint8_t type, const uint16_t interval
                                      const uint16_t window, const uint8_t own_type,
                                      const uint8_t filter)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         ERR_PRINT("hci_le_set_scan_parameters: device not open");
         return false;
@@ -450,6 +455,7 @@ bool HCIComm::le_set_scan_parameters(const uint8_t type, const uint16_t interval
 }
 
 void HCIComm::le_disable_scan() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return;
     }
@@ -467,6 +473,7 @@ void HCIComm::le_disable_scan() {
 
 bool HCIComm::le_enable_scan(const uint8_t own_type,
                              const uint16_t interval, const uint16_t window) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         DBG_PRINT("hci_le_enable_scan: device not open");
         return false;
@@ -505,6 +512,7 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
                                  const uint16_t min_ce_length, const uint16_t max_ce_length,
                                  const uint8_t initiator_filter)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         ERR_PRINT("hci_le_create_conn: device not open");
         return 0;
