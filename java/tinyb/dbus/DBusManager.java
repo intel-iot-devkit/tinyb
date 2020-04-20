@@ -134,4 +134,9 @@ public class DBusManager implements BluetoothManager
     {
         delete();
     }
+
+    @Override
+    public void shutdown() {
+        delete();
+    }
 }

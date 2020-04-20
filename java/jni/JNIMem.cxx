@@ -2,6 +2,10 @@
  * Author: Petre Eftime <petre.p.eftime@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -60,14 +64,14 @@ void JNIEnvContainer::attach() {
     if( JNI_EDETACHED == envRes ) {
         envRes = vm->AttachCurrentThreadAsDaemon((void**) &newEnv, NULL);
         if( JNI_OK != envRes ) {
-            throw std::runtime_error("Attach to VM failed");
+            throw direct_bt::RuntimeException("Attach to VM failed", E_FILE_LINE);
         }
         env = newEnv;
     } else if( JNI_OK != envRes ) {
-        throw std::runtime_error("GetEnv of VM failed");
+        throw direct_bt::RuntimeException("GetEnv of VM failed", E_FILE_LINE);
     }
     if (env==NULL) {
-        throw std::runtime_error("GetEnv of VM is NULL");
+        throw direct_bt::RuntimeException("GetEnv of VM is NULL", E_FILE_LINE);
     }
     needsDetach = NULL != newEnv;
 }
@@ -84,13 +88,24 @@ void JNIEnvContainer::detach() {
 }
 
 JNIGlobalRef::JNIGlobalRef(jobject object) {
+    if( nullptr == object ) {
+        throw direct_bt::RuntimeException("JNIGlobalRef ctor null jobject", E_FILE_LINE);
+    }
     this->object = jni_env->NewGlobalRef(object);
 }
 
 JNIGlobalRef::~JNIGlobalRef() {
-    jni_env->DeleteGlobalRef(object);
-}
-
-jobject JNIGlobalRef::operator*() {
-    return object;
+    try {
+        JNIEnv * env = *jni_env;
+        if( nullptr == env ) {
+            throw direct_bt::RuntimeException("JNIGlobalRef dtor null JNIEnv", E_FILE_LINE);
+        }
+        if( nullptr == object ) {
+            throw direct_bt::RuntimeException("JNIGlobalRef dtor null jobject", E_FILE_LINE);
+        } else {
+            env->DeleteGlobalRef(object);
+        }
+    } catch (std::exception &e) {
+        fprintf(stderr, "JNIGlobalRef dtor: Caught %s\n", e.what());
+    }
 }

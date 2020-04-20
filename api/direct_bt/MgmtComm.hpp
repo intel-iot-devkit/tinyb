@@ -35,6 +35,7 @@
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
+#include "JavaAccess.hpp"
 
 namespace direct_bt {
 
@@ -494,7 +495,7 @@ namespace direct_bt {
     /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
      */
-    class MgmtHandler {
+    class MgmtHandler : public JavaUplink {
         private:
             std::recursive_mutex mtx;
             const int ibuffer_size = 512;
@@ -535,6 +536,13 @@ namespace direct_bt {
             }
             ~MgmtHandler() { close(); }
 
+            std::string get_java_class() const override {
+                return java_class();
+            }
+            static std::string java_class() {
+                return std::string(JAVA_DBT_PACKAGE "Manager");
+            }
+
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const {
                 return comm.isOpen();
@@ -551,6 +559,8 @@ namespace direct_bt {
             int getDefaultAdapterIdx() const { return adapters.size() > 0 ? 0 : -1; }
             int findAdapterIdx(const EUI48 &mac) const;
             std::shared_ptr<const AdapterInfo> getAdapter(const int idx) const;
+
+            std::string toString() const override { return "MgmtHandler["+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]"; }
     };
 
 } // namespace direct_bt

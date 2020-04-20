@@ -242,6 +242,12 @@ public interface BluetoothAdapter extends BluetoothObject
     public boolean getDiscovering();
 
     /**
+     * Sets the {@link BluetoothDeviceDiscoveryListener} for the respective device discovery events.
+     * @param listener A {@link BluetoothDeviceDiscoveryListener} instance, or {@code null} to disable notifications.
+     */
+    public void setDeviceDiscoveryListener(final BluetoothDeviceDiscoveryListener listener);
+
+    /**
      * Enables notifications for the discovering property and calls run function of the
      * BluetoothNotification object.
      * @param callback A BluetoothNotification<Boolean> object. Its run function will be called

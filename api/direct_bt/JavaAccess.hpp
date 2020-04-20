@@ -23,12 +23,41 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/HCITypes.hpp"
+#ifndef JAVA_ACCESS_HPP_
+#define JAVA_ACCESS_HPP_
 
-#include "tinyb_hci_HCIGattDescriptor.h"
+#include <string>
+#include <memory>
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
+namespace direct_bt {
 
-using namespace direct_bt;
+    #define JAVA_DBT_PACKAGE "direct_bt/tinyb/"
 
+    class JavaAnonObj {
+        public:
+            virtual ~JavaAnonObj() { }
+            virtual std::string toString() const { return "JavaAnonObj[???]"; }
+    };
+
+    class JavaUplink {
+        private:
+            std::shared_ptr<JavaAnonObj> javaObjectRef;
+
+        public:
+            virtual std::string toString() const = 0;
+            virtual std::string get_java_class() const = 0;
+
+            std::string javaObjectToString() const { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }
+
+            std::shared_ptr<JavaAnonObj> getJavaObject() { return javaObjectRef; }
+            void setJavaObject(std::shared_ptr<JavaAnonObj> objRef) { javaObjectRef = objRef; }
+
+            virtual ~JavaUplink() {
+                javaObjectRef = nullptr;
+            }
+    };
+
+} /* namespace direct_bt */
+
+
+#endif /* JAVA_ACCESS_HPP_ */

@@ -31,7 +31,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include "helper_tinyb.hpp"
+#include "helper_base.hpp"
+
+#define JAVA_MAIN_PACKAGE "org/tinyb"
 
 jfieldID getInstanceField(JNIEnv *env, jobject obj)
 {
@@ -144,6 +146,11 @@ std::string from_jstring_to_string(JNIEnv *env, jstring str)
     return string_to_write;
 }
 
+jstring from_string_to_jstring(JNIEnv *env, const std::string & str)
+{
+    return env->NewStringUTF(str.c_str());
+}
+
 jobject get_bluetooth_type(JNIEnv *env, const char *field_name)
 {
     jclass b_type_enum = search_class(env, JAVA_MAIN_PACKAGE "/BluetoothType");
@@ -182,6 +189,10 @@ void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e)
     env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
 }
 
+void raise_java_runtime_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
+    env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
+}
+
 void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e)
 {
     env->ThrowNew(env->FindClass("java/lang/OutOfMemoryException"), e.what());
@@ -192,4 +203,18 @@ void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e)
     env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
 }
 
+void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &e)
+{
+    env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
+}
 
+void exception_check_raise_and_throw(JNIEnv *env, const char* file, int line)
+{
+    if( env->ExceptionCheck() ) {
+        env->ExceptionDescribe();
+        jthrowable e = env->ExceptionOccurred();
+        env->ExceptionClear();
+        env->Throw(e);
+        throw direct_bt::RuntimeException("Java exception occurred and forwarded.", file, line);
+    }
+}

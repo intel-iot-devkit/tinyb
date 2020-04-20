@@ -1,7 +1,4 @@
 /*
- * Author: Andrei Vasiliu <andrei.vasiliu@intel.com>
- * Copyright (c) 2016 Intel Corporation.
- *
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
@@ -26,14 +23,43 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#include <jni.h>
+#include <memory>
+#include <stdexcept>
+#include <vector>
 
-#include "helper_base.hpp"
-#include "tinyb/BluetoothObject.hpp"
-#include "tinyb/BluetoothException.hpp"
+#include "helper_dbt.hpp"
 
-jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object);
-tinyb::BluetoothType from_int_to_btype(int type);
-tinyb::TransportType from_int_to_transport_type(int type);
+using namespace direct_bt;
 
-void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e);
+jclass direct_bt::search_class(JNIEnv *env, JavaUplink &object)
+{
+    return search_class(env, object.get_java_class().c_str());
+}
+
+#if 0
+
+jobject direct_bt::convert_vector_to_jobject(JNIEnv *env, std::vector<std::shared_ptr<JavaUplink>>& array)
+{
+    unsigned int array_size = array.size();
+
+    jmethodID arraylist_add;
+    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
+
+    if (0 == array_size) {
+        return result;
+    }
+
+    for (unsigned int i = 0; i < array_size; ++i) {
+        std::shared_ptr<JavaUplink> elem = array.at(i);
+        std::shared_ptr<JNIGlobalRef> objref = elem->getJavaObject();
+        if ( nullptr == objref ) {
+            throw InternalError("JavaUplink element of array has no valid java-object: "+elem->toString(), E_FILE_LINE);
+        }
+        env->CallBooleanMethod(result, arraylist_add, objref->get());
+    }
+    return result;
+}
+
+#endif
+

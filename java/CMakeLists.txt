@@ -27,4 +27,5 @@ add_custom_command (TARGET tinybjar
 set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybjar.dir/jni")
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/tinyb2.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
 
-add_subdirectory (jni)
+add_subdirectory (jni/direct_bt)
+add_subdirectory (jni/tinyb)

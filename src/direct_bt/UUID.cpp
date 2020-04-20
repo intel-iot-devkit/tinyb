@@ -23,9 +23,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <dbt_debug.hpp>
 #include "UUID.hpp"
 
-#include "dbt_debug.hpp"
 
 using namespace direct_bt;
 

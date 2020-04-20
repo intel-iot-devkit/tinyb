@@ -33,6 +33,7 @@
 #include <algorithm>
 
 // #define VERBOSE_ON 1
+#include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
 
@@ -46,8 +47,6 @@ extern "C" {
     #include <sys/socket.h>
     #include <poll.h>
 }
-
-#include "dbt_debug.hpp"
 
 namespace direct_bt {
 

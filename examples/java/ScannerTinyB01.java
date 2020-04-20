@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
+import org.tinyb.BluetoothDeviceDiscoveryListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -36,8 +37,9 @@ import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothUtils;
 
-public class ScannerTinyB {
+public class ScannerTinyB01 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
     }
@@ -45,32 +47,32 @@ public class ScannerTinyB {
     static long TO_DISCOVER = 60000;
 
     public static void main(final String[] args) throws InterruptedException {
-        String factoryImplClassName = BluetoothFactory.DBusFactoryImplClassName;
-        String mac = null;
+        String factoryImplClassName = BluetoothFactory.DirectBTFactoryImplClassName;
         int mode = 0;
         boolean forever = false;
+        final String mac;
+        {
+            String _mac = null;
+            for(int i=0; i< args.length; i++) {
+                final String arg = args[i];
 
-        for(int i=0; i< args.length; i++) {
-            final String arg = args[i];
-
-            if( arg.equals("-mac") ) {
-                mac = args[++i];
-            } else if( arg.equals("-mode") ) {
-                mode = Integer.valueOf(args[++i]).intValue();
-            } else if( arg.equals("-factory") ) {
-                factoryImplClassName = args[++i];
-            } else if( arg.equals("-forever") ) {
-                forever = true;
+                if( arg.equals("-mac") ) {
+                    _mac = args[++i];
+                } else if( arg.equals("-mode") ) {
+                    mode = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-factory") ) {
+                    factoryImplClassName = args[++i];
+                } else if( arg.equals("-forever") ) {
+                    forever = true;
+                }
             }
-        }
 
-        if ( null == mac ) {
-            System.err.println("Run with '-mac <device_address> [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
-            System.exit(-1);
+            if ( null == _mac ) {
+                System.err.println("Run with '-mac <device_address> [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+                System.exit(-1);
+            }
+            mac = _mac;
         }
-
-        final boolean useAdapter = mode/10 > 0;
-        mode = mode %10;
 
         final BluetoothManager manager;
         {
@@ -87,47 +89,93 @@ public class ScannerTinyB {
             manager = _manager;
         }
         final BluetoothAdapter adapter = manager.getDefaultAdapter();
+        final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
+
+        final BluetoothDeviceDiscoveryListener deviceDiscListener = new BluetoothDeviceDiscoveryListener() {
+            @Override
+            public void deviceAdded(final BluetoothAdapter adapter, final BluetoothDevice device) {
+                final boolean matches = device.getAddress().equals(mac);
+                System.err.println("****** ADDED__: "+device.toString()+" - match "+matches);
+                System.err.println("Status HCIAdapter:");
+                System.err.println(adapter.toString());
+
+                if( matches ) {
+                    synchronized(matchingDiscoveredDeviceBucket) {
+                        matchingDiscoveredDeviceBucket[0] = device;
+                        matchingDiscoveredDeviceBucket.notifyAll();
+                    }
+                }
+            }
+
+            @Override
+            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device) {
+                final boolean matches = device.getAddress().equals(mac);
+                System.err.println("****** UPDATED: "+device.toString()+" - match "+matches);
+                System.err.println("Status HCIAdapter:");
+                System.err.println(adapter.toString());
+            }
+
+            @Override
+            public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device) {
+                final boolean matches = device.getAddress().equals(mac);
+                System.err.println("****** REMOVED: "+device.toString()+" - match "+matches);
+                System.err.println("Status HCIAdapter:");
+                System.err.println(adapter.toString());
+            }
+        };
+        adapter.setDeviceDiscoveryListener(deviceDiscListener);
+
 
         do {
-            final long t0 = System.currentTimeMillis();;
+            final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-            if( useAdapter ) {
-                adapter.removeDevices();
+            adapter.removeDevices();
+            final boolean discoveryStarted = adapter.startDiscovery();
+
+            System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode);
+            if( !discoveryStarted ) {
+                break;
             }
-            final boolean discoveryStarted = useAdapter ? adapter.startDiscovery() : manager.startDiscovery();
-
-            System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode+", useAdapter "+useAdapter);
             BluetoothDevice sensor = null;
 
             if( 0 == mode ) {
-                if( useAdapter ) {
-                    sensor = adapter.find(null, mac, TO_DISCOVER);
-                } else {
-                    sensor = manager.find(null, mac, null, TO_DISCOVER);
+                synchronized(matchingDiscoveredDeviceBucket) {
+                    while( null == matchingDiscoveredDeviceBucket[0] ) {
+                        matchingDiscoveredDeviceBucket.wait(TO_DISCOVER);
+                    }
+                    sensor = matchingDiscoveredDeviceBucket[0];
                 }
+            } else if( 1 == mode ) {
+                sensor = adapter.find(null, mac, TO_DISCOVER);
             } else {
                 boolean timeout = false;
                 while( null == sensor && !timeout ) {
-                    final List<BluetoothDevice> devices = useAdapter ? adapter.getDevices() : manager.getDevices();
+                    final List<BluetoothDevice> devices = adapter.getDevices();
                     for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                         final BluetoothDevice d = id.next();
                         if(d.getAddress().equals(mac)) {
                             sensor = d;
                             break;
                         }
-                        final long tn = System.currentTimeMillis();
+                        final long tn = BluetoothUtils.getCurrentMilliseconds();
                         timeout = ( tn - t0 ) > TO_DISCOVER;
                     }
                 }
             }
-            final long t1 = System.currentTimeMillis();
+            final long t1 = BluetoothUtils.getCurrentMilliseconds();
             if (sensor == null) {
                 System.err.println("No sensor found within "+(t1-t0)+" ms");
                 System.exit(-1);
             }
             System.err.println("Found device in "+(t1-t0)+" ms: ");
             printDevice(sensor);
+            System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
+            adapter.stopDiscovery();
+            System.err.println("ScannerTinyB01 02 close: "+adapter);
+            adapter.close();
+            System.err.println("ScannerTinyB01 03 ...: "+adapter);
 
+            if(false) {
             final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
             final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
             sensor.enableConnectedNotifications(connectedNotification);
@@ -135,7 +183,7 @@ public class ScannerTinyB {
 
             final long t2;
             if ( sensor.connect() ) {
-                t2 = System.currentTimeMillis();
+                t2 = BluetoothUtils.getCurrentMilliseconds();
                 System.err.println("Sensor connected in "+(t2-t1)+" ms");
                 System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
             } else {
@@ -146,7 +194,7 @@ public class ScannerTinyB {
 
             synchronized( servicesResolvedNotification ) {
                 while( !servicesResolvedNotification.getValue() ) {
-                    final long tn = System.currentTimeMillis();
+                    final long tn = BluetoothUtils.getCurrentMilliseconds();
                     if( tn - t2 > 20000 ) {
                         break; // 20s TO
                     }
@@ -155,7 +203,7 @@ public class ScannerTinyB {
             }
             final long t3;
             if ( servicesResolvedNotification.getValue() ) {
-                t3 = System.currentTimeMillis();
+                t3 = BluetoothUtils.getCurrentMilliseconds();
                 System.err.println("Sensor servicesResolved in "+(t3-t2)+" ms, total "+(t3-t1)+" ms");
             } else {
                 t3=0;
@@ -173,7 +221,12 @@ public class ScannerTinyB {
             printAllServiceInfo(allBluetoothServices);
 
             sensor.disconnect();
+            }
+            System.err.println("ScannerTinyB01 04 ...: "+adapter);
         } while( forever );
+        System.err.println("ScannerTinyB01 05");
+        manager.shutdown();
+        System.err.println("ScannerTinyB01 XX");
     }
     private static void printDevice(final BluetoothDevice device) {
         System.err.println("Address = " + device.getAddress());
@@ -257,7 +310,7 @@ public class ScannerTinyB {
         @Override
         public void run(final Boolean v) {
             synchronized(this) {
-                final long t1 = System.currentTimeMillis();
+                final long t1 = BluetoothUtils.getCurrentMilliseconds();
                 this.v = v.booleanValue();
                 System.out.println("#### "+name+": "+v+" in td "+(t1-t0)+" ms!");
                 this.notifyAll();

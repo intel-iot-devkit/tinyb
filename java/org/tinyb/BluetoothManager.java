@@ -181,4 +181,13 @@ public interface BluetoothManager
       * @return TRUE if discovery is running
       */
     public boolean getDiscovering() throws BluetoothException;
+
+    /**
+     * Release the native memory associated with this object and all related Bluetooth resources.
+     * The object should not be used following a call to close
+     * <p>
+     * Shutdown method is intended to allow a clean Bluetooth state at program exist.
+     * </p>
+     */
+    public void shutdown();
 }

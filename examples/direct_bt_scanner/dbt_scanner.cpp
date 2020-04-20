@@ -47,6 +47,11 @@ class DeviceDiscoveryListener : public direct_bt::HCIDeviceDiscoveryListener {
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
     }
+    void deviceRemoved(direct_bt::HCIAdapter const &a, std::shared_ptr<direct_bt::HCIDevice> device) override {
+        fprintf(stderr, "****** REMOVED: %s\n", device->toString().c_str());
+        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "%s\n", a.toString().c_str());
+    }
 };
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);

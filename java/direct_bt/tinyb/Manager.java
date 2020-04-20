@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb.hci;
+package direct_bt.tinyb;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,30 +36,31 @@ import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
 
-public class HCIManager implements BluetoothManager
+public class Manager implements BluetoothManager
 {
-    private static HCIManager inst;
+    private long nativeInstance;
+    private static Manager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
 
-    public native BluetoothType getBluetoothType();
+    public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
-    private HCIObject find(final int type, final String name, final String identifier, final BluetoothObject parent, final long milliseconds)
+    private DBTObject find(final int type, final String name, final String identifier, final BluetoothObject parent, final long milliseconds)
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public HCIObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
+    public DBTObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
         return find(type.ordinal(), name, identifier, parent, timeoutMS);
     }
 
     @Override
-    public HCIObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent) {
+    public DBTObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent) {
         return find(type, name, identifier, parent, 0);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
-        return (T) find(HCIObject.class_type().ordinal(), name, identifier, parent, timeoutMS);
+        return (T) find(DBTObject.class_type().ordinal(), name, identifier, parent, timeoutMS);
     }
 
     @SuppressWarnings("unchecked")
@@ -108,12 +109,22 @@ public class HCIManager implements BluetoothManager
     @Override
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
 
-    private native HCIAdapter init() throws BluetoothException;
-    private native void delete();
+    /**
+     * Returns an opened default adapter instance!
+     * @throws BluetoothException in case adapter is invalid or could not have been opened.
+     */
+    private native Adapter getDefaultAdapterImpl() throws BluetoothException;
 
-    private HCIManager()
+    private native void initImpl() throws BluetoothException;
+    private native void deleteImpl();
+    private Manager()
     {
-        adapters.add(init());
+        initImpl();
+        try {
+            adapters.add(getDefaultAdapterImpl());
+        } catch (final BluetoothException be) {
+            be.printStackTrace();
+        }
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.
@@ -123,15 +134,20 @@ public class HCIManager implements BluetoothManager
     {
         if (inst == null)
         {
-            inst = new HCIManager();
+            inst = new Manager();
         }
         return inst;
     }
 
     @Override
-    protected void finalize()
-    {
-        adapters.clear();
-        delete();
+    protected void finalize() {
+        shutdown();
     }
+
+    @Override
+    public void shutdown() {
+        adapters.clear();
+        deleteImpl();
+    }
+
 }

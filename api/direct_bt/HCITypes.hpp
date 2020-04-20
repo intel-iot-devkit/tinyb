@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <functional>
 
 #include <mutex>
 #include <atomic>
@@ -40,6 +41,7 @@
 #include "BTTypes.hpp"
 #include "HCIComm.hpp"
 #include "MgmtComm.hpp"
+#include "JavaAccess.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
 #define JAVA_HCI_PACKAGE "tinyb/hci"
@@ -104,7 +106,7 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class HCIObject
+    class HCIObject : public JavaUplink
     {
         protected:
             std::mutex lk;
@@ -137,8 +139,11 @@ namespace direct_bt {
         public:
             virtual void deviceAdded(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
             virtual void deviceUpdated(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
+            virtual void deviceRemoved(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
             virtual ~HCIDeviceDiscoveryListener() {}
     };
+    /** Alternative method to DeviceDiscoveryListener to set a callback */
+    typedef std::function<void(HCIAdapter const &a, std::shared_ptr<HCIDevice> device)> DeviceDiscoveryCallback;
 
     class HCIDevice : public HCIObject
     {
@@ -168,6 +173,13 @@ namespace direct_bt {
             const EUI48 mac;
 
             ~HCIDevice();
+
+            std::string get_java_class() const override {
+                return java_class();
+            }
+            static std::string java_class() {
+                return std::string(JAVA_DBT_PACKAGE "Device");
+            }
 
             /** Returns the managing adapter */
             HCIAdapter const & getAdapter() const { return adapter; }
@@ -246,7 +258,7 @@ namespace direct_bt {
             bool validateDevInfo();
 
             friend bool HCISession::close();
-            void sessionClosed(HCISession& s);
+            void sessionClosing(HCISession& s);
 
             friend std::shared_ptr<HCIDevice> HCIDevice::getSharedInstance() const;
             int findScannedDeviceIdx(EUI48 const & mac) const;
@@ -277,6 +289,13 @@ namespace direct_bt {
 
             ~HCIAdapter();
 
+            std::string get_java_class() const override {
+                return java_class();
+            }
+            static std::string java_class() {
+                return std::string(JAVA_DBT_PACKAGE "Adapter");
+            }
+
             bool hasDevId() const { return 0 <= dev_id; }
 
             EUI48 const & getAddress() const { return adapterInfo->mac; }
@@ -288,6 +307,11 @@ namespace direct_bt {
              * if successful, otherwise nullptr is returned.
              */
             std::shared_ptr<HCISession> open();
+
+            /**
+             * Returns the {@link #open()} session or {@code nullptr} if closed.
+             */
+            std::shared_ptr<HCISession> getOpenSession() { return session; }
 
             // device discovery aka device scanning
 
@@ -360,8 +384,8 @@ namespace direct_bt {
             /** Returns discovered devices from a discovery */
             std::vector<std::shared_ptr<HCIDevice>> getDiscoveredDevices() { return discoveredDevices; }
 
-            /** Discards all discovered devices. */
-            void removeDiscoveredDevices();
+            /** Discards all discovered devices. Returns number of removed discovered devices. */
+            int removeDiscoveredDevices();
 
             /** Returns index >= 0 if found, otherwise -1 */
             int findDiscoveredDeviceIdx(EUI48 const & mac) const;

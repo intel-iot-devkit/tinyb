@@ -48,7 +48,7 @@ extern "C" {
     #include <poll.h>
 }
 
-#include "dbt_debug.hpp"
+#include <dbt_debug.hpp>
 
 using namespace direct_bt;
 

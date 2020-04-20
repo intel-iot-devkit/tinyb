@@ -23,12 +23,40 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/HCITypes.hpp"
+package direct_bt.tinyb;
 
-#include "tinyb_hci_HCIObject.h"
+import org.tinyb.BluetoothCallback;
+import org.tinyb.BluetoothEvent;
+import org.tinyb.BluetoothType;
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
+public class DBTEvent implements BluetoothEvent
+{
+    private long nativeInstance;
 
-using namespace direct_bt;
+    @Override
+    public native BluetoothType getType();
+    @Override
+    public native String getName();
+    @Override
+    public native String getIdentifier();
+    @Override
+    public native boolean executeCallback();
+    @Override
+    public native boolean hasCallback();
 
+    private native void init(BluetoothType type, String name, String identifier,
+                            DBTObject parent, BluetoothCallback cb, Object data);
+    private native void delete();
+
+    public DBTEvent(final BluetoothType type, final String name, final String identifier,
+                            final DBTObject parent, final BluetoothCallback cb, final Object data)
+    {
+        init(type, name, identifier, parent, cb, data);
+    }
+
+    @Override
+    protected void finalize()
+    {
+        delete();
+    }
+}

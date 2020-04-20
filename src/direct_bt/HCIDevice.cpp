@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -35,7 +36,6 @@
 #include "HCIComm.hpp"
 #include "HCITypes.hpp"
 
-#include "dbt_debug.hpp"
 
 using namespace direct_bt;
 
@@ -93,7 +93,7 @@ std::string HCIDevice::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("Device["+getAddressString()+", '"+getName()+
             "', age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
-            ", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
+            ", tx-power "+std::to_string(tx_power)+", "+msdstr+", "+javaObjectToString()+"]");
     if(services.size() > 0 ) {
         out.append("\n");
         int i=0;

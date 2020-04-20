@@ -33,76 +33,78 @@
 
 #include "helper_tinyb.hpp"
 
-jclass search_class(JNIEnv *env, tinyb::BluetoothObject &object)
+using namespace tinyb;
+
+jclass search_class(JNIEnv *env, BluetoothObject &object)
 {
     return search_class(env, object.get_java_class().c_str());
 }
 
-tinyb::BluetoothType from_int_to_btype(int type)
+BluetoothType from_int_to_btype(int type)
 {
-    tinyb::BluetoothType result = tinyb::BluetoothType::NONE;
+    BluetoothType result = BluetoothType::NONE;
 
     switch (type)
     {
         case 0:
-            result = tinyb::BluetoothType::NONE;
+            result = BluetoothType::NONE;
             break;
 
         case 1:
-            result = tinyb::BluetoothType::ADAPTER;
+            result = BluetoothType::ADAPTER;
             break;
 
         case 2:
-            result = tinyb::BluetoothType::DEVICE;
+            result = BluetoothType::DEVICE;
             break;
 
         case 3:
-            result = tinyb::BluetoothType::GATT_SERVICE;
+            result = BluetoothType::GATT_SERVICE;
             break;
 
         case 4:
-            result = tinyb::BluetoothType::GATT_CHARACTERISTIC;
+            result = BluetoothType::GATT_CHARACTERISTIC;
             break;
 
         case 5:
-            result = tinyb::BluetoothType::GATT_CHARACTERISTIC;
+            result = BluetoothType::GATT_CHARACTERISTIC;
             break;
 
         default:
-            result = tinyb::BluetoothType::NONE;
+            result = BluetoothType::NONE;
             break;
     }
 
     return result;
 }
 
-tinyb::TransportType from_int_to_transport_type(int type)
+TransportType from_int_to_transport_type(int type)
 {
-    tinyb::TransportType result = tinyb::TransportType::AUTO;
+    TransportType result = TransportType::AUTO;
 
     switch (type)
     {
         case 0:
-            result = tinyb::TransportType::AUTO;
+            result = TransportType::AUTO;
             break;
 
         case 1:
-            result = tinyb::TransportType::BREDR;
+            result = TransportType::BREDR;
             break;
 
         case 2:
-            result = tinyb::TransportType::LE;
+            result = TransportType::LE;
             break;
 
         default:
-            result = tinyb::TransportType::AUTO;
+            result = TransportType::AUTO;
             break;
     }
 
     return result;
 }
 
-void raise_java_bluetooth_exception(JNIEnv *env, tinyb::BluetoothException &e)
+void raise_java_bluetooth_exception(JNIEnv *env, BluetoothException &e)
 {
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
 }

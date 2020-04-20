@@ -47,7 +47,7 @@ extern "C" {
 
 #include "GATTHandler.hpp"
 
-#include "dbt_debug.hpp"
+#include <dbt_debug.hpp>
 
 using namespace direct_bt;
 

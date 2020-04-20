@@ -32,6 +32,9 @@
 
 #include <algorithm>
 
+// #define VERBOSE_ON 1
+#include <dbt_debug.hpp>
+
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 
@@ -43,8 +46,6 @@ extern "C" {
     #include <unistd.h>
     #include <poll.h>
 }
-
-#include "dbt_debug.hpp"
 
 using namespace direct_bt;
 
@@ -58,6 +59,7 @@ void HCISession::disconnect(const uint8_t reason) {
     connectedDevice = nullptr;
 
     if( !hciComm.isLEConnected() ) {
+        DBG_PRINT("HCISession::disconnect: Not connected");
         return;
     }
     if( !hciComm.le_disconnect(reason) ) {
@@ -68,10 +70,12 @@ void HCISession::disconnect(const uint8_t reason) {
 bool HCISession::close() 
 {
     if( !hciComm.isOpen() ) {
+        DBG_PRINT("HCISession::close: Not open");
         return false;
     }
+    DBG_PRINT("HCISession::close: ...");
+    adapter.sessionClosing(*this);
     hciComm.close();
-    adapter.sessionClosed(*this);
     return true;
 }
 
@@ -88,9 +92,9 @@ bool HCIAdapter::validateDevInfo() {
     return true;
 }
 
-void HCIAdapter::sessionClosed(HCISession& s) 
+void HCIAdapter::sessionClosing(HCISession& s) 
 {
-    (void)s;
+    stopDiscovery(s);
     session = nullptr;
 }
 
@@ -113,6 +117,9 @@ HCIAdapter::HCIAdapter(const int dev_id)
 }
 
 HCIAdapter::~HCIAdapter() {
+    DBG_PRINT("HCIAdapter::dtor: %s", toString().c_str());
+    deviceDiscoveryListener = nullptr;
+
     scannedDevices.clear();
     discoveredDevices.clear();
     session = nullptr;
@@ -156,8 +163,10 @@ bool HCIAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
 
 void HCIAdapter::stopDiscovery(HCISession& session) {
     if( !session.isOpen() ) {
+        DBG_PRINT("HCIAdapter::stopDiscovery: Not open");
         return;
     }
+    DBG_PRINT("HCIAdapter::stopDiscovery: ...");
     session.hciComm.le_disable_scan();
 }
 
@@ -213,14 +222,16 @@ bool HCIAdapter::addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device) {
     return false;
 }
 
-void HCIAdapter::removeDiscoveredDevices() {
+int HCIAdapter::removeDiscoveredDevices() {
     // also need to flush scannedDevices, old data
     scannedDevices.clear();
+    int res = discoveredDevices.size();
     discoveredDevices.clear();
+    return res;
 }
 
 std::string HCIAdapter::toString() const {
-    std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+"]");
+    std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
     if(discoveredDevices.size() > 0 ) {
         out.append("\n");
         for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {

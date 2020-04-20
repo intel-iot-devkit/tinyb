@@ -38,7 +38,7 @@ extern "C" {
 }
 #endif
 
-#include "dbt_debug.hpp"
+#include <dbt_debug.hpp>
 
 using namespace direct_bt;
 
@@ -59,21 +59,23 @@ int64_t direct_bt::getCurrentMilliseconds() {
     return t.tv_sec * MilliPerOne + t.tv_nsec / NanoPerMilli;
 }
 
-const char* RuntimeException::what() const noexcept {
+const char* direct_bt::RuntimeException::what() const noexcept {
 #if    _USE_BACKTRACE_
+    // std::string out(std::runtime_error::what());
     std::string out(msg);
     void *buffers[10];
     size_t nptrs = backtrace(buffers, 10);
     char **symbols = backtrace_symbols(buffers, nptrs);
     if( NULL != symbols ) {
         out.append("\nBacktrace:\n");
-        for(int i=0; i<nptrs; i++) {
+        for(size_t i=0; i<nptrs; i++) {
             out.append(symbols[i]).append("\n");
         }
         free(symbols);
     }
     return out.c_str();
 #else
+    // return std::runtime_error::what();
     return msg.c_str();
 #endif
 }
@@ -191,6 +193,19 @@ std::string direct_bt::uint32HexString(const uint32_t v, const bool leading0X) {
     const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.8X" : "%.8X" ), v);
     if( length != count ) {
         throw InternalError("uint32_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
+    }
+    return str;
+}
+
+std::string direct_bt::uint64HexString(const uint64_t v, const bool leading0X) {
+    const int length = leading0X ? 18 : 16; // ( '0x0000000000000000' | '0000000000000000' )
+    std::string str;
+    str.reserve(length+1); // including EOS for snprintf
+    str.resize(length);
+
+    const int count = snprintf(&str[0], str.capacity(), ( leading0X ? "0x%.16" PRIX64 : "%.16" PRIX64 ), v);
+    if( length != count ) {
+        throw InternalError("uint64_t string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
     }
     return str;
 }

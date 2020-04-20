@@ -79,7 +79,7 @@
                                 								
                                 <option id="gnu.cpp.compiler.option.pthread.956658404" name="Support for pthread (-pthread)" superClass="gnu.cpp.compiler.option.pthread" useByScannerDiscovery="false" value="true" valueType="boolean"/>
                                 								
-                                <option id="gnu.cpp.compiler.option.warnings.extrawarn.602645664" superClass="gnu.cpp.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+                                <option id="gnu.cpp.compiler.option.warnings.extrawarn.602645664" name="Extra warnings (-Wextra)" superClass="gnu.cpp.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
                                 								
                                 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1946997217" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
                                 							
@@ -109,7 +109,7 @@
                                 								
                                 <option id="gnu.c.compiler.option.pthread.858610172" name="Support for pthread (-pthread)" superClass="gnu.c.compiler.option.pthread" useByScannerDiscovery="false" value="true" valueType="boolean"/>
                                 								
-                                <option id="gnu.c.compiler.option.warnings.extrawarn.1874778119" superClass="gnu.c.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+                                <option id="gnu.c.compiler.option.warnings.extrawarn.1874778119" name="Extra warnings (-Wextra)" superClass="gnu.c.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
                                 								
                                 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1736735651" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
                                 							
@@ -174,6 +174,8 @@
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner"/>
                         						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="include/cppunit"/>
+                        						
+                        <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
                         						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/direct_bt"/>
                         						

@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,7 +35,6 @@
 
 #include "GATTTypes.hpp"
 
-#include "dbt_debug.hpp"
 
 using namespace direct_bt;
 

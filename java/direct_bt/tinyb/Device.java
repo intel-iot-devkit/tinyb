@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb.hci;
+package direct_bt.tinyb;
 
 import java.util.List;
 import java.util.Map;
@@ -34,30 +34,34 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.BluetoothUtils;
 
-import tinyb.dbus.DBusObject;
-
-public class HCIDevice extends HCIObject implements BluetoothDevice
+public class Device extends DBTObject implements BluetoothDevice
 {
-    private final HCIAdapter adapter;
+    private final Adapter adapter;
     private final String address;
     private final String name;
+    private final long ts_creation;
+    long ts_update;
 
-    /* pp */ HCIDevice(final HCIAdapter adptr, final String address, final String name)
+    /* pp */ Device(final long nativeInstance, final Adapter adptr, final String address, final String name, final long ts_creation)
     {
-        super(compHash(address, name));
+        super(nativeInstance, compHash(address, name));
         this.adapter = adptr;
         this.address = address;
         this.name = name;
+        this.ts_creation = ts_creation;
+        ts_update = ts_creation;
+        initImpl();
     }
 
     @Override
     public boolean equals(final Object obj)
     {
-        if (obj == null || !(obj instanceof HCIDevice)) {
+        if (obj == null || !(obj instanceof Device)) {
             return false;
         }
-        final HCIDevice other = (HCIDevice)obj;
+        final Device other = (Device)obj;
         return address.equals(other.address) && name.equals(other.name);
     }
 
@@ -70,14 +74,15 @@ public class HCIDevice extends HCIObject implements BluetoothDevice
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
 
-    @Override
-    public native HCIDevice clone();
-
     static BluetoothType class_type() { return BluetoothType.DEVICE; }
 
     @Override
+    public final BluetoothDevice clone()
+    { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
     public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = HCIManager.getBluetoothManager();
+        final BluetoothManager manager = Manager.getBluetoothManager();
         return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
                 null, UUID, this, timeoutMS);
     }
@@ -86,6 +91,34 @@ public class HCIDevice extends HCIObject implements BluetoothDevice
     public BluetoothGattService find(final String UUID) {
         return find(UUID, 0);
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder out = new StringBuilder();
+        final long t0 = BluetoothUtils.getCurrentMilliseconds();
+        // std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
+        final String msdstr = "MSD[null]";
+        out.append("Device[").append(getAddress()).append(", '").append(getName())
+                .append("', age ").append(t0-ts_creation).append(" ms, lup ").append(t0-ts_update).append(" ms, rssi ").append(getRSSI())
+                .append(", tx-power ").append(getTxPower()).append(", ").append(msdstr).append("]");
+        /**
+        if(services.size() > 0 ) {
+            out.append("\n");
+            final int i=0;
+            for(final auto it = services.begin(); it != services.end(); it++, i++) {
+                if( 0 < i ) {
+                    out.append("\n");
+                }
+                std::shared_ptr<uuid_t> p = *it;
+                out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes");
+            }
+        } */
+        return out.toString();
+    }
+
+    /* internal */
+
+    private native void initImpl();
 
     /* D-Bus method calls: */
 
@@ -194,7 +227,7 @@ public class HCIDevice extends HCIObject implements BluetoothDevice
     public native String getModalias();
 
     @Override
-    public native HCIAdapter getAdapter();
+    public native Adapter getAdapter();
 
     @Override
     public native Map<Short, byte[]> getManufacturerData();
@@ -227,5 +260,6 @@ public class HCIDevice extends HCIObject implements BluetoothDevice
     @Override
     public native void disableServicesResolvedNotifications();
 
-    private native void delete();
+    @Override
+    protected native void deleteImpl();
 }

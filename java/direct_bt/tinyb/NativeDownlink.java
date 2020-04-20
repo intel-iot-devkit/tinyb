@@ -23,15 +23,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package tinyb.hci;
+package direct_bt.tinyb;
 
 import org.tinyb.BluetoothFactory;
-import org.tinyb.BluetoothObject;
-import org.tinyb.BluetoothType;
 
-public abstract class HCIObject implements BluetoothObject
+public abstract class NativeDownlink
 {
-    private final int hashValue;
+    protected long nativeInstance;
     private boolean isValid;
 
     static {
@@ -44,48 +42,46 @@ public abstract class HCIObject implements BluetoothObject
         }
     }
 
-    static BluetoothType class_type() { return BluetoothType.NONE; }
-
-    /* pp */ static int compHash(final String a, final String b) {
-        // 31 * x == (x << 5) - x
-        final int hash = 31 + a.hashCode();
-        return ((hash << 5) - hash) + b.hashCode();
-    }
-
-    protected HCIObject(final int hashValue)
+    protected NativeDownlink(final long nativeInstance)
     {
-        this.hashValue = hashValue;
+        this.nativeInstance = nativeInstance;
         isValid = true;
-    }
-
-    @Override
-    public abstract boolean equals(final Object obj);
-
-    @Override
-    public final int hashCode() {
-        return hashValue;
+        initNativeJavaObject(nativeInstance);
     }
 
     @Override
     protected void finalize()
     {
-        close();
+        delete();
     }
 
-    @Override
-    public synchronized void close() {
+    /**
+     * Deletes the native instance in the following order
+     * <ol>
+     *   <li>Removes this java reference from the native instance</li>
+     *   <li>Deletes the native instance via {@link #deleteImpl()}</li>
+     *   <li>Sets the nativeInstance := 0</li>
+     * </ol>
+     */
+    public synchronized void delete() {
         if (!isValid) {
             return;
         }
         isValid = false;
-        delete();
+        clearNativeJavaObject(nativeInstance);
+        deleteImpl();
+        nativeInstance = 0;
     }
-    @Override
-    public native BluetoothType getBluetoothType();
 
-    @Override
-    public BluetoothObject clone()
-    { throw new UnsupportedOperationException(); } // FIXME
+    /**
+     * Deletes the native instance.
+     * <p>
+     * Called via {@link #delete()} and at this point this java reference
+     * has been removed from the native instance.
+     * </p>
+     */
+    protected abstract void deleteImpl();
 
-    private native void delete();
+    private native void initNativeJavaObject(final long nativeInstance);
+    private native void clearNativeJavaObject(final long nativeInstance);
 }

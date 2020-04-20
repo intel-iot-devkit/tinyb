@@ -39,12 +39,12 @@ public class BluetoothFactory {
     /**
      * Name of the native implementation native library basename: {@value}
      */
-    public static final String ImplNativeLibBasename = "tinyb";
+    public static final String ImplNativeLibBasename = "direct_bt"; // "tinyb";
 
     /**
      * Name of the Jave native library basename: {@value}
      */
-    public static final String JavaNativeLibBasename = "javatinyb";
+    public static final String JavaNativeLibBasename = "javadirect_bt"; // "javatinyb";
 
     /**
      * Manifest's {@link Attributes.Name#SPECIFICATION_VERSION} or {@code null} if not available.
@@ -138,12 +138,12 @@ public class BluetoothFactory {
     public static final String DBusFactoryImplClassName = "tinyb.dbus.DBusManager";
 
     /**
-     * Fully qualified factory class name for native HCI implementation: {@value}
+     * Fully qualified factory class name for direct_bt implementation: {@value}
      * <p>
      * This value is exposed for convenience, user implementations are welcome.
      * </p>
      */
-    public static final String HCIFactoryImplClassName = "tinyb.hci.HCIManager";
+    public static final String DirectBTFactoryImplClassName = "direct_bt.tinyb.Manager";
 
     /**
      * Returns an initialized BluetoothManager instance using the given {@code factoryImplClass}.
@@ -187,7 +187,7 @@ public class BluetoothFactory {
      * @throws InvocationTargetException
      * @throws ClassNotFoundException
      * @see {@link #DBusFactoryImplClassName}
-     * @see {@link #HCIFactoryImplClassName}
+     * @see {@link #DirectBTFactoryImplClassName}
      */
     public static synchronized BluetoothManager getBluetoothManager(final String factoryImplClassName)
             throws BluetoothException, NoSuchMethodException, SecurityException,

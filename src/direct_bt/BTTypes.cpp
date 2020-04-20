@@ -23,6 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,7 +35,6 @@
 
 #include "BTTypes.hpp"
 
-#include "dbt_debug.hpp"
 
 std::string EUI48::toString() const {
     const int length = 17;

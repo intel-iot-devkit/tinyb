@@ -2,6 +2,10 @@
  * Author: Petre Eftime <petre.p.eftime@intel.com>
  * Copyright (c) 2016 Intel Corporation.
  *
+ * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2020 Gothel Software e.K.
+ * Copyright (c) 2020 ZAFENA AB
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -22,9 +26,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef JNIMEM__HPP_
+#define JNIMEM__HPP_
+
 #include <jni.h>
 #include <stdexcept>
+
+#include "BasicTypes.hpp"
 
 extern JavaVM* vm;
 
@@ -67,12 +75,26 @@ private:
     jobject object;
 
 public:
+    static inline void check(jobject object, const char* file, int line) {
+        if( nullptr == object ) {
+            throw direct_bt::RuntimeException("JNIGlobalRef::check: Null jobject", file, line);
+        }
+    }
+
     /* Creates a GlobalRef from an object passed to it */
     JNIGlobalRef(jobject object);
+
     /* Deletes the stored GlobalRef */
     ~JNIGlobalRef();
 
-    /* Provides access to the stored GlobalRef */
-    jobject operator*();
+    /* Provides access to the stored GlobalRef as an jobject. */
+    jobject operator*() { return object; }
+
+    /* Provides access to the stored GlobalRef as an jobject. */
+    jobject getObject() const { return object; }
+    /* Provides access to the stored GlobalRef as a jclass. */
+    jclass getClass() const { return (jclass)object; }
 };
+
+#endif /* JNIMEM__HPP_ */
 

@@ -59,6 +59,11 @@ namespace direct_bt {
 
         virtual ~RuntimeException() noexcept { }
 
+        RuntimeException(const RuntimeException &o) = default;
+        RuntimeException(RuntimeException &&o) = default;
+        RuntimeException& operator=(const RuntimeException &o) = default;
+        RuntimeException& operator=(RuntimeException &&o) = default;
+
         virtual const char* what() const noexcept override;
     };
 
@@ -80,15 +85,9 @@ namespace direct_bt {
         : RuntimeException("IllegalArgumentException", m, file, line) {}
     };
 
-    class IllegalStateException : public RuntimeException {
-      public:
-        IllegalStateException(std::string const m, const char* file, int line) noexcept
-        : RuntimeException("IllegalStateException", m, file, line) {}
-    };
-
     class InvalidStateException : public RuntimeException {
       public:
-            InvalidStateException(std::string const m, const char* file, int line) noexcept
+        InvalidStateException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("InvalidStateException", m, file, line) {}
     };
 
@@ -102,6 +101,15 @@ namespace direct_bt {
       public:
         IndexOutOfBoundsException(const int index, const int count, const int length, const char* file, int line) noexcept
         : RuntimeException("IndexOutOfBoundsException", "Index "+std::to_string(index)+", count "+std::to_string(count)+", data length "+std::to_string(length), file, line) {}
+    };
+
+    class BluetoothException : public RuntimeException {
+      public:
+        BluetoothException(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("BluetoothException", m, file, line) {}
+
+        BluetoothException(const char *m, const char* file, int line) noexcept
+        : RuntimeException("BluetoothException", m, file, line) {}
     };
 
     /**
@@ -355,6 +363,7 @@ namespace direct_bt {
     std::string uint8HexString(const uint8_t v, const bool leading0X);
     std::string uint16HexString(const uint16_t v, const bool leading0X);
     std::string uint32HexString(const uint32_t v, const bool leading0X);
+    std::string uint64HexString(const uint64_t v, const bool leading0X);
 
     /**
      * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.

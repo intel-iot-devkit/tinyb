@@ -1,4 +1,4 @@
-/*
+/**
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
@@ -23,12 +23,50 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/HCITypes.hpp"
+package direct_bt.tinyb;
 
-#include "tinyb_hci_HCIDevice.h"
+import org.tinyb.BluetoothObject;
+import org.tinyb.BluetoothType;
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
+public abstract class DBTObject extends NativeDownlink implements BluetoothObject
+{
+    private final int hashValue;
 
-using namespace direct_bt;
+    /* pp */ static int compHash(final String a, final String b) {
+        // 31 * x == (x << 5) - x
+        final int hash = 31 + a.hashCode();
+        return ((hash << 5) - hash) + b.hashCode();
+    }
 
+    protected DBTObject(final long nativeInstance, final int hashValue)
+    {
+        super(nativeInstance);
+        this.hashValue = hashValue;
+    }
+
+    static BluetoothType class_type() { return BluetoothType.NONE; }
+
+    @Override
+    public abstract boolean equals(final Object obj);
+
+    @Override
+    public final int hashCode() {
+        return hashValue;
+    }
+
+    @Override
+    protected void finalize()
+    {
+        close();
+    }
+
+    @Override
+    public synchronized void close() {
+        delete();
+    }
+
+    @Override
+    public BluetoothObject clone()
+    { throw new UnsupportedOperationException(); } // FIXME
+
+}

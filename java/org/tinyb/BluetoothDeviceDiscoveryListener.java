@@ -1,4 +1,4 @@
-/*
+/**
  * Author: Sven Gothel <sgothel@jausoft.com>
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
@@ -23,8 +23,20 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt/HCITypes.hpp"
+package org.tinyb;
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
-
+/**
+ * {@link BluetoothDevice} listener for the respective {@link BluetoothDevice} discovery events: Added, updated and removed.
+ * <p>
+ * A listener instance may be attached to a {@link BluetoothAdapter} via
+ * {@link BluetoothAdapter#setDeviceDiscoveryListener(BluetoothDeviceDiscoveryListener)}.
+ * </p>
+ */
+public interface BluetoothDeviceDiscoveryListener {
+    /** A {@link BluetoothDevice} has been newly discovered. */
+    public void deviceAdded(final BluetoothAdapter adapter, final BluetoothDevice device);
+    /** An already discovered {@link BluetoothDevice} has been updated. */
+    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device);
+    /** An already discovered {@link BluetoothDevice} has been removed or lost. */
+    public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device);
+};
