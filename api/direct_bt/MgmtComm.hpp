@@ -35,7 +35,7 @@
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
-#include "JavaAccess.hpp"
+#include "JavaUplink.hpp"
 
 namespace direct_bt {
 

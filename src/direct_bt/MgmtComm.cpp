@@ -40,7 +40,7 @@
 #include "MgmtComm.hpp"
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
-#include "HCITypes.hpp"
+#include <DBTTypes.hpp>
 
 extern "C" {
     #include <inttypes.h>

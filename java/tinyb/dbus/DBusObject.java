@@ -38,13 +38,7 @@ public class DBusObject implements BluetoothObject
     private boolean isValid;
 
     static {
-        try {
-            System.loadLibrary(BluetoothFactory.JavaNativeLibBasename);
-        } catch (final Throwable  e) {
-            System.err.println("Failed to load native library "+BluetoothFactory.JavaNativeLibBasename);
-            e.printStackTrace();
-            throw e; // fwd exception - end here
-        }
+        BluetoothFactory.checkInitialized();
     }
 
     static BluetoothType class_type() { return BluetoothType.NONE; }

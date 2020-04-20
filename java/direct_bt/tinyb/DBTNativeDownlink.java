@@ -27,22 +27,16 @@ package direct_bt.tinyb;
 
 import org.tinyb.BluetoothFactory;
 
-public abstract class NativeDownlink
+public abstract class DBTNativeDownlink
 {
     protected long nativeInstance;
     private boolean isValid;
 
     static {
-        try {
-            System.loadLibrary(BluetoothFactory.JavaNativeLibBasename);
-        } catch (final Throwable  e) {
-            System.err.println("Failed to load native library "+BluetoothFactory.JavaNativeLibBasename);
-            e.printStackTrace();
-            throw e; // fwd exception - end here
-        }
+        BluetoothFactory.checkInitialized();
     }
 
-    protected NativeDownlink(final long nativeInstance)
+    protected DBTNativeDownlink(final long nativeInstance)
     {
         this.nativeInstance = nativeInstance;
         isValid = true;

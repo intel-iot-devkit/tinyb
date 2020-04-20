@@ -37,7 +37,7 @@
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
-#include "HCITypes.hpp"
+#include "DBTTypes.hpp"
 
 namespace direct_bt {
 
@@ -57,7 +57,7 @@ namespace direct_bt {
             static int l2cap_close_dev(int dd);
 
             State state;
-            std::shared_ptr<HCIDevice> device = nullptr;
+            std::shared_ptr<DBTDevice> device = nullptr;
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;
@@ -66,11 +66,11 @@ namespace direct_bt {
             volatile bool interruptReadFlag; // for forced disconnect
 
         public:
-            L2CAPComm(std::shared_ptr<HCIDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true, const bool blocking=true)
+            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true, const bool blocking=true)
             : state(Disconnected), device(device), psm(psm), cid(cid), pubaddr(pubaddr), blocking(blocking), _dd(-1), interruptReadFlag(false) {}
             ~L2CAPComm() { disconnect(); }
 
-            std::shared_ptr<HCIDevice> getDevice() { return device; }
+            std::shared_ptr<DBTDevice> getDevice() { return device; }
 
             State getState() const { return state; }
             std::string getStateString() const { return getStateString(state); }

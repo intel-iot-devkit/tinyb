@@ -12,7 +12,7 @@ Package-Version: @VERSION_SHORT@
 Specification-Title: TinyB-2
 Specification-Vendor: ZAFENA AB
 Specification-Version: @VERSION_API@
-Implementation-Title: TinyB-2
+Implementation-Title: TinyB-2 with Direct-BT
 Implementation-Vendor: ZAFENA AB
 Implementation-Version: @VERSION@
 Implementation-Commit: @VERSION_SHA1@
@@ -28,6 +28,6 @@ Sealed: true
 Name: tinyb/dbus/
 Sealed: true
 
-Name: tinyb/hci/
+Name: direct_bt/tinyb/
 Sealed: true
 

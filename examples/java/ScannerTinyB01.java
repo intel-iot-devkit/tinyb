@@ -47,7 +47,7 @@ public class ScannerTinyB01 {
     static long TO_DISCOVER = 60000;
 
     public static void main(final String[] args) throws InterruptedException {
-        String factoryImplClassName = BluetoothFactory.DirectBTFactoryImplClassName;
+        int factory = 0;
         int mode = 0;
         boolean forever = false;
         final String mac;
@@ -61,7 +61,7 @@ public class ScannerTinyB01 {
                 } else if( arg.equals("-mode") ) {
                     mode = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-factory") ) {
-                    factoryImplClassName = args[++i];
+                    factory = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-forever") ) {
                     forever = true;
                 }
@@ -74,15 +74,16 @@ public class ScannerTinyB01 {
             mac = _mac;
         }
 
+        final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
         final BluetoothManager manager;
         {
             BluetoothManager _manager = null;
             try {
-                _manager = BluetoothFactory.getBluetoothManager(factoryImplClassName);
+                _manager = BluetoothFactory.getBluetoothManager( implID );
             } catch (BluetoothException | NoSuchMethodException | SecurityException
                     | IllegalAccessException | IllegalArgumentException
                     | InvocationTargetException | ClassNotFoundException e) {
-                System.err.println("Unable to instantiate BluetoothManager via factory "+factoryImplClassName);
+                System.err.println("Unable to instantiate BluetoothManager via "+implID);
                 e.printStackTrace();
                 System.exit(-1);
             }

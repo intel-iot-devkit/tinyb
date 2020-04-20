@@ -36,25 +36,62 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 public class BluetoothFactory {
-    /**
-     * Name of the native implementation native library basename: {@value}
-     */
-    public static final String ImplNativeLibBasename = "direct_bt"; // "tinyb";
 
     /**
-     * Name of the Jave native library basename: {@value}
+     * Identifier names, allowing {@link BluetoothFactory#getBluetoothManager(ImplementationIdentifier)}
+     * to initialize the required native libraries and to instantiate the root {@link BluetoothManager} instance.
      */
-    public static final String JavaNativeLibBasename = "javadirect_bt"; // "javatinyb";
+    public static class ImplementationIdentifier {
+        /** Fully qualified class name for the {@link BluetoothManager} implementation */
+        public final String BluetoothManagerClassName;
+        /** Native library basename for the implementation native library */
+        public final String ImplementationNativeLibraryBasename;
+        /** Native library basename for the Java binding native library */
+        public final String JavaNativeLibraryBasename;
+
+        public ImplementationIdentifier(final String BluetoothManagerClassName,
+                                 final String ImplementationNativeLibraryBasename,
+                                 final String JavaNativeLibraryBasename) {
+            this.BluetoothManagerClassName = BluetoothManagerClassName;
+            this.ImplementationNativeLibraryBasename = ImplementationNativeLibraryBasename;
+            this.JavaNativeLibraryBasename = JavaNativeLibraryBasename;
+        }
+
+        @Override
+        public String toString() {
+            return "ImplementationIdentifier[class "+BluetoothManagerClassName+
+                    ", implLib "+ImplementationNativeLibraryBasename+
+                    ", javaLib "+JavaNativeLibraryBasename+"]";
+        }
+    }
+
+    /**
+     * {@link ImplementationIdentifier} for D-Bus implementation: {@value}
+     * <p>
+     * This value is exposed for convenience, user implementations are welcome.
+     * </p>
+     */
+    public static final ImplementationIdentifier DBusImplementationID = new ImplementationIdentifier("tinyb.dbus.DBusManager", "tinyb", "javatinyb");
+
+    /**
+     * {@link ImplementationIdentifier} for direct_bt implementation: {@value}
+     * <p>
+     * This value is exposed for convenience, user implementations are welcome.
+     * </p>
+     */
+    public static final ImplementationIdentifier DirectBTImplementationID = new ImplementationIdentifier("direct_bt.tinyb.DBTManager", "direct_bt", "javadirect_bt");
 
     /**
      * Manifest's {@link Attributes.Name#SPECIFICATION_VERSION} or {@code null} if not available.
      */
-    public static final String APIVersion;
+    public static final String getAPIVersion() { return APIVersion; }
+    private static String APIVersion;
 
     /**
      * Manifest's {@link Attributes.Name#IMPLEMENTATION_VERSION} or {@code null} if not available.
      */
-    public static final String ImplVersion;
+    public static final String getImplVersion() { return ImplVersion; }
+    private static String ImplVersion;
 
     static final boolean VERBOSE;
 
@@ -63,20 +100,39 @@ public class BluetoothFactory {
             final String v = System.getProperty("org.tinyb.verbose", "false");
             VERBOSE = Boolean.valueOf(v);
         }
+    }
+
+    private static ImplementationIdentifier initializedID = null;
+
+    public static synchronized void checkInitialized() {
+        if( null == initializedID ) {
+            throw new IllegalStateException("BluetoothFactory not initialized.");
+        }
+    }
+
+    private static synchronized void initLibrary(final ImplementationIdentifier id) {
+        if( null != initializedID ) {
+            if( id != initializedID ) {
+                throw new IllegalStateException("BluetoothFactory already initialized with "+initializedID+", can't override by "+id);
+            }
+            return;
+        }
+
         try {
-            System.loadLibrary(ImplNativeLibBasename);
+            System.loadLibrary(id.ImplementationNativeLibraryBasename);
         } catch (final Throwable e) {
-            System.err.println("Failed to load native library "+ImplNativeLibBasename);
+            System.err.println("Failed to load native library "+id.ImplementationNativeLibraryBasename);
             e.printStackTrace();
             throw e; // fwd exception - end here
         }
         try {
-            System.loadLibrary(JavaNativeLibBasename);
+            System.loadLibrary(id.JavaNativeLibraryBasename);
         } catch (final Throwable  e) {
-            System.err.println("Failed to load native library "+JavaNativeLibBasename);
+            System.err.println("Failed to load native library "+id.JavaNativeLibraryBasename);
             e.printStackTrace();
             throw e; // fwd exception - end here
         }
+
         try {
             final Manifest manifest = getManifest(BluetoothFactory.class.getClassLoader(), new String[] { "org.tinyb" } );
             final Attributes mfAttributes = null != manifest ? manifest.getMainAttributes() : null;
@@ -101,9 +157,12 @@ public class BluetoothFactory {
                     }
                 }
             }
+            initializedID = id; // initialized!
+
             APIVersion = JAPIVersion;
             ImplVersion = null != mfAttributes ? mfAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) : null;
             if( VERBOSE ) {
+                System.err.println("tinyb2 loaded "+id);
                 System.err.println("tinyb2 java api version "+JAPIVersion);
                 System.err.println("tinyb2 native api version "+NAPIVersion);
                 if( null != mfAttributes ) {
@@ -129,40 +188,7 @@ public class BluetoothFactory {
         }
     }
 
-    /**
-     * Fully qualified factory class name for D-Bus implementation: {@value}
-     * <p>
-     * This value is exposed for convenience, user implementations are welcome.
-     * </p>
-     */
-    public static final String DBusFactoryImplClassName = "tinyb.dbus.DBusManager";
-
-    /**
-     * Fully qualified factory class name for direct_bt implementation: {@value}
-     * <p>
-     * This value is exposed for convenience, user implementations are welcome.
-     * </p>
-     */
-    public static final String DirectBTFactoryImplClassName = "direct_bt.tinyb.Manager";
-
-    /**
-     * Returns an initialized BluetoothManager instance using the given {@code factoryImplClass}.
-     * <p>
-     * The {@code factoryImplClass} must provide the static method
-     * <pre>
-     * public static BluetoothManager getBluetoothManager() throws BluetoothException { .. }
-     * </pre>
-     * </p>
-     * @param factoryImplClass the factory implementation class
-     * @throws BluetoothException
-     * @throws NoSuchMethodException
-     * @throws SecurityException
-     * @throws IllegalAccessException
-     * @throws IllegalArgumentException
-     * @throws InvocationTargetException
-     * @see #getBluetoothManager(String)
-     */
-    public static synchronized BluetoothManager getBluetoothManager(final Class<?> factoryImplClass)
+    private static synchronized BluetoothManager getBluetoothManager(final Class<?> factoryImplClass)
             throws BluetoothException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException
     {
@@ -178,7 +204,7 @@ public class BluetoothFactory {
      * public static synchronized BluetoothManager getBluetoothManager() throws BluetoothException { .. }
      * </pre>
      * </p>
-     * @param factoryImplClass the fully qualified factory implementation class name
+     * @param id the fully qualified factory implementation class name
      * @throws BluetoothException
      * @throws NoSuchMethodException
      * @throws SecurityException
@@ -189,21 +215,53 @@ public class BluetoothFactory {
      * @see {@link #DBusFactoryImplClassName}
      * @see {@link #DirectBTFactoryImplClassName}
      */
-    public static synchronized BluetoothManager getBluetoothManager(final String factoryImplClassName)
+    public static synchronized BluetoothManager getBluetoothManager(final ImplementationIdentifier id)
             throws BluetoothException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
-        final Class<?> factoryImpl = Class.forName(factoryImplClassName);
+        initLibrary(id);
+        final Class<?> factoryImpl = Class.forName(id.BluetoothManagerClassName);
         return getBluetoothManager(factoryImpl);
     }
 
     /**
      * Returns an initialized BluetoothManager instance using a D-Bus implementation.
+     * <p>
+     * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DBusImplementationID}.
+     * </p>
      * @throws BluetoothException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @throws ClassNotFoundException
      */
-    public static synchronized BluetoothManager getDBusBluetoothManager() throws BluetoothException
+    public static synchronized BluetoothManager getDBusBluetoothManager()
+            throws BluetoothException, NoSuchMethodException, SecurityException,
+                   IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
-        return tinyb.dbus.DBusManager.getBluetoothManager();
+        return getBluetoothManager(DBusImplementationID);
+    }
+
+    /**
+     * Returns an initialized BluetoothManager instance using the DirectBT implementation.
+     * <p>
+     * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DirectBTImplementationID}.
+     * </p>
+     * @throws BluetoothException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @throws ClassNotFoundException
+     */
+    public static synchronized BluetoothManager getDirectBTBluetoothManager()
+            throws BluetoothException, NoSuchMethodException, SecurityException,
+                   IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
+    {
+        return getBluetoothManager(DirectBTImplementationID);
     }
 
     private static final boolean debug = false;

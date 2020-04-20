@@ -41,13 +41,13 @@ import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothDeviceDiscoveryListener;
 import org.tinyb.TransportType;
 
-public class Adapter extends DBTObject implements BluetoothAdapter
+public class DBTAdapter extends DBTObject implements BluetoothAdapter
 {
     private final String address;
     private final String name;
     private final DiscoveryThread discoveryThread;
 
-    /* pp */ Adapter(final long nativeInstance, final String address, final String name)
+    /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name)
     {
         super(nativeInstance, compHash(address, name));
         this.address = address;
@@ -66,10 +66,10 @@ public class Adapter extends DBTObject implements BluetoothAdapter
     @Override
     public boolean equals(final Object obj)
     {
-        if (obj == null || !(obj instanceof Device)) {
+        if (obj == null || !(obj instanceof DBTDevice)) {
             return false;
         }
-        final Adapter other = (Adapter)obj;
+        final DBTAdapter other = (DBTAdapter)obj;
         return address.equals(other.address) && name.equals(other.name);
     }
 
@@ -94,7 +94,7 @@ public class Adapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public BluetoothDevice find(final String name, final String address, final long timeoutMS) {
-        final BluetoothManager manager = Manager.getBluetoothManager();
+        final BluetoothManager manager = DBTManager.getBluetoothManager();
         return (BluetoothDevice) manager.find(BluetoothType.DEVICE, name, address, this, timeoutMS);
     }
 

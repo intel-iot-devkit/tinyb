@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_NativeDownlink.h"
+#include "direct_bt_tinyb_DBTNativeDownlink.h"
 
 // #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
@@ -32,11 +32,11 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/HCITypes.hpp"
+#include "direct_bt/DBTTypes.hpp"
 
 using namespace direct_bt;
 
-void Java_direct_1bt_tinyb_NativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
@@ -46,12 +46,12 @@ void Java_direct_1bt_tinyb_NativeDownlink_initNativeJavaObject(JNIEnv *env, jobj
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
 }
 
-void Java_direct_1bt_tinyb_NativeDownlink_clearNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_NativeDownlink_clearNativeJavaObject %s", javaUplink->toString().c_str());
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject %s", javaUplink->toString().c_str());
         javaUplink->setJavaObject(nullptr);
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
 }

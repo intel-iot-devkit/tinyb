@@ -23,54 +23,54 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_Device.h"
+#include "direct_bt_tinyb_DBTDevice.h"
 
 #include "JNIMem.hpp"
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/HCITypes.hpp"
+#include "direct_bt/DBTTypes.hpp"
 
 using namespace direct_bt;
 
-void Java_direct_1bt_tinyb_Device_initImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        HCIDevice *device = getInstance<HCIDevice>(env, obj);
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
 }
 
-void Java_direct_1bt_tinyb_Device_deleteImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
-        HCIDevice *device = getInstance<HCIDevice>(env, obj);
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
         delete device;
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
 }
 
-jshort Java_direct_1bt_tinyb_Device_getRSSI(JNIEnv *env, jobject obj)
+jshort Java_direct_1bt_tinyb_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
 {
     try {
-        HCIDevice *device = getInstance<HCIDevice>(env, obj);
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
         return device->getRSSI();
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
     return 0;
 }
 
-jshort Java_direct_1bt_tinyb_Device_getTxPower(JNIEnv *env, jobject obj)
+jshort Java_direct_1bt_tinyb_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
 {
     try {
-        HCIDevice *device = getInstance<HCIDevice>(env, obj);
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
         return device->getTxPower();
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_Device_getConnected(JNIEnv *env, jobject obj)
+jboolean Java_direct_1bt_tinyb_DBTDevice_getConnected(JNIEnv *env, jobject obj)
 {
     try {
-        HCIDevice *device = getInstance<HCIDevice>(env, obj);
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
         (void) device;
         return JNI_TRUE; // FIXME
     } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)

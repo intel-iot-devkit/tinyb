@@ -38,7 +38,7 @@
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
-#include "HCITypes.hpp"
+#include "DBTTypes.hpp"
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
 #include "GATTTypes.hpp"
@@ -57,13 +57,13 @@ namespace direct_bt {
 
     class GATTNotificationListener {
         public:
-            virtual void notificationReceived(std::shared_ptr<HCIDevice> dev, GATTCharacterisicsDeclRef charDecl,
+            virtual void notificationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacterisicsDeclRef charDecl,
                                               std::shared_ptr<const AttHandleValueRcv> charValue) = 0;
             virtual ~GATTNotificationListener() {}
     };
     class GATTIndicationListener {
         public:
-            virtual void indicationReceived(std::shared_ptr<HCIDevice> dev, GATTCharacterisicsDeclRef charDecl,
+            virtual void indicationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacterisicsDeclRef charDecl,
                                             std::shared_ptr<const AttHandleValueRcv> charValue, const bool confirmationSent) = 0;
             virtual ~GATTIndicationListener() {}
     };
@@ -168,7 +168,7 @@ namespace direct_bt {
               attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
               serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU) {}
 
-            GATTHandler(std::shared_ptr<HCIDevice> device, const int timeoutMS)
+            GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS)
             : rbuffer(ClientMaxMTU), state(Disconnected),
               l2cap(new L2CAPComm(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT)), timeoutMS(timeoutMS),
               attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),

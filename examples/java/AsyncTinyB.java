@@ -7,6 +7,7 @@ import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.TimeUnit;
 
 public class AsyncTinyB {
@@ -45,7 +46,15 @@ public class AsyncTinyB {
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
          * reference to it is obtained through the getBluetoothManager method.
          */
-        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
+        final BluetoothManager manager;
+        try {
+            manager = BluetoothFactory.getDBusBluetoothManager();
+        } catch (BluetoothException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            System.err.println("Failed to initialized "+BluetoothFactory.DBusImplementationID);
+            throw new RuntimeException(e);
+        }
 
         /*
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize

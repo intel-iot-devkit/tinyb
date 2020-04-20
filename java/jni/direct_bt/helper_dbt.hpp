@@ -29,7 +29,7 @@
 #include "JNIMem.hpp"
 #include "helper_base.hpp"
 
-#include "direct_bt/JavaAccess.hpp"
+#include "direct_bt/JavaUplink.hpp"
 #include "direct_bt/BasicTypes.hpp"
 
 namespace direct_bt {

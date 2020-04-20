@@ -24,10 +24,10 @@
  */
 
 #include <direct_bt/BTAddress.hpp>
-#include <direct_bt/HCITypes.hpp>
 #include <direct_bt/ATTPDUTypes.hpp>
 #include <direct_bt/GATTHandler.hpp>
 #include <direct_bt/GATTNumbers.hpp>
+#include <direct_bt/DBTTypes.hpp>
 #include <cinttypes>
 
 extern "C" {
@@ -36,18 +36,18 @@ extern "C" {
 
 using namespace direct_bt;
 
-class DeviceDiscoveryListener : public direct_bt::HCIDeviceDiscoveryListener {
-    void deviceAdded(direct_bt::HCIAdapter const &a, std::shared_ptr<direct_bt::HCIDevice> device) override {
+class DeviceDiscoveryListener : public direct_bt::DBTDeviceDiscoveryListener {
+    void deviceAdded(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device) override {
         fprintf(stderr, "****** ADDED__: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
     }
-    void deviceUpdated(direct_bt::HCIAdapter const &a, std::shared_ptr<direct_bt::HCIDevice> device) override {
+    void deviceUpdated(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device) override {
         fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
     }
-    void deviceRemoved(direct_bt::HCIAdapter const &a, std::shared_ptr<direct_bt::HCIDevice> device) override {
+    void deviceRemoved(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device) override {
         fprintf(stderr, "****** REMOVED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
@@ -57,7 +57,7 @@ class DeviceDiscoveryListener : public direct_bt::HCIDeviceDiscoveryListener {
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
 class MyGATTNotificationListener : public direct_bt::GATTNotificationListener {
-    void notificationReceived(std::shared_ptr<HCIDevice> dev,
+    void notificationReceived(std::shared_ptr<DBTDevice> dev,
                               GATTCharacterisicsDeclRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue) override {
         const int64_t tR = direct_bt::getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
@@ -69,7 +69,7 @@ class MyGATTNotificationListener : public direct_bt::GATTNotificationListener {
     }
 };
 class MyGATTIndicationListener : public direct_bt::GATTIndicationListener {
-    void indicationReceived(std::shared_ptr<HCIDevice> dev,
+    void indicationReceived(std::shared_ptr<DBTDevice> dev,
                             GATTCharacterisicsDeclRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue,
                             const bool confirmationSent) override
     {
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
         getchar();
     }
 
-    direct_bt::HCIAdapter adapter; // default
+    direct_bt::DBTAdapter adapter; // default
     if( !adapter.hasDevId() ) {
         fprintf(stderr, "Default adapter not available.\n");
         exit(1);
@@ -138,11 +138,11 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Adapter: device %s, address %s\n", 
         adapter.getName().c_str(), adapter.getAddressString().c_str());
 
-    adapter.setDeviceDiscoveryListener(std::shared_ptr<direct_bt::HCIDeviceDiscoveryListener>(new DeviceDiscoveryListener()));
+    adapter.setDeviceDiscoveryListener(std::shared_ptr<direct_bt::DBTDeviceDiscoveryListener>(new DeviceDiscoveryListener()));
 
     const int64_t t0 = direct_bt::getCurrentMilliseconds();
 
-    std::shared_ptr<direct_bt::HCISession> session = adapter.open();
+    std::shared_ptr<direct_bt::DBTSession> session = adapter.open();
 
     while( ok && !done && nullptr != session ) {
         ok = adapter.startDiscovery(*session);
@@ -160,11 +160,11 @@ int main(int argc, char *argv[])
 
         if( ok && 0 < deviceCount ) {
             const uint64_t t1 = direct_bt::getCurrentMilliseconds();
-            std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
+            std::vector<std::shared_ptr<direct_bt::DBTDevice>> discoveredDevices = adapter.getDiscoveredDevices();
             int i=0, j=0, k=0;
             for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
                 i++;
-                std::shared_ptr<direct_bt::HCIDevice> device = *it;
+                std::shared_ptr<direct_bt::DBTDevice> device = *it;
                 const uint64_t lup = device->getLastUpdateAge(t1);
                 if( 2000 > lup ) {
                     // less than 2s old ..

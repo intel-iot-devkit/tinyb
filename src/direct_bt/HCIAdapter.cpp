@@ -34,12 +34,12 @@
 
 // #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
+#include <DBTTypes.hpp>
 
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 
 #include "HCIComm.hpp"
-#include "HCITypes.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -53,9 +53,9 @@ using namespace direct_bt;
 // *************************************************
 // *************************************************
 
-std::atomic_int HCISession::name_counter(0);
+std::atomic_int DBTSession::name_counter(0);
 
-void HCISession::disconnect(const uint8_t reason) {
+void DBTSession::disconnect(const uint8_t reason) {
     connectedDevice = nullptr;
 
     if( !hciComm.isLEConnected() ) {
@@ -67,7 +67,7 @@ void HCISession::disconnect(const uint8_t reason) {
     }
 }
 
-bool HCISession::close() 
+bool DBTSession::close() 
 {
     if( !hciComm.isOpen() ) {
         DBG_PRINT("HCISession::close: Not open");
@@ -83,7 +83,7 @@ bool HCISession::close()
 // *************************************************
 // *************************************************
 
-bool HCIAdapter::validateDevInfo() {
+bool DBTAdapter::validateDevInfo() {
     if( !mgmt.isOpen() || 0 > dev_id ) {
         return false;
     }
@@ -92,31 +92,31 @@ bool HCIAdapter::validateDevInfo() {
     return true;
 }
 
-void HCIAdapter::sessionClosing(HCISession& s) 
+void DBTAdapter::sessionClosing(DBTSession& s) 
 {
     stopDiscovery(s);
     session = nullptr;
 }
 
-HCIAdapter::HCIAdapter()
+DBTAdapter::DBTAdapter()
 : mgmt(MgmtHandler::get()), dev_id(mgmt.getDefaultAdapterIdx())
 {
     valid = validateDevInfo();
 }
 
-HCIAdapter::HCIAdapter(EUI48 &mac) 
+DBTAdapter::DBTAdapter(EUI48 &mac) 
 : mgmt(MgmtHandler::get()), dev_id(mgmt.findAdapterIdx(mac))
 {
     valid = validateDevInfo();
 }
 
-HCIAdapter::HCIAdapter(const int dev_id) 
+DBTAdapter::DBTAdapter(const int dev_id) 
 : mgmt(MgmtHandler::get()), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
 
-HCIAdapter::~HCIAdapter() {
+DBTAdapter::~DBTAdapter() {
     DBG_PRINT("HCIAdapter::dtor: %s", toString().c_str());
     deviceDiscoveryListener = nullptr;
 
@@ -125,29 +125,29 @@ HCIAdapter::~HCIAdapter() {
     session = nullptr;
 }
 
-std::shared_ptr<HCISession> HCIAdapter::open() 
+std::shared_ptr<DBTSession> DBTAdapter::open() 
 {
     if( !valid ) {
         return nullptr;
     }
-    HCISession * s = new HCISession( *this, dev_id, HCI_CHANNEL_RAW );
+    DBTSession * s = new DBTSession( *this, dev_id, HCI_CHANNEL_RAW );
     if( !s->isOpen() ) {
         delete s;
         perror("Could not open device");
         return nullptr;
     }
-    session = std::shared_ptr<HCISession>( s );
+    session = std::shared_ptr<DBTSession>( s );
     return session;
 }
 
-std::shared_ptr<HCIDeviceDiscoveryListener> HCIAdapter::setDeviceDiscoveryListener(std::shared_ptr<HCIDeviceDiscoveryListener> l)
+std::shared_ptr<DBTDeviceDiscoveryListener> DBTAdapter::setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener> l)
 {
-    std::shared_ptr<HCIDeviceDiscoveryListener> o = deviceDiscoveryListener;
+    std::shared_ptr<DBTDeviceDiscoveryListener> o = deviceDiscoveryListener;
     deviceDiscoveryListener = l;
     return o;
 }
 
-bool HCIAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
+bool DBTAdapter::startDiscovery(DBTSession &session, uint8_t own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
     if( !session.isOpen() ) {
@@ -161,7 +161,7 @@ bool HCIAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
     return true;
 }
 
-void HCIAdapter::stopDiscovery(HCISession& session) {
+void DBTAdapter::stopDiscovery(DBTSession& session) {
     if( !session.isOpen() ) {
         DBG_PRINT("HCIAdapter::stopDiscovery: Not open");
         return;
@@ -170,9 +170,9 @@ void HCIAdapter::stopDiscovery(HCISession& session) {
     session.hciComm.le_disable_scan();
 }
 
-int HCIAdapter::findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devices, EUI48 const & mac) {
+int DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac) {
     auto begin = devices.begin();
-    auto it = std::find_if(begin, devices.end(), [&](std::shared_ptr<HCIDevice> const& p) {
+    auto it = std::find_if(begin, devices.end(), [&](std::shared_ptr<DBTDevice> const& p) {
         return p->mac == mac;
     });
     if ( it == std::end(devices) ) {
@@ -182,11 +182,11 @@ int HCIAdapter::findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devic
     }
 }
 
-int HCIAdapter::findScannedDeviceIdx(EUI48 const & mac) const {
+int DBTAdapter::findScannedDeviceIdx(EUI48 const & mac) const {
     return findDevice(scannedDevices, mac);
 }
 
-std::shared_ptr<HCIDevice> HCIAdapter::findScannedDevice (EUI48 const & mac) const {
+std::shared_ptr<DBTDevice> DBTAdapter::findScannedDevice (EUI48 const & mac) const {
     const int idx = findDevice(scannedDevices, mac);
     if( 0 <= idx ) {
         return scannedDevices.at(idx);
@@ -194,7 +194,7 @@ std::shared_ptr<HCIDevice> HCIAdapter::findScannedDevice (EUI48 const & mac) con
     return nullptr;
 }
 
-bool HCIAdapter::addScannedDevice(std::shared_ptr<HCIDevice> const &device) {
+bool DBTAdapter::addScannedDevice(std::shared_ptr<DBTDevice> const &device) {
     if( 0 > findDevice(scannedDevices, device->mac) ) {
         scannedDevices.push_back(device);
         return true;
@@ -202,11 +202,11 @@ bool HCIAdapter::addScannedDevice(std::shared_ptr<HCIDevice> const &device) {
     return false;
 }
 
-int HCIAdapter::findDiscoveredDeviceIdx(EUI48 const & mac) const {
+int DBTAdapter::findDiscoveredDeviceIdx(EUI48 const & mac) const {
     return findDevice(discoveredDevices, mac);
 }
 
-std::shared_ptr<HCIDevice> HCIAdapter::findDiscoveredDevice (EUI48 const & mac) const {
+std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac) const {
     const int idx = findDevice(discoveredDevices, mac);
     if( 0 <= idx ) {
         return discoveredDevices.at(idx);
@@ -214,7 +214,7 @@ std::shared_ptr<HCIDevice> HCIAdapter::findDiscoveredDevice (EUI48 const & mac) 
     return nullptr;
 }
 
-bool HCIAdapter::addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device) {
+bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
     if( 0 > findDiscoveredDeviceIdx(device->mac) ) {
         discoveredDevices.push_back(device);
         return true;
@@ -222,7 +222,7 @@ bool HCIAdapter::addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device) {
     return false;
 }
 
-int HCIAdapter::removeDiscoveredDevices() {
+int DBTAdapter::removeDiscoveredDevices() {
     // also need to flush scannedDevices, old data
     scannedDevices.clear();
     int res = discoveredDevices.size();
@@ -230,12 +230,12 @@ int HCIAdapter::removeDiscoveredDevices() {
     return res;
 }
 
-std::string HCIAdapter::toString() const {
+std::string DBTAdapter::toString() const {
     std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
     if(discoveredDevices.size() > 0 ) {
         out.append("\n");
         for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
-            std::shared_ptr<HCIDevice> p = *it;
+            std::shared_ptr<DBTDevice> p = *it;
             out.append("  ").append(p->toString()).append("\n");
         }
     }
@@ -244,7 +244,7 @@ std::string HCIAdapter::toString() const {
 
 // *************************************************
 
-int HCIAdapter::discoverDevices(HCISession& session,
+int DBTAdapter::discoverDevices(DBTSession& session,
                                 const int waitForDeviceCount,
                                 const EUI48 &waitForDevice,
                                 const int timeoutMS,
@@ -365,10 +365,10 @@ int HCIAdapter::discoverDevices(HCISession& session,
             DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: %s", loop-1, i, num_reports, ad_report->toString().c_str());
 
             int idx = findDevice(scannedDevices, ad_report->getAddress());
-            std::shared_ptr<HCIDevice> dev;
+            std::shared_ptr<DBTDevice> dev;
             if( 0 > idx ) {
                 // new device
-                dev = std::shared_ptr<HCIDevice>(new HCIDevice(*this, *ad_report));
+                dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *ad_report));
                 scannedDevices.push_back(dev);
             } else {
                 // existing device

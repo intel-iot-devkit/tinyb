@@ -24,6 +24,7 @@
  */
 
 #include <dbt_debug.hpp>
+#include <DBTTypes.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,12 +35,11 @@
 #include  <algorithm>
 
 #include "HCIComm.hpp"
-#include "HCITypes.hpp"
 
 
 using namespace direct_bt;
 
-HCIDevice::HCIDevice(HCIAdapter const & a, EInfoReport const & r)
+DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), mac(r.getAddress())
 {
     if( !r.isSet(EInfoReport::Element::BDADDR) ) {
@@ -48,26 +48,26 @@ HCIDevice::HCIDevice(HCIAdapter const & a, EInfoReport const & r)
     update(r);
 }
 
-HCIDevice::~HCIDevice() {
+DBTDevice::~DBTDevice() {
     services.clear();
     msd = nullptr;
 }
 
-std::shared_ptr<HCIDevice> HCIDevice::getSharedInstance() const {
-    const std::shared_ptr<HCIDevice> myself = adapter.findDiscoveredDevice(mac);
+std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
+    const std::shared_ptr<DBTDevice> myself = adapter.findDiscoveredDevice(mac);
     if( nullptr == myself ) {
         throw InternalError("HCIDevice: Not present in HCIAdapter: "+toString(), E_FILE_LINE);
     }
     return myself;
 }
 
-void HCIDevice::addService(std::shared_ptr<uuid_t> const &uuid)
+void DBTDevice::addService(std::shared_ptr<uuid_t> const &uuid)
 {
     if( 0 > findService(uuid) ) {
         services.push_back(uuid);
     }
 }
-void HCIDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & services)
+void DBTDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & services)
 {
     for(size_t j=0; j<services.size(); j++) {
         const std::shared_ptr<uuid_t> uuid = services.at(j);
@@ -75,7 +75,7 @@ void HCIDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & service
     }
 }
 
-int HCIDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
+int DBTDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
 {
     auto begin = services.begin();
     auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<uuid_t> const& p) {
@@ -88,7 +88,7 @@ int HCIDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
     }
 }
 
-std::string HCIDevice::toString() const {
+std::string DBTDevice::toString() const {
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("Device["+getAddressString()+", '"+getName()+
@@ -108,7 +108,7 @@ std::string HCIDevice::toString() const {
     return out;
 }
 
-void HCIDevice::update(EInfoReport const & data) {
+void DBTDevice::update(EInfoReport const & data) {
     ts_update = data.getTimestamp();
     if( data.isSet(EInfoReport::Element::NAME) ) {
         if( !name.length() || data.getName().length() > name.length() ) {
@@ -132,7 +132,7 @@ void HCIDevice::update(EInfoReport const & data) {
     addServices(data.getServices());
 }
 
-uint16_t HCIDevice::le_connect(HCISession &session,
+uint16_t DBTDevice::le_connect(DBTSession &session,
         uint8_t peer_mac_type, uint8_t own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,

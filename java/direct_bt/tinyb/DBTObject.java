@@ -28,7 +28,7 @@ package direct_bt.tinyb;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 
-public abstract class DBTObject extends NativeDownlink implements BluetoothObject
+public abstract class DBTObject extends DBTNativeDownlink implements BluetoothObject
 {
     private final int hashValue;
 

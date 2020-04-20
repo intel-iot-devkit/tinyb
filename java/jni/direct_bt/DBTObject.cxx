@@ -28,7 +28,7 @@
 #include "JNIMem.hpp"
 #include "helper_base.hpp"
 
-#include "direct_bt/HCITypes.hpp"
+#include "direct_bt/DBTTypes.hpp"
 
 using namespace direct_bt;
 

@@ -36,10 +36,10 @@ import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothType;
 
-public class Manager implements BluetoothManager
+public class DBTManager implements BluetoothManager
 {
     private long nativeInstance;
-    private static Manager inst;
+    private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
@@ -113,11 +113,11 @@ public class Manager implements BluetoothManager
      * Returns an opened default adapter instance!
      * @throws BluetoothException in case adapter is invalid or could not have been opened.
      */
-    private native Adapter getDefaultAdapterImpl() throws BluetoothException;
+    private native DBTAdapter getDefaultAdapterImpl() throws BluetoothException;
 
     private native void initImpl() throws BluetoothException;
     private native void deleteImpl();
-    private Manager()
+    private DBTManager()
     {
         initImpl();
         try {
@@ -134,7 +134,7 @@ public class Manager implements BluetoothManager
     {
         if (inst == null)
         {
-            inst = new Manager();
+            inst = new DBTManager();
         }
         return inst;
     }

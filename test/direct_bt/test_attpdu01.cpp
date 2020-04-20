@@ -7,7 +7,7 @@
 
 #include <direct_bt/UUID.hpp>
 // #include <direct_bt/BTAddress.hpp>
-// #include <direct_bt/HCITypes.hpp>
+// #include <direct_bt/DBTTypes.hpp>
 #include <direct_bt/ATTPDUTypes.hpp>
 // #include <direct_bt/GATTHandler.hpp>
 // #include <direct_bt/GATTIoctl.hpp>

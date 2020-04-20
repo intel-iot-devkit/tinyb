@@ -36,15 +36,15 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 
-public class Device extends DBTObject implements BluetoothDevice
+public class DBTDevice extends DBTObject implements BluetoothDevice
 {
-    private final Adapter adapter;
+    private final DBTAdapter adapter;
     private final String address;
     private final String name;
     private final long ts_creation;
     long ts_update;
 
-    /* pp */ Device(final long nativeInstance, final Adapter adptr, final String address, final String name, final long ts_creation)
+    /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr, final String address, final String name, final long ts_creation)
     {
         super(nativeInstance, compHash(address, name));
         this.adapter = adptr;
@@ -58,10 +58,10 @@ public class Device extends DBTObject implements BluetoothDevice
     @Override
     public boolean equals(final Object obj)
     {
-        if (obj == null || !(obj instanceof Device)) {
+        if (obj == null || !(obj instanceof DBTDevice)) {
             return false;
         }
-        final Device other = (Device)obj;
+        final DBTDevice other = (DBTDevice)obj;
         return address.equals(other.address) && name.equals(other.name);
     }
 
@@ -82,7 +82,7 @@ public class Device extends DBTObject implements BluetoothDevice
 
     @Override
     public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = Manager.getBluetoothManager();
+        final BluetoothManager manager = DBTManager.getBluetoothManager();
         return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
                 null, UUID, this, timeoutMS);
     }
@@ -227,7 +227,7 @@ public class Device extends DBTObject implements BluetoothDevice
     public native String getModalias();
 
     @Override
-    public native Adapter getAdapter();
+    public native DBTAdapter getAdapter();
 
     @Override
     public native Map<Short, byte[]> getManufacturerData();

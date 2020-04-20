@@ -25,22 +25,16 @@
 
 package direct_bt.tinyb;
 
-import java.util.List;
-
-import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
-import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
-import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 
-public class GattCharacteristic extends DBTObject implements BluetoothGattCharacteristic
+public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescriptor
 {
     private final String uuid;
 
-   /* pp */ GattCharacteristic(final long nativeInstance, final String uuid)
+   /* pp */ DBTGattDescriptor(final long nativeInstance, final String uuid)
     {
         super(nativeInstance, uuid.hashCode());
         this.uuid = uuid;
@@ -49,10 +43,10 @@ public class GattCharacteristic extends DBTObject implements BluetoothGattCharac
     @Override
     public boolean equals(final Object obj)
     {
-        if (obj == null || !(obj instanceof GattCharacteristic)) {
+        if (obj == null || !(obj instanceof DBTGattDescriptor)) {
             return false;
         }
-        final GattCharacteristic other = (GattCharacteristic)obj;
+        final DBTGattDescriptor other = (DBTGattDescriptor)obj;
         return uuid.equals(other.uuid);
     }
 
@@ -62,28 +56,19 @@ public class GattCharacteristic extends DBTObject implements BluetoothGattCharac
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
 
-    static BluetoothType class_type() { return BluetoothType.GATT_CHARACTERISTIC; }
+    static BluetoothType class_type() { return BluetoothType.GATT_DESCRIPTOR; }
 
     @Override
-    public final GattCharacteristic clone()
+    public final BluetoothGattDescriptor clone()
     { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public BluetoothGattDescriptor find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = Manager.getBluetoothManager();
-        return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
-                null, UUID, this, timeoutMS);
-    }
-
-    @Override
-    public BluetoothGattDescriptor find(final String UUID) {
-        return find(UUID, 0);
-    }
 
     /* D-Bus method calls: */
 
     @Override
-    public native byte[] readValue() throws BluetoothException;
+    public native byte[] readValue();
+
+    @Override
+    public native boolean writeValue(byte[] argValue) throws BluetoothException;
 
     @Override
     public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
@@ -91,29 +76,14 @@ public class GattCharacteristic extends DBTObject implements BluetoothGattCharac
     @Override
     public native void disableValueNotifications();
 
-    @Override
-    public native boolean writeValue(byte[] argValue) throws BluetoothException;
-
     /* D-Bus property accessors: */
 
     @Override
-    public native BluetoothGattService getService();
+    public native DBTGattCharacteristic getCharacteristic();
 
     @Override
     public native byte[] getValue();
 
     @Override
-    public native boolean getNotifying();
-
-    @Override
-    public native String[] getFlags();
-
-    @Override
-    public native List<BluetoothGattDescriptor> getDescriptors();
-
-    private native void init(GattCharacteristic obj);
-
-    @Override
     protected native void deleteImpl();
-
 }

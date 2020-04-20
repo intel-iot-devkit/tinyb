@@ -23,12 +23,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_GattDescriptor.h"
+#include "direct_bt_tinyb_DBTGattDescriptor.h"
 
 #include "JNIMem.hpp"
 #include "helper_base.hpp"
 
-#include "direct_bt/HCITypes.hpp"
+#include "direct_bt/DBTTypes.hpp"
 
 using namespace direct_bt;
 

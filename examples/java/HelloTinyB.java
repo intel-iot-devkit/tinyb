@@ -1,3 +1,4 @@
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -30,8 +31,7 @@ public class HelloTinyB {
      * getDevices method. We can the look through the list of devices to find the device with the MAC which we provided
      * as a parameter. We continue looking until we find it, or we try 15 times (1 minutes).
      */
-    static BluetoothDevice getDevice(final String address) throws InterruptedException {
-        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
+    static BluetoothDevice getDevice(final BluetoothManager manager, final String address) throws InterruptedException {
         BluetoothDevice sensor = null;
         for (int i = 0; (i < 15) && running; ++i) {
             final List<BluetoothDevice> list = manager.getDevices();
@@ -113,7 +113,15 @@ public class HelloTinyB {
          * library is through the BluetoothManager. There can be only one BluetoothManager at one time, and the
          * reference to it is obtained through the getBluetoothManager method.
          */
-        final BluetoothManager manager = BluetoothFactory.getDBusBluetoothManager();
+        final BluetoothManager manager;
+        try {
+            manager = BluetoothFactory.getDBusBluetoothManager();
+        } catch (BluetoothException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            System.err.println("Failed to initialized "+BluetoothFactory.DBusImplementationID);
+            throw new RuntimeException(e);
+        }
 
         /*
          * The manager will try to initialize a BluetoothAdapter if any adapter is present in the system. To initialize
@@ -122,7 +130,7 @@ public class HelloTinyB {
         final boolean discoveryStarted = manager.startDiscovery();
 
         System.out.println("The discovery started: " + (discoveryStarted ? "true" : "false"));
-        final BluetoothDevice sensor = getDevice(args[0]);
+        final BluetoothDevice sensor = getDevice(manager, args[0]);
 
         /*
          * After we find the device we can stop looking for other devices.

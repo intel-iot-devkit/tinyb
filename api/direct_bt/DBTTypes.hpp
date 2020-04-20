@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef HCI_TYPES_HPP_
-#define HCI_TYPES_HPP_
+#ifndef DBT_TYPES_HPP_
+#define DBT_TYPES_HPP_
 
 #include <cstring>
 #include <string>
@@ -41,7 +41,7 @@
 #include "BTTypes.hpp"
 #include "HCIComm.hpp"
 #include "MgmtComm.hpp"
-#include "JavaAccess.hpp"
+#include "JavaUplink.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
 #define JAVA_HCI_PACKAGE "tinyb/hci"
@@ -52,37 +52,37 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class HCIAdapter; // forward
-    class HCIDevice; // forward
+    class DBTAdapter; // forward
+    class DBTDevice; // forward
 
-    class HCISession
+    class DBTSession
     {
-        friend class HCIAdapter; // top manager: adapter open/close
-        friend class HCIDevice;  // local device manager: device connect/disconnect
+        friend class DBTAdapter; // top manager: adapter open/close
+        friend class DBTDevice;  // local device manager: device connect/disconnect
 
         private:
             static std::atomic_int name_counter;
-            HCIAdapter &adapter;
+            DBTAdapter &adapter;
             HCIComm hciComm;
-            std::shared_ptr<HCIDevice> connectedDevice;
+            std::shared_ptr<DBTDevice> connectedDevice;
 
-            HCISession(HCIAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
+            DBTSession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
             : adapter(a), hciComm(dev_id, channel, timeoutMS),
               connectedDevice(nullptr), name(name_counter.fetch_add(1))
             {}
 
-            void connected(std::shared_ptr<HCIDevice> device) {
+            void connected(std::shared_ptr<DBTDevice> device) {
                 connectedDevice = device;
             }
 
         public:
             const int name;
 
-            ~HCISession() { disconnect(); close(); }
+            ~DBTSession() { disconnect(); close(); }
 
-            const HCIAdapter &getAdapter() { return adapter; }
+            const DBTAdapter &getAdapter() { return adapter; }
             uint16_t getConnectedDeviceHandle() const { return hciComm.leConnHandle(); }
-            std::shared_ptr<HCIDevice> getConnectedDevice() { return connectedDevice; }
+            std::shared_ptr<DBTDevice> getConnectedDevice() { return connectedDevice; }
 
             void disconnect(const uint8_t reason=0);
 
@@ -92,13 +92,13 @@ namespace direct_bt {
             int dd() const { return hciComm.dd(); }
     };
 
-    inline bool operator<(const HCISession& lhs, const HCISession& rhs)
+    inline bool operator<(const DBTSession& lhs, const DBTSession& rhs)
     { return lhs.name < rhs.name; }
 
-    inline bool operator==(const HCISession& lhs, const HCISession& rhs)
+    inline bool operator==(const DBTSession& lhs, const DBTSession& rhs)
     { return lhs.name == rhs.name; }
 
-    inline bool operator!=(const HCISession& lhs, const HCISession& rhs)
+    inline bool operator!=(const DBTSession& lhs, const DBTSession& rhs)
     { return !(lhs == rhs); }
 
 
@@ -106,13 +106,13 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class HCIObject : public JavaUplink
+    class DBTObject : public JavaUplink
     {
         protected:
             std::mutex lk;
             std::atomic_bool valid;
 
-            HCIObject() : valid(true) {}
+            DBTObject() : valid(true) {}
 
             bool lock() {
                  if (valid) {
@@ -135,24 +135,24 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class HCIDeviceDiscoveryListener {
+    class DBTDeviceDiscoveryListener {
         public:
-            virtual void deviceAdded(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
-            virtual void deviceUpdated(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
-            virtual void deviceRemoved(HCIAdapter const &a, std::shared_ptr<HCIDevice> device) = 0;
-            virtual ~HCIDeviceDiscoveryListener() {}
+            virtual void deviceAdded(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
+            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
+            virtual void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
+            virtual ~DBTDeviceDiscoveryListener() {}
     };
     /** Alternative method to DeviceDiscoveryListener to set a callback */
-    typedef std::function<void(HCIAdapter const &a, std::shared_ptr<HCIDevice> device)> DeviceDiscoveryCallback;
+    typedef std::function<void(DBTAdapter const &a, std::shared_ptr<DBTDevice> device)> DBTDeviceDiscoveryCallback;
 
-    class HCIDevice : public HCIObject
+    class DBTDevice : public DBTObject
     {
-        friend HCIAdapter; // managing us: ctor and update(..) during discovery
+        friend DBTAdapter; // managing us: ctor and update(..) during discovery
 
         private:
             static const int to_connect_ms = 5000;
 
-            HCIAdapter const & adapter;
+            DBTAdapter const & adapter;
             uint64_t ts_update;
             std::string name;
             int8_t rssi = 0;
@@ -160,7 +160,7 @@ namespace direct_bt {
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
 
-            HCIDevice(HCIAdapter const & adapter, EInfoReport const & r);
+            DBTDevice(DBTAdapter const & adapter, EInfoReport const & r);
 
             void addService(std::shared_ptr<uuid_t> const &uuid);
             void addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
@@ -172,20 +172,20 @@ namespace direct_bt {
             /** Device mac address */
             const EUI48 mac;
 
-            ~HCIDevice();
+            ~DBTDevice();
 
             std::string get_java_class() const override {
                 return java_class();
             }
             static std::string java_class() {
-                return std::string(JAVA_DBT_PACKAGE "Device");
+                return std::string(JAVA_DBT_PACKAGE "DBTDevice");
             }
 
             /** Returns the managing adapter */
-            HCIAdapter const & getAdapter() const { return adapter; }
+            DBTAdapter const & getAdapter() const { return adapter; }
 
             /** Returns the shares reference of this instance, managed by the adapter */
-            std::shared_ptr<HCIDevice> getSharedInstance() const;
+            std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             uint64_t getCreationTimestamp() const { return ts_creation; }
             uint64_t getUpdateTimestamp() const { return ts_update; }
@@ -219,7 +219,7 @@ namespace direct_bt {
              * and usual connection latency, interval etc.
              * </p>
              */
-            uint16_t le_connect(HCISession& s,
+            uint16_t le_connect(DBTSession& s,
                     const uint8_t peer_mac_type=HCIADDR_LE_PUBLIC, const uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
                     const uint16_t interval=0x0004, const uint16_t window=0x0004,
                     const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
@@ -228,44 +228,44 @@ namespace direct_bt {
                     const uint8_t initiator_filter=0);
     };
 
-    inline bool operator<(const HCIDevice& lhs, const HCIDevice& rhs)
+    inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
     { return lhs.mac < rhs.mac; }
 
-    inline bool operator==(const HCIDevice& lhs, const HCIDevice& rhs)
+    inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs)
     { return lhs.mac == rhs.mac; }
 
-    inline bool operator!=(const HCIDevice& lhs, const HCIDevice& rhs)
+    inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs)
     { return !(lhs == rhs); }
 
     // *************************************************
     // *************************************************
     // *************************************************
 
-    class HCIAdapter : public HCIObject
+    class DBTAdapter : public DBTObject
     {
         private:
             /** Returns index >= 0 if found, otherwise -1 */
-            static int findDevice(std::vector<std::shared_ptr<HCIDevice>> const & devices, EUI48 const & mac);
+            static int findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac);
 
             MgmtHandler& mgmt;
             std::shared_ptr<const AdapterInfo> adapterInfo;
 
-            std::shared_ptr<HCISession> session;
-            std::vector<std::shared_ptr<HCIDevice>> scannedDevices; // all devices scanned
-            std::vector<std::shared_ptr<HCIDevice>> discoveredDevices; // matching all requirements for export
-            std::shared_ptr<HCIDeviceDiscoveryListener> deviceDiscoveryListener = nullptr;
+            std::shared_ptr<DBTSession> session;
+            std::vector<std::shared_ptr<DBTDevice>> scannedDevices; // all devices scanned
+            std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // matching all requirements for export
+            std::shared_ptr<DBTDeviceDiscoveryListener> deviceDiscoveryListener = nullptr;
 
             bool validateDevInfo();
 
-            friend bool HCISession::close();
-            void sessionClosing(HCISession& s);
+            friend bool DBTSession::close();
+            void sessionClosing(DBTSession& s);
 
-            friend std::shared_ptr<HCIDevice> HCIDevice::getSharedInstance() const;
+            friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             int findScannedDeviceIdx(EUI48 const & mac) const;
-            std::shared_ptr<HCIDevice> findScannedDevice (EUI48 const & mac) const;
-            bool addScannedDevice(std::shared_ptr<HCIDevice> const &device);
+            std::shared_ptr<DBTDevice> findScannedDevice (EUI48 const & mac) const;
+            bool addScannedDevice(std::shared_ptr<DBTDevice> const &device);
 
-            bool addDiscoveredDevice(std::shared_ptr<HCIDevice> const &device);
+            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
         protected:
 
@@ -275,25 +275,25 @@ namespace direct_bt {
             /**
              * Using the default adapter device
              */
-            HCIAdapter();
+            DBTAdapter();
 
             /**
              * @param[in] mac address
              */
-            HCIAdapter(EUI48 &mac);
+            DBTAdapter(EUI48 &mac);
 
             /**
              * @param[in] dev_id an already identified HCI device id
              */
-            HCIAdapter(const int dev_id);
+            DBTAdapter(const int dev_id);
 
-            ~HCIAdapter();
+            ~DBTAdapter();
 
             std::string get_java_class() const override {
                 return java_class();
             }
             static std::string java_class() {
-                return std::string(JAVA_DBT_PACKAGE "Adapter");
+                return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
             }
 
             bool hasDevId() const { return 0 <= dev_id; }
@@ -306,19 +306,19 @@ namespace direct_bt {
              * Returns a reference to the newly opened session
              * if successful, otherwise nullptr is returned.
              */
-            std::shared_ptr<HCISession> open();
+            std::shared_ptr<DBTSession> open();
 
             /**
              * Returns the {@link #open()} session or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCISession> getOpenSession() { return session; }
+            std::shared_ptr<DBTSession> getOpenSession() { return session; }
 
             // device discovery aka device scanning
 
             /**
              * Replaces the HCIDeviceDiscoveryListener with the given instance, returning the replaced one.
              */
-            std::shared_ptr<HCIDeviceDiscoveryListener> setDeviceDiscoveryListener(std::shared_ptr<HCIDeviceDiscoveryListener> l);
+            std::shared_ptr<DBTDeviceDiscoveryListener> setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener> l);
 
             /**
              * Starts a new discovery session.
@@ -330,14 +330,14 @@ namespace direct_bt {
              * and usual discovery intervals etc.
              * </p>
              */
-            bool startDiscovery(HCISession& s, uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+            bool startDiscovery(DBTSession& s, uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**
              * Closes the discovery session.
              * @return true if no error, otherwise false.
              */
-            void stopDiscovery(HCISession& s);
+            void stopDiscovery(DBTSession& s);
 
             /**
              * Discovery devices up until 'timeoutMS' in milliseconds
@@ -369,20 +369,20 @@ namespace direct_bt {
              * <br>
              * Default value is: 'EInfoReport::Element::NAME',
              * while 'EInfoReport::Element::BDADDR|EInfoReport::Element::RSSI' is implicit
-             * and guarantedd by the AD protocol.
+             * and guaranteed by the AD protocol.
              * </p>
              *
              * @return number of successfully scanned devices matching above criteria
              *         or -1 if an error has occurred.
              */
-            int discoverDevices(HCISession& s,
+            int discoverDevices(DBTSession& s,
                                 const int waitForDeviceCount=1,
                                 const EUI48 &waitForDevice=EUI48_ANY_DEVICE,
                                 const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS,
                                 const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
 
             /** Returns discovered devices from a discovery */
-            std::vector<std::shared_ptr<HCIDevice>> getDiscoveredDevices() { return discoveredDevices; }
+            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() { return discoveredDevices; }
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices();
@@ -391,13 +391,13 @@ namespace direct_bt {
             int findDiscoveredDeviceIdx(EUI48 const & mac) const;
 
             /** Returns shared HCIDevice if found, otherwise nullptr */
-            std::shared_ptr<HCIDevice> findDiscoveredDevice (EUI48 const & mac) const;
+            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac) const;
 
-            std::shared_ptr<HCIDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }
+            std::shared_ptr<DBTDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }
 
             std::string toString() const;
     };
 
 } // namespace direct_bt
 
-#endif /* HCITYPES_HPP_ */
+#endif /* DBT_TYPES_HPP_ */
