@@ -72,6 +72,10 @@
                                     <listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/include}&quot;"/>
                                     									
                                     <listOptionValue builtIn="false" value="/usr/include/c++/9/"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/build-x86_64/java/CMakeFiles/tinybjar.dir/jni}&quot;"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="&quot;${workspace_loc:/direct_bt/java/jni}&quot;"/>
                                     								
                                 </option>
                                 								
@@ -171,11 +175,15 @@
                         						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="api/ieee11073"/>
                         						
+                        <entry excluding="direct_bt/|tinyb/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="build-x86_64/src"/>
+                        						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="examples/direct_bt_scanner"/>
                         						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="include/cppunit"/>
                         						
-                        <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
+                        <entry excluding="direct_bt|tinyb/" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni"/>
+                        						
+                        <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="java/jni/direct_bt"/>
                         						
                         <entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="src/direct_bt"/>
                         						
