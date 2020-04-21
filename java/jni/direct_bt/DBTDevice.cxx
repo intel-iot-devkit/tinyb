@@ -38,7 +38,9 @@ void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
@@ -46,7 +48,9 @@ void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         delete device;
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 jshort Java_direct_1bt_tinyb_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
@@ -54,7 +58,9 @@ jshort Java_direct_1bt_tinyb_DBTDevice_getRSSI(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         return device->getRSSI();
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
     return 0;
 }
 
@@ -63,16 +69,48 @@ jshort Java_direct_1bt_tinyb_DBTDevice_getTxPower(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         return device->getTxPower();
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
     return 0;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_getConnected(JNIEnv *env, jobject obj)
+#if 0
+jboolean Java_direct_1bt_tinyb_DBTDevice_getConnectedImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
-        (void) device;
-        return JNI_TRUE; // FIXME
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+        const DBTAdapter & adapter = device->getAdapter();
+        std::shared_ptr<HCISession> session = adapter.getOpenSession();
+        if( nullptr == session || !session->isOpen() ) {
+            return JNI_FALSE;
+        }
+        return nullptr != session->findConnectedLEDevice(device->getAddress());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+#endif
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        device->le_disconnect();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_TRUE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        return device->le_connect();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
     return JNI_FALSE;
 }

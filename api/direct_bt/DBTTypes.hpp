@@ -56,7 +56,11 @@ namespace direct_bt {
     class DBTDevice; // forward
 
     /**
-     * A HCI session, using an underlying {@link HCIComm} instance
+     * A HCI session, using an underlying {@link HCIComm} instance,
+     * tracking all open LE connections.
+     * <p>
+     * At destruction, all remaining LE connections will be closed.
+     * </p>
      */
     class HCISession
     {
@@ -65,41 +69,51 @@ namespace direct_bt {
 
         private:
             static std::atomic_int name_counter;
-            DBTAdapter &adapter;
+            DBTAdapter * adapter;
             HCIComm hciComm;
-            // TODO: Multiple connected devices!
-            std::shared_ptr<DBTDevice> connectedDevice;
+            std::vector<std::shared_ptr<DBTDevice>> connectedLEDevices;
 
             /** Opens a new HCI session on the given BT dev_id and HCI channel. */
             HCISession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
-            : adapter(a), hciComm(dev_id, channel, timeoutMS),
-              connectedDevice(nullptr), name(name_counter.fetch_add(1))
+            : adapter(&a), hciComm(dev_id, channel, timeoutMS),
+              name(name_counter.fetch_add(1))
             {}
 
-            /** add the new {@link DBTDevice} as connected */
-            void connected(std::shared_ptr<DBTDevice> device) {
-                // TODO: Multiple connected devices!
-                connectedDevice = device;
-            }
+            /** add the new {@link DBTDevice} to the list of connected LE devices */
+            void connectedLE(std::shared_ptr<DBTDevice> & device);
+
+            /** remove the {@link DBTDevice} from the list of connected LE devices */
+            void disconnectedLE(std::shared_ptr<DBTDevice> & device);
+
+            /**
+             * Issues {@link #disconnectAllLEDevices()} and closes the underlying HCI session.
+             * <p>
+             * This shutdown hook is solely intended for adapter's destructor.
+             * </p>
+             */
+            void shutdown();
 
         public:
             const int name;
 
-            ~HCISession() { disconnect(); close(); }
+            /**
+             * Releases this instance after {@link #close()}.
+             */
+            ~HCISession();
 
-            /** Return the {@link DBTAdapter} */
-            const DBTAdapter &getAdapter() { return adapter; }
-            /** Return the {@link HCIComm#leConnHandle()}, 0 if not connected. */
-            uint16_t getConnectedDeviceHandle() const { return hciComm.leConnHandle(); }
+            /** Return connected LE {@link DBTDevice}s. */
+            std::vector<std::shared_ptr<DBTDevice>> getConnectedLEDevices() { return connectedLEDevices; }
+
+            /** Disconnect all connected LE devices. Returns number of removed discovered devices. */
+            int disconnectAllLEDevices(const uint8_t reason=0);
+
+            /** Returns connected LE DBTDevice if found, otherwise nullptr */
+            std::shared_ptr<DBTDevice> findConnectedLEDevice (EUI48 const & mac) const;
 
             /**
-             * Return a list of connected {@link DBTDevice}s.
-             * TODO: Multiple connected devices!
+             * Closes this instance by {@link #disconnectAllLEDevices()},
+             * allowing adapter to stop a potential discovery and closes the underlying HCI session.
              */
-            std::shared_ptr<DBTDevice> getConnectedDevice() { return connectedDevice; }
-
-            void disconnect(const uint8_t reason=0);
-
             bool close();
 
             bool isOpen() const { return hciComm.isOpen(); }
@@ -108,6 +122,8 @@ namespace direct_bt {
             int dd() const { return hciComm.dd(); }
             /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
             std::recursive_mutex & mutex() { return hciComm.mutex(); }
+
+            std::string toString() const;
     };
 
     inline bool operator<(const HCISession& lhs, const HCISession& rhs)
@@ -175,6 +191,7 @@ namespace direct_bt {
             std::string name;
             int8_t rssi = 0;
             int8_t tx_power = 0;
+            uint16_t leConnHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
 
@@ -190,6 +207,9 @@ namespace direct_bt {
             /** Device mac address */
             const EUI48 mac;
 
+            /**
+             * Releases this instance after {@link #le_disconnect()}.
+             */
             ~DBTDevice();
 
             std::string get_java_class() const override {
@@ -229,21 +249,30 @@ namespace direct_bt {
              * Returns the new device connection handle if successful, otherwise 0 is returned.
              * </p>
              * <p>
-             * The device connection handle as well as this device is stored and tracked by
-             * the given HCISession instance.
+             * The device is tracked by the managing adapter's HCISession instance.
              * </p>
              * <p>
              * Default parameter values are chosen for using public address resolution
              * and usual connection latency, interval etc.
              * </p>
              */
-            uint16_t le_connect(HCISession& s,
-                    const uint8_t peer_mac_type=HCIADDR_LE_PUBLIC, const uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
-                    const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                    const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                    const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                    const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                    const uint8_t initiator_filter=0);
+            uint16_t le_connect(const uint8_t peer_mac_type=HCIADDR_LE_PUBLIC, const uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+                                const uint16_t interval=0x0004, const uint16_t window=0x0004,
+                                const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                                const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
+                                const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
+                                const uint8_t initiator_filter=0);
+
+            /** Return the LE connection handle as returned by {@link #le_connect(..)}, 0 if not connectedLE. */
+            uint16_t getLEConnectionHandle() const { return leConnHandle; }
+
+            /**
+             * Disconnect the device's LE connection.
+             * <p>
+             * The device is removed from the managing adapter's HCISession instance.
+             * </p>
+             */
+            void le_disconnect(const uint8_t reason=0);
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
@@ -276,7 +305,7 @@ namespace direct_bt {
             bool validateDevInfo();
 
             friend bool HCISession::close();
-            void sessionClosing(HCISession& s);
+            void sessionClosing();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             int findScannedDeviceIdx(EUI48 const & mac) const;
@@ -284,8 +313,6 @@ namespace direct_bt {
             bool addScannedDevice(std::shared_ptr<DBTDevice> const &device);
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
-
-        protected:
 
         public:
             const int dev_id;
@@ -305,6 +332,9 @@ namespace direct_bt {
              */
             DBTAdapter(const int dev_id);
 
+            /**
+             * Releases this instance after HCISession shutdown().
+             */
             ~DBTAdapter();
 
             std::string get_java_class() const override {
@@ -329,12 +359,12 @@ namespace direct_bt {
             /**
              * Returns the {@link #open()} session or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCISession> getOpenSession() { return session; }
+            std::shared_ptr<HCISession> getOpenSession() const { return session; }
 
             // device discovery aka device scanning
 
             /**
-             * Replaces the HCIDeviceDiscoveryListener with the given instance, returning the replaced one.
+             * Replaces the DBTDeviceDiscoveryListener with the given instance, returning the replaced one.
              */
             std::shared_ptr<DBTDeviceDiscoveryListener> setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener> l);
 
@@ -347,15 +377,21 @@ namespace direct_bt {
              * Default parameter values are chosen for using public address resolution
              * and usual discovery intervals etc.
              * </p>
+             * <p>
+             * This adapter's HCISession instance is used for the HCI channel.
+             * </p>
              */
-            bool startDiscovery(HCISession& s, uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+            bool startDiscovery(uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**
              * Closes the discovery session.
+             * <p>
+             * This adapter's HCISession instance is used for the HCI channel.
+             * </p>
              * @return true if no error, otherwise false.
              */
-            void stopDiscovery(HCISession& s);
+            void stopDiscovery();
 
             /**
              * Discovery devices up until 'timeoutMS' in milliseconds
@@ -389,12 +425,14 @@ namespace direct_bt {
              * while 'EInfoReport::Element::BDADDR|EInfoReport::Element::RSSI' is implicit
              * and guaranteed by the AD protocol.
              * </p>
+             * <p>
+             * This adapter's HCISession instance is used for the HCI channel.
+             * </p>
              *
              * @return number of successfully scanned devices matching above criteria
              *         or -1 if an error has occurred.
              */
-            int discoverDevices(HCISession& s,
-                                const int waitForDeviceCount=1,
+            int discoverDevices(const int waitForDeviceCount=1,
                                 const EUI48 &waitForDevice=EUI48_ANY_DEVICE,
                                 const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS,
                                 const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
@@ -408,7 +446,7 @@ namespace direct_bt {
             /** Returns index >= 0 if found, otherwise -1 */
             int findDiscoveredDeviceIdx(EUI48 const & mac) const;
 
-            /** Returns shared HCIDevice if found, otherwise nullptr */
+            /** Returns shared DBTDevice if found, otherwise nullptr */
             std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac) const;
 
             std::shared_ptr<DBTDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }

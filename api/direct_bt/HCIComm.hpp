@@ -56,7 +56,6 @@ namespace direct_bt {
             const uint16_t dev_id;
             const uint16_t channel;
             int _dd; // the hci socket
-            uint16_t le_conn_handle; // LE connection handle
             bool le_scanning;
 
             bool send_cmd(const uint16_t opcode, const void *command, const uint8_t command_len);
@@ -70,23 +69,27 @@ namespace direct_bt {
 
         public:
             HCIComm(const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
-            : timeoutMS(timeoutMS), dev_id(dev_id), channel(channel), _dd(-1), le_conn_handle(0), le_scanning(false) {
+            : timeoutMS(timeoutMS), dev_id(dev_id), channel(channel), _dd(-1), le_scanning(false) {
                 _dd = hci_open_dev(dev_id, channel);
             }
-            ~HCIComm() { le_disable_scan(); le_disconnect(); close(); }
+
+            /**
+             * Releases this instance after {@link #le_disable_scan()} and {@link #close()}.
+             * <p>
+             * Since no connection handles are being stored, {@link #le_disconnect(..)} can't be issued.
+             * </p>
+             */
+            ~HCIComm() { le_disable_scan(); close(); }
 
             void close();
-            bool le_disconnect(const uint8_t reason=0);
 
             bool isOpen() const { return 0 <= _dd; }
+
             /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
             int dd() const { return _dd; }
+
             /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
             std::recursive_mutex & mutex() { return mtx; }
-
-            bool isLEConnected() const { return 0 < le_conn_handle; }
-            /** Return the le connection handle, 0 if not connected. */
-            uint16_t leConnHandle() const { return le_conn_handle; }
 
             void le_disable_scan();
             bool le_enable_scan(const uint8_t own_type=HCIADDR_LE_PUBLIC,
@@ -100,6 +103,8 @@ namespace direct_bt {
                                     const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
                                     const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
                                     const uint8_t initiator_filter=0);
+
+            bool le_disconnect(const uint16_t le_conn_handle, const uint8_t reason=0);
 
         private:
             static inline void set_bit(int nr, void *addr)

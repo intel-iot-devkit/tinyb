@@ -109,17 +109,23 @@ int main(int argc, char *argv[])
      */
     bool doHCI_LEConnect = true;
 
+    bool keepDiscoveryAlive = false;
+
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
         } else if( !strcmp("-skipLEConnect", argv[i]) ) {
             doHCI_LEConnect = false;
+        } else if( !strcmp("-keepDiscoveryAlive", argv[i]) ) {
+            keepDiscoveryAlive = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevice = EUI48(macstr);
-            fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
         }
     }
+    fprintf(stderr, "doHCI_LEConnect %d\n", doHCI_LEConnect);
+    fprintf(stderr, "keepDiscoveryAlive %d\n", keepDiscoveryAlive);
+    fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");
@@ -144,19 +150,30 @@ int main(int argc, char *argv[])
 
     std::shared_ptr<direct_bt::HCISession> session = adapter.open();
 
-    while( ok && !done && nullptr != session ) {
-        ok = adapter.startDiscovery(*session);
+    if( keepDiscoveryAlive ) {
+        ok = adapter.startDiscovery();
         if( !ok) {
             perror("Adapter start discovery failed");
-            goto out;
+        }
+    }
+
+    while( ok && !done && nullptr != session ) {
+        if( !keepDiscoveryAlive ) {
+            ok = adapter.startDiscovery();
+            if( !ok) {
+                perror("Adapter start discovery failed");
+                goto out;
+            }
         }
 
-        const int deviceCount = adapter.discoverDevices(*session, 1, waitForDevice);
+        const int deviceCount = adapter.discoverDevices(1, waitForDevice);
         if( 0 > deviceCount ) {
             perror("Adapter discovery failed");
             ok = false;
         }
-        adapter.stopDiscovery(*session);
+        if( !keepDiscoveryAlive ) {
+            adapter.stopDiscovery();
+        }
 
         if( ok && 0 < deviceCount ) {
             const uint64_t t1 = direct_bt::getCurrentMilliseconds();
@@ -179,7 +196,7 @@ int main(int argc, char *argv[])
                     //
                     uint16_t hciLEConnHandle;
                     if( doHCI_LEConnect ) {
-                        hciLEConnHandle = device->le_connect(*session);
+                        hciLEConnHandle = device->le_connect();
                         if( 0 == hciLEConnHandle ) {
                             fprintf(stderr, "HCI LE Connection: Failed %s\n", device->toString().c_str());
                         } else {
@@ -288,9 +305,7 @@ int main(int argc, char *argv[])
                     } else {
                         fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());
                     }
-                    if( 0 != hciLEConnHandle ) {
-                        session->disconnect(0); // FIXME: hci_le_disconnect: Input/output error
-                    }
+                    device->le_disconnect(); // OK if not connected
                 } // if( 2000 > lup )
             } // for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++)
             fprintf(stderr, "Connection: Got %d devices, tried connected to %d with %d succeeded\n", i, j, k);

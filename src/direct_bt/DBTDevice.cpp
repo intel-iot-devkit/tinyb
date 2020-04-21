@@ -23,8 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
-#include <DBTTypes.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -34,8 +32,11 @@
 
 #include  <algorithm>
 
-#include "HCIComm.hpp"
+// #define VERBOSE_ON 1
+#include <dbt_debug.hpp>
 
+#include "HCIComm.hpp"
+#include "DBTTypes.hpp"
 
 using namespace direct_bt;
 
@@ -49,6 +50,7 @@ DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
 }
 
 DBTDevice::~DBTDevice() {
+    le_disconnect();
     services.clear();
     msd = nullptr;
 }
@@ -132,95 +134,57 @@ void DBTDevice::update(EInfoReport const & data) {
     addServices(data.getServices());
 }
 
-uint16_t DBTDevice::le_connect(HCISession &session,
-        uint8_t peer_mac_type, uint8_t own_mac_type,
+uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,
         uint16_t latency, uint16_t supervision_timeout,
         uint16_t min_ce_length, uint16_t max_ce_length,
         uint8_t initiator_filter )
 {
-    if( !session.isOpen() ) {
-        fprintf(stderr, "Session not open\n");
+    if( 0 < leConnHandle ) {
+        ERR_PRINT("DBTDevice::connect: Already connected");
         return 0;
     }
-    const uint16_t handle = session.hciComm.le_create_conn(
-                mac, peer_mac_type, own_mac_type,
-                interval, window, min_interval, max_interval, latency, supervision_timeout, min_ce_length, max_ce_length, initiator_filter);
 
-    if (handle <= 0) {
-        perror("Could not create connection");
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        ERR_PRINT("DBTDevice::connect: Not opened");
         return 0;
     }
-    session.connected(getSharedInstance());
 
-    return handle;
+    leConnHandle = session->hciComm.le_create_conn(
+                        mac, peer_mac_type, own_mac_type,
+                        interval, window, min_interval, max_interval, latency, supervision_timeout,
+                        min_ce_length, max_ce_length, initiator_filter);
+
+    if ( 0 == leConnHandle ) {
+        ERR_PRINT("DBTDevice::disconnect: Could not create connection: errno %d %s", errno, strerror(errno));
+        return 0;
+    }
+    std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
+    session->connectedLE(thisDevice);
+
+    return leConnHandle;
 }
 
-// *************************************************
-// *************************************************
-// *************************************************
+void DBTDevice::le_disconnect(const uint8_t reason) {
+    if( 0 == leConnHandle ) {
+        DBG_PRINT("DBTDevice::disconnect: Not connected");
+        return;
+    }
 
-/**
-  ServicesResolvedNotification
-  D-Bus BlueZ 
-  
-  src/device.c:
-    gatt_client_init
-      gatt_client_ready_cb
-        device_svc_resolved()
-          device_set_svc_refreshed() 
-        register_gatt_services()
-        device_svc_resolved()
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        DBG_PRINT("DBTDevice::disconnect: Not opened");
+        return;
+    }
 
-  src/shared/gatt-client.c
-     bt_gatt_client_new()
-       gatt_client_init(.., uint16_t mtu)
-         discovery_op_create(client, 0x0001, 0xffff, init_complete, NULL);
-         
-         Setup MTU: BLUETOOTH SPECIFICATION Version 4.2 [Vol 3, Part G] page 546: 4.3.1 Exchange MTU
-
-         bt_gatt_discover_all_primary_services(...)
-
-     discover_all
-         bt_gatt_discover_all_primary_services(...)
-
-  src/shared/gatt-helpers.c
-    bt_gatt_discover_all_primary_services
-      bt_gatt_discover_primary_services
-        discover_services
-
-    bt_gatt_discover_secondary_services
-      discover_services
-
-    discover_services
-      shared/gatt-helpers.c line 831: discover all primary service!  
-      Protocol Data Unit – PDU (2-257 octets)
-
-        op = new0(struct bt_gatt_request, 1);
-        op->att = att;
-        op->start_handle = start;
-        op->end_handle = end;
-        op->callback = callback;
-        op->user_data = user_data;
-        op->destroy = destroy;
-        // set service uuid to primary or secondary
-        op->service_type = primary ? GATT_PRIM_SVC_UUID : GATT_SND_SVC_UUID;
-
-        uint8_t pdu[6];
-
-        put_le16(start, pdu);
-        put_le16(end, pdu + 2);
-        put_le16(op->service_type, pdu + 4);
-
-        op->id = bt_att_send(att, BT_ATT_OP_READ_BY_GRP_TYPE_REQ,
-                        pdu, sizeof(pdu),
-                        read_by_grp_type_cb,
-                        bt_gatt_request_ref(op),
-                        async_req_unref);
-
-
-
- */
-void ServicesResolvedNotification() {
+    const uint16_t _leConnHandle = leConnHandle;
+    leConnHandle = 0;
+    if( !session->hciComm.le_disconnect(_leConnHandle, reason) ) {
+        DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _leConnHandle, errno, strerror(errno));
+    }
+    std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
+    session->disconnectedLE(thisDevice);
 }
+

@@ -31,6 +31,9 @@
 #include <stdexcept>
 #include <vector>
 
+#define VERBOSE_ON 1
+#include <dbt_debug.hpp>
+
 #include "helper_base.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
@@ -208,13 +211,63 @@ void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
 }
 
-void exception_check_raise_and_throw(JNIEnv *env, const char* file, int line)
+void rethrow_and_raise_java_exception(JNIEnv *env) {
+    // std::exception_ptr e = std::current_exception();
+    try {
+        // std::rethrow_exception(e);
+        throw; // re-throw current exception
+    } catch (std::bad_alloc &e) { \
+        raise_java_oom_exception(env, e);
+    } catch (direct_bt::BluetoothException &e) {
+        raise_java_bluetooth_exception(env, e);
+    } catch (direct_bt::RuntimeException &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::runtime_error &e) {
+        raise_java_runtime_exception(env, e);
+    } catch (std::invalid_argument &e) {
+        raise_java_invalid_arg_exception(env, e);
+    } catch (std::exception &e) {
+        raise_java_exception(env, e);
+    } catch (std::string &msg) {
+        env->ThrowNew(env->FindClass("java/lang/Error"), msg.c_str());
+    } catch (const char *msg) {
+        env->ThrowNew(env->FindClass("java/lang/Error"), msg);
+    } catch (...) {
+        env->ThrowNew(env->FindClass("java/lang/Error"), "Unknown exception type");
+    }
+}
+
+bool java_exception_check(JNIEnv *env, const char* file, int line)
 {
-    if( env->ExceptionCheck() ) {
+    jthrowable e = env->ExceptionOccurred();
+    if( nullptr != e ) {
+#ifdef VERBOSE_ON
+        DBG_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
+        // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
+        // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();
-        jthrowable e = env->ExceptionOccurred();
-        env->ExceptionClear();
-        env->Throw(e);
-        throw direct_bt::RuntimeException("Java exception occurred and forwarded.", file, line);
+#endif /* VERBOSE_ON */
+        env->ExceptionClear(); // just be sure, to have same side-effects
+        env->Throw(e); // re-throw the java exception - java side!
+        return true;
+    }
+    return false;
+}
+
+void java_exception_check_and_throw(JNIEnv *env, const char* file, int line)
+{
+    jthrowable e = env->ExceptionOccurred();
+    if( nullptr != e ) {
+        ERR_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
+        // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
+        // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
+        env->ExceptionDescribe();
+        env->ExceptionClear(); // just be sure, to have same side-effects
+
+        jclass eClazz = search_class(env, e);
+        jmethodID toString = search_method(env, eClazz, "toString", "()Ljava/lang/String;", false);
+        jstring jmsg = (jstring) env->CallObjectMethod(e, toString);
+        std::string msg = from_jstring_to_string(env, jmsg);
+        throw direct_bt::RuntimeException("Java exception occurred @ %s : %d: "+msg, file, line);
     }
 }

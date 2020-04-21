@@ -163,21 +163,34 @@ void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e);
 void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e);
 void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &e);
 
-void exception_check_raise_and_throw(JNIEnv *env, const char* file, int line);
+/**
+ * Re-throw current exception and raise respective java exception
+ * using any matching function above.
+ */
+void rethrow_and_raise_java_exception(JNIEnv *env);
 
-#define CATCH_EXCEPTION_AND_RAISE_JAVA(env, e) \
-  catch (std::bad_alloc &e) { \
-    raise_java_oom_exception(env, e); \
-} catch (direct_bt::BluetoothException &e) { \
-    raise_java_bluetooth_exception(env, e); \
-} catch (direct_bt::RuntimeException &e) { \
-    raise_java_runtime_exception(env, e); \
-} catch (std::runtime_error &e) { \
-    raise_java_runtime_exception(env, e); \
-} catch (std::invalid_argument &e) { \
-    raise_java_invalid_arg_exception(env, e); \
-} catch (std::exception &e) { \
-    raise_java_exception(env, e); \
-}
+/**
+ * Return true if a java exception occurred, otherwise false.
+ * <p>
+ * In case of an exception, the information might be logged to stderr.
+ * </p>
+ * <p>
+ * In case of an exception, user shall release resourced in their JNI code
+ * and leave immediately.
+ * </p>
+ */
+bool java_exception_check(JNIEnv *env, const char* file, int line);
+
+/**
+ * Throws a C++ exception if a java exception occurred, otherwise do nothing.
+ * <p>
+ * In case of an exception, the information might be logged to stderr.
+ * </p>
+ * <p>
+ * In case of an exception and hence thrown C++ exception,
+ * might want to catch all and handle it via {@link #rethrow_and_raise_java_exception(JNIEnv*)}.
+ * </p>
+ */
+void java_exception_check_and_throw(JNIEnv *env, const char* file, int line);
 
 #endif /* HELPER_BASE_HPP_ */

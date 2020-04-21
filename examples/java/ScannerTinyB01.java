@@ -124,13 +124,12 @@ public class ScannerTinyB01 {
                 System.err.println(adapter.toString());
             }
         };
+        adapter.removeDevices();
         adapter.setDeviceDiscoveryListener(deviceDiscListener);
-
 
         do {
             final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-            adapter.removeDevices();
             final boolean discoveryStarted = adapter.startDiscovery();
 
             System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode);
@@ -170,45 +169,42 @@ public class ScannerTinyB01 {
             }
             System.err.println("Found device in "+(t1-t0)+" ms: ");
             printDevice(sensor);
-            System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
-            adapter.stopDiscovery();
-            System.err.println("ScannerTinyB01 02 close: "+adapter);
-            adapter.close();
-            System.err.println("ScannerTinyB01 03 ...: "+adapter);
+            adapter.stopDiscovery(); // FIXME ????
 
-            if(false) {
             final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
             final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
             sensor.enableConnectedNotifications(connectedNotification);
             sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
 
-            final long t2;
+            final long t2 = BluetoothUtils.getCurrentMilliseconds();
+            final long t3;
             if ( sensor.connect() ) {
-                t2 = BluetoothUtils.getCurrentMilliseconds();
-                System.err.println("Sensor connected in "+(t2-t1)+" ms");
+                t3 = BluetoothUtils.getCurrentMilliseconds();
+                System.err.println("Sensor connected: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                 System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
             } else {
-                t2=0;
-                System.out.println("Could not connect device.");
+                t3 = BluetoothUtils.getCurrentMilliseconds();
+                System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                 System.exit(-1);
             }
 
+            if( false ) {
             synchronized( servicesResolvedNotification ) {
                 while( !servicesResolvedNotification.getValue() ) {
                     final long tn = BluetoothUtils.getCurrentMilliseconds();
-                    if( tn - t2 > 20000 ) {
+                    if( tn - t3 > 20000 ) {
                         break; // 20s TO
                     }
                     servicesResolvedNotification.wait();
                 }
             }
-            final long t3;
+            final long t4;
             if ( servicesResolvedNotification.getValue() ) {
-                t3 = BluetoothUtils.getCurrentMilliseconds();
-                System.err.println("Sensor servicesResolved in "+(t3-t2)+" ms, total "+(t3-t1)+" ms");
+                t4 = BluetoothUtils.getCurrentMilliseconds();
+                System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
             } else {
-                t3=0;
-                System.out.println("Could not connect device.");
+                t4 = BluetoothUtils.getCurrentMilliseconds();
+                System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                 System.exit(-1);
             }
             // Will shut down everything .. ??
@@ -220,11 +216,15 @@ public class ScannerTinyB01 {
                 System.exit(1);
             }
             printAllServiceInfo(allBluetoothServices);
+            }
 
             sensor.disconnect();
-            }
             System.err.println("ScannerTinyB01 04 ...: "+adapter);
         } while( forever );
+        System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
+        adapter.stopDiscovery();
+        System.err.println("ScannerTinyB01 02 close: "+adapter);
+        adapter.close();
         System.err.println("ScannerTinyB01 05");
         manager.shutdown();
         System.err.println("ScannerTinyB01 XX");

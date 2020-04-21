@@ -19,9 +19,7 @@ doit() {
     cd build-x86_64
     cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-x86_64 -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
     #cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-x86_64 -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON -DDEBUG=ON ..
-    make
-    make test
-    make install
+    make install test
     cp -a examples/* $rootdir/dist-x86_64/bin
 
     cd $rootdir

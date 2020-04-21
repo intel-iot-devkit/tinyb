@@ -32,14 +32,13 @@
 
 #include <algorithm>
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
-#include <DBTTypes.hpp>
 
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
-
 #include "HCIComm.hpp"
+#include "DBTTypes.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -55,28 +54,86 @@ using namespace direct_bt;
 
 std::atomic_int HCISession::name_counter(0);
 
-void HCISession::disconnect(const uint8_t reason) {
-    connectedDevice = nullptr;
+void HCISession::connectedLE(std::shared_ptr<DBTDevice> & device) {
+    connectedLEDevices.push_back(device);
+}
 
-    if( !hciComm.isLEConnected() ) {
-        DBG_PRINT("HCISession::disconnect: Not connected");
-        return;
+void HCISession::disconnectedLE(std::shared_ptr<DBTDevice> & device) {
+    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ) {
+        if ( *it == device ) {
+            it = connectedLEDevices.erase(it);
+        } else {
+            ++it;
+        }
     }
-    if( !hciComm.le_disconnect(reason) ) {
-        DBG_PRINT("HCISession::disconnect: errno %d %s", errno, strerror(errno));
+}
+
+int HCISession::disconnectAllLEDevices(const uint8_t reason) {
+    int count = 0;
+    std::vector<std::shared_ptr<DBTDevice>> devices(getConnectedLEDevices()); // copy!
+    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ++it) {
+        (*it)->le_disconnect(reason); // will erase device from list via disconnectedLE above
+        ++count;
     }
+    return count;
+}
+
+std::shared_ptr<DBTDevice> HCISession::findConnectedLEDevice (EUI48 const & mac) const {
+    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ) {
+        if ( mac == (*it)->getAddress() ) {
+            return *it;
+        } else {
+            ++it;
+        }
+    }
+    return nullptr;
 }
 
 bool HCISession::close() 
 {
+    DBG_PRINT("HCISession::close: ...");
+    if( nullptr == adapter ) {
+        throw InternalError("HCISession::close(): Adapter reference is null: "+toString(), E_FILE_LINE);
+    }
     if( !hciComm.isOpen() ) {
         DBG_PRINT("HCISession::close: Not open");
         return false;
     }
-    DBG_PRINT("HCISession::close: ...");
-    adapter.sessionClosing(*this);
+    disconnectAllLEDevices();
+    adapter->sessionClosing();
     hciComm.close();
+    DBG_PRINT("HCISession::close: XXX");
     return true;
+}
+
+void HCISession::shutdown() {
+    DBG_PRINT("HCISession::shutdown(has-adapter %d): ...", nullptr!=adapter);
+
+    // close()
+    if( !hciComm.isOpen() ) {
+        DBG_PRINT("HCISession::shutdown: Not open");
+    } else {
+        disconnectAllLEDevices();
+        hciComm.close();
+    }
+
+    DBG_PRINT("HCISession::shutdown(has-adapter %d): XXX", nullptr!=adapter);
+    adapter=nullptr;
+}
+
+HCISession::~HCISession() {
+    DBG_PRINT("HCISession::dtor ...");
+    if( nullptr != adapter ) {
+        close();
+        adapter = nullptr;
+    }
+    DBG_PRINT("HCISession::dtor XXX");
+}
+
+std::string HCISession::toString() const {
+    return "HCISession[name "+std::to_string(name)+
+            ", open "+std::to_string(isOpen())+
+            ", "+std::to_string(this->connectedLEDevices.size())+" connected LE devices]";
 }
 
 // *************************************************
@@ -92,10 +149,14 @@ bool DBTAdapter::validateDevInfo() {
     return true;
 }
 
-void DBTAdapter::sessionClosing(HCISession& s) 
+void DBTAdapter::sessionClosing()
 {
-    stopDiscovery(s);
-    session = nullptr;
+    DBG_PRINT("DBTAdapter::sessionClosing(own-session %d): ...", nullptr!=session);
+    if( nullptr != session ) {
+        stopDiscovery();
+        session = nullptr;
+    }
+    DBG_PRINT("DBTAdapter::sessionClosing(own-session %d): XXX", nullptr!=session);
 }
 
 DBTAdapter::DBTAdapter()
@@ -117,12 +178,18 @@ DBTAdapter::DBTAdapter(const int dev_id)
 }
 
 DBTAdapter::~DBTAdapter() {
-    DBG_PRINT("HCIAdapter::dtor: %s", toString().c_str());
+    DBG_PRINT("DBTAdapter::dtor: ... %s", toString().c_str());
     deviceDiscoveryListener = nullptr;
 
     scannedDevices.clear();
     discoveredDevices.clear();
-    session = nullptr;
+
+    if( nullptr != session ) {
+        stopDiscovery();
+        session->shutdown(); // force shutdown, not only via dtor as adapter EOL has been reached!
+        session = nullptr;
+    }
+    DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
 std::shared_ptr<HCISession> DBTAdapter::open() 
@@ -147,28 +214,28 @@ std::shared_ptr<DBTDeviceDiscoveryListener> DBTAdapter::setDeviceDiscoveryListen
     return o;
 }
 
-bool DBTAdapter::startDiscovery(HCISession &session, uint8_t own_mac_type,
+bool DBTAdapter::startDiscovery(uint8_t own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
-    if( !session.isOpen() ) {
+    if( nullptr == session || !session->isOpen() ) {
         fprintf(stderr, "Session not open\n");
         return false;
     }
-    if( !session.hciComm.le_enable_scan(own_mac_type, interval, window) ) {
+    if( !session->hciComm.le_enable_scan(own_mac_type, interval, window) ) {
         perror("Start scanning failed");
         return false;
     }
     return true;
 }
 
-void DBTAdapter::stopDiscovery(HCISession& session) {
-    if( !session.isOpen() ) {
-        DBG_PRINT("HCIAdapter::stopDiscovery: Not open");
+void DBTAdapter::stopDiscovery() {
+    if( nullptr == session || !session->isOpen() ) {
+        DBG_PRINT("DBTAdapter::stopDiscovery: Not open");
         return;
     }
-    DBG_PRINT("HCIAdapter::stopDiscovery: ...");
-    session.hciComm.le_disable_scan();
-    DBG_PRINT("HCIAdapter::stopDiscovery: X");
+    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
+    session->hciComm.le_disable_scan();
+    DBG_PRINT("DBTAdapter::stopDiscovery: X");
 }
 
 int DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac) {
@@ -245,13 +312,16 @@ std::string DBTAdapter::toString() const {
 
 // *************************************************
 
-int DBTAdapter::discoverDevices(HCISession& session,
-                                const int waitForDeviceCount,
+int DBTAdapter::discoverDevices(const int waitForDeviceCount,
                                 const EUI48 &waitForDevice,
                                 const int timeoutMS,
                                 const uint32_t ad_type_req)
 {
-    const std::lock_guard<std::recursive_mutex> lock(session.mutex()); // RAII-style acquire and relinquish via destructor
+    if( nullptr == session || !session->isOpen() ) {
+        fprintf(stderr, "Session not open\n");
+        return false;
+    }
+    const std::lock_guard<std::recursive_mutex> lock(session->mutex()); // RAII-style acquire and relinquish via destructor
     uint8_t buf[HCI_MAX_EVENT_SIZE];
     hci_ufilter nf, of;
     socklen_t olen;
@@ -259,13 +329,8 @@ int DBTAdapter::discoverDevices(HCISession& session,
     const int64_t t0 = getCurrentMilliseconds();
     int err;
 
-    if( !session.isOpen() ) {
-        fprintf(stderr, "Session not open\n");
-        return false;
-    }
-
     olen = sizeof(of);
-    if (getsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
+    if (getsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
         perror("Could not get socket options");
         return false;
     }
@@ -274,7 +339,7 @@ int DBTAdapter::discoverDevices(HCISession& session,
     HCIComm::filter_set_ptype(HCI_EVENT_PKT, &nf);
     HCIComm::filter_set_event(HCI_EV_LE_META, &nf);
 
-    if (setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
+    if (setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
         perror("Could not set socket options");
         return false;
     }
@@ -296,7 +361,7 @@ int DBTAdapter::discoverDevices(HCISession& session,
             struct pollfd p;
             int n;
 
-            p.fd = session.dd(); p.events = POLLIN;
+            p.fd = session->dd(); p.events = POLLIN;
             while ((n = poll(&p, 1, timeoutMS)) < 0) {
                 if (errno == EAGAIN || errno == EINTR ) {
                     // cont temp unavail or interruption
@@ -312,7 +377,7 @@ int DBTAdapter::discoverDevices(HCISession& session,
             }
         }
 
-        while ((bytes_left = read(session.dd(), buf, sizeof(buf))) < 0) {
+        while ((bytes_left = read(session->dd(), buf, sizeof(buf))) < 0) {
             if (errno == EAGAIN || errno == EINTR ) {
                 // cont temp unavail or interruption
                 continue;
@@ -333,11 +398,11 @@ int DBTAdapter::discoverDevices(HCISession& session,
 
         if( bytes_left < ehdr->plen ) {
             // not enough data ..
-            fprintf(stderr, "HCIAdapter::discovery[%d]: Warning: Incomplete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes < plen %d!\n",
+            fprintf(stderr, "DBTAdapter::discovery[%d]: Warning: Incomplete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes < plen %d!\n",
                     loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
             continue;
         } else {
-            DBG_PRINT("HCIAdapter::discovery[%d]: Complete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes >= plen %d",
+            DBG_PRINT("DBTAdapter::discovery[%d]: Complete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes >= plen %d",
                     loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
         }
 
@@ -361,10 +426,10 @@ int DBTAdapter::discoverDevices(HCISession& session,
                     done = true;
                 }
             }
-            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
+            DBG_PRINT("DBTAdapter::discovery[%d] %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
                     loop-1, i, num_reports, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
                     matchedDeviceCount, waitForDeviceCount, done);
-            DBG_PRINT("HCIAdapter::discovery[%d] %d/%d: %s", loop-1, i, num_reports, ad_report->toString().c_str());
+            DBG_PRINT("DBTAdapter::discovery[%d] %d/%d: %s", loop-1, i, num_reports, ad_report->toString().c_str());
 
             int idx = findDevice(scannedDevices, ad_report->getAddress());
             std::shared_ptr<DBTDevice> dev;
@@ -394,12 +459,12 @@ int DBTAdapter::discoverDevices(HCISession& session,
 
     }
 done:
-    setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
+    setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
     return matchedDeviceCount;
 
 errout:
     err = errno;
-    setsockopt(session.dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
+    setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
     errno = err;
     return -1;
 }

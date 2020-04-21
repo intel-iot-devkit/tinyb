@@ -358,13 +358,13 @@ done:
 	return true;
 }
 
-bool HCIComm::le_disconnect(const uint8_t reason)
+bool HCIComm::le_disconnect(const uint16_t le_conn_handle, const uint8_t reason)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return true;
     }
-    if( 0 >= le_conn_handle ) {
+    if( 0 == le_conn_handle ) {
         return true;
     }
     hci_ev_disconn_complete rp;
@@ -373,8 +373,6 @@ bool HCIComm::le_disconnect(const uint8_t reason)
 	bzero(&cp, sizeof(cp));
 	cp.handle = le_conn_handle;
 	cp.reason = reason;
-
-	le_conn_handle = 0;
 
 	if( !send_req( hci_opcode_pack(OGF_LINK_CTL, HCI_OP_DISCONNECT), &cp, sizeof(cp),
 	               HCI_EV_DISCONN_COMPLETE, &rp, sizeof(rp) ) )
@@ -394,7 +392,7 @@ bool HCIComm::le_disconnect(const uint8_t reason)
 bool HCIComm::le_set_scan_enable(const uint8_t enable, const uint8_t filter_dup) {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
-        ERR_PRINT("hci_le_set_scan_enable: device not open");
+        ERR_PRINT("hci_le_set_scan_enable(%d): device not open", enable);
         return false;
     }
 	hci_cp_le_set_scan_enable cp;
@@ -407,13 +405,13 @@ bool HCIComm::le_set_scan_enable(const uint8_t enable, const uint8_t filter_dup)
     if( !send_req( hci_opcode_pack(OGF_LE_CTL, HCI_OP_LE_SET_SCAN_ENABLE), &cp, sizeof(cp),
                    0, &status, sizeof(status) ) )
     {
-        ERR_PRINT("hci_le_set_scan_enable: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("hci_le_set_scan_enable(%d): errno %d %s", enable, errno, strerror(errno));
         return false;
     }
 
 	if (status) {
 		errno = EIO;
-		ERR_PRINT("hci_le_set_scan_enable: error status 0x%2.2X, errno %d %s", status, errno, strerror(errno));
+		ERR_PRINT("hci_le_set_scan_enable(%d): error status 0x%2.2X, errno %d %s", enable, status, errno, strerror(errno));
 		return false;
 	}
 	return true;
@@ -517,10 +515,6 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
         ERR_PRINT("hci_le_create_conn: device not open");
         return 0;
     }
-    if( 0 < le_conn_handle ) {
-        DBG_PRINT("hci_le_create_conn: already connected 0x%X", le_conn_handle);
-        return le_conn_handle;
-    }
 	hci_cp_le_create_conn cp;
 	hci_ev_le_conn_complete rp;
 
@@ -550,10 +544,7 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
         ERR_PRINT("hci_le_create_conn: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
 		return 0;
 	}
-
-	le_conn_handle = rp.handle;
-
-	return le_conn_handle;
+	return rp.handle;
 }
 
 } /* namespace direct_bt */

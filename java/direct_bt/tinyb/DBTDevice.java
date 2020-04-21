@@ -120,13 +120,48 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     private native void initImpl();
 
-    /* D-Bus method calls: */
+    /* DBT method calls: Connection */
 
     @Override
-    public native boolean disconnect() throws BluetoothException;
+    public final void enableConnectedNotifications(final BluetoothNotification<Boolean> callback) {
+        connectedNotifications = callback;
+    }
+    private BluetoothNotification<Boolean> connectedNotifications = null;
+    private boolean connected = false;
 
     @Override
-    public native boolean connect() throws BluetoothException;
+    public final boolean getConnected() { return connected; }
+    // private native boolean getConnectedImpl();
+
+    @Override
+    public final boolean disconnect() throws BluetoothException {
+        boolean res = false;
+        if( connected ) {
+            res = disconnectImpl();
+            if( res ) {
+                connectedNotifications.run(Boolean.FALSE);
+                connected = false;
+            }
+        }
+        return res;
+    }
+    private native boolean disconnectImpl() throws BluetoothException;
+
+    @Override
+    public final boolean connect() throws BluetoothException {
+        boolean res = false;
+        if( !connected ) {
+            res = connectImpl();
+            if( res ) {
+                connectedNotifications.run(Boolean.TRUE);
+                connected = true;
+            }
+        }
+        return res;
+    }
+    private native boolean connectImpl() throws BluetoothException;
+
+    /* DBT method calls: */
 
     @Override
     public native boolean connectProfile(String arg_UUID) throws BluetoothException;
@@ -148,7 +183,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public native List<BluetoothGattService> getServices();
 
-    /* D-Bus property accessors: */
+    /* property accessors: */
 
     @Override
     public String getAlias() { return null; } // FIXME
@@ -211,12 +246,6 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public native void disableRSSINotifications();
 
-    @Override
-    public native boolean getConnected();
-
-    @Override
-    public native void enableConnectedNotifications(BluetoothNotification<Boolean> callback);
-
      @Override
     public native void disableConnectedNotifications();
 
@@ -255,7 +284,10 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public native boolean getServicesResolved ();
 
     @Override
-    public native void enableServicesResolvedNotifications(BluetoothNotification<Boolean> callback);
+    public final void enableServicesResolvedNotifications(final BluetoothNotification<Boolean> callback) {
+        servicesResolvedNotifications = callback;
+    }
+    private BluetoothNotification<Boolean> servicesResolvedNotifications = null;
 
     @Override
     public native void disableServicesResolvedNotifications();

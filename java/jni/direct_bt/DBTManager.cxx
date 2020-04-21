@@ -41,10 +41,13 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
     try {
         DBTManager *manager = &DBTManager::get(); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
+        if( java_exception_check(env, E_FILE_LINE) ) { return; }
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
@@ -54,7 +57,9 @@ void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
         manager->setJavaObject(nullptr);
         // delete manager;
         (void) manager;
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
 }
 
 static const std::string _adapterClazzCtorArgs("(JLjava/lang/String;Ljava/lang/String;)V");
@@ -83,24 +88,28 @@ jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobj
         // prepare adapter ctor
         const jstring addr = from_string_to_jstring(env, adapter->getAddressString());
         const jstring name = from_string_to_jstring(env, adapter->getName());
+        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
         const jclass clazz = search_class(env, *adapter);
+        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
         if( nullptr == clazz ) {
             throw InternalError("Adapter class not found: "+DBTAdapter::java_class(), E_FILE_LINE);
         }
         const jmethodID clazz_ctor = search_method(env, clazz, "<init>", _adapterClazzCtorArgs.c_str(), false);
+        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
         if( nullptr == clazz_ctor ) {
             throw InternalError("Adapter ctor not found: "+DBTAdapter::java_class()+".<init>"+_adapterClazzCtorArgs, E_FILE_LINE);
         }
-        exception_check_raise_and_throw(env, E_FILE_LINE);
         jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
-        exception_check_raise_and_throw(env, E_FILE_LINE);
+        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
         JNIGlobalRef::check(jAdapter, E_FILE_LINE);
         std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
         JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
 
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: New Adapter %s", adapter->toString().c_str());
         return JavaGlobalObj::GetObject(jAdapterRef);
-    } CATCH_EXCEPTION_AND_RAISE_JAVA(env, e)
-    return NULL;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
 }
 
