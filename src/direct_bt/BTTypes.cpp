@@ -394,11 +394,12 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     const int segment_count = 6;
     int read_segments = 0;
     int i;
+    const uint64_t timestamp = getCurrentMilliseconds();
 
     for(i = 0; i < num_reports && i_octets < limes; i++) {
         ad_reports.push_back(std::shared_ptr<EInfoReport>(new EInfoReport()));
         ad_reports[i]->setSource(Source::AD);
-        ad_reports[i]->setTimestamp(getCurrentMilliseconds());
+        ad_reports[i]->setTimestamp(timestamp);
         ad_reports[i]->setEvtType(*i_octets++);
         read_segments++;
     }

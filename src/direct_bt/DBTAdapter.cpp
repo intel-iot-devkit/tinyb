@@ -56,32 +56,33 @@ using namespace direct_bt;
 
 std::atomic_int HCISession::name_counter(0);
 
-void HCISession::connectedLE(std::shared_ptr<DBTDevice> & device) {
-    connectedLEDevices.push_back(device);
+void HCISession::connected(std::shared_ptr<DBTDevice> & device) {
+    connectedDevices.push_back(device);
 }
 
-void HCISession::disconnectedLE(std::shared_ptr<DBTDevice> & device) {
-    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ) {
+void HCISession::disconnected(std::shared_ptr<DBTDevice> & device) {
+    for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( *it == device ) {
-            it = connectedLEDevices.erase(it);
+            it = connectedDevices.erase(it);
         } else {
             ++it;
         }
     }
 }
 
-int HCISession::disconnectAllLEDevices(const uint8_t reason) {
+int HCISession::disconnectAllDevices(const uint8_t reason) {
     int count = 0;
-    std::vector<std::shared_ptr<DBTDevice>> devices(getConnectedLEDevices()); // copy!
-    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ++it) {
+    std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
+    for (auto it = devices.begin(); it != devices.end(); ++it) {
         (*it)->le_disconnect(reason); // will erase device from list via disconnectedLE above
         ++count;
     }
     return count;
 }
 
-std::shared_ptr<DBTDevice> HCISession::findConnectedLEDevice (EUI48 const & mac) const {
-    for (auto it = connectedLEDevices.begin(); it != connectedLEDevices.end(); ) {
+std::shared_ptr<DBTDevice> HCISession::findConnectedDevice (EUI48 const & mac) const {
+    std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
+    for (auto it = devices.begin(); it != devices.end(); ) {
         if ( mac == (*it)->getAddress() ) {
             return *it;
         } else {
@@ -101,7 +102,7 @@ bool HCISession::close()
         DBG_PRINT("HCISession::close: Not open");
         return false;
     }
-    disconnectAllLEDevices();
+    disconnectAllDevices();
     adapter->sessionClosing();
     hciComm.close();
     DBG_PRINT("HCISession::close: XXX");
@@ -115,7 +116,7 @@ void HCISession::shutdown() {
     if( !hciComm.isOpen() ) {
         DBG_PRINT("HCISession::shutdown: Not open");
     } else {
-        disconnectAllLEDevices();
+        disconnectAllDevices();
         hciComm.close();
     }
 
@@ -135,7 +136,7 @@ HCISession::~HCISession() {
 std::string HCISession::toString() const {
     return "HCISession[name "+std::to_string(name)+
             ", open "+std::to_string(isOpen())+
-            ", "+std::to_string(this->connectedLEDevices.size())+" connected LE devices]";
+            ", "+std::to_string(this->connectedDevices.size())+" connected LE devices]";
 }
 
 // *************************************************
@@ -149,6 +150,8 @@ bool DBTAdapter::validateDevInfo() {
 
     adapterInfo = mgmt.getAdapter(dev_id);
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
+    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
+    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
 
     return true;
 }
@@ -190,7 +193,7 @@ DBTAdapter::~DBTAdapter() {
             ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 1 but %d", count);
         }
     }
-    deviceDiscoveryListener = nullptr;
+    deviceStatusListener = nullptr;
 
     scannedDevices.clear();
     discoveredDevices.clear();
@@ -218,14 +221,14 @@ std::shared_ptr<HCISession> DBTAdapter::open()
     return session;
 }
 
-std::shared_ptr<DBTDeviceDiscoveryListener> DBTAdapter::setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener> l)
+std::shared_ptr<DBTDeviceStatusListener> DBTAdapter::setDeviceStatusListener(std::shared_ptr<DBTDeviceStatusListener> l)
 {
-    std::shared_ptr<DBTDeviceDiscoveryListener> o = deviceDiscoveryListener;
-    deviceDiscoveryListener = l;
+    std::shared_ptr<DBTDeviceStatusListener> o = deviceStatusListener;
+    deviceStatusListener = l;
     return o;
 }
 
-bool DBTAdapter::startDiscovery(uint8_t own_mac_type,
+bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
 #ifdef USE_BT_MGMT
@@ -234,6 +237,7 @@ bool DBTAdapter::startDiscovery(uint8_t own_mac_type,
     (void)interval;
     (void)window;
 
+    keepDiscoveringAlive = true;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
 #else
@@ -252,6 +256,7 @@ bool DBTAdapter::startDiscovery(uint8_t own_mac_type,
 void DBTAdapter::stopDiscovery() {
 #ifdef USE_BT_MGMT
     DBG_PRINT("DBTAdapter::stopDiscovery: ...");
+    keepDiscoveringAlive = false;
     if( mgmt.stopDiscovery(dev_id, currentScanType) ) {
         currentScanType = ScanType::SCAN_TYPE_NONE;
     }
@@ -486,13 +491,13 @@ int DBTAdapter::discoverDevicesHCI(const int waitForDeviceCount,
             if( matches ) {
                 if( addDiscoveredDevice(dev) ) {
                     // new matching
-                    if( nullptr != deviceDiscoveryListener ) {
-                        deviceDiscoveryListener->deviceAdded(*this, dev);
+                    if( nullptr != deviceStatusListener ) {
+                        deviceStatusListener->deviceFound(*this, dev, ad_report->getTimestamp());
                     }
                 } else {
                     // update
-                    if( nullptr != deviceDiscoveryListener ) {
-                        deviceDiscoveryListener->deviceUpdated(*this, dev);
+                    if( nullptr != deviceStatusListener ) {
+                        deviceStatusListener->deviceUpdated(*this, dev, ad_report->getTimestamp());
                     }
                 }
             }
@@ -515,10 +520,12 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
             keepDiscoveringAlive, e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     if( keepDiscoveringAlive && !event.getEnabled() ) {
-        startDiscovery();
+        std::thread bg(&DBTAdapter::startDiscoveryBackground, this);
+        bg.detach();
     }
     return true;
 }
+void DBTAdapter::startDiscoveryBackground() { startDiscovery(); }
 
 bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventCB:DeviceFound: %s", e->toString().c_str());
@@ -531,6 +538,43 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
+bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
+    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
+    EInfoReport ad_report;
+    {
+        ad_report.setSource(EInfoReport::Source::EIR);
+        ad_report.setTimestamp(event.getTimestamp());
+        ad_report.setAddressType(event.getAddressType());
+        ad_report.setAddress( event.getAddress() );
+        ad_report.read_data(event.getData(), event.getDataSize());
+    }
+    std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
+    if( nullptr != device ) {
+        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected: %s,\n    %s\n    -> %s",
+                event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        if( nullptr != deviceStatusListener ) {
+            deviceStatusListener->deviceConnected(*this, device, event.getTimestamp());
+        }
+    } else {
+        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected: %s,\n    %s\n    -> Device not tracked",
+                event.toString().c_str(), ad_report.toString().c_str());
+    }
+    (void)ad_report;
+    return true;
+}
+bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
+    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+    std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
+    if( nullptr != device ) {
+        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected: %s\n    -> %s", event.toString().c_str(), device->toString().c_str());
+        if( nullptr != deviceStatusListener ) {
+            deviceStatusListener->deviceDisconnected(*this, device, event.getTimestamp());
+        }
+    } else {
+        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected: %s\n    -> Device not tracked", event.toString().c_str());
+    }
+    return true;
+}
 int DBTAdapter::discoverDevicesMgmt(const int waitForDeviceCount,
                                     const EUI48 &waitForDevice,
                                     const int timeoutMS,
@@ -546,7 +590,7 @@ int DBTAdapter::discoverDevicesMgmt(const int waitForDeviceCount,
     int matchedDeviceCount = 0, loop=0;
 
     while ( !done && ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
-        std::shared_ptr<EInfoReport> ad_report = std::shared_ptr<EInfoReport>(new EInfoReport());
+        EInfoReport ad_report;
         {
             std::shared_ptr<MgmtEvent> deviceEvent = nullptr; // holding the resource
             const MgmtEvtDeviceFound * deviceFoundEvent = nullptr; // convenient target type access
@@ -562,17 +606,17 @@ int DBTAdapter::discoverDevicesMgmt(const int waitForDeviceCount,
             }
             loop++;
 
-            ad_report->setSource(EInfoReport::Source::EIR);
-            ad_report->setTimestamp(getCurrentMilliseconds());
-            // ad_report->setEvtType(0); ??
-            ad_report->setAddressType(deviceFoundEvent->getAddressType());
-            ad_report->setAddress( deviceFoundEvent->getAddress() );
-            ad_report->setRSSI( deviceFoundEvent->getRSSI() );
-            ad_report->read_data(deviceFoundEvent->getData(), deviceFoundEvent->getDataSize());
+            ad_report.setSource(EInfoReport::Source::EIR);
+            ad_report.setTimestamp(deviceFoundEvent->getTimestamp());
+            // ad_report.setEvtType(0); ??
+            ad_report.setAddressType(deviceFoundEvent->getAddressType());
+            ad_report.setAddress( deviceFoundEvent->getAddress() );
+            ad_report.setRSSI( deviceFoundEvent->getRSSI() );
+            ad_report.read_data(deviceFoundEvent->getData(), deviceFoundEvent->getDataSize());
         }
 
-        const bool matches = ( ad_req == ( ad_req & ad_report->getDataSet() ) ) &&
-                             ( EUI48_ANY_DEVICE == waitForDevice || ad_report->getAddress() == waitForDevice );
+        const bool matches = ( ad_req == ( ad_req & ad_report.getDataSet() ) ) &&
+                             ( EUI48_ANY_DEVICE == waitForDevice || ad_report.getAddress() == waitForDevice );
         if( matches ) {
             matchedDeviceCount++;
             if( 0 < waitForDeviceCount && waitForDeviceCount <= matchedDeviceCount ) {
@@ -582,29 +626,29 @@ int DBTAdapter::discoverDevicesMgmt(const int waitForDeviceCount,
         DBG_PRINT("DBTAdapter::discovery[%d]: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
                 loop-1, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
                 matchedDeviceCount, waitForDeviceCount, done);
-        DBG_PRINT("DBTAdapter::discovery[%d]: %s", loop-1, ad_report->toString().c_str());
+        DBG_PRINT("DBTAdapter::discovery[%d]: %s", loop-1, ad_report.toString().c_str());
 
-        int idx = findDevice(scannedDevices, ad_report->getAddress());
+        int idx = findDevice(scannedDevices, ad_report.getAddress());
         std::shared_ptr<DBTDevice> dev;
         if( 0 > idx ) {
             // new device
-            dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *ad_report));
+            dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
             scannedDevices.push_back(dev);
         } else {
             // existing device
             dev = scannedDevices.at(idx);
-            dev->update(*ad_report);
+            dev->update(ad_report);
         }
         if( matches ) {
             if( addDiscoveredDevice(dev) ) {
                 // new matching
-                if( nullptr != deviceDiscoveryListener ) {
-                    deviceDiscoveryListener->deviceAdded(*this, dev);
+                if( nullptr != deviceStatusListener ) {
+                    deviceStatusListener->deviceFound(*this, dev, ad_report.getTimestamp());
                 }
             } else {
                 // update
-                if( nullptr != deviceDiscoveryListener ) {
-                    deviceDiscoveryListener->deviceUpdated(*this, dev);
+                if( nullptr != deviceStatusListener ) {
+                    deviceStatusListener->deviceUpdated(*this, dev, ad_report.getTimestamp());
                 }
             }
         }

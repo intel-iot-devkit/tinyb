@@ -56,9 +56,9 @@ namespace direct_bt {
 
     /**
      * A HCI session, using an underlying {@link HCIComm} instance,
-     * tracking all open LE connections.
+     * tracking all open connections.
      * <p>
-     * At destruction, all remaining LE connections will be closed.
+     * At destruction, all remaining connections will be closed.
      * </p>
      */
     class HCISession
@@ -70,7 +70,7 @@ namespace direct_bt {
             static std::atomic_int name_counter;
             DBTAdapter * adapter;
             HCIComm hciComm;
-            std::vector<std::shared_ptr<DBTDevice>> connectedLEDevices;
+            std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
 
             /** Opens a new HCI session on the given BT dev_id and HCI channel. */
             HCISession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
@@ -78,14 +78,14 @@ namespace direct_bt {
               name(name_counter.fetch_add(1))
             {}
 
-            /** add the new {@link DBTDevice} to the list of connected LE devices */
-            void connectedLE(std::shared_ptr<DBTDevice> & device);
+            /** add the new {@link DBTDevice} to the list of connected devices */
+            void connected(std::shared_ptr<DBTDevice> & device);
 
-            /** remove the {@link DBTDevice} from the list of connected LE devices */
-            void disconnectedLE(std::shared_ptr<DBTDevice> & device);
+            /** remove the {@link DBTDevice} from the list of connected devices */
+            void disconnected(std::shared_ptr<DBTDevice> & device);
 
             /**
-             * Issues {@link #disconnectAllLEDevices()} and closes the underlying HCI session.
+             * Issues {@link #disconnectAllDevices()} and closes the underlying HCI session.
              * <p>
              * This shutdown hook is solely intended for adapter's destructor.
              * </p>
@@ -100,14 +100,14 @@ namespace direct_bt {
              */
             ~HCISession();
 
-            /** Return connected LE {@link DBTDevice}s. */
-            std::vector<std::shared_ptr<DBTDevice>> getConnectedLEDevices() { return connectedLEDevices; }
+            /** Return connected {@link DBTDevice}s. */
+            std::vector<std::shared_ptr<DBTDevice>> getConnectedDevices() { return connectedDevices; }
 
-            /** Disconnect all connected LE devices. Returns number of removed discovered devices. */
-            int disconnectAllLEDevices(const uint8_t reason=0);
+            /** Disconnect all connected devices. Returns number of removed discovered devices. */
+            int disconnectAllDevices(const uint8_t reason=0);
 
-            /** Returns connected LE DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findConnectedLEDevice (EUI48 const & mac) const;
+            /** Returns connected DBTDevice if found, otherwise nullptr */
+            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             /**
              * Closes this instance by {@link #disconnectAllLEDevices()}
@@ -168,12 +168,27 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class DBTDeviceDiscoveryListener {
+    /**
+     * DBTDeviceStatusListener reflecting certain MgmtEvent:
+        DEVICE_CONNECTED           = 0x000B, * deviceConnected
+        DEVICE_DISCONNECTED        = 0x000C, * deviceDisconnected
+        CONNECT_FAILED             = 0x000D,
+        DEVICE_FOUND               = 0x0012, * deviceFound, deviceUpdated
+        DEVICE_ADDED               = 0x001A,
+        DEVICE_REMOVED             = 0x001B,
+
+        DEVICE_BLOCKED             = 0x0014,
+        DEVICE_UNBLOCKED           = 0x0015,
+        DEVICE_UNPAIRED            = 0x0016,
+     */
+    class DBTDeviceStatusListener {
         public:
-            virtual void deviceAdded(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
-            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
-            virtual void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
-            virtual ~DBTDeviceDiscoveryListener() {}
+            virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            // virtual void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual ~DBTDeviceStatusListener() {}
     };
 
     class DBTDevice : public DBTObject
@@ -302,7 +317,7 @@ namespace direct_bt {
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> scannedDevices; // all devices scanned
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // matching all requirements for export
-            std::shared_ptr<DBTDeviceDiscoveryListener> deviceDiscoveryListener = nullptr;
+            std::shared_ptr<DBTDeviceStatusListener> deviceStatusListener = nullptr;
 
             bool validateDevInfo();
 
@@ -321,6 +336,10 @@ namespace direct_bt {
             std::shared_ptr<MgmtEvent> eventReceived = nullptr;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
+
+            void startDiscoveryBackground();
 
             int discoverDevicesHCI(const int waitForDeviceCount, const EUI48 &waitForDevice,
                                    const int timeoutMS, const uint32_t ad_type_req);
@@ -381,9 +400,9 @@ namespace direct_bt {
             // device discovery aka device scanning
 
             /**
-             * Replaces the DBTDeviceDiscoveryListener with the given instance, returning the replaced one.
+             * Replaces the DBTDeviceStatusListener with the given instance, returning the replaced one.
              */
-            std::shared_ptr<DBTDeviceDiscoveryListener> setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener> l);
+            std::shared_ptr<DBTDeviceStatusListener> setDeviceStatusListener(std::shared_ptr<DBTDeviceStatusListener> l);
 
             /**
              * Starts a new discovery session.
@@ -398,7 +417,7 @@ namespace direct_bt {
              * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
              */
-            bool startDiscovery(uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+            bool startDiscovery(HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**

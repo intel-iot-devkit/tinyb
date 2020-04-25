@@ -37,17 +37,19 @@
 using namespace direct_bt;
 
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;Ljava/lang/String;J)V");
-static const std::string _deviceDiscoveryMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;)V");
+static const std::string _deviceStatusMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;J)V");
 
-class DeviceDiscoveryCallbackListener : public DBTDeviceDiscoveryListener {
+class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
   public:
     /**
         package org.tinyb;
 
-        public interface BluetoothDeviceDiscoveryListener {
-            public void deviceAdded(final BluetoothAdapter adapter, final BluetoothDevice device);
-            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device);
-            public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device);
+        public interface BluetoothDeviceStatusListener {
+            public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+            public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+            public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+            // public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
         };
      */
     std::shared_ptr<JavaAnonObj> adapterObjRef;
@@ -56,11 +58,13 @@ class DeviceDiscoveryCallbackListener : public DBTDeviceDiscoveryListener {
     jfieldID deviceClazzTSUpdateField;
     std::unique_ptr<JNIGlobalRef> listenerObjRef;
     std::unique_ptr<JNIGlobalRef> listenerClazzRef;
-    jmethodID  mDeviceAdded = nullptr;
+    jmethodID  mDeviceFound = nullptr;
     jmethodID  mDeviceUpdated = nullptr;
-    jmethodID  mDeviceRemoved = nullptr;
+    jmethodID  mDeviceConnected = nullptr;
+    jmethodID  mDeviceDisconnected = nullptr;
+    // jmethodID  mDeviceRemoved = nullptr;
 
-    DeviceDiscoveryCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
+    DeviceStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
         adapterObjRef = adapter->getJavaObject();
         JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
         {
@@ -93,28 +97,33 @@ class DeviceDiscoveryCallbackListener : public DBTDeviceDiscoveryListener {
             listenerClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listenerClazz));
             env->DeleteLocalRef(listenerClazz);
         }
-        mDeviceAdded = search_method(env, listenerClazzRef->getClass(), "deviceAdded", _deviceDiscoveryMethodArgs.c_str(), false);
+        mDeviceFound = search_method(env, listenerClazzRef->getClass(), "deviceFound", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceAdded ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceAdded"+_deviceDiscoveryMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        if( nullptr == mDeviceFound ) {
+            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceUpdated = search_method(env, listenerClazzRef->getClass(), "deviceUpdated", _deviceDiscoveryMethodArgs.c_str(), false);
+        mDeviceUpdated = search_method(env, listenerClazzRef->getClass(), "deviceUpdated", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceUpdated ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceUpdated"+_deviceDiscoveryMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceRemoved = search_method(env, listenerClazzRef->getClass(), "deviceRemoved", _deviceDiscoveryMethodArgs.c_str(), false);
+        mDeviceConnected = search_method(env, listenerClazzRef->getClass(), "deviceConnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == mDeviceRemoved ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceRemoved"+_deviceDiscoveryMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        if( nullptr == mDeviceConnected ) {
+            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        }
+        mDeviceDisconnected = search_method(env, listenerClazzRef->getClass(), "deviceDisconnected", _deviceStatusMethodArgs.c_str(), false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mDeviceDisconnected ) {
+            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
     }
 
-    void deviceAdded(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) override {
+    void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
-                fprintf(stderr, "****** Native Adapter Device ADDED__: %s\n", device->toString().c_str());
+                fprintf(stderr, "****** Native Adapter Device FOUND__: %s\n", device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
                 fprintf(stderr, "%s\n", a.toString().c_str());
             #endif
@@ -125,19 +134,20 @@ class DeviceDiscoveryCallbackListener : public DBTDeviceDiscoveryListener {
             const jstring name = from_string_to_jstring(env, device->getName());
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
             jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
-                    (jlong)device.get(), adapterObjRef, addr, name, (jlong)device->ts_creation);
+                    (jlong)device.get(), adapterObjRef, addr, name, (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
             JNIGlobalRef::check(jDevice, E_FILE_LINE);
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceAdded, JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef));
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound,
+                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
-    void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) override {
+    void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
@@ -148,28 +158,50 @@ class DeviceDiscoveryCallbackListener : public DBTDeviceDiscoveryListener {
             (void)a;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)device->getUpdateTimestamp());
+            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated, JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef));
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated,
+                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
-    void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) override {
+    void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
-                fprintf(stderr, "****** DBTAdapter Device REMOVED: %s\n", device->toString().c_str());
+                fprintf(stderr, "****** DBTAdapter Device CONNECTED: %s\n", device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
                 fprintf(stderr, "%s\n", a.toString().c_str());
             #endif
             (void)a;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)device->getUpdateTimestamp());
+            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceRemoved, JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef));
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnected,
+                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+        } catch(...) {
+            rethrow_and_raise_java_exception(env);
+        }
+    }
+    void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+        try {
+            #ifdef VERBOSE_ON
+                fprintf(stderr, "****** DBTAdapter Device DISCONNECTED: %s\n", device->toString().c_str());
+                fprintf(stderr, "Status DBTAdapter:\n");
+                fprintf(stderr, "%s\n", a.toString().c_str());
+            #endif
+            (void)a;
+            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceDisconnected,
+                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
         } catch(...) {
             rethrow_and_raise_java_exception(env);
@@ -185,8 +217,8 @@ void Java_direct_1bt_tinyb_DBTAdapter_initImpl(JNIEnv *env, jobject obj, jobject
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         // set our callback discovery listener.
-        DeviceDiscoveryCallbackListener *l = new DeviceDiscoveryCallbackListener(env, adapter, deviceDiscoveryListener);
-        adapter->setDeviceDiscoveryListener(std::shared_ptr<DBTDeviceDiscoveryListener>(l));
+        DeviceStatusCallbackListener *l = new DeviceStatusCallbackListener(env, adapter, deviceDiscoveryListener);
+        adapter->setDeviceStatusListener(std::shared_ptr<DBTDeviceStatusListener>(l));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -197,7 +229,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        adapter->setDeviceDiscoveryListener(nullptr);
+        adapter->setDeviceStatusListener(nullptr);
         delete adapter;
     } catch(...) {
         rethrow_and_raise_java_exception(env);

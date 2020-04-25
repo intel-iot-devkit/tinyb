@@ -319,6 +319,7 @@ namespace direct_bt {
         protected:
             /** actual received mgmt event */
             POctets pdu;
+            uint64_t ts_creation;
 
             static void checkOpcode(const Opcode has, const Opcode min, const Opcode max)
             {
@@ -356,7 +357,7 @@ namespace direct_bt {
 
             /** Persistent memory, w/ ownership ..*/
             MgmtEvent(const uint8_t* buffer, const int buffer_len)
-            : pdu(buffer, buffer_len)
+            : pdu(buffer, buffer_len), ts_creation(getCurrentMilliseconds())
             {
                 pdu.check_range(0, MGMT_HEADER_SIZE+getParamSize());
                 checkOpcode(getOpcode(), CMD_COMPLETE, PHY_CONFIGURATION_CHANGED);
@@ -365,6 +366,7 @@ namespace direct_bt {
 
             int getTotalSize() const { return pdu.getSize(); }
 
+            uint64_t getTimestamp() const { return ts_creation; }
             Opcode getOpcode() const { return static_cast<Opcode>( pdu.get_uint16(0) ); }
             std::string getOpcodeString() const { return getOpcodeString(getOpcode()); }
             uint16_t getDevID() const { return pdu.get_uint16(2); }
@@ -539,6 +541,37 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t status
+     */
+    class MgmtEvtDeviceConnectFailed : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", status "+uint8HexString(getStatus(), true)+" "+getMgmtStatusString(getStatus());
+            }
+
+        public:
+            MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), CONNECT_FAILED);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(MGMT_HEADER_SIZE+7) ); }
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
+            int getDataSize() const override { return getParamSize()-8; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
      * uint8_t reason
      */
     class MgmtEvtDeviceDisconnected : public MgmtEvent
@@ -565,6 +598,91 @@ namespace direct_bt {
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t action
+     */
+    class MgmtEvtDeviceAdded : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", action "+std::to_string(getAction());
+            }
+
+        public:
+            MgmtEvtDeviceAdded(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), DEVICE_ADDED);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            uint8_t getAction() const { return pdu.get_uint8(MGMT_HEADER_SIZE+7); }
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
+            int getDataSize() const override { return getParamSize()-8; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtDeviceRemoved : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType());
+            }
+
+        public:
+            MgmtEvtDeviceRemoved(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), DEVICE_REMOVED);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+7; }
+            int getDataSize() const override { return getParamSize()-7; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtDeviceUnpaired : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType());
+            }
+
+        public:
+            MgmtEvtDeviceUnpaired(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), DEVICE_UNPAIRED);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+7; }
+            int getDataSize() const override { return getParamSize()-7; }
             const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
     };
 

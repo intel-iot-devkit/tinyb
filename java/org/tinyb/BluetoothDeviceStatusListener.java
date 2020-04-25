@@ -29,14 +29,16 @@ package org.tinyb;
  * {@link BluetoothDevice} listener for the respective {@link BluetoothDevice} discovery events: Added, updated and removed.
  * <p>
  * A listener instance may be attached to a {@link BluetoothAdapter} via
- * {@link BluetoothAdapter#setDeviceDiscoveryListener(BluetoothDeviceDiscoveryListener)}.
+ * {@link BluetoothAdapter#setDeviceStatusListener(BluetoothDeviceDiscoveryListener)}.
  * </p>
  */
-public interface BluetoothDeviceDiscoveryListener {
+public interface BluetoothDeviceStatusListener {
     /** A {@link BluetoothDevice} has been newly discovered. */
-    public void deviceAdded(final BluetoothAdapter adapter, final BluetoothDevice device);
+    public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
     /** An already discovered {@link BluetoothDevice} has been updated. */
-    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device);
-    /** An already discovered {@link BluetoothDevice} has been removed or lost. */
-    public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device);
+    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    /** {@link BluetoothDevice} has been connected. */
+    public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    /** {@link BluetoothDevice} has been disconnected. */
+    public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
 };

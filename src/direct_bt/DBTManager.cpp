@@ -308,6 +308,8 @@ next1:
         addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceAddedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceRemovedCB));
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -543,5 +545,13 @@ bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
 }
 bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvDeviceAddedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceAdded: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvDeviceRemovedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceRemoved: %s", e->toString().c_str());
     return true;
 }

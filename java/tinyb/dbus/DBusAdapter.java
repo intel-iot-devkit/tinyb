@@ -35,7 +35,7 @@ import java.util.UUID;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothDeviceDiscoveryListener;
+import org.tinyb.BluetoothDeviceStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
@@ -149,7 +149,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean getDiscovering();
 
     @Override
-    public void setDeviceDiscoveryListener(final BluetoothDeviceDiscoveryListener l) {
+    public void setDeviceStatusListener(final BluetoothDeviceStatusListener l) {
         throw new UnsupportedOperationException(); // FIXME
     }
 

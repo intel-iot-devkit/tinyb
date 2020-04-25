@@ -169,7 +169,7 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         return 0;
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
-    session->connectedLE(thisDevice);
+    session->connected(thisDevice);
 
     return leConnHandle;
 }
@@ -198,6 +198,6 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
 #endif
 
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
-    session->disconnectedLE(thisDevice);
+    session->disconnected(thisDevice);
 }
 

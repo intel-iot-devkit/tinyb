@@ -242,8 +242,16 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
             return new MgmtEvtDeviceFound(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
             return new MgmtEvtDeviceConnected(buffer, buffer_size);
+        case MgmtEvent::Opcode::CONNECT_FAILED:
+            return new MgmtEvtDeviceConnectFailed(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
             return new MgmtEvtDeviceDisconnected(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_ADDED:
+            return new MgmtEvtDeviceAdded(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_REMOVED:
+            return new MgmtEvtDeviceRemoved(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_UNPAIRED:
+            return new MgmtEvtDeviceUnpaired(buffer, buffer_size);
         default:
             return new MgmtEvent(buffer, buffer_size);
     }

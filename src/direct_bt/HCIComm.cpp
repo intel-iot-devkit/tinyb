@@ -536,7 +536,7 @@ void HCIComm::le_disable_scan() {
     }
 }
 
-bool HCIComm::le_enable_scan(const uint8_t own_type,
+bool HCIComm::le_enable_scan(const HCIAddressType own_type,
                              const uint16_t interval, const uint16_t window) {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
@@ -569,8 +569,8 @@ bool HCIComm::le_enable_scan(const uint8_t own_type,
 }
 
 uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
-                                 const uint8_t peer_mac_type,
-                                 const uint8_t own_mac_type,
+                                 const HCIAddressType peer_mac_type,
+                                 const HCIAddressType own_mac_type,
                                  const uint16_t interval, const uint16_t window,
                                  const uint16_t min_interval, const uint16_t max_interval,
                                  const uint16_t latency, const uint16_t supervision_timeout,

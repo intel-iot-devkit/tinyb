@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothDeviceDiscoveryListener;
+import org.tinyb.BluetoothDeviceStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -92,9 +92,9 @@ public class ScannerTinyB01 {
         final BluetoothAdapter adapter = manager.getDefaultAdapter();
         final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
 
-        final BluetoothDeviceDiscoveryListener deviceDiscListener = new BluetoothDeviceDiscoveryListener() {
+        final BluetoothDeviceStatusListener deviceDiscListener = new BluetoothDeviceStatusListener() {
             @Override
-            public void deviceAdded(final BluetoothAdapter adapter, final BluetoothDevice device) {
+            public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** ADDED__: "+device.toString()+" - match "+matches);
                 System.err.println("Status HCIAdapter:");
@@ -109,7 +109,7 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device) {
+            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** UPDATED: "+device.toString()+" - match "+matches);
                 System.err.println("Status HCIAdapter:");
@@ -117,15 +117,23 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device) {
+            public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
-                System.err.println("****** REMOVED: "+device.toString()+" - match "+matches);
+                System.err.println("****** CONNECTED: "+device.toString()+" - match "+matches);
+                System.err.println("Status HCIAdapter:");
+                System.err.println(adapter.toString());
+            }
+
+            @Override
+            public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+                final boolean matches = device.getAddress().equals(mac);
+                System.err.println("****** DISCONNECTED: "+device.toString()+" - match "+matches);
                 System.err.println("Status HCIAdapter:");
                 System.err.println(adapter.toString());
             }
         };
         adapter.removeDevices();
-        adapter.setDeviceDiscoveryListener(deviceDiscListener);
+        adapter.setDeviceStatusListener(deviceDiscListener);
 
         do {
             final long t0 = BluetoothUtils.getCurrentMilliseconds();
