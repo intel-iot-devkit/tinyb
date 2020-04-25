@@ -91,6 +91,13 @@ namespace direct_bt {
             /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
             std::recursive_mutex & mutex() { return mtx; }
 
+            /** Generic read w/ own timeoutMS. Not protected by mutex. */
+            int read(uint8_t* buffer, const int capacity, const int timeoutMS);
+            /** Generic read, reusing set timeoutMS from ctor. Not protected by mutex */
+            int read(uint8_t* buffer, const int capacity);
+            /** Generic write */
+            int write(const uint8_t* buffer, const int size);
+
             void le_disable_scan();
             bool le_enable_scan(const uint8_t own_type=HCIADDR_LE_PUBLIC,
                                 const uint16_t interval=0x0004, const uint16_t window=0x0004);

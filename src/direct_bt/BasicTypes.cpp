@@ -319,6 +319,10 @@ std::string direct_bt::uint64SeparatedString(const uint64_t v, const char separa
     return std::string(dst, p_dst - dst);
 }
 
+std::string direct_bt::aptrHexString(const void * v, const bool leading0X) {
+    return uint64HexString((uint64_t)v, leading0X);
+}
+
 void direct_bt::trimInPlace(std::string &s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
         return !std::isspace(ch);

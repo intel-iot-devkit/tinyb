@@ -39,7 +39,7 @@ using namespace direct_bt;
 void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTManager *manager = &DBTManager::get(); // special: static singleton
+        DBTManager *manager = &DBTManager::get(BTMode::BT_MODE_LE); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
         if( java_exception_check(env, E_FILE_LINE) ) { return; }
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj) ) );

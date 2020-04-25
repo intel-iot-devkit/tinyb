@@ -41,13 +41,12 @@ extern "C" {
 
 // #define PERF_PRINT_ON 1
 // #define VERBOSE_ON 1
+#include <dbt_debug.hpp>
 
 #include "L2CAPIoctl.hpp"
 #include "GATTNumbers.hpp"
 
 #include "GATTHandler.hpp"
-
-#include <dbt_debug.hpp>
 
 using namespace direct_bt;
 
@@ -120,7 +119,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                INFO_PRINT("GATTHandler: NTF: %s", a->toString().c_str());
+                DBG_PRINT("GATTHandler: NTF: %s", a->toString().c_str());
                 if( nullptr != gattNotificationListener ) {
                     GATTCharacterisicsDeclRef decl = findCharacterisics(a->getHandle());
                     gattNotificationListener->notificationReceived(this->l2cap->getDevice(), decl, std::shared_ptr<const AttHandleValueRcv>(a));
@@ -128,7 +127,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 }
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                INFO_PRINT("GATTHandler: IND: %s, sendIndicationConfirmation %d", a->toString().c_str(), sendIndicationConfirmation);
+                DBG_PRINT("GATTHandler: IND: %s, sendIndicationConfirmation %d", a->toString().c_str(), sendIndicationConfirmation);
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
                     AttHandleValueCfm cfm;
@@ -253,6 +252,9 @@ bool GATTHandler::send(const AttPDUMsg &msg) {
     if( msg.pdu.getSize() > usedMTU ) {
         throw IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU), E_FILE_LINE);
     }
+
+    // Thread safe write operation only for concurrent access
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
 
     const int res = l2cap->write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {

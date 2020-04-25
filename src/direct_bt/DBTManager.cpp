@@ -33,7 +33,7 @@
 #include <algorithm>
 
 #define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -47,38 +47,105 @@ extern "C" {
     #include <inttypes.h>
     #include <unistd.h>
     #include <poll.h>
+    #include <signal.h>
 }
 
 using namespace direct_bt;
 
-std::shared_ptr<MgmtEvent> DBTManager::send(MgmtRequest &req, uint8_t* buffer, const int capacity, const int timeoutMS) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+void DBTManager::mgmtReaderThreadImpl() {
+    mgmtReaderShallStop = false;
+    mgmtReaderRunning = true;
+    INFO_PRINT("DBTManager::reader: Started");
 
-    int len = req.send(comm.dd(), buffer, capacity, timeoutMS);
-    if( 0 >= len ) {
-        return nullptr;
+    while( !mgmtReaderShallStop ) {
+        int len;
+        if( !comm.isOpen() ) {
+            // not open
+            perror("DBTManager::reader: Not connected");
+            mgmtReaderShallStop = true;
+            break;
+        }
+
+        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize());
+        if( 0 < len ) {
+            const uint16_t paramSize = len >= 6 ? rbuffer.get_uint16(4) : 0;
+            if( len < 6 + paramSize ) {
+                WARN_PRINT("DBTManager::reader: length mismatch %d < 6 + %d", len, paramSize);
+                continue; // discard data
+            }
+            std::shared_ptr<MgmtEvent> event( MgmtEvent::getSpecialized(rbuffer.get_ptr(), len) );
+            const MgmtEvent::Opcode opc = event->getOpcode();
+            if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
+                DBG_PRINT("DBTManager::reader: CmdResult %s", event->toString().c_str());
+                mgmtEventRing.putBlocking( event );
+            } else {
+                // issue a callback
+                MgmtEventCallbackList mgmtEventCallbackList = mgmtEventCallbackLists[opc];
+                DBG_PRINT("DBTManager::reader: Event %s -> %zd callbacks", event->toString().c_str(), mgmtEventCallbackList.size());
+                for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
+                    MgmtEventCallback callback = *it;
+                    callback.invoke(event);
+                }
+            }
+        } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
+            perror("DBTManager::reader: HCIComm error");
+        }
     }
-    const uint16_t paramSize = len >= 6 ? get_uint16(buffer, 4, true /* littleEndian */) : 0;
-    if( len < 6 + paramSize ) {
-        WARN_PRINT("mgmt_send_cmd: length mismatch %d < 6 + %d; req %s", len, paramSize, req.toString().c_str());
-        return nullptr;
-    }
-    MgmtEvent * res = MgmtEvent::getSpecialized(buffer, len);
-    if( !res->validate(req) ) {
-        WARN_PRINT("mgmt_send_cmd: res mismatch: res %s; req %s", res->toString().c_str(), req.toString().c_str());
-        delete res;
-        return nullptr;
-    }
-    return std::shared_ptr<MgmtEvent>(res);
+
+    INFO_PRINT("DBTManager::reader: Ended");
+    mgmtReaderRunning = false;
 }
 
-bool DBTManager::initAdapter(const uint16_t dev_id) {
-    bool ok = true;
+static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
+    INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d]",
+            sig, info->si_code, info->si_errno, info->si_signo,
+            info->si_pid, info->si_uid, info->si_fd);
+    (void)ucontext;
+
+    if( SIGINT != sig ) {
+        return;
+    }
+    {
+        struct sigaction sa_setup;
+        bzero(&sa_setup, sizeof(sa_setup));
+        sa_setup.sa_handler = SIG_DFL;
+        sigemptyset(&(sa_setup.sa_mask));
+        sa_setup.sa_flags = 0;
+        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+            perror("DBTManager.sigaction: Resetting sighandler");
+        }
+    }
+}
+
+std::shared_ptr<MgmtEvent> DBTManager::send(MgmtCommand &req) {
+    DBG_PRINT("DBTManager::send: Command %s", req.toString().c_str());
+    {
+        const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
+        TROOctets & pdu = req.getPDU();
+        if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
+            perror("DBTManager::send: HCIComm error");
+            return nullptr;
+        }
+    }
+    // Ringbuffer read is thread safe
+    std::shared_ptr<MgmtEvent> res = receiveNext();
+    if( !res->validate(req) ) {
+        WARN_PRINT("DBTManager::send: res mismatch: res %s; req %s", res->toString().c_str(), req.toString().c_str());
+        return nullptr; // FIXME:: Shall we push back the event to wait for the right one?
+    }
+    return res;
+}
+
+std::shared_ptr<MgmtEvent> DBTManager::receiveNext() {
+    return mgmtEventRing.getBlocking();
+}
+
+bool DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
     std::shared_ptr<const AdapterInfo> adapter;
-    MgmtRequest req0(MgmtModeReq::READ_INFO, dev_id);
+    MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
     DBG_PRINT("DBTManager::initAdapter %d: req: %s", dev_id, req0.toString().c_str());
     {
-        std::shared_ptr<MgmtEvent> res = send(req0, ibuffer, ibuffer_size, HCI_TO_SEND_REQ_POLL_MS);
+        std::shared_ptr<MgmtEvent> res = send(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -91,32 +158,70 @@ bool DBTManager::initAdapter(const uint16_t dev_id) {
         adapters.push_back(adapter);
         INFO_PRINT("Adapter %d: %s", dev_id, adapter->toString().c_str());
     }
-    ok = setMode(dev_id, MgmtModeReq::SET_LE, 1) && ok;
-    ok = setMode(dev_id, MgmtModeReq::SET_POWERED, 1) && ok;
-    // ok = setMode(dev_id, MgmtModeReq::SET_CONNECTABLE, 1) && ok;
+
+    switch ( btMode ) {
+        case BTMode::BT_MODE_DUAL:
+            setMode(dev_id, MgmtOpcode::SET_SSP, 1);
+            setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
+            setMode(dev_id, MgmtOpcode::SET_LE, 1);
+            break;
+        case BTMode::BT_MODE_BREDR:
+            setMode(dev_id, MgmtOpcode::SET_SSP, 1);
+            setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
+            setMode(dev_id, MgmtOpcode::SET_LE, 0);
+            break;
+        case BTMode::BT_MODE_LE:
+            setMode(dev_id, MgmtOpcode::SET_SSP, 0);
+            setMode(dev_id, MgmtOpcode::SET_BREDR, 0);
+            setMode(dev_id, MgmtOpcode::SET_LE, 1);
+            break;
+    }
+
+    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 1);
+    // setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 1); // ??
+    setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
     return true;
 
 fail:
     return false;
 }
 
-DBTManager::DBTManager()
-:comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL)
-{
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+void DBTManager::shutdownAdapter(const uint16_t dev_id) {
+    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
+    setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
+    setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, 0);
+    setMode(dev_id, MgmtOpcode::SET_POWERED, 0);
+}
 
+DBTManager::DBTManager(const BTMode btMode)
+:btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL, Defaults::MGMT_READER_THREAD_POLL_TIMEOUT),
+ mgmtEventRing(MGMTEVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
+{
     if( !comm.isOpen() ) {
-        perror("Could not open mgmt control channel");
+        perror("DBTManager::open: Could not open mgmt control channel");
         return;
     }
+
+    {
+        struct sigaction sa_setup;
+        bzero(&sa_setup, sizeof(sa_setup));
+        sa_setup.sa_sigaction = mgmthandler_sigaction;
+        sigemptyset(&(sa_setup.sa_mask));
+        sa_setup.sa_flags = SA_SIGINFO;
+        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+            perror("DBTManager::open: Setting sighandler");
+        }
+    }
+    mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+
     PERF_TS_T0();
 
     bool ok = true;
     // Mandatory
     {
-        MgmtRequest req0(MgmtModeReq::READ_VERSION, MgmtConst::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0, ibuffer, ibuffer_size, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
+        std::shared_ptr<MgmtEvent> res = send(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -136,9 +241,9 @@ DBTManager::DBTManager()
     }
     // Optional
     {
-        MgmtRequest req0(MgmtModeReq::READ_COMMANDS, MgmtConst::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0, ibuffer, ibuffer_size, HCI_TO_SEND_REQ_POLL_MS);
+        std::shared_ptr<MgmtEvent> res = send(req0);
         if( nullptr == res ) {
             goto next1;
         }
@@ -152,8 +257,8 @@ DBTManager::DBTManager()
             const int expDataSize = 4 + num_commands * 2 + num_events * 2;
             if( res->getDataSize() >= expDataSize ) {
                 for(int i=0; i< num_commands; i++) {
-                    const MgmtOperation op = static_cast<MgmtOperation>( get_uint16(data, 4+i*2, true /* littleEndian */) );
-                    DBG_PRINT("kernel op %d: %s", i, mgmt_get_operation_string(op).c_str());
+                    const MgmtOpcode op = static_cast<MgmtOpcode>( get_uint16(data, 4+i*2, true /* littleEndian */) );
+                    DBG_PRINT("kernel op %d: %s", i, getMgmtOpcodeString(op).c_str());
                 }
             }
 #endif
@@ -167,9 +272,9 @@ next1:
 
     // Mandatory
     {
-        MgmtRequest req0(MgmtModeReq::READ_INDEX_LIST, MgmtConst::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0, ibuffer, ibuffer_size, HCI_TO_SEND_REQ_POLL_MS);
+        std::shared_ptr<MgmtEvent> res = send(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -189,10 +294,20 @@ next1:
         }
         for(int i=0; ok && i < num_adapter; i++) {
             const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
-            ok = initAdapter(dev_id);
+            ok = initAdapter(dev_id, btMode);
         }
     }
+
     if( ok ) {
+        addMgmtEventCallback(MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviChangedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvLocalNameChangedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTManager::mgmtEvDeviceFoundCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -203,25 +318,28 @@ fail:
     return;
 }
 
-
 void DBTManager::close() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
-    comm.close();
-}
-
-bool DBTManager::setMode(const int dev_id, const MgmtModeReq::Opcode opc, const uint8_t mode) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
-
-    MgmtModeReq req(opc, dev_id, mode);
-    DBG_PRINT("DBTManager::open req: %s", req.toString().c_str());
-    std::shared_ptr<MgmtEvent> res = send(req, ibuffer, ibuffer_size, HCI_TO_SEND_REQ_POLL_MS);
-    if( nullptr != res ) {
-        DBG_PRINT("DBTManager::setMode res: %s", res->toString().c_str());
-        return true;
-    } else {
-        DBG_PRINT("DBTManager::setMode res: NULL");
-        return false;
+    DBG_PRINT("DBTManager::close: Start");
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    clearAllMgmtEventCallbacks();
+    if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
+        mgmtReaderShallStop = true;
+        pthread_t tid = mgmtReaderThread.native_handle();
+        pthread_kill(tid, SIGINT);
     }
+
+    for (auto it = adapters.begin(); it != adapters.end(); ) {
+        shutdownAdapter((*it)->dev_id);
+    }
+    comm.close();
+
+    if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
+        // still running ..
+        DBG_PRINT("DBTManager::close: join mgmtReaderThread");
+        mgmtReaderThread.join();
+    }
+    mgmtReaderThread = std::thread(); // empty
+    DBG_PRINT("DBTManager::close: End");
 }
 
 int DBTManager::findAdapterIdx(const EUI48 &mac) const {
@@ -241,4 +359,189 @@ std::shared_ptr<const AdapterInfo> DBTManager::getAdapter(const int idx) const {
         throw IndexOutOfBoundsException(idx, adapters.size(), 1, E_FILE_LINE);
     }
     return adapters.at(idx);
+}
+
+bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) {
+    MgmtUint8Cmd req(opc, dev_id, mode);
+    DBG_PRINT("DBTManager::setMode: %s", req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = send(req);
+    if( nullptr != res ) {
+        DBG_PRINT("DBTManager::setMode res: %s", res->toString().c_str());
+        return true;
+    } else {
+        DBG_PRINT("DBTManager::setMode res: NULL");
+        return false;
+    }
+}
+
+ScanType DBTManager::startDiscovery(const int dev_id) {
+    ScanType scanType;
+    switch ( btMode ) {
+        case BTMode::BT_MODE_DUAL:
+            scanType = ScanType::SCAN_TYPE_DUAL;
+            break;
+        case BTMode::BT_MODE_BREDR:
+            scanType = ScanType::SCAN_TYPE_BREDR;
+            break;
+        case BTMode::BT_MODE_LE:
+            scanType = ScanType::SCAN_TYPE_LE;
+            break;
+    }
+    return startDiscovery(dev_id, scanType);
+}
+
+ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
+    MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, scanType);
+    DBG_PRINT("DBTManager::startDiscovery: %s", req.toString().c_str());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<MgmtEvent> res = send(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::startDiscovery res: NULL");
+        return ScanType::SCAN_TYPE_NONE;
+    }
+    DBG_PRINT("DBTManager::startDiscovery res: %s", res->toString().c_str());
+    ScanType type = ScanType::SCAN_TYPE_NONE;
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() && 1 == res1.getDataSize() ) {
+            type = static_cast<ScanType>( *res1.getData() );
+            DBG_PRINT("DBTManager::startDiscovery res: ScanType %d", (int)type);
+        } else {
+            DBG_PRINT("DBTManager::startDiscovery no-success or invalid res: %s", res1.toString().c_str());
+        }
+    } else {
+        DBG_PRINT("DBTManager::startDiscovery res: NULL");
+    }
+    return type;
+}
+bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
+    MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, type);
+    DBG_PRINT("DBTManager::stopDiscovery: %s", req.toString().c_str());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<MgmtEvent> res = send(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
+        return false;
+    }
+    DBG_PRINT("DBTManager::stopDiscovery res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        return MgmtStatus::SUCCESS == res1.getStatus();
+    } else {
+        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
+        return false;
+    }
+}
+
+uint16_t DBTManager::create_connection(const int dev_id,
+                        const EUI48 &peer_bdaddr,
+                        const BDAddressType peer_mac_type,
+                        const BDAddressType own_mac_type,
+                        const uint16_t interval, const uint16_t window,
+                        const uint16_t min_interval, const uint16_t max_interval,
+                        const uint16_t latency, const uint16_t supervision_timeout,
+                        const uint16_t min_ce_length, const uint16_t max_ce_length,
+                        const uint8_t initiator_filter) {
+    // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
+    DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    return 0;
+}
+
+bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type) {
+    MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
+    DBG_PRINT("DBTManager::disconnect: %s", req.toString().c_str());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<MgmtEvent> res = send(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
+        return false;
+    }
+    DBG_PRINT("DBTManager::disconnect res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        return MgmtStatus::SUCCESS == res1.getStatus();
+    } else {
+        DBG_PRINT("DBTManager::disconnect res: NULL");
+        return false;
+    }
+}
+
+/***
+ *
+ * MgmtEventCallback section
+ *
+ */
+
+void DBTManager::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    checkMgmtEventCallbackListsIndex(opc);
+    mgmtEventCallbackLists[opc].push_back(cb);
+}
+int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    checkMgmtEventCallbackListsIndex(opc);
+    int count = 0;
+    MgmtEventCallbackList &l = mgmtEventCallbackLists[opc];
+    for (auto it = l.begin(); it != l.end(); ) {
+        if ( *it == cb ) {
+            it = l.erase(it);
+            count++;
+        } else {
+            ++it;
+        }
+    }
+    return count;
+}
+void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    checkMgmtEventCallbackListsIndex(opc);
+    mgmtEventCallbackLists[opc].clear();
+}
+void DBTManager::clearAllMgmtEventCallbacks() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
+        mgmtEventCallbackLists[i].clear();
+    }
+}
+
+bool DBTManager::mgmtEvClassOfDeviChangedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:ClassOfDeviChanged: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:LocalNameChanged: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
+    const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
+    (void)event;
+    return true;
+}
+bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceFound: %s", e->toString().c_str());
+    const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
+    (void)event;
+    return true;
+}
+bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceConnected: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:ConnectFailed: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
+    return true;
+}
+bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
+    return true;
 }

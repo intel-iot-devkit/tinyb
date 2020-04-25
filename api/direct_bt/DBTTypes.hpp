@@ -31,7 +31,6 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
-#include <functional>
 
 #include <mutex>
 #include <atomic>
@@ -111,8 +110,8 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> findConnectedLEDevice (EUI48 const & mac) const;
 
             /**
-             * Closes this instance by {@link #disconnectAllLEDevices()},
-             * allowing adapter to stop a potential discovery and closes the underlying HCI session.
+             * Closes this instance by {@link #disconnectAllLEDevices()}
+             * and closing the underlying HCI session.
              */
             bool close();
 
@@ -176,8 +175,6 @@ namespace direct_bt {
             virtual void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device) = 0;
             virtual ~DBTDeviceDiscoveryListener() {}
     };
-    /** Alternative method to DeviceDiscoveryListener to set a callback */
-    typedef std::function<void(DBTAdapter const &a, std::shared_ptr<DBTDevice> device)> DBTDeviceDiscoveryCallback;
 
     class DBTDevice : public DBTObject
     {
@@ -205,7 +202,8 @@ namespace direct_bt {
         public:
             const uint64_t ts_creation;
             /** Device mac address */
-            const EUI48 mac;
+            const EUI48 address;
+            const BDAddressType addressType;
 
             /**
              * Releases this instance after {@link #le_disconnect()}.
@@ -228,8 +226,9 @@ namespace direct_bt {
             uint64_t getCreationTimestamp() const { return ts_creation; }
             uint64_t getUpdateTimestamp() const { return ts_update; }
             uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
-            EUI48 const & getAddress() const { return mac; }
-            std::string getAddressString() const { return mac.toString(); }
+            EUI48 const & getAddress() const { return address; }
+            std::string getAddressString() const { return address.toString(); }
+            BDAddressType getAddressType() const { return addressType; }
             std::string const & getName() const { return name; }
             bool hasName() const { return name.length()>0; }
             int8_t getRSSI() const { return rssi; }
@@ -241,7 +240,7 @@ namespace direct_bt {
             /** Returns index >= 0 if found, otherwise -1 */
             int findService(std::shared_ptr<uuid_t> const &uuid) const;
 
-            std::string toString() const;
+            std::string toString() const override;
 
             /**
              * Creates a new connection to this device.
@@ -276,10 +275,10 @@ namespace direct_bt {
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return lhs.mac < rhs.mac; }
+    { return lhs.address < rhs.address; }
 
     inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return lhs.mac == rhs.mac; }
+    { return lhs.address == rhs.address; }
 
     inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs)
     { return !(lhs == rhs); }
@@ -296,6 +295,8 @@ namespace direct_bt {
 
             DBTManager& mgmt;
             std::shared_ptr<const AdapterInfo> adapterInfo;
+            ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
+            volatile bool keepDiscoveringAlive = false;
 
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> scannedDevices; // all devices scanned
@@ -314,6 +315,16 @@ namespace direct_bt {
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
+            std::mutex mtxEventRead;
+            std::condition_variable cvEventRead;
+            std::shared_ptr<MgmtEvent> eventReceived = nullptr;
+            bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
+
+            int discoverDevicesHCI(const int waitForDeviceCount, const EUI48 &waitForDevice,
+                                   const int timeoutMS, const uint32_t ad_type_req);
+            int discoverDevicesMgmt(const int waitForDeviceCount, const EUI48 &waitForDevice,
+                                    const int timeoutMS, const uint32_t ad_type_req);
         public:
             const int dev_id;
 
@@ -351,6 +362,11 @@ namespace direct_bt {
             std::string const & getName() const { return adapterInfo->name; }
 
             /**
+             * Returns a reference to the used singleton DBTManager instance.
+             */
+            DBTManager& getManager() const { return mgmt; }
+
+            /**
              * Returns a reference to the newly opened session
              * if successful, otherwise nullptr is returned.
              */
@@ -378,7 +394,7 @@ namespace direct_bt {
              * and usual discovery intervals etc.
              * </p>
              * <p>
-             * This adapter's HCISession instance is used for the HCI channel.
+             * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
              */
             bool startDiscovery(uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
@@ -387,7 +403,7 @@ namespace direct_bt {
             /**
              * Closes the discovery session.
              * <p>
-             * This adapter's HCISession instance is used for the HCI channel.
+             * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
              * @return true if no error, otherwise false.
              */
@@ -426,7 +442,7 @@ namespace direct_bt {
              * and guaranteed by the AD protocol.
              * </p>
              * <p>
-             * This adapter's HCISession instance is used for the HCI channel.
+             * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
              *
              * @return number of successfully scanned devices matching above criteria
@@ -451,7 +467,7 @@ namespace direct_bt {
 
             std::shared_ptr<DBTDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }
 
-            std::string toString() const;
+            std::string toString() const override;
     };
 
 } // namespace direct_bt

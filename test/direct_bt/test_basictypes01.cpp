@@ -7,6 +7,7 @@
 
 #include <direct_bt/BasicTypes.hpp>
 #include <direct_bt/BTAddress.hpp>
+#include <direct_bt/ClassFunction.hpp>
 
 using namespace direct_bt;
 
@@ -38,9 +39,51 @@ class Cppunit_tests : public Cppunit {
         CHECKTM(msg, str == expStr);
     }
 
+    int func2a_member(int i) {
+        int res = i+100;
+        return res;;
+    }
+    int func2b_member(int i) {
+        int res = i+1000;
+        return res;;
+    }
+
+    // template<typename R, typename... A>
+    typedef ClassFunction<int, int> MyClassFunction;
+
+    void test_FunctionPointer00(std::string msg, bool expEqual, int value, int expRes, MyClassFunction & f1, MyClassFunction &f2) {
+        // test std::function identity
+        PRINTM(msg+": FunctionPointer00 Fun f1p == f2p : " + std::to_string( f1 == f2 ) + ", f1p: " + f1.toString() + ", f2 "+f2.toString() );
+        int f1r = f1.invoke(value);
+        int f2r = f2.invoke(value);
+        PRINTM(msg+": FunctionPointer00 Res f1r == f2r : " + std::to_string( f1r == f2r ) + ", f1r: " + std::to_string( f1r ) + ", f2r "+std::to_string( f2r ) );
+        if( expEqual ) {
+            CHECKM(msg, f1r, expRes);
+            CHECKM(msg, f2r, expRes);
+            CHECKTM(msg, f1 == f2);
+        } else {
+            CHECKTM(msg, f1 != f2);
+        }
+    }
+
   public:
     void single_test() override {
 
+        {
+            // FunctionPointer(Cppunit_tests &base, Func1Type func)
+            MyClassFunction f2a_1 = bindClassFunction<int, Cppunit_tests, int>(this, &Cppunit_tests::func2a_member);
+            MyClassFunction f2a_2 = bindClassFunction(this, &Cppunit_tests::func2a_member);
+            test_FunctionPointer00("FuncPtr2a_member_11", true, 1, 101, f2a_1, f2a_1);
+            test_FunctionPointer00("FuncPtr2a_member_12", true, 1, 101, f2a_1, f2a_2);
+
+            MyClassFunction f2b_1 = bindClassFunction(this, &Cppunit_tests::func2b_member);
+            MyClassFunction f2b_2 = bindClassFunction(this, &Cppunit_tests::func2b_member);
+            test_FunctionPointer00("FuncPtr2b_member_11", true, 1, 1001, f2b_1, f2b_1);
+            test_FunctionPointer00("FuncPtr2b_member_12", true, 1, 1001, f2b_1, f2b_2);
+
+            test_FunctionPointer00("FuncPtr2ab_member_11", false, 1, 0, f2a_1, f2b_1);
+            test_FunctionPointer00("FuncPtr2ab_member_22", false, 1, 0, f2a_2, f2b_2);
+        }
         {
             test_int32_t("INT32_MIN", INT32_MIN, 14, "-2,147,483,648");
             test_int32_t("int32_t -thousand", -1000, 6, "-1,000");

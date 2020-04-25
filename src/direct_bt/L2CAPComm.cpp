@@ -70,7 +70,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     a.l2_psm = htobs(psm);
     a.l2_bdaddr = adapterAddress;
     a.l2_cid = htobs(cid);
-    a.l2_bdaddr_type = pubaddrAdapter ? L2CAPADDR_LE_PUBLIC : L2CAPADDR_LE_RANDOM;
+    a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
     if ( bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         perror("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
@@ -133,7 +133,7 @@ L2CAPComm::State L2CAPComm::connect() {
     req.l2_psm = htobs(psm);
     req.l2_bdaddr = device->getAddress();
     req.l2_cid = htobs(cid);
-    req.l2_bdaddr_type = pubaddr ? L2CAPADDR_LE_PUBLIC : L2CAPADDR_LE_RANDOM;
+    req.l2_bdaddr_type = pubaddr ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
 
     // may block if O_NONBLOCK has not been specified in open_dev(..)
     res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));

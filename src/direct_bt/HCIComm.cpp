@@ -104,6 +104,73 @@ void HCIComm::close() {
     _dd = -1;
 }
 
+int HCIComm::read(uint8_t* buffer, const int capacity) {
+    return read(buffer, capacity, timeoutMS);
+}
+int HCIComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
+    int len = 0;
+    if( 0 > _dd || 0 > capacity ) {
+        goto errout;
+    }
+    if( 0 == capacity ) {
+        goto done;
+    }
+
+    if( timeoutMS ) {
+        struct pollfd p;
+        int n;
+
+        p.fd = _dd; p.events = POLLIN;
+        while ((n = poll(&p, 1, timeoutMS)) < 0) {
+            if (errno == EAGAIN || errno == EINTR ) {
+                // cont temp unavail or interruption
+                continue;
+            }
+            goto errout;
+        }
+        if (!n) {
+            errno = ETIMEDOUT;
+            goto errout;
+        }
+    }
+
+    while ((len = ::read(_dd, buffer, capacity)) < 0) {
+        if (errno == EAGAIN || errno == EINTR ) {
+            // cont temp unavail or interruption
+            continue;
+        }
+        goto errout;
+    }
+
+done:
+    return len;
+
+errout:
+    return -1;
+}
+
+int HCIComm::write(const uint8_t* buffer, const int size) {
+    int len = 0;
+    if( 0 > _dd || 0 > size ) {
+        goto errout;
+    }
+    if( 0 == size ) {
+        goto done;
+    }
+
+    while( ( len = ::write(_dd, buffer, size) ) < 0 ) {
+        if( EAGAIN == errno || EINTR == errno ) {
+            continue;
+        }
+        goto errout;
+    }
+
+done:
+    return len;
+
+errout:
+    return -1;
+}
 
 bool HCIComm::send_cmd(const uint16_t opcode, const void *command, const uint8_t command_len)
 {
@@ -140,7 +207,7 @@ bool HCIComm::send_cmd(const uint16_t opcode, const void *command, const uint8_t
 	}
 #endif
 
-	while ( ( bw = writev(_dd, iv, ivn) ) < 0 ) {
+	while ( ( bw = ::writev(_dd, iv, ivn) ) < 0 ) {
 	    ERR_PRINT("hci_send_cmd: writev res %d, errno %d %s", bw, errno, strerror(errno));
 		if (errno == EAGAIN || errno == EINTR) {
 			continue;
@@ -226,7 +293,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 
 		int len;
 
-		while ((len = read(_dd, buf, sizeof(buf))) < 0) {
+		while ((len = ::read(_dd, buf, sizeof(buf))) < 0) {
 		    ERR_PRINT("hci_send_req: read: res %d, errno %d %s", len, errno, strerror(errno));
 			if (errno == EAGAIN || errno == EINTR) {
 				continue;

@@ -198,20 +198,20 @@ int main(int argc, char *argv[])
                     if( doHCI_LEConnect ) {
                         hciLEConnHandle = device->le_connect();
                         if( 0 == hciLEConnHandle ) {
-                            fprintf(stderr, "HCI LE Connection: Failed %s\n", device->toString().c_str());
+                            fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
                         } else {
-                            const uint64_t t3 = direct_bt::getCurrentMilliseconds();
-                            const uint64_t td0 = t3 - t0;
-                            const uint64_t td1 = t3 - t1;
-                            fprintf(stderr, "HCI LE Connect: Success\n");
-                            fprintf(stderr, "  hci connect-only %" PRIu64 " ms,\n"
-                                            "  discovered to hci-connected %" PRIu64 " ms,\n"
-                                            "  total %" PRIu64 " ms,\n"
-                                            "  handle 0x%X\n",
-                                            td1, (t3 - device->getCreationTimestamp()), td0, hciLEConnHandle);
+                            fprintf(stderr, "Connect: Success\n");
                         }
+                        const uint64_t t3 = direct_bt::getCurrentMilliseconds();
+                        const uint64_t td0 = t3 - t0;
+                        const uint64_t td1 = t3 - t1;
+                        fprintf(stderr, "  connect-only %" PRIu64 " ms,\n"
+                                        "  discovered to hci-connected %" PRIu64 " ms,\n"
+                                        "  total %" PRIu64 " ms,\n"
+                                        "  handle 0x%X\n",
+                                        td1, (t3 - device->getCreationTimestamp()), td0, hciLEConnHandle);
                     } else {
-                        fprintf(stderr, "HCI LE Connection: Skipped %s\n", device->toString().c_str());
+                        fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
                         hciLEConnHandle = 0;
                     }
 

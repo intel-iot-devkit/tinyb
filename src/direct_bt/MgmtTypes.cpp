@@ -46,7 +46,6 @@
 extern "C" {
     #include <inttypes.h>
     #include <unistd.h>
-    #include <poll.h>
 }
 
 using namespace direct_bt;
@@ -80,7 +79,7 @@ using namespace direct_bt;
     X(ALREADY_PAIRED) \
     X(PERMISSION_DENIED)
 
-std::string direct_bt::mgmt_get_status_string(const MgmtStatus opc) {
+std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
     switch(opc) {
         STATUS_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -164,7 +163,7 @@ std::string direct_bt::mgmt_get_status_string(const MgmtStatus opc) {
     X(SET_PHY_CONFIGURATION) \
     X(SET_BLOCKED_KEYS)
 
-std::string direct_bt::mgmt_get_operation_string(const MgmtOperation op) {
+std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
     switch(op) {
         OPERATION_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
@@ -227,132 +226,25 @@ std::string MgmtEvent::getOpcodeString(const Opcode opc) {
 MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) {
     const uint8_t opc = *buffer;
     switch( opc ) {
-        case CMD_COMPLETE:
+        case MgmtEvent::Opcode::CMD_COMPLETE:
             if( buffer_size >= MgmtEvtAdapterInfo::getRequiredSize() ) {
-                const MgmtRequest::Opcode opc = MgmtEvtCmdComplete::getReqOpcode(buffer);
-                if( MgmtRequest::Opcode::READ_INFO == opc ) {
+                const MgmtOpcode opc = MgmtEvtCmdComplete::getReqOpcode(buffer);
+                if( MgmtOpcode::READ_INFO == opc ) {
                     return new MgmtEvtAdapterInfo(buffer, buffer_size);
                 }
             }
             return new MgmtEvtCmdComplete(buffer, buffer_size);
-        case CMD_STATUS:
+        case MgmtEvent::Opcode::CMD_STATUS:
             return new MgmtEvtCmdStatus(buffer, buffer_size);
+        case MgmtEvent::Opcode::DISCOVERING:
+            return new MgmtEvtDiscovering(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_FOUND:
+            return new MgmtEvtDeviceFound(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_CONNECTED:
+            return new MgmtEvtDeviceConnected(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
+            return new MgmtEvtDeviceDisconnected(buffer, buffer_size);
         default:
             return new MgmtEvent(buffer, buffer_size);
     }
 }
-
-// *************************************************
-// *************************************************
-// *************************************************
-
-#undef OPCODE_ENUM
-#define OPCODE_ENUM(X) \
-    X(READ_VERSION) \
-    X(READ_COMMANDS) \
-    X(READ_INDEX_LIST) \
-    X(READ_INFO) \
-    X(SET_POWERED) \
-    X(SET_DISCOVERABLE) \
-    X(SET_CONNECTABLE) \
-    X(SET_FAST_CONNECTABLE) \
-    X(SET_BONDABLE) \
-    X(SET_LINK_SECURITY) \
-    X(SET_SSP) \
-    X(SET_HS) \
-    X(SET_LE) \
-    X(SET_DEV_CLASS) \
-    X(SET_LOCAL_NAME)
-
-std::string MgmtRequest::getOpcodeString(const Opcode opc) {
-    switch(opc) {
-        OPCODE_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Opcode";
-}
-
-int MgmtRequest::read(const int dd, uint8_t* buffer, const int capacity, const int timeoutMS) {
-    int len = 0;
-    if( 0 > dd || 0 > capacity ) {
-        goto errout;
-    }
-    if( 0 == capacity ) {
-        goto done;
-    }
-
-    if( timeoutMS ) {
-        struct pollfd p;
-        int n;
-
-        p.fd = dd; p.events = POLLIN;
-        while ((n = poll(&p, 1, timeoutMS)) < 0) {
-            if (errno == EAGAIN || errno == EINTR ) {
-                // cont temp unavail or interruption
-                continue;
-            }
-            goto errout;
-        }
-        if (!n) {
-            errno = ETIMEDOUT;
-            goto errout;
-        }
-    }
-
-    while ((len = ::read(dd, buffer, capacity)) < 0) {
-        if (errno == EAGAIN || errno == EINTR ) {
-            // cont temp unavail or interruption
-            continue;
-        }
-        goto errout;
-    }
-
-done:
-    return len;
-
-errout:
-    return -1;
-}
-
-int MgmtRequest::write(const int dd) {
-    int len = 0;
-    if( 0 > dd || 0 > pdu.getSize() ) {
-        goto errout;
-    }
-    if( 0 == pdu.getSize() ) {
-        goto done;
-    }
-
-    while( ( len = ::write(dd, pdu.get_ptr(), pdu.getSize()) ) < 0 ) {
-        if( EAGAIN == errno || EINTR == errno ) {
-            continue;
-        }
-        goto errout;
-    }
-
-done:
-    return len;
-
-errout:
-    return -1;
-}
-
-int MgmtRequest::send(const int dd, uint8_t* buffer, const int capacity, const int timeoutMS)
-{
-    int len;
-
-    if ( write(dd) < 0 ) {
-        perror("MgmtRequest::write: error");
-        goto failed;
-    }
-
-    if( ( len = read(dd, buffer, capacity, timeoutMS) ) < 0 ) {
-        perror("MgmtRequest::read: error");
-        goto failed;
-    }
-    return len;
-
-failed:
-    return -1;
-}
-

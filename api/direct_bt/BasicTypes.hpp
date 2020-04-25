@@ -48,12 +48,12 @@ namespace direct_bt {
 
     class RuntimeException : public std::exception {
       protected:
+        std::string msg;
+
         RuntimeException(std::string const type, std::string const m, const char* file, int line) noexcept
         : msg(std::string(type).append(" @ ").append(file).append(":").append(std::to_string(line)).append(": ").append(m)) { }
 
       public:
-        const std::string msg;
-
         RuntimeException(std::string const m, const char* file, int line) noexcept
         : RuntimeException("RuntimeException", m, file, line) {}
 
@@ -241,6 +241,11 @@ namespace direct_bt {
         uint8_t const * p = (uint8_t const *) ( buffer + byte_offset );
         return *p;
     }
+    inline int8_t get_int8(uint8_t const * buffer, int const byte_offset)
+    {
+        int8_t const * p = (int8_t const *) ( buffer + byte_offset );
+        return *p;
+    }
     inline void put_uint16(uint8_t * buffer, int const byte_offset, const uint16_t v)
     {
         uint16_t * p = (uint16_t *) ( buffer + byte_offset );
@@ -360,10 +365,11 @@ namespace direct_bt {
      */
     uint128_t merge_uint128(uint32_t const uuid32, uint128_t const & base_uuid, int const uuid32_le_octet_index);
 
-    std::string uint8HexString(const uint8_t v, const bool leading0X);
-    std::string uint16HexString(const uint16_t v, const bool leading0X);
-    std::string uint32HexString(const uint32_t v, const bool leading0X);
-    std::string uint64HexString(const uint64_t v, const bool leading0X);
+    std::string uint8HexString(const uint8_t v, const bool leading0X=true);
+    std::string uint16HexString(const uint16_t v, const bool leading0X=true);
+    std::string uint32HexString(const uint32_t v, const bool leading0X=true);
+    std::string uint64HexString(const uint64_t v, const bool leading0X=true);
+    std::string aptrHexString(const void * v, const bool leading0X=true);
 
     /**
      * If lsbFirst is true, orders LSB left -> MSB right, usual for byte streams.

@@ -100,6 +100,13 @@ namespace direct_bt {
 
     typedef std::shared_ptr<GATTPrimaryService> GATTPrimaryServiceRef;
 
+
+    /**
+     * A thread safe GATT handler.
+     * <p>
+     * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
+     * </p>
+     */
     class GATTHandler {
         public:
             enum State : int {
@@ -129,6 +136,7 @@ namespace direct_bt {
             static std::string getStateString(const State state);
 
        private:
+            std::recursive_mutex mtx_write;
             POctets rbuffer;
 
             State state;

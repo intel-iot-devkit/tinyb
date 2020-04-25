@@ -40,8 +40,10 @@
 
 using namespace direct_bt;
 
+#define USE_BT_MGMT 1
+
 DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
-: adapter(a), ts_creation(r.getTimestamp()), mac(r.getAddress())
+: adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
     if( !r.isSet(EInfoReport::Element::BDADDR) ) {
         throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
@@ -56,7 +58,7 @@ DBTDevice::~DBTDevice() {
 }
 
 std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
-    const std::shared_ptr<DBTDevice> myself = adapter.findDiscoveredDevice(mac);
+    const std::shared_ptr<DBTDevice> myself = adapter.findDiscoveredDevice(address);
     if( nullptr == myself ) {
         throw InternalError("HCIDevice: Not present in HCIAdapter: "+toString(), E_FILE_LINE);
     }
@@ -93,8 +95,8 @@ int DBTDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
 std::string DBTDevice::toString() const {
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-    std::string out("Device["+getAddressString()+", '"+getName()+
-            "', age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
+    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+getName()+
+            "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+", "+msdstr+", "+javaObjectToString()+"]");
     if(services.size() > 0 ) {
         out.append("\n");
@@ -145,7 +147,12 @@ uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
         ERR_PRINT("DBTDevice::connect: Already connected");
         return 0;
     }
+#ifdef USE_BT_MGMT
 
+    DBTManager & mngr = adapter.getManager();
+    leConnHandle = mngr.create_connection(adapter.dev_id, address, addressType);
+
+#else
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::connect: Not opened");
@@ -153,7 +160,7 @@ uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
     }
 
     leConnHandle = session->hciComm.le_create_conn(
-                        mac, peer_mac_type, own_mac_type,
+                        address, peer_mac_type, own_mac_type,
                         interval, window, min_interval, max_interval, latency, supervision_timeout,
                         min_ce_length, max_ce_length, initiator_filter);
 
@@ -163,6 +170,7 @@ uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->connectedLE(thisDevice);
+#endif
 
     return leConnHandle;
 }
@@ -173,6 +181,11 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
         return;
     }
 
+#ifdef USE_BT_MGMT
+    DBTManager & mngr = adapter.getManager();
+    mngr.disconnect(adapter.dev_id, address, addressType);
+
+#else
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         DBG_PRINT("DBTDevice::disconnect: Not opened");
@@ -186,5 +199,6 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->disconnectedLE(thisDevice);
+#endif
 }
 

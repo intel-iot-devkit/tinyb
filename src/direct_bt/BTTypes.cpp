@@ -35,6 +35,21 @@
 
 #include "BTTypes.hpp"
 
+#define CHAR_DECL_BDADDRESSTYPE_ENUM(X) \
+        X(BDADDR_BREDR) \
+        X(BDADDR_LE_PUBLIC) \
+        X(BDADDR_LE_RANDOM) \
+        X(BDADDR_UNDEFINED)
+
+#define CASE_TO_STRING(V) case V: return #V;
+
+std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
+    switch(type) {
+    CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown address type";
+}
 
 std::string EUI48::toString() const {
     const int length = 17;
@@ -93,14 +108,13 @@ static std::string bt_compidtostr(const uint16_t companyid) {
 }
 
 ManufactureSpecificData::ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len)
-: company(company), companyName(std::string(bt_compidtostr(company))), data_len(data_len), data(new uint8_t[data_len]) {
-    memcpy(this->data.get(), data, data_len);
+: company(company), companyName(std::string(bt_compidtostr(company))), data(data, data_len) {
 }
 
 std::string ManufactureSpecificData::toString() const {
-  std::string out("MSD[");
+  std::string out("MSD[company[");
   out.append(std::to_string(company)+" "+companyName);
-  out.append(", data "+std::to_string(data_len)+" bytes]");
+  out.append("], data["+data.toString()+"]]");
   return out;
 }
 
@@ -139,27 +153,62 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
 }
 
 std::string EInfoReport::dataSetToString(const uint32_t data_set) {
+    bool has_pre = false;
     std::string out("[");
     if( isSet(data_set, Element::EVT_TYPE) ) {
-        out.append("EVT_TYPE, ");
+        out.append("EVT_TYPE"); has_pre = true;
+    }
+    if( isSet(data_set, Element::BDADDR_TYPE) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("BDADDR_TYPE"); has_pre = true;
     }
     if( isSet(data_set, Element::BDADDR) ) {
-        out.append("BDADDR, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("BDADDR"); has_pre = true;
+    }
+    if( isSet(data_set, Element::FLAGS) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("FLAGS"); has_pre = true;
     }
     if( isSet(data_set, Element::NAME) ) {
-        out.append("NAME, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("NAME"); has_pre = true;
     }
     if( isSet(data_set, Element::NAME_SHORT) ) {
-        out.append("NAME_SHORT, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("NAME_SHORT"); has_pre = true;
     }
     if( isSet(data_set, Element::RSSI) ) {
-        out.append("RSSI, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("RSSI"); has_pre = true;
     }
     if( isSet(data_set, Element::TX_POWER) ) {
-        out.append("TX_POWER, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("TX_POWER"); has_pre = true;
     }
     if( isSet(data_set, Element::MANUF_DATA) ) {
-        out.append("MANUF_DATA, ");
+        if( has_pre ) { out.append(", "); }
+        out.append("MANUF_DATA"); has_pre = true;
+    }
+    if( isSet(data_set, Element::DEVICE_CLASS) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("DEVICE_CLASS"); has_pre = true;
+    }
+    if( isSet(data_set, Element::APPEARANCE) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("APPEARANCE"); has_pre = true;
+    }
+    if( isSet(data_set, Element::HASH) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("HASH"); has_pre = true;
+    }
+    if( isSet(data_set, Element::RANDOMIZER) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("RANDOMIZER"); has_pre = true;
+    }
+    if( isSet(data_set, Element::DEVICE_ID) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("DEVICE_ID"); has_pre = true;
     }
     out.append("]");
     return out;
@@ -169,9 +218,21 @@ std::string EInfoReport::dataSetToString() const {
 }
 std::string EInfoReport::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-    std::string out("EInfoReport::"+getSourceString()+"["+getAddressString()+", "+name+"/"+name_short+", "+dataSetToString()+
+    std::string out("EInfoReport::"+getSourceString()+
+                    "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+"'/'"+name_short+
+                    "'], "+dataSetToString()+
                     ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
-                    ", tx-power "+std::to_string(tx_power)+", "+msdstr+"]");
+                    ", tx-power "+std::to_string(tx_power)+
+                    ", dev-class "+uint32HexString(device_class, true)+
+                    ", appearance "+uint16HexString(appearance, true)+
+                    ", hash["+hash.toString()+
+                    "], randomizer["+randomizer.toString()+
+                    "], device-id[source "+uint16HexString(did_source, true)+
+                    ", vendor "+uint16HexString(did_vendor, true)+
+                    ", product "+uint16HexString(did_product, true)+
+                    ", version "+uint16HexString(did_version, true)+
+                    "], "+msdstr+"]");
+
     if(services.size() > 0 ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
@@ -215,16 +276,20 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
     uint8_t elem_len, elem_type;
     uint8_t const *elem_data;
 
+    setTxPower(127); /* magic default ?? */
+
     while( 0 < ( offset = next_data_elem( &elem_len, &elem_type, &elem_data, data, offset, data_length ) ) )
     {
         DBG_PRINT("%s-Element[%d] @ [%d/%d]: type 0x%.2X with %d bytes net",
                 getSourceString().c_str(), count, offset, data_length, elem_type, elem_len);
         count++;
 
-        // Guaranteed: eir_elem_len >= 0!
+        // Guaranteed: elem_len >= 0!
         switch ( elem_type ) {
             case GAP_T::FLAGS:
-                // FIXME
+                if( 1 <= elem_len ) {
+                    setFlags(*const_uint8_to_const_int8_ptr(elem_data));
+                }
                 break;
             case GAP_T::UUID16_INCOMPLETE:
             case GAP_T::UUID16_COMPLETE:
@@ -248,40 +313,68 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
                 }
                 break;
             case GAP_T::NAME_LOCAL_SHORT:
-            case GAP_T::NAME_LOCAL_COMPLETE: {
-                if( GAP_T::NAME_LOCAL_COMPLETE == elem_type ) {
-                    setName(elem_data, elem_len);
-                } else {
-                    setShortName(elem_data, elem_len);
-                }
-            } break;
+                setShortName(elem_data, elem_len);
+                break;
+            case GAP_T::NAME_LOCAL_COMPLETE:
+                setName(elem_data, elem_len);
+                break;
             case GAP_T::TX_POWER_LEVEL:
-                setTxPower(*const_uint8_to_const_int8_ptr(elem_data));
+                if( 1 <= elem_len ) {
+                    setTxPower(*const_uint8_to_const_int8_ptr(elem_data));
+                }
                 break;
 
             case GAP_T::SSP_CLASS_OF_DEVICE:
+                if( 3 <= elem_len ) {
+                    setDeviceClass(  elem_data[0] |
+                                   ( elem_data[1] << 8 ) |
+                                   ( elem_data[2] << 16 ) );
+                }
+                break;
             case GAP_T::DEVICE_ID:
+                if( 8 <= elem_len ) {
+                    setDeviceID(
+                        data[0] | ( data[1] << 8 ), // source
+                        data[2] | ( data[3] << 8 ), // vendor
+                        data[4] | ( data[5] << 8 ), // product
+                        data[6] | ( data[7] << 8 )); // version
+                }
+                break;
             case GAP_T::SOLICIT_UUID16:
             case GAP_T::SOLICIT_UUID128:
             case GAP_T::SVC_DATA_UUID16:
             case GAP_T::PUB_TRGT_ADDR:
             case GAP_T::RND_TRGT_ADDR:
             case GAP_T::GAP_APPEARANCE:
+                if( 2 <= elem_len ) {
+                    setAppearance(get_uint16(elem_data, 0, true /* littleEndian */));
+                }
+                break;
+            case SSP_HASH_C192:
+                if( 16 <= elem_len ) {
+                    setHash(elem_data);
+                }
+                break;
+            case SSP_RANDOMIZER_R192:
+                if( 16 <= elem_len ) {
+                    setRandomizer(elem_data);
+                }
+                break;
             case GAP_T::SOLICIT_UUID32:
             case GAP_T::SVC_DATA_UUID32:
             case GAP_T::SVC_DATA_UUID128:
                 break;
-
-            case GAP_T::MANUFACTURE_SPECIFIC: {
-                uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
-                setManufactureSpecificData(company, elem_data+2, elem_len-2);
-            } break;
-
-            default: {
+            case GAP_T::MANUFACTURE_SPECIFIC:
+                if( 2 <= elem_len ) {
+                    uint16_t company = get_uint16(elem_data, 0, true /* littleEndian */);
+                    setManufactureSpecificData(company, elem_data+2, elem_len-2);
+                }
+                break;
+            default:
                 // FIXME: Use a data blob!!!!
                 fprintf(stderr, "%s-Element @ [%d/%d]: Warning: Unhandled type 0x%.2X with %d bytes net\n",
                         getSourceString().c_str(), offset, data_length, elem_type, elem_len);
-            } break;
+                break;
         }
     }
     return count;
@@ -310,7 +403,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports[i]->setAddressType(*i_octets++);
+        ad_reports[i]->setAddressType(static_cast<BDAddressType>(*i_octets++));
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {

@@ -93,16 +93,22 @@ namespace direct_bt {
      *
      * +++
      *
-     * Couldn't yet find a reference to the L2CAP Address Type, which differs from HCI Address Type!
+     * Couldn't yet find a reference to the BDADDR/L2CAP Address Type, which differs from HCI Address Type!
      */
-    enum Address_T : uint8_t {
+    enum BDAddressType : uint8_t {
+        BDADDR_BREDR      = 0x00,
+        BDADDR_LE_PUBLIC  = 0x01,
+        BDADDR_LE_RANDOM  = 0x02,
+        BDADDR_UNDEFINED  = 0xff
+    };
+
+    enum HCIAddressType : uint8_t {
         HCIADDR_LE_PUBLIC = 0x00,
         HCIADDR_LE_RANDOM = 0x01,
-
-        L2CAPADDR_BREDR      = 0x00,
-        L2CAPADDR_LE_PUBLIC  = 0x01,
-        L2CAPADDR_LE_RANDOM  = 0x02
+        HCIADDR_UNDEFINED = 0xff
     };
+
+    std::string getBDAddressTypeString(const BDAddressType op);
 
 } // namespace direct_bt
 

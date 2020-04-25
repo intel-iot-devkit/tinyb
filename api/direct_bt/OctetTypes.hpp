@@ -35,6 +35,10 @@
 #include <mutex>
 #include <atomic>
 
+#include "BasicTypes.hpp"
+#include "UUID.hpp"
+#include "BTAddress.hpp"
+
 namespace direct_bt {
 
     /**
@@ -75,6 +79,10 @@ namespace direct_bt {
                 check_range(i, 1);
                 return _data[i];
             }
+            int8_t get_int8(const int i) const {
+                check_range(i, 1);
+                return direct_bt::get_int8(_data, i);
+            }
 
             uint16_t get_uint16(const int i) const {
                 check_range(i, 2);
@@ -84,6 +92,11 @@ namespace direct_bt {
             uint32_t get_uint32(const int i) const {
                 check_range(i, 4);
                 return direct_bt::get_uint32(_data, i, true /* littleEndian */);
+            }
+
+            EUI48 get_eui48(const int i) const {
+                check_range(i, sizeof(EUI48));
+                return EUI48(_data+i);
             }
 
             uuid16_t get_uuid16(const int i) const {
@@ -140,6 +153,11 @@ namespace direct_bt {
             void put_uint32(const int i, const uint32_t v) {
                 check_range(i, 4);
                 direct_bt::put_uint32(data(), i, v, true /* littleEndian */);
+            }
+
+            void put_eui48(const int i, const EUI48 & v) {
+                check_range(i, sizeof(v.b));
+                memcpy(data() + i, v.b, sizeof(v.b));
             }
 
             void put_uuid(const int i, const uuid_t & v) {
@@ -341,7 +359,7 @@ namespace direct_bt {
             }
 
             std::string toString() const {
-                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+": "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
+                return "size "+std::to_string(getSize())+", capacity "+std::to_string(getCapacity())+", l->h: "+bytesHexString(get_ptr(), 0, getSize(), true /* lsbFirst */, true /* leading0X */);
             }
     };
 
