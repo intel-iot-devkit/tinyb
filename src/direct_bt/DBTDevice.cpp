@@ -136,7 +136,7 @@ void DBTDevice::update(EInfoReport const & data) {
     addServices(data.getServices());
 }
 
-uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
+uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,
         uint16_t latency, uint16_t supervision_timeout,
@@ -150,9 +150,9 @@ uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
 #ifdef USE_BT_MGMT
 
     DBTManager & mngr = adapter.getManager();
-    leConnHandle = mngr.create_connection(adapter.dev_id, address, addressType);
+    mngr.create_connection(adapter.dev_id, address, addressType); // A NOP
 
-#else
+#endif
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::connect: Not opened");
@@ -170,7 +170,6 @@ uint16_t DBTDevice::le_connect(uint8_t peer_mac_type, uint8_t own_mac_type,
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->connectedLE(thisDevice);
-#endif
 
     return leConnHandle;
 }
@@ -181,11 +180,6 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
         return;
     }
 
-#ifdef USE_BT_MGMT
-    DBTManager & mngr = adapter.getManager();
-    mngr.disconnect(adapter.dev_id, address, addressType);
-
-#else
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         DBG_PRINT("DBTDevice::disconnect: Not opened");
@@ -197,8 +191,13 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
     if( !session->hciComm.le_disconnect(_leConnHandle, reason) ) {
         DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _leConnHandle, errno, strerror(errno));
     }
+
+#ifdef USE_BT_MGMT
+    DBTManager & mngr = adapter.getManager();
+    mngr.disconnect(adapter.dev_id, address, addressType); // actual disconnect cmd
+#endif
+
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->disconnectedLE(thisDevice);
-#endif
 }
 

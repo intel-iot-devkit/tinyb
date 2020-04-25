@@ -255,7 +255,8 @@ namespace direct_bt {
              * and usual connection latency, interval etc.
              * </p>
              */
-            uint16_t le_connect(const uint8_t peer_mac_type=HCIADDR_LE_PUBLIC, const uint8_t own_mac_type=HCIADDR_LE_PUBLIC,
+            uint16_t le_connect(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 const uint16_t interval=0x0004, const uint16_t window=0x0004,
                                 const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
                                 const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,

@@ -177,8 +177,8 @@ bool DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
             break;
     }
 
-    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 1);
-    // setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 1); // ??
+    setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
+    setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
     return true;
 
