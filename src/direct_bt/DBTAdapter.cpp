@@ -56,6 +56,11 @@ using namespace direct_bt;
 
 std::atomic_int HCISession::name_counter(0);
 
+HCISession::HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS)
+: adapter(&a), hciComm(a.dev_id, channel, timeoutMS),
+  name(name_counter.fetch_add(1))
+{}
+
 void HCISession::connected(std::shared_ptr<DBTDevice> & device) {
     connectedDevices.push_back(device);
 }
