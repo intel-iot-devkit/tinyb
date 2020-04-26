@@ -67,9 +67,9 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     // BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
     bzero((void *)&a, sizeof(a));
     a.l2_family=AF_BLUETOOTH;
-    a.l2_psm = htobs(psm);
+    a.l2_psm = cpu_to_le(psm);
     a.l2_bdaddr = adapterAddress;
-    a.l2_cid = htobs(cid);
+    a.l2_cid = cpu_to_le(cid);
     a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
     if ( bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
         perror("L2CAPComm::l2cap_open_dev: bind failed");
@@ -130,9 +130,9 @@ L2CAPComm::State L2CAPComm::connect() {
     // actual request to connect to remote device
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
-    req.l2_psm = htobs(psm);
+    req.l2_psm = cpu_to_le(psm);
     req.l2_bdaddr = device->getAddress();
-    req.l2_cid = htobs(cid);
+    req.l2_cid = cpu_to_le(cid);
     req.l2_bdaddr_type = pubaddr ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
 
     // may block if O_NONBLOCK has not been specified in open_dev(..)

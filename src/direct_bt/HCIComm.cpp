@@ -184,7 +184,7 @@ bool HCIComm::send_cmd(const uint16_t opcode, const void *command, const uint8_t
 	int ivn;
 	int bw=0;
 
-	hc.opcode = htobs(opcode);
+	hc.opcode = cpu_to_le(opcode);
 	hc.plen= command_len;
 
 	iv[0].iov_base = (void*)&type;
@@ -229,7 +229,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
         return false;
     }
 	uint8_t buf[HCI_MAX_EVENT_SIZE];
-	const uint16_t opcode_le16 = htobs(opcode);
+	const uint16_t opcode_le16 = cpu_to_le(opcode);
 	hci_ufilter nf, of;
 	socklen_t olen;
 	int err, tryCount=0;

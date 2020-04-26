@@ -214,9 +214,9 @@ namespace direct_bt {
             {
                 checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
 
-                pdu.put_uint16(0, htobs(opc));
-                pdu.put_uint16(2, htobs(dev_id));
-                pdu.put_uint16(4, htobs(param_size));
+                pdu.put_uint16(0, opc);
+                pdu.put_uint16(2, dev_id);
+                pdu.put_uint16(4, param_size);
             }
             MgmtCommand(const MgmtOpcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
             : MgmtCommand(opc, dev_id, param_size)
@@ -261,10 +261,10 @@ namespace direct_bt {
     {
         public:
             MgmtDisconnectCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
-            : MgmtCommand(MgmtOpcode::DISCONNECT, dev_id, 7)
+            : MgmtCommand(MgmtOpcode::DISCONNECT, dev_id, 6+1)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
-                pdu.put_uint8(MGMT_HEADER_SIZE+1, addressType);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
             }
     };
 
