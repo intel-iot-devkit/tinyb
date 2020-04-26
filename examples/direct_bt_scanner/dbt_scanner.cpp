@@ -106,6 +106,7 @@ class MyGATTIndicationListener : public direct_bt::GATTIndicationListener {
 int main(int argc, char *argv[])
 {
     bool ok = true, done=false;
+    int dev_id = 0; // default
     bool waitForEnter=false;
     EUI48 waitForDevice = EUI48_ANY_DEVICE;
 
@@ -125,6 +126,8 @@ int main(int argc, char *argv[])
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
+        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
+            dev_id = atoi(argv[++i]);
         } else if( !strcmp("-skipConnect", argv[i]) ) {
             doHCI_Connect = false;
         } else if( !strcmp("-keepDiscoveryAlive", argv[i]) ) {
@@ -134,7 +137,8 @@ int main(int argc, char *argv[])
             waitForDevice = EUI48(macstr);
         }
     }
-    fprintf(stderr, "doHCI_LEConnect %d\n", doHCI_Connect);
+    fprintf(stderr, "dev_id %d\n", dev_id);
+    fprintf(stderr, "doHCI_Connect %d\n", doHCI_Connect);
     fprintf(stderr, "keepDiscoveryAlive %d\n", keepDiscoveryAlive);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
@@ -143,7 +147,7 @@ int main(int argc, char *argv[])
         getchar();
     }
 
-    direct_bt::DBTAdapter adapter; // default
+    direct_bt::DBTAdapter adapter(dev_id);
     if( !adapter.hasDevId() ) {
         fprintf(stderr, "Default adapter not available.\n");
         exit(1);
@@ -152,8 +156,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Adapter invalid.\n");
         exit(1);
     }
-    fprintf(stderr, "Adapter: device %s, address %s\n", 
-        adapter.getName().c_str(), adapter.getAddressString().c_str());
+    fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
+        adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
 
     adapter.setDeviceStatusListener(std::shared_ptr<direct_bt::DBTDeviceStatusListener>(new DeviceStatusListener()));
 
