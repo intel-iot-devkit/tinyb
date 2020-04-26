@@ -59,7 +59,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
                   BTPROTO_L2CAP);
 
     if( 0 > dd ) {
-        perror("L2CAPComm::l2cap_open_dev: socket failed");
+        ERR_PRINT("L2CAPComm::l2cap_open_dev: socket failed");
         return dd;
     }
 
@@ -72,7 +72,7 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
     a.l2_cid = cpu_to_le(cid);
     a.l2_bdaddr_type = pubaddrAdapter ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
     if ( bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0 ) {
-        perror("L2CAPComm::l2cap_open_dev: bind failed");
+        ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
     }
 
@@ -148,7 +148,7 @@ L2CAPComm::State L2CAPComm::connect() {
 
     } else  {
         // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
-        perror("L2CAPComm::connect: connect failed");
+        ERR_PRINT("L2CAPComm::connect: connect failed");
         goto failure;
     }
 

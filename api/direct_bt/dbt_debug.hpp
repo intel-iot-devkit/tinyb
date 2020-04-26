@@ -54,7 +54,7 @@ extern "C" {
     #define PERF_TS_TD(m)
 #endif
 
-#define ERR_PRINT(...) { fprintf(stderr, "Error @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "; last errno %s\n", strerror(errno)); fflush(stderr); }
+#define ERR_PRINT(...) { fprintf(stderr, "Error @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno)); fflush(stderr); }
 
 #define WARN_PRINT(...) { fprintf(stderr, "Warning @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
 

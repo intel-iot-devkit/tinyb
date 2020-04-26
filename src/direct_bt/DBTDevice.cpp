@@ -170,7 +170,7 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
                         min_ce_length, max_ce_length, initiator_filter);
 
     if ( 0 == connHandle ) {
-        ERR_PRINT("DBTDevice::le_connect: Could not create connection: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("DBTDevice::le_connect: Could not create connection");
         return 0;
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
@@ -203,7 +203,7 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
     connHandle = session->hciComm.create_conn(address, pkt_type, clock_offset, role_switch);
 
     if ( 0 == connHandle ) {
-        ERR_PRINT("DBTDevice::connect: Could not create connection: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("DBTDevice::connect: Could not create connection");
         return 0;
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();

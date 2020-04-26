@@ -107,7 +107,7 @@ void GATTHandler::l2capReaderThreadImpl() {
         int len;
         if( Disconnected >= validateState() ) {
             // not open
-            perror("GATTHandler::l2capReaderThread: Not connected");
+            ERR_PRINT("GATTHandler::l2capReaderThread: Not connected");
             l2capReaderShallStop = true;
             break;
         }
@@ -150,7 +150,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            perror("GATTHandler::l2capReaderThread: l2cap read error");
+            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error");
         }
     }
 
@@ -174,7 +174,7 @@ static void gatthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
         if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            perror("GATTHandler.sigaction: Resetting sighandler");
+            ERR_PRINT("GATTHandler.sigaction: Resetting sighandler");
         }
     }
 }
@@ -199,7 +199,7 @@ bool GATTHandler::connect() {
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = SA_SIGINFO;
         if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            perror("GATTHandler.connect: Setting sighandler");
+            ERR_PRINT("GATTHandler.connect: Setting sighandler");
         }
     }
     l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
@@ -258,7 +258,7 @@ bool GATTHandler::send(const AttPDUMsg &msg) {
 
     const int res = l2cap->write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        perror("GATTHandler::send: l2cap write error");
+        ERR_PRINT("GATTHandler::send: l2cap write error");
         state = Error;
         return false;
     }

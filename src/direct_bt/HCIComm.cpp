@@ -59,14 +59,14 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
 	 * dev_id is unsigned and hence always >= 0
 	if ( 0 > dev_id ) {
 		errno = ENODEV;
-		ERR_PRINT("hci_open_dev: invalid dev_id errno %d %s", errno, strerror(errno));
+		ERR_PRINT("hci_open_dev: invalid dev_id");
 		return -1;
 	} */
 
 	// Create a loose HCI socket
 	dd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
 	if (0 > dd ) {
-	    perror("HCIComm::hci_open_dev: socket failed");
+        ERR_PRINT("HCIComm::hci_open_dev: socket failed");
 		return dd;
 	}
 
@@ -76,7 +76,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
 	a.hci_dev = dev_id;
 	a.hci_channel = channel;
 	if (bind(dd, (struct sockaddr *) &a, sizeof(a)) < 0) {
-	    ERR_PRINT("hci_open_dev: bind failed errno %d %s", errno, strerror(errno));
+	    ERR_PRINT("hci_open_dev: bind failed");
 		goto failed;
 	}
 
@@ -208,7 +208,7 @@ bool HCIComm::send_cmd(const uint16_t opcode, const void *command, const uint8_t
 #endif
 
 	while ( ( bw = ::writev(_dd, iv, ivn) ) < 0 ) {
-	    ERR_PRINT("hci_send_cmd: writev res %d, errno %d %s", bw, errno, strerror(errno));
+	    ERR_PRINT("hci_send_cmd: writev res %d", bw);
 		if (errno == EAGAIN || errno == EINTR) {
 			continue;
 		}
@@ -238,7 +238,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 
 	olen = sizeof(of);
 	if (getsockopt(_dd, SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-	    ERR_PRINT("hci_send_req: errno %d %s", errno, strerror(errno));
+	    ERR_PRINT("hci_send_req");
 		return false;
 	}
 
@@ -252,14 +252,14 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 	}
 	filter_set_opcode(opcode_le16, &nf);
 	if (setsockopt(_dd, SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
-	    ERR_PRINT("hci_send_req: errno %d %s", errno, strerror(errno));
+	    ERR_PRINT("hci_send_req");
 		return false;
 	}
 
     int _timeoutMS = timeoutMS;
 
 	if ( !send_cmd(opcode, command, command_len) ) {
-	    ERR_PRINT("hci_send_req: errno %d %s", errno, strerror(errno));
+	    ERR_PRINT("hci_send_req");
 		goto failed;
 	}
 
@@ -272,7 +272,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 
 			p.fd = _dd; p.events = POLLIN;
 			while ((n = poll(&p, 1, _timeoutMS)) < 0) {
-			    ERR_PRINT("hci_send_req: poll: errno %d %s", errno, strerror(errno));
+			    ERR_PRINT("hci_send_req: poll");
 				if (errno == EAGAIN || errno == EINTR) {
 					continue;
 				}
@@ -294,7 +294,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 		int len;
 
 		while ((len = ::read(_dd, buf, sizeof(buf))) < 0) {
-		    ERR_PRINT("hci_send_req: read: res %d, errno %d %s", len, errno, strerror(errno));
+		    ERR_PRINT("hci_send_req: read: res %d", len);
 			if (errno == EAGAIN || errno == EINTR) {
 				continue;
 			}
@@ -472,13 +472,13 @@ bool HCIComm::le_set_scan_enable(const uint8_t enable, const uint8_t filter_dup)
     if( !send_req( hci_opcode_pack(OGF_LE_CTL, HCI_OP_LE_SET_SCAN_ENABLE), &cp, sizeof(cp),
                    0, &status, sizeof(status) ) )
     {
-        ERR_PRINT("hci_le_set_scan_enable(%d): errno %d %s", enable, errno, strerror(errno));
+        ERR_PRINT("hci_le_set_scan_enable(%d)", enable);
         return false;
     }
 
 	if (status) {
 		errno = EIO;
-		ERR_PRINT("hci_le_set_scan_enable(%d): error status 0x%2.2X, errno %d %s", enable, status, errno, strerror(errno));
+		ERR_PRINT("hci_le_set_scan_enable(%d): error status 0x%2.2X", enable, status);
 		return false;
 	}
 	return true;
@@ -506,13 +506,13 @@ bool HCIComm::le_set_scan_parameters(const uint8_t type, const uint16_t interval
     if( !send_req( hci_opcode_pack(OGF_LE_CTL, HCI_OP_LE_SET_SCAN_PARAM), &cp, sizeof(cp),
                    0, &status, sizeof(status) ) )
     {
-        ERR_PRINT("hci_le_set_scan_parameters: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("hci_le_set_scan_parameters");
         return false;
     }
 
 	if (status) {
 		errno = EIO;
-        ERR_PRINT("hci_le_set_scan_parameters: error status 0x%2.2X, errno %d %s", status, errno, strerror(errno));
+        ERR_PRINT("hci_le_set_scan_parameters: error status 0x%2.2X", status);
 		return false;
 	}
 
@@ -530,7 +530,7 @@ void HCIComm::le_disable_scan() {
     const uint8_t filter_dup = 0x01;
 
     if( !le_set_scan_enable(0x00, filter_dup) ) {
-        perror("Stop scan failed");
+        ERR_PRINT("Stop scan failed");
     } else {
         le_scanning = false;
     }
@@ -555,13 +555,13 @@ bool HCIComm::le_enable_scan(const HCIAddressType own_type,
     bool ok = le_set_scan_parameters(scan_type, interval, window,
                                      own_type, filter_policy);
     if ( !ok ) {
-        perror("Set scan parameters failed");
+        ERR_PRINT("Set scan parameters failed");
         return false;
     }
 
     ok = le_set_scan_enable(0x01, filter_dup);
     if ( !ok ) {
-        perror("Start scan failed");
+        ERR_PRINT("Start scan failed");
         return false;
     }
     le_scanning = true;
@@ -602,13 +602,13 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
     if( !send_req( hci_opcode_pack(OGF_LE_CTL, HCI_OP_LE_CREATE_CONN), &cp, sizeof(cp),
                    HCI_EV_LE_CONN_COMPLETE, &rp, sizeof(rp) ) )
     {
-        ERR_PRINT("hci_le_create_conn: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("hci_le_create_conn");
         return 0;
     }
 
 	if (rp.status) {
 		errno = EIO;
-        ERR_PRINT("hci_le_create_conn: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
+        ERR_PRINT("hci_le_create_conn: error status 0x%2.2X", rp.status);
 		return 0;
 	}
 	return rp.handle;
@@ -636,13 +636,13 @@ uint16_t HCIComm::create_conn(const EUI48 &bdaddr, const uint16_t pkt_type,
     if( !send_req( hci_opcode_pack(OGF_LINK_CTL, HCI_OP_CREATE_CONN), &cp, sizeof(cp),
                    HCI_EV_CONN_COMPLETE, &rp, sizeof(rp) ) )
     {
-        ERR_PRINT("hci_create_conn: errno %d %s", errno, strerror(errno));
+        ERR_PRINT("hci_create_conn");
         return 0;
     }
 
     if (rp.status) {
         errno = EIO;
-        ERR_PRINT("hci_create_conn: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
+        ERR_PRINT("hci_create_conn: error status 0x%2.2X", rp.status);
         return 0;
     }
     return rp.handle;

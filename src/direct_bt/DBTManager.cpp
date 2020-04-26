@@ -61,7 +61,7 @@ void DBTManager::mgmtReaderThreadImpl() {
         int len;
         if( !comm.isOpen() ) {
             // not open
-            perror("DBTManager::reader: Not connected");
+            ERR_PRINT("DBTManager::reader: Not connected");
             mgmtReaderShallStop = true;
             break;
         }
@@ -88,7 +88,7 @@ void DBTManager::mgmtReaderThreadImpl() {
                 }
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
-            perror("DBTManager::reader: HCIComm error");
+            ERR_PRINT("DBTManager::reader: HCIComm error");
         }
     }
 
@@ -112,7 +112,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
         if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            perror("DBTManager.sigaction: Resetting sighandler");
+            ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
         }
     }
 }
@@ -123,7 +123,7 @@ std::shared_ptr<MgmtEvent> DBTManager::send(MgmtCommand &req) {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
-            perror("DBTManager::send: HCIComm error");
+            ERR_PRINT("DBTManager::send: HCIComm error");
             return nullptr;
         }
     }
@@ -195,7 +195,7 @@ DBTManager::DBTManager(const BTMode btMode)
  mgmtEventRing(MGMTEVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
     if( !comm.isOpen() ) {
-        perror("DBTManager::open: Could not open mgmt control channel");
+        ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
     }
 
@@ -206,7 +206,7 @@ DBTManager::DBTManager(const BTMode btMode)
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = SA_SIGINFO;
         if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            perror("DBTManager::open: Setting sighandler");
+            ERR_PRINT("DBTManager::open: Setting sighandler");
         }
     }
     mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);

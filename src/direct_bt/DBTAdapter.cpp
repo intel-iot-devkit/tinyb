@@ -214,7 +214,7 @@ std::shared_ptr<HCISession> DBTAdapter::open()
     HCISession * s = new HCISession( *this, HCI_CHANNEL_RAW );
     if( !s->isOpen() ) {
         delete s;
-        perror("Could not open device");
+        ERR_PRINT("Could not open device");
         return nullptr;
     }
     session = std::shared_ptr<HCISession>( s );
@@ -246,7 +246,7 @@ bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
         return false;
     }
     if( !session->hciComm.le_enable_scan(own_mac_type, interval, window) ) {
-        perror("Start scanning failed");
+        ERR_PRINT("Start scanning failed");
         return false;
     }
     return true;
@@ -376,7 +376,7 @@ int DBTAdapter::discoverDevicesHCI(const int waitForDeviceCount,
 
     olen = sizeof(of);
     if (getsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-        perror("Could not get socket options");
+        ERR_PRINT("Could not get socket options");
         return false;
     }
 
@@ -385,7 +385,7 @@ int DBTAdapter::discoverDevicesHCI(const int waitForDeviceCount,
     HCIComm::filter_set_event(HCI_EV_LE_META, &nf);
 
     if (setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
-        perror("Could not set socket options");
+        ERR_PRINT("Could not set socket options");
         return false;
     }
     const int64_t t0 = getCurrentMilliseconds();
