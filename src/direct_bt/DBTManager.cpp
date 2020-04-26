@@ -140,23 +140,21 @@ std::shared_ptr<MgmtEvent> DBTManager::receiveNext() {
     return mgmtEventRing.getBlocking();
 }
 
-bool DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
-    std::shared_ptr<const AdapterInfo> adapter;
+std::shared_ptr<const AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
+    std::shared_ptr<const AdapterInfo> adapterInfo = nullptr;
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
-    DBG_PRINT("DBTManager::initAdapter %d: req: %s", dev_id, req0.toString().c_str());
+    DBG_PRINT("DBTManager::initAdapter dev_id %d: req: %s", dev_id, req0.toString().c_str());
     {
         std::shared_ptr<MgmtEvent> res = send(req0);
         if( nullptr == res ) {
             goto fail;
         }
-        DBG_PRINT("DBTManager::initAdapter %d: res: %s", dev_id, res->toString().c_str());
+        DBG_PRINT("DBTManager::initAdapter dev_id %d: res: %s", dev_id, res->toString().c_str());
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredSize()) {
             ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredSize(), res->toString().c_str());
             goto fail;
         }
-        adapter.reset( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
-        adapters.push_back(adapter);
-        INFO_PRINT("Adapter %d: %s", dev_id, adapter->toString().c_str());
+        adapterInfo = std::shared_ptr<const AdapterInfo>( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
     }
 
     switch ( btMode ) {
@@ -180,10 +178,9 @@ bool DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
     setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
-    return true;
 
 fail:
-    return false;
+    return adapterInfo;
 }
 
 void DBTManager::shutdownAdapter(const uint16_t dev_id) {
@@ -292,9 +289,24 @@ next1:
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;
         }
+        adapters.resize(num_adapter, nullptr);
         for(int i=0; ok && i < num_adapter; i++) {
             const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
-            ok = initAdapter(dev_id, btMode);
+            if( dev_id >= num_adapter ) {
+                throw InternalError("dev_id "+std::to_string(dev_id)+" >= num_adapter "+std::to_string(num_adapter), E_FILE_LINE);
+            }
+            if( adapters[dev_id] != nullptr ) {
+                throw InternalError("adapters[dev_id="+std::to_string(dev_id)+"] != nullptr: "+adapters[dev_id]->toString(), E_FILE_LINE);
+            }
+            std::shared_ptr<const AdapterInfo> adapterInfo = initAdapter(dev_id, btMode);
+            adapters[dev_id] = adapterInfo;
+            if( nullptr != adapterInfo ) {
+                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
+                ok = true;
+            } else {
+                DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: FAILED", i, num_adapter, dev_id);
+                ok = false;
+            }
         }
     }
 

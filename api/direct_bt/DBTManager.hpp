@@ -94,7 +94,7 @@ namespace direct_bt {
             void operator=(const DBTManager&) = delete;
             void close();
 
-            bool initAdapter(const uint16_t dev_id, const BTMode btMode);
+            std::shared_ptr<const AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
             void shutdownAdapter(const uint16_t dev_id);
 
             /**
