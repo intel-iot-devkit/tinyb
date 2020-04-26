@@ -73,8 +73,8 @@ namespace direct_bt {
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
 
             /** Opens a new HCI session on the given BT dev_id and HCI channel. */
-            HCISession(DBTAdapter &a, const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
-            : adapter(&a), hciComm(dev_id, channel, timeoutMS),
+            HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
+            : adapter(&a), hciComm(a.dev_id, channel, timeoutMS),
               name(name_counter.fetch_add(1))
             {}
 
