@@ -201,8 +201,8 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
     X(PASSKEY_NOTIFY) \
     X(NEW_IRK) \
     X(NEW_CSRK) \
-    X(DEVICE_ADDED) \
-    X(DEVICE_REMOVED) \
+    X(DEVICE_WHITELIST_ADDED) \
+    X(DEVICE_WHITELIST_REMOVED) \
     X(NEW_CONN_PARAM) \
     X(UNCONF_INDEX_ADDED) \
     X(UNCONF_INDEX_REMOVED) \
@@ -246,10 +246,12 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
             return new MgmtEvtDeviceConnectFailed(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_DISCONNECTED:
             return new MgmtEvtDeviceDisconnected(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_ADDED:
-            return new MgmtEvtDeviceAdded(buffer, buffer_size);
-        case MgmtEvent::Opcode::DEVICE_REMOVED:
-            return new MgmtEvtDeviceRemoved(buffer, buffer_size);
+        case MgmtEvent::Opcode::PIN_CODE_REQUEST:
+            return new MgmtEvtPinCodeRequest(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED:
+            return new MgmtEvtDeviceWhitelistAdded(buffer, buffer_size);
+        case MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED:
+            return new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
             return new MgmtEvtDeviceUnpaired(buffer, buffer_size);
         default:

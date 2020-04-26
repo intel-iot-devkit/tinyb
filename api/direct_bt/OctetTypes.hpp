@@ -160,6 +160,11 @@ namespace direct_bt {
                 memcpy(data() + i, v.b, sizeof(v.b));
             }
 
+            void put_octets(const int i, const TROOctets & v) {
+                check_range(i, sizeof(v.getSize()));
+                memcpy(data() + i, v.get_ptr(), v.getSize());
+            }
+
             void put_uuid(const int i, const uuid_t & v) {
                 check_range(i, v.getTypeSize());
                 direct_bt::put_uuid(data(), i, v, true /* littleEndian */);

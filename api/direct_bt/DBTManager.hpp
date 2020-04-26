@@ -102,9 +102,10 @@ namespace direct_bt {
                 DEVICE_CONNECTED           = 0x000B, *
                 DEVICE_DISCONNECTED        = 0x000C, *
                 CONNECT_FAILED             = 0x000D, *
+                PIN_CODE_REQUEST           = 0x000E, *
                 DEVICE_FOUND               = 0x0012, *
-                DEVICE_ADDED               = 0x001A, *
-                DEVICE_REMOVED             = 0x001B, *
+                DEVICE_WHITELIST_ADDED     = 0x001A, *
+                DEVICE_WHITELIST_REMOVED   = 0x001B, *
 
                 DEVICE_BLOCKED             = 0x0014,
                 DEVICE_UNBLOCKED           = 0x0015,
@@ -117,10 +118,11 @@ namespace direct_bt {
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDevicePinCodeRequestCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceAddedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceRemovedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e);
 
         public:
             /**

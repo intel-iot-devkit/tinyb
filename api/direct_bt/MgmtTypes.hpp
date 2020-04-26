@@ -268,6 +268,38 @@ namespace direct_bt {
             }
     };
 
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t pin_len,
+     * uint8_t pin_code[16]
+     */
+    class MgmtPinCodeReplyCmd : public MgmtCommand
+    {
+        public:
+            MgmtPinCodeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
+                                const uint8_t pin_len, const TROOctets &pin_code)
+            : MgmtCommand(MgmtOpcode::PIN_CODE_REPLY, dev_id, 6+1+1+16)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8(MGMT_HEADER_SIZE+7, pin_len);
+                pdu.put_octets(MGMT_HEADER_SIZE+8, pin_code);
+            }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtPinCodeNegativeReplyCmd : public MgmtCommand
+    {
+        public:
+            MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            : MgmtCommand(MgmtOpcode::PIN_CODE_NEG_REPLY, dev_id, 6+1)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+            }
+    };
 
     class MgmtEvent
     {
@@ -298,8 +330,8 @@ namespace direct_bt {
                 PASSKEY_NOTIFY             = 0x0017,
                 NEW_IRK                    = 0x0018,
                 NEW_CSRK                   = 0x0019,
-                DEVICE_ADDED               = 0x001A,
-                DEVICE_REMOVED             = 0x001B,
+                DEVICE_WHITELIST_ADDED     = 0x001A,
+                DEVICE_WHITELIST_REMOVED   = 0x001B,
                 NEW_CONN_PARAM             = 0x001C,
                 UNCONF_INDEX_ADDED         = 0x001D,
                 UNCONF_INDEX_REMOVED       = 0x001E,
@@ -603,9 +635,40 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t secure
+     */
+    class MgmtEvtPinCodeRequest : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", secure "+std::to_string(getSecure());
+            }
+
+        public:
+            MgmtEvtPinCodeRequest(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), PIN_CODE_REQUEST);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            uint8_t getSecure() const { return pdu.get_uint8(MGMT_HEADER_SIZE+7); }
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
+            int getDataSize() const override { return getParamSize()-8; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
      * uint8_t action
      */
-    class MgmtEvtDeviceAdded : public MgmtEvent
+    class MgmtEvtDeviceWhitelistAdded : public MgmtEvent
     {
         public:
 
@@ -617,10 +680,10 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceAdded(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceWhitelistAdded(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_ADDED);
+                checkOpcode(getOpcode(), DEVICE_WHITELIST_ADDED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -635,7 +698,7 @@ namespace direct_bt {
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
      */
-    class MgmtEvtDeviceRemoved : public MgmtEvent
+    class MgmtEvtDeviceWhitelistRemoved : public MgmtEvent
     {
         public:
 
@@ -646,10 +709,10 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceRemoved(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_REMOVED);
+                checkOpcode(getOpcode(), DEVICE_WHITELIST_REMOVED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info

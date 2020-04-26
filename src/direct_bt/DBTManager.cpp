@@ -306,10 +306,11 @@ next1:
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::PIN_CODE_REQUEST, bindClassFunction(this, &DBTManager::mgmtEvDevicePinCodeRequestCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceAddedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceRemovedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -447,6 +448,18 @@ uint16_t DBTManager::create_connection(const int dev_id,
     // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
     DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
     const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    (void)dev_id;
+    (void)peer_mac_type;
+    (void)own_mac_type;
+    (void)interval;
+    (void)window;
+    (void)min_interval;
+    (void)max_interval;
+    (void)latency;
+    (void)supervision_timeout;
+    (void)min_ce_length;
+    (void)max_ce_length;
+    (void)initiator_filter;
     return 0;
 }
 
@@ -539,6 +552,10 @@ bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:ConnectFailed: %s", e->toString().c_str());
     return true;
 }
+bool DBTManager::mgmtEvDevicePinCodeRequestCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
+    return true;
+}
 bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
     return true;
@@ -547,11 +564,11 @@ bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
     return true;
 }
-bool DBTManager::mgmtEvDeviceAddedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceAdded: %s", e->toString().c_str());
     return true;
 }
-bool DBTManager::mgmtEvDeviceRemovedCB(std::shared_ptr<MgmtEvent> e) {
+bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceRemoved: %s", e->toString().c_str());
     return true;
 }
