@@ -168,26 +168,12 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    /**
-     * DBTDeviceStatusListener reflecting certain MgmtEvent:
-        DEVICE_CONNECTED           = 0x000B, * deviceConnected
-        DEVICE_DISCONNECTED        = 0x000C, * deviceDisconnected
-        CONNECT_FAILED             = 0x000D,
-        DEVICE_FOUND               = 0x0012, * deviceFound, deviceUpdated
-        DEVICE_ADDED               = 0x001A,
-        DEVICE_REMOVED             = 0x001B,
-
-        DEVICE_BLOCKED             = 0x0014,
-        DEVICE_UNBLOCKED           = 0x0015,
-        DEVICE_UNPAIRED            = 0x0016,
-     */
     class DBTDeviceStatusListener {
         public:
             virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            // virtual void deviceRemoved(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual ~DBTDeviceStatusListener() {}
     };
 
@@ -203,7 +189,7 @@ namespace direct_bt {
             std::string name;
             int8_t rssi = 0;
             int8_t tx_power = 0;
-            uint16_t leConnHandle = 0;
+            uint16_t connHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
 
@@ -258,9 +244,12 @@ namespace direct_bt {
             std::string toString() const override;
 
             /**
-             * Creates a new connection to this device.
+             * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
              * <p>
-             * Returns the new device connection handle if successful, otherwise 0 is returned.
+             * If this device's addressType is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM, 0 is being returned.
+             * </p>
+             * <p>
+             * Returns the new connection handle or 0 if not successful.
              * </p>
              * <p>
              * The device is tracked by the managing adapter's HCISession instance.
@@ -278,16 +267,47 @@ namespace direct_bt {
                                 const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
                                 const uint8_t initiator_filter=0);
 
-            /** Return the LE connection handle as returned by {@link #le_connect(..)}, 0 if not connectedLE. */
-            uint16_t getLEConnectionHandle() const { return leConnHandle; }
-
             /**
-             * Disconnect the device's LE connection.
+             * Establish a HCI BDADDR_BREDR connection to this device.
              * <p>
-             * The device is removed from the managing adapter's HCISession instance.
+             * If this device's addressType is not BDADDR_BREDR, 0 is being returned.
+             * </p>
+             * <p>
+             * Returns the new connection handle or 0 if not successful.
+             * </p>
+             * <p>
+             * The device is tracked by the managing adapter's HCISession instance.
              * </p>
              */
-            void le_disconnect(const uint8_t reason=0);
+            uint16_t connect(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                             const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+
+            /**
+             * Establish a connection to this device, using certain default parameter.
+             * <p>
+             * Depending on this device's addressType,
+             * either a BDADDR_BREDR or BDADDR_LE_PUBLIC connection is attempted.
+             * </p>
+             * <p>
+             * Returns the new connection handle or 0 if not successful.
+             * </p>
+             * <p>
+             * The device is tracked by the managing adapter's HCISession instance.
+             * </p>
+             */
+            uint16_t defaultConnect();
+
+
+            /** Return the connection handle to the LE or BREDR peer, 0 if not connected. */
+            uint16_t getConnectionHandle() const { return connHandle; }
+
+            /**
+             * Disconnect the LE or BREDR peer.
+             * <p>
+             * The device will be removed from the managing adapter's HCISession instance.
+             * </p>
+             */
+            void disconnect(const uint8_t reason=0);
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
@@ -473,7 +493,16 @@ namespace direct_bt {
                                 const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS,
                                 const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
 
-            /** Returns discovered devices from a discovery */
+            /**
+             * Returns discovered devices from the last discovery.
+             * <p>
+             * Note that this list will be cleared when a new discovery is started over.
+             * </p>
+             * <p>
+             * Note that devices in this list might be no more available,
+             * use 'DeviceStatusListener::deviceFound(..)' callback.
+             * </p>
+             */
             std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() { return discoveredDevices; }
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */

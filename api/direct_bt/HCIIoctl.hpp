@@ -57,8 +57,14 @@ extern "C" {
  * Missing information ???
  */
 #define HCI_TYPE_LEN    1
-#define OGF_LINK_CTL 0x01
-#define OGF_LE_CTL   0x08
+/* link control commands */
+#define OGF_LINK_CTL    0x01
+/* link policy commands */
+#define OGF_LINK_POLICY 0x02
+/* controller baseband commands */
+#define OGF_BREDR_CTL   0x03
+/* LE controller commands */
+#define OGF_LE_CTL      0x08
 
 /**
  * Information from include/net/bluetooth/hci.h

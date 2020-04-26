@@ -97,7 +97,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
-        device->le_disconnect();
+        device->disconnect();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -108,7 +108,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
-        return device->le_connect();
+        return device->defaultConnect();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

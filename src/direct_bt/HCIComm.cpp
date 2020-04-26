@@ -425,7 +425,7 @@ done:
 	return true;
 }
 
-bool HCIComm::le_disconnect(const uint16_t le_conn_handle, const uint8_t reason)
+bool HCIComm::disconnect(const uint16_t le_conn_handle, const uint8_t reason)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
@@ -444,13 +444,13 @@ bool HCIComm::le_disconnect(const uint16_t le_conn_handle, const uint8_t reason)
 	if( !send_req( hci_opcode_pack(OGF_LINK_CTL, HCI_OP_DISCONNECT), &cp, sizeof(cp),
 	               HCI_EV_DISCONN_COMPLETE, &rp, sizeof(rp) ) )
 	{
-	    DBG_PRINT("hci_le_disconnect: errno %d %s", errno, strerror(errno));
+	    DBG_PRINT("hci_disconnect: errno %d %s", errno, strerror(errno));
 		return false;
 	}
 
 	if (rp.status) {
 		errno = EIO;
-		DBG_PRINT("hci_le_disconnect: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
+		DBG_PRINT("hci_disconnect: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
 		return false;
 	}
 	return true;
@@ -612,6 +612,40 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
 		return 0;
 	}
 	return rp.handle;
+}
+
+uint16_t HCIComm::create_conn(const EUI48 &bdaddr, const uint16_t pkt_type,
+                              const uint16_t clock_offset, const uint8_t role_switch)
+{
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( 0 > _dd ) {
+        ERR_PRINT("hci_create_conn: device not open");
+        return 0;
+    }
+    hci_cp_create_conn cp;
+    hci_ev_conn_complete rp;
+
+    bzero((void*)&cp, sizeof(cp));
+    cp.bdaddr = bdaddr;
+    cp.pkt_type = cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
+    cp.pscan_rep_mode = 0x02; /* TODO magic? */
+    cp.pscan_mode = 0x00; /* TODO magic? */
+    cp.clock_offset = cpu_to_le(clock_offset);
+    cp.role_switch = role_switch;
+
+    if( !send_req( hci_opcode_pack(OGF_LINK_CTL, HCI_OP_CREATE_CONN), &cp, sizeof(cp),
+                   HCI_EV_CONN_COMPLETE, &rp, sizeof(rp) ) )
+    {
+        ERR_PRINT("hci_create_conn: errno %d %s", errno, strerror(errno));
+        return 0;
+    }
+
+    if (rp.status) {
+        errno = EIO;
+        ERR_PRINT("hci_create_conn: error status 0x%2.2X, errno %d %s", rp.status, errno, strerror(errno));
+        return 0;
+    }
+    return rp.handle;
 }
 
 } /* namespace direct_bt */

@@ -52,7 +52,7 @@ DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
 }
 
 DBTDevice::~DBTDevice() {
-    le_disconnect();
+    disconnect();
     services.clear();
     msd = nullptr;
 }
@@ -143,9 +143,50 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         uint16_t min_ce_length, uint16_t max_ce_length,
         uint8_t initiator_filter )
 {
-    if( 0 < leConnHandle ) {
+    if( 0 < connHandle ) {
+        ERR_PRINT("DBTDevice::le_connect: Already connected");
+        return 0;
+    }
+    if( addressType != BDAddressType::BDADDR_LE_PUBLIC &&
+        addressType != BDAddressType::BDADDR_LE_RANDOM )
+    {
+        ERR_PRINT("DBTDevice::connect: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
+    }
+#ifdef USE_BT_MGMT
+
+    DBTManager & mngr = adapter.getManager();
+    mngr.create_connection(adapter.dev_id, address, addressType); // A NOP
+
+#endif
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        ERR_PRINT("DBTDevice::le_connect: Not opened");
+        return 0;
+    }
+
+    connHandle = session->hciComm.le_create_conn(
+                        address, peer_mac_type, own_mac_type,
+                        interval, window, min_interval, max_interval, latency, supervision_timeout,
+                        min_ce_length, max_ce_length, initiator_filter);
+
+    if ( 0 == connHandle ) {
+        ERR_PRINT("DBTDevice::le_connect: Could not create connection: errno %d %s", errno, strerror(errno));
+        return 0;
+    }
+    std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
+    session->connected(thisDevice);
+
+    return connHandle;
+}
+
+uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
+{
+    if( 0 < connHandle ) {
         ERR_PRINT("DBTDevice::connect: Already connected");
         return 0;
+    }
+    if( addressType != BDAddressType::BDADDR_BREDR ) {
+        ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
     }
 #ifdef USE_BT_MGMT
 
@@ -159,23 +200,34 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         return 0;
     }
 
-    leConnHandle = session->hciComm.le_create_conn(
-                        address, peer_mac_type, own_mac_type,
-                        interval, window, min_interval, max_interval, latency, supervision_timeout,
-                        min_ce_length, max_ce_length, initiator_filter);
+    connHandle = session->hciComm.create_conn(address, pkt_type, clock_offset, role_switch);
 
-    if ( 0 == leConnHandle ) {
-        ERR_PRINT("DBTDevice::disconnect: Could not create connection: errno %d %s", errno, strerror(errno));
+    if ( 0 == connHandle ) {
+        ERR_PRINT("DBTDevice::connect: Could not create connection: errno %d %s", errno, strerror(errno));
         return 0;
     }
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->connected(thisDevice);
 
-    return leConnHandle;
+    return connHandle;
 }
 
-void DBTDevice::le_disconnect(const uint8_t reason) {
-    if( 0 == leConnHandle ) {
+uint16_t DBTDevice::defaultConnect()
+{
+    if( addressType == BDAddressType::BDADDR_LE_PUBLIC ||
+        addressType == BDAddressType::BDADDR_LE_RANDOM )
+    {
+        return le_connect();
+    }
+    if( addressType == BDAddressType::BDADDR_BREDR ) {
+        return connect();
+    }
+    ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
+    return 0;
+}
+
+void DBTDevice::disconnect(const uint8_t reason) {
+    if( 0 == connHandle ) {
         DBG_PRINT("DBTDevice::disconnect: Not connected");
         return;
     }
@@ -186,9 +238,9 @@ void DBTDevice::le_disconnect(const uint8_t reason) {
         return;
     }
 
-    const uint16_t _leConnHandle = leConnHandle;
-    leConnHandle = 0;
-    if( !session->hciComm.le_disconnect(_leConnHandle, reason) ) {
+    const uint16_t _connHandle = connHandle;
+    connHandle = 0;
+    if( !session->hciComm.disconnect(_connHandle, reason) ) {
         DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _leConnHandle, errno, strerror(errno));
     }
 

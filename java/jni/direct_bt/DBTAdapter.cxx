@@ -49,7 +49,6 @@ class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
             public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
             public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
             public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
-            // public void deviceRemoved(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
         };
      */
     std::shared_ptr<JavaAnonObj> adapterObjRef;
@@ -62,7 +61,6 @@ class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
     jmethodID  mDeviceUpdated = nullptr;
     jmethodID  mDeviceConnected = nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
-    // jmethodID  mDeviceRemoved = nullptr;
 
     DeviceStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
         adapterObjRef = adapter->getJavaObject();

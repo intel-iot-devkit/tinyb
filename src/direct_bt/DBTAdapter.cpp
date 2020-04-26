@@ -74,7 +74,7 @@ int HCISession::disconnectAllDevices(const uint8_t reason) {
     int count = 0;
     std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
     for (auto it = devices.begin(); it != devices.end(); ++it) {
-        (*it)->le_disconnect(reason); // will erase device from list via disconnectedLE above
+        (*it)->disconnect(reason); // will erase device from list via disconnected above
         ++count;
     }
     return count;

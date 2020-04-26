@@ -118,15 +118,15 @@ int main(int argc, char *argv[])
      * ...
      * I have noticed that w/o HCI le_connect, overall communication takes twice as long!!!
      */
-    bool doHCI_LEConnect = true;
+    bool doHCI_Connect = true;
 
     bool keepDiscoveryAlive = false;
 
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
-        } else if( !strcmp("-skipLEConnect", argv[i]) ) {
-            doHCI_LEConnect = false;
+        } else if( !strcmp("-skipConnect", argv[i]) ) {
+            doHCI_Connect = false;
         } else if( !strcmp("-keepDiscoveryAlive", argv[i]) ) {
             keepDiscoveryAlive = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
             waitForDevice = EUI48(macstr);
         }
     }
-    fprintf(stderr, "doHCI_LEConnect %d\n", doHCI_LEConnect);
+    fprintf(stderr, "doHCI_LEConnect %d\n", doHCI_Connect);
     fprintf(stderr, "keepDiscoveryAlive %d\n", keepDiscoveryAlive);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
@@ -205,10 +205,10 @@ int main(int argc, char *argv[])
                     // HCI LE-Connect
                     // (Without: Overall communication takes ~twice as long!!!)
                     //
-                    uint16_t hciLEConnHandle;
-                    if( doHCI_LEConnect ) {
-                        hciLEConnHandle = device->le_connect();
-                        if( 0 == hciLEConnHandle ) {
+                    uint16_t hciConnHandle;
+                    if( doHCI_Connect ) {
+                        hciConnHandle = device->defaultConnect();
+                        if( 0 == hciConnHandle ) {
                             fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
                         } else {
                             fprintf(stderr, "Connect: Success\n");
@@ -220,10 +220,10 @@ int main(int argc, char *argv[])
                                         "  discovered to hci-connected %" PRIu64 " ms,\n"
                                         "  total %" PRIu64 " ms,\n"
                                         "  handle 0x%X\n",
-                                        td1, (t3 - device->getCreationTimestamp()), td0, hciLEConnHandle);
+                                        td1, (t3 - device->getCreationTimestamp()), td0, hciConnHandle);
                     } else {
                         fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
-                        hciLEConnHandle = 0;
+                        hciConnHandle = 0;
                     }
 
                     k++;
@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
                     } else {
                         fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());
                     }
-                    device->le_disconnect(); // OK if not connected
+                    device->disconnect(); // OK if not connected
                 } // if( 2000 > lup )
             } // for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++)
             fprintf(stderr, "Connection: Got %d devices, tried connected to %d with %d succeeded\n", i, j, k);

@@ -43,7 +43,7 @@ namespace direct_bt {
     };
 
     enum HCI_Event_Types : uint8_t {
-        LE_Advertising_Report       = 0x3E
+        LE_Advertising_Report   = 0x3E
     };
 
     class HCIComm {
@@ -98,10 +98,29 @@ namespace direct_bt {
             /** Generic write */
             int write(const uint8_t* buffer, const int size);
 
-            void le_disable_scan();
+            /**
+             * Enable scanning for LE devices, i.e. starting discovery.
+             * <p>
+             * It is recommended to utilize the DBTManager manager channel for device discovery!
+             * </p>
+             */
             bool le_enable_scan(const HCIAddressType own_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 const uint16_t interval=0x0004, const uint16_t window=0x0004);
+            /**
+             * Disable scanning for LE devices.
+             * <p>
+             * It is recommended to utilize the DBTManager manager channel to handle scanning!
+             * </p>
+             */
+            void le_disable_scan();
 
+            /**
+             * Establish a connection to the given LE peer.
+             * <p>
+             * Even if not utilizing a HCI channel, it has been observed that maintaining such
+             * enhanced performance on subsequent communication, i.e. GATT over L2CAP.
+             * </p>
+             */
             uint16_t le_create_conn(const EUI48 &peer_bdaddr,
                                     const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                     const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
@@ -111,7 +130,17 @@ namespace direct_bt {
                                     const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
                                     const uint8_t initiator_filter=0);
 
-            bool le_disconnect(const uint16_t le_conn_handle, const uint8_t reason=0);
+            /**
+             * Establish a connection to the given BREDR (non LE).
+             */
+            uint16_t create_conn(const EUI48 &bdaddr,
+                                 const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                                 const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+
+            /**
+             * Disconnect an established connection.
+             */
+            bool disconnect(const uint16_t conn_handle, const uint8_t reason=0);
 
         private:
             static inline void set_bit(int nr, void *addr)
