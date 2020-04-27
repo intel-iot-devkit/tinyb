@@ -257,17 +257,6 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject
     return JNI_FALSE;
 }
 
-jint Java_direct_1bt_tinyb_DBTAdapter_discoverAnyDeviceImpl(JNIEnv *env, jobject obj, jint timeoutMS)
-{
-    try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        return adapter->discoverDevices(-1, EUI48_ANY_DEVICE, timeoutMS, static_cast<uint32_t>(EInfoReport::Element::NAME));
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return 0;
-}
-
 jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {

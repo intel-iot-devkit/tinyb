@@ -331,14 +331,14 @@ namespace direct_bt {
             static int findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac);
 
             DBTManager& mgmt;
-            std::shared_ptr<const AdapterInfo> adapterInfo;
+            std::shared_ptr<AdapterInfo> adapterInfo;
             ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
             volatile bool keepDiscoveringAlive = false;
 
             std::shared_ptr<HCISession> session;
-            std::vector<std::shared_ptr<DBTDevice>> scannedDevices; // all devices scanned
-            std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // matching all requirements for export
+            std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::shared_ptr<DBTDeviceStatusListener> deviceStatusListener = nullptr;
+            std::recursive_mutex mtx_discoveredDevices;
 
             bool validateDevInfo();
 
@@ -346,15 +346,9 @@ namespace direct_bt {
             void sessionClosing();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
-            int findScannedDeviceIdx(EUI48 const & mac) const;
-            std::shared_ptr<DBTDevice> findScannedDevice (EUI48 const & mac) const;
-            bool addScannedDevice(std::shared_ptr<DBTDevice> const &device);
 
-            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
+            void addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
-            std::mutex mtxEventRead;
-            std::condition_variable cvEventRead;
-            std::shared_ptr<MgmtEvent> eventReceived = nullptr;
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
@@ -433,6 +427,9 @@ namespace direct_bt {
              * <p>
              * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
+             * <p>
+             * Also clears previous discovered devices via removeDiscoveredDevices().
+             * </p>
              */
             bool startDiscovery(HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
@@ -447,71 +444,22 @@ namespace direct_bt {
             void stopDiscovery();
 
             /**
-             * Discovery devices up until 'timeoutMS' in milliseconds
-             * or until 'waitForDeviceCount' and 'waitForDevice'
-             * devices matching 'ad_type_req' criteria has been
-             * reached.
-             *
-             * <p>
-             * 'waitForDeviceCount' is the number of successfully
-             * scanned devices matching 'ad_type_req'
-             * before returning if 'timeoutMS' hasn't been reached.
-             * <br>
-             * Default value is '1', i.e. wait for only one device.
-             * A value of <= 0 denotes infinitive, here 'timeoutMS'
-             * will end the discovery process.
-             * </p>
-             *
-             * <p>
-             * 'waitForDevice' is a EUI48 denoting a specific device
-             * to wait for.
-             * <br>
-             * Default value is 'EUI48_ANY_DEVICE', i.e. wait for any device.
-             * </p>
-             *
-             * <p>
-             * 'ad_type_req' is a bitmask of 'EInfoReport::Element'
-             * denoting required data to be received before
-             * adding or updating the devices in the discovered list.
-             * <br>
-             * Default value is: 'EInfoReport::Element::NAME',
-             * while 'EInfoReport::Element::BDADDR|EInfoReport::Element::RSSI' is implicit
-             * and guaranteed by the AD protocol.
-             * </p>
-             * <p>
-             * This adapter's DBTManager instance is used, i.e. the management channel.
-             * </p>
-             *
-             * @return number of successfully scanned devices matching above criteria
-             *         or -1 if an error has occurred.
-             */
-            int discoverDevices(const int waitForDeviceCount=1,
-                                const EUI48 &waitForDevice=EUI48_ANY_DEVICE,
-                                const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS,
-                                const uint32_t ad_type_req=static_cast<uint32_t>(EInfoReport::Element::NAME));
-
-            /**
              * Returns discovered devices from the last discovery.
              * <p>
-             * Note that this list will be cleared when a new discovery is started over.
+             * Note that this list will be cleared when a new discovery is started over via startDiscovery().
              * </p>
              * <p>
              * Note that devices in this list might be no more available,
              * use 'DeviceStatusListener::deviceFound(..)' callback.
              * </p>
              */
-            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() { return discoveredDevices; }
+            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const;
 
             /** Discards all discovered devices. Returns number of removed discovered devices. */
             int removeDiscoveredDevices();
 
-            /** Returns index >= 0 if found, otherwise -1 */
-            int findDiscoveredDeviceIdx(EUI48 const & mac) const;
-
             /** Returns shared DBTDevice if found, otherwise nullptr */
             std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac) const;
-
-            std::shared_ptr<DBTDevice> getDiscoveredDevice(int index) const { return discoveredDevices.at(index); }
 
             std::string toString() const override;
     };

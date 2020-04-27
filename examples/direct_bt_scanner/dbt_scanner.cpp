@@ -36,33 +36,40 @@ extern "C" {
 
 using namespace direct_bt;
 
+std::shared_ptr<direct_bt::DBTDevice> deviceFound = nullptr;
+std::mutex mtxDeviceFound;
+std::condition_variable cvDeviceFound;
+
 class DeviceStatusListener : public direct_bt::DBTDeviceStatusListener {
     void deviceFound(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
+        {
+            std::unique_lock<std::mutex> lockRead(mtxDeviceFound); // RAII-style acquire and relinquish via destructor
+            ::deviceFound = device;
+            cvDeviceFound.notify_all(); // notify waiting getter
+        }
+        (void)timestamp;
     }
     void deviceUpdated(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
+        (void)timestamp;
     }
     void deviceConnected(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** CONNECTED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
+        (void)timestamp;
     }
     void deviceDisconnected(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
         fprintf(stderr, "Status HCIAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
+        (void)timestamp;
     }
-    /**
-    void deviceRemoved(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** REMOVED: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status HCIAdapter:\n");
-        fprintf(stderr, "%s\n", a.toString().c_str());
-    } */
 };
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
@@ -121,8 +128,6 @@ int main(int argc, char *argv[])
      */
     bool doHCI_Connect = true;
 
-    bool keepDiscoveryAlive = false;
-
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
@@ -130,8 +135,6 @@ int main(int argc, char *argv[])
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-skipConnect", argv[i]) ) {
             doHCI_Connect = false;
-        } else if( !strcmp("-keepDiscoveryAlive", argv[i]) ) {
-            keepDiscoveryAlive = true;
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevice = EUI48(macstr);
@@ -139,7 +142,6 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "doHCI_Connect %d\n", doHCI_Connect);
-    fprintf(stderr, "keepDiscoveryAlive %d\n", keepDiscoveryAlive);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
     if( waitForEnter ) {
@@ -165,166 +167,147 @@ int main(int argc, char *argv[])
 
     std::shared_ptr<direct_bt::HCISession> session = adapter.open();
 
-    if( keepDiscoveryAlive ) {
+    while( ok && !done && nullptr != session ) {
         ok = adapter.startDiscovery();
         if( !ok) {
             perror("Adapter start discovery failed");
+            goto out;
         }
-    }
 
-    while( ok && !done && nullptr != session ) {
-        if( !keepDiscoveryAlive ) {
-            ok = adapter.startDiscovery();
-            if( !ok) {
-                perror("Adapter start discovery failed");
-                goto out;
+        std::shared_ptr<direct_bt::DBTDevice> device = nullptr;
+        {
+            std::unique_lock<std::mutex> lockRead(mtxDeviceFound); // RAII-style acquire and relinquish via destructor
+            while( nullptr == device ) { // FIXME deadlock, waiting forever!
+                cvDeviceFound.wait(lockRead);
+                if( nullptr != deviceFound ) {
+                    done = deviceFound->getAddress() == waitForDevice; // match
+                    if( done || ( EUI48_ANY_DEVICE == waitForDevice && deviceFound->isLEAddressType() ) ) {
+                        // match or any LE device
+                        device.swap(deviceFound); // take over deviceFound
+                    }
+                }
             }
         }
+        adapter.stopDiscovery();
 
-        const int deviceCount = adapter.discoverDevices(1, waitForDevice);
-        if( 0 > deviceCount ) {
-            perror("Adapter discovery failed");
-            ok = false;
-        }
-        if( !keepDiscoveryAlive ) {
-            adapter.stopDiscovery();
-        }
-
-        if( ok && 0 < deviceCount ) {
+        if( ok && nullptr != device ) {
             const uint64_t t1 = direct_bt::getCurrentMilliseconds();
-            std::vector<std::shared_ptr<direct_bt::DBTDevice>> discoveredDevices = adapter.getDiscoveredDevices();
-            int i=0, j=0, k=0;
-            for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
-                i++;
-                std::shared_ptr<direct_bt::DBTDevice> device = *it;
-                const uint64_t lup = device->getLastUpdateAge(t1);
-                if( 2000 > lup ) {
-                    // less than 2s old ..
-                    j++;
-                    if( waitForDevice == device->getAddress() ) {
-                        done = true;
-                    }
 
-                    //
-                    // HCI LE-Connect
-                    // (Without: Overall communication takes ~twice as long!!!)
-                    //
-                    uint16_t hciConnHandle;
-                    if( doHCI_Connect ) {
-                        hciConnHandle = device->defaultConnect();
-                        if( 0 == hciConnHandle ) {
-                            fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
-                        } else {
-                            fprintf(stderr, "Connect: Success\n");
-                        }
-                        const uint64_t t3 = direct_bt::getCurrentMilliseconds();
-                        const uint64_t td0 = t3 - t0;
-                        const uint64_t td1 = t3 - t1;
-                        fprintf(stderr, "  connect-only %" PRIu64 " ms,\n"
-                                        "  discovered to hci-connected %" PRIu64 " ms,\n"
-                                        "  total %" PRIu64 " ms,\n"
-                                        "  handle 0x%X\n",
-                                        td1, (t3 - device->getCreationTimestamp()), td0, hciConnHandle);
-                    } else {
-                        fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
-                        hciConnHandle = 0;
-                    }
+            //
+            // HCI LE-Connect
+            // (Without: Overall communication takes ~twice as long!!!)
+            //
+            uint16_t hciConnHandle;
+            if( doHCI_Connect ) {
+                hciConnHandle = device->defaultConnect();
+                if( 0 == hciConnHandle ) {
+                    fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
+                } else {
+                    fprintf(stderr, "Connect: Success\n");
+                }
+            } else {
+                fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
+                hciConnHandle = 0;
+            }
+            const uint64_t t3 = direct_bt::getCurrentMilliseconds();
+            const uint64_t td03 = t3 - t0;
+            const uint64_t td13 = t3 - t1;
+            const uint64_t td01 = t1 - t0;
+            fprintf(stderr, "  discovery-only %" PRIu64 " ms,\n"
+                            "  connect-only %" PRIu64 " ms,\n"
+                            "  discovered to hci-connected %" PRIu64 " ms,\n"
+                            "  total %" PRIu64 " ms,\n"
+                            "  handle 0x%X\n",
+                            td01, td13, (t3 - device->getCreationTimestamp()), td03, hciConnHandle);
 
-                    k++;
+            //
+            // GATT Processing
+            //
+            const uint64_t t4 = direct_bt::getCurrentMilliseconds();
+            // let's check further for full GATT
+            direct_bt::GATTHandler gatt(device, 10000);
+            if( gatt.connect() ) {
+                fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt.getServerMTU(), gatt.getUsedMTU());
 
-                    //
-                    // GATT Processing
-                    //
-                    const uint64_t t4 = direct_bt::getCurrentMilliseconds();
-                    // let's check further for full GATT
-                    direct_bt::GATTHandler gatt(device, 10000);
-                    if( gatt.connect() ) {
-                        fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt.getServerMTU(), gatt.getUsedMTU());
-
-                        gatt.setGATTIndicationListener(std::shared_ptr<GATTIndicationListener>(new MyGATTIndicationListener()), true /* sendConfirmation */);
-                        gatt.setGATTNotificationListener(std::shared_ptr<GATTNotificationListener>(new MyGATTNotificationListener()));
+                gatt.setGATTIndicationListener(std::shared_ptr<GATTIndicationListener>(new MyGATTIndicationListener()), true /* sendConfirmation */);
+                gatt.setGATTNotificationListener(std::shared_ptr<GATTNotificationListener>(new MyGATTNotificationListener()));
 
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                         
-                        std::vector<std::vector<GATTUUIDHandle>> servicesCharacteristicDescriptors;
+                std::vector<std::vector<GATTUUIDHandle>> servicesCharacteristicDescriptors;
 #endif                        
-                        std::vector<GATTPrimaryServiceRef> & primServices = gatt.discoverCompletePrimaryServices();
-                        const uint64_t t5 = direct_bt::getCurrentMilliseconds();
+                std::vector<GATTPrimaryServiceRef> & primServices = gatt.discoverCompletePrimaryServices();
+                const uint64_t t5 = direct_bt::getCurrentMilliseconds();
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                        
-                        for(size_t i=0; i<primServices.size(); i++) {
-                            std::vector<GATTUUIDHandle> serviceDescriptors;
-                            gatt.discoverCharDescriptors(primServices.at(i), serviceDescriptors);
-                            servicesCharacteristicDescriptors.push_back(serviceDescriptors);
-                        }
+                for(size_t i=0; i<primServices.size(); i++) {
+                    std::vector<GATTUUIDHandle> serviceDescriptors;
+                    gatt.discoverCharDescriptors(primServices.at(i), serviceDescriptors);
+                    servicesCharacteristicDescriptors.push_back(serviceDescriptors);
+                }
 #endif                        
-                        const uint64_t t7 = direct_bt::getCurrentMilliseconds();
-                        {
-                            const uint64_t td45 = t5 - t4; // connect -> complete primary services
-                            const uint64_t td47 = t7 - t4; // connect -> gatt complete
-                            const uint64_t td07 = t7 - t0; // total
-                            fprintf(stderr, "\n\n\n");
-                            fprintf(stderr, "GATT primary-services completed\n");
-                            fprintf(stderr, "  gatt connect -> complete primary-services %" PRIu64 " ms,\n"
-                                            "  gatt connect -> gatt complete %" PRIu64 " ms,\n"
-                                            "  discovered to gatt complete %" PRIu64 " ms,\n"
-                                            "  total %" PRIu64 " ms\n\n",
-                                            td45, td47, (t7 - device->getCreationTimestamp()), td07);
-                        }
-                        {
-                            std::shared_ptr<GenericAccess> ga = gatt.getGenericAccess(primServices);
-                            if( nullptr != ga ) {
-                                fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
-                            }
-                        }
-                        {
-                            std::shared_ptr<DeviceInformation> di = gatt.getDeviceInformation(primServices);
-                            if( nullptr != di ) {
-                                fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
-                            }
-                        }
-
-                        for(size_t i=0; i<primServices.size(); i++) {
-                            GATTPrimaryService & primService = *primServices.at(i);
-                            fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
-                            fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                            std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;
-                            for(size_t j=0; j<serviceCharacteristics.size(); j++) {
-                                GATTCharacterisicsDecl & serviceChar = *serviceCharacteristics.at(j);
-                                fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
-                                if( serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Read) ) {
-                                    POctets value(GATTHandler::ClientMaxMTU, 0);
-                                    if( gatt.readCharacteristicValue(serviceChar, value) ) {
-                                        fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
-                                    }
-                                }
-                                if( nullptr != serviceChar.config ) {
-                                    const bool enableNotification = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Notify);
-                                    const bool enableIndication = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Indicate);
-                                    if( enableNotification || enableIndication ) {
-                                        bool res = gatt.configIndicationNotification(*serviceChar.config, enableNotification, enableIndication);
-                                        fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
-                                                (int)i, (int)j, enableNotification, enableIndication, res);
-                                    }
-                                }
-                            }
-#ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                            
-                            fprintf(stderr, "  [%2.2d] Service Characteristics Descriptors\n", (int)i);
-                            std::vector<GATTUUIDHandle> serviceDescriptors = servicesCharacteristicDescriptors.at(i);
-                            for(size_t j=0; j<serviceDescriptors.size(); j++) {
-                                fprintf(stderr, "  [%2.2d.%2.2d] %s\n", (int)i, (int)j, serviceDescriptors.at(j).toString().c_str());
-                            }
-#endif                            
-                        }
-                        // FIXME sleep 2s for potential callbacks ..
-                        sleep(2);
-                        gatt.disconnect();
-                    } else {
-                        fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());
+                const uint64_t t7 = direct_bt::getCurrentMilliseconds();
+                {
+                    const uint64_t td45 = t5 - t4; // connect -> complete primary services
+                    const uint64_t td47 = t7 - t4; // connect -> gatt complete
+                    const uint64_t td07 = t7 - t0; // total
+                    fprintf(stderr, "\n\n\n");
+                    fprintf(stderr, "GATT primary-services completed\n");
+                    fprintf(stderr, "  gatt connect -> complete primary-services %" PRIu64 " ms,\n"
+                                    "  gatt connect -> gatt complete %" PRIu64 " ms,\n"
+                                    "  discovered to gatt complete %" PRIu64 " ms,\n"
+                                    "  total %" PRIu64 " ms\n\n",
+                                    td45, td47, (t7 - device->getCreationTimestamp()), td07);
+                }
+                {
+                    std::shared_ptr<GenericAccess> ga = gatt.getGenericAccess(primServices);
+                    if( nullptr != ga ) {
+                        fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                     }
-                    device->disconnect(); // OK if not connected
-                } // if( 2000 > lup )
-            } // for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++)
-            fprintf(stderr, "Connection: Got %d devices, tried connected to %d with %d succeeded\n", i, j, k);
-        }
+                }
+                {
+                    std::shared_ptr<DeviceInformation> di = gatt.getDeviceInformation(primServices);
+                    if( nullptr != di ) {
+                        fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
+                    }
+                }
+
+                for(size_t i=0; i<primServices.size(); i++) {
+                    GATTPrimaryService & primService = *primServices.at(i);
+                    fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
+                    fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
+                    std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;
+                    for(size_t j=0; j<serviceCharacteristics.size(); j++) {
+                        GATTCharacterisicsDecl & serviceChar = *serviceCharacteristics.at(j);
+                        fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
+                        if( serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Read) ) {
+                            POctets value(GATTHandler::ClientMaxMTU, 0);
+                            if( gatt.readCharacteristicValue(serviceChar, value) ) {
+                                fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
+                            }
+                        }
+                        if( nullptr != serviceChar.config ) {
+                            const bool enableNotification = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Notify);
+                            const bool enableIndication = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Indicate);
+                            if( enableNotification || enableIndication ) {
+                                bool res = gatt.configIndicationNotification(*serviceChar.config, enableNotification, enableIndication);
+                                fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
+                                        (int)i, (int)j, enableNotification, enableIndication, res);
+                            }
+                        }
+                    }
+#ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                            
+                    fprintf(stderr, "  [%2.2d] Service Characteristics Descriptors\n", (int)i);
+                    std::vector<GATTUUIDHandle> serviceDescriptors = servicesCharacteristicDescriptors.at(i);
+                    for(size_t j=0; j<serviceDescriptors.size(); j++) {
+                        fprintf(stderr, "  [%2.2d.%2.2d] %s\n", (int)i, (int)j, serviceDescriptors.at(j).toString().c_str());
+                    }
+#endif                            
+                }
+                gatt.disconnect();
+            } else {
+                fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());
+            }
+            device->disconnect(); // OK if not connected
+        } // if( ok && nullptr != device )
     }
 
 #ifdef SHOW_STATIC_SERVICE_CHARACTERISTIC_COMPOSITION

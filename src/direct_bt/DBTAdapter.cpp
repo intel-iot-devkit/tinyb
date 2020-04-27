@@ -155,6 +155,7 @@ bool DBTAdapter::validateDevInfo() {
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
+    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB));
 
     return true;
 }
@@ -198,8 +199,7 @@ DBTAdapter::~DBTAdapter() {
     }
     deviceStatusListener = nullptr;
 
-    scannedDevices.clear();
-    discoveredDevices.clear();
+    removeDiscoveredDevices();
 
     if( nullptr != session ) {
         stopDiscovery();
@@ -234,14 +234,18 @@ std::shared_ptr<DBTDeviceStatusListener> DBTAdapter::setDeviceStatusListener(std
 bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
-    // FIXME:
     (void)own_mac_type;
     (void)interval;
     (void)window;
 
+    removeDiscoveredDevices();
     keepDiscoveringAlive = true;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
+}
+
+void DBTAdapter::startDiscoveryBackground() {
+    currentScanType = mgmt.startDiscovery(dev_id);
 }
 
 void DBTAdapter::stopDiscovery() {
@@ -265,59 +269,43 @@ int DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devic
     }
 }
 
-int DBTAdapter::findScannedDeviceIdx(EUI48 const & mac) const {
-    return findDevice(scannedDevices, mac);
-}
-
-std::shared_ptr<DBTDevice> DBTAdapter::findScannedDevice (EUI48 const & mac) const {
-    const int idx = findDevice(scannedDevices, mac);
-    if( 0 <= idx ) {
-        return scannedDevices.at(idx);
-    }
-    return nullptr;
-}
-
-bool DBTAdapter::addScannedDevice(std::shared_ptr<DBTDevice> const &device) {
-    if( 0 > findDevice(scannedDevices, device->address) ) {
-        scannedDevices.push_back(device);
-        return true;
-    }
-    return false;
-}
-
-int DBTAdapter::findDiscoveredDeviceIdx(EUI48 const & mac) const {
-    return findDevice(discoveredDevices, mac);
-}
-
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac) const {
-    const int idx = findDevice(discoveredDevices, mac);
-    if( 0 <= idx ) {
-        return discoveredDevices.at(idx);
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    auto begin = discoveredDevices.begin();
+    auto it = std::find_if(begin, discoveredDevices.end(), [&](std::shared_ptr<DBTDevice> const& p) {
+        return p->address == mac;
+    });
+    if ( it == std::end(discoveredDevices) ) {
+        return nullptr;
+    } else {
+        return *it;
     }
-    return nullptr;
 }
 
-bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
-    if( 0 > findDiscoveredDeviceIdx(device->address) ) {
-        discoveredDevices.push_back(device);
-        return true;
-    }
-    return false;
+void DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    discoveredDevices.push_back(device);
 }
 
 int DBTAdapter::removeDiscoveredDevices() {
-    // also need to flush scannedDevices, old data
-    scannedDevices.clear();
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     int res = discoveredDevices.size();
     discoveredDevices.clear();
     return res;
 }
 
+std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    std::vector<std::shared_ptr<DBTDevice>> res = discoveredDevices;
+    return res;
+}
+
 std::string DBTAdapter::toString() const {
     std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
-    if(discoveredDevices.size() > 0 ) {
+    std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
+    if(devices.size() > 0 ) {
         out.append("\n");
-        for(auto it = discoveredDevices.begin(); it != discoveredDevices.end(); it++) {
+        for(auto it = devices.begin(); it != devices.end(); it++) {
             std::shared_ptr<DBTDevice> p = *it;
             out.append("  ").append(p->toString()).append("\n");
         }
@@ -334,18 +322,6 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
     if( keepDiscoveringAlive && !event.getEnabled() ) {
         std::thread bg(&DBTAdapter::startDiscoveryBackground, this);
         bg.detach();
-    }
-    return true;
-}
-void DBTAdapter::startDiscoveryBackground() { startDiscovery(); }
-
-bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: %s", e->toString().c_str());
-    const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
-    if( event.getDevID() == dev_id ) {
-        std::unique_lock<std::mutex> lockRead(mtxEventRead); // RAII-style acquire and relinquish via destructor
-        eventReceived = e;
-        cvEventRead.notify_all(); // notify waiting getter
     }
     return true;
 }
@@ -388,89 +364,35 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
-int DBTAdapter::discoverDevices(const int waitForDeviceCount,
-                                const EUI48 &waitForDevice,
-                                const int timeoutMS,
-                                const uint32_t ad_type_req)
-{
-    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB));
-    const int64_t t0 = getCurrentMilliseconds();
-    const uint32_t ad_req = static_cast<uint32_t>(EInfoReport::Element::BDADDR) |
-                            static_cast<uint32_t>(EInfoReport::Element::RSSI) |
-                            ad_type_req;
-    bool done = false;
-    int64_t t1;
-    int matchedDeviceCount = 0, loop=0;
+bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: %s", e->toString().c_str());
+    const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
+    if( deviceFoundEvent.getDevID() != dev_id ) {
+        return true;
+    }
+    EInfoReport ad_report;
+    ad_report.setSource(EInfoReport::Source::EIR);
+    ad_report.setTimestamp(deviceFoundEvent.getTimestamp());
+    // ad_report.setEvtType(0); ??
+    ad_report.setAddressType(deviceFoundEvent.getAddressType());
+    ad_report.setAddress( deviceFoundEvent.getAddress() );
+    ad_report.setRSSI( deviceFoundEvent.getRSSI() );
+    ad_report.read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
 
-    while ( !done && ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
-        EInfoReport ad_report;
-        {
-            std::shared_ptr<MgmtEvent> deviceEvent = nullptr; // holding the resource
-            const MgmtEvtDeviceFound * deviceFoundEvent = nullptr; // convenient target type access
-            {
-                std::unique_lock<std::mutex> lockRead(mtxEventRead); // RAII-style acquire and relinquish via destructor
-                while( nullptr == deviceEvent ) { // FIXME deadlock, waiting forever!
-                    cvEventRead.wait(lockRead);
-                    if( nullptr != eventReceived && MgmtEvent::Opcode::DEVICE_FOUND == eventReceived->getOpcode() ) {
-                        deviceEvent.swap(eventReceived); // take over eventReceived
-                        deviceFoundEvent = static_cast<const MgmtEvtDeviceFound *>(deviceEvent.get());
-                    }
-                }
-            }
-            loop++;
-
-            ad_report.setSource(EInfoReport::Source::EIR);
-            ad_report.setTimestamp(deviceFoundEvent->getTimestamp());
-            // ad_report.setEvtType(0); ??
-            ad_report.setAddressType(deviceFoundEvent->getAddressType());
-            ad_report.setAddress( deviceFoundEvent->getAddress() );
-            ad_report.setRSSI( deviceFoundEvent->getRSSI() );
-            ad_report.read_data(deviceFoundEvent->getData(), deviceFoundEvent->getDataSize());
+    std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
+    if( nullptr == dev ) {
+        // new device
+        dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
+        addDiscoveredDevice(dev);
+        if( nullptr != deviceStatusListener ) {
+            deviceStatusListener->deviceFound(*this, dev, ad_report.getTimestamp());
         }
-
-        const bool matches = ( ad_req == ( ad_req & ad_report.getDataSet() ) ) &&
-                             ( EUI48_ANY_DEVICE == waitForDevice || ad_report.getAddress() == waitForDevice );
-        if( matches ) {
-            matchedDeviceCount++;
-            if( 0 < waitForDeviceCount && waitForDeviceCount <= matchedDeviceCount ) {
-                done = true;
-            }
-        }
-        DBG_PRINT("DBTAdapter::discovery[%d]: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
-                loop-1, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
-                matchedDeviceCount, waitForDeviceCount, done);
-        DBG_PRINT("DBTAdapter::discovery[%d]: %s", loop-1, ad_report.toString().c_str());
-
-        int idx = findDevice(scannedDevices, ad_report.getAddress());
-        std::shared_ptr<DBTDevice> dev;
-        if( 0 > idx ) {
-            // new device
-            dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
-            scannedDevices.push_back(dev);
-        } else {
-            // existing device
-            dev = scannedDevices.at(idx);
-            dev->update(ad_report);
-        }
-        if( matches ) {
-            if( addDiscoveredDevice(dev) ) {
-                // new matching
-                if( nullptr != deviceStatusListener ) {
-                    deviceStatusListener->deviceFound(*this, dev, ad_report.getTimestamp());
-                }
-            } else {
-                // update
-                if( nullptr != deviceStatusListener ) {
-                    deviceStatusListener->deviceUpdated(*this, dev, ad_report.getTimestamp());
-                }
-            }
+    } else {
+        // existing device
+        dev->update(ad_report);
+        if( nullptr != deviceStatusListener ) {
+            deviceStatusListener->deviceUpdated(*this, dev, ad_report.getTimestamp());
         }
     }
-    {
-        int count;
-        if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB)) ) ) {
-            throw InternalError("DBTAdapter removeMgmtEventCallback(DEVICE_FOUND) not 1 but "+std::to_string(count), E_FILE_LINE);
-        }
-    }
-    return matchedDeviceCount;
+    return true;
 }
