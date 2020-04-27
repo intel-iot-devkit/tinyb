@@ -56,6 +56,53 @@ using namespace direct_bt;
 
 #define CASE_TO_STRING(V) case V: return #V;
 
+#define SETTING_ENUM(X) \
+    X(MGMT_SETTING_POWERED) \
+    X(MGMT_SETTING_CONNECTABLE) \
+    X(MGMT_SETTING_FAST_CONNECTABLE) \
+    X(MGMT_SETTING_DISCOVERABLE) \
+    X(MGMT_SETTING_BONDABLE) \
+    X(MGMT_SETTING_LINK_SECURITY) \
+    X(MGMT_SETTING_SSP) \
+    X(MGMT_SETTING_BREDR) \
+    X(MGMT_SETTING_HS) \
+    X(MGMT_SETTING_LE) \
+    X(MGMT_SETTING_ADVERTISING) \
+    X(MGMT_SETTING_SECURE_CONN) \
+    X(MGMT_SETTING_DEBUG_KEYS) \
+    X(MGMT_SETTING_PRIVACY) \
+    X(MGMT_SETTING_CONFIGURATION) \
+    X(MGMT_SETTING_STATIC_ADDRESS) \
+    X(MGMT_SETTING_PHY_CONFIGURATION) \
+
+std::string direct_bt::getMgmtSettingBitString(const MgmtSetting settingBit) {
+    switch(settingBit) {
+        SETTING_ENUM(CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown Setting Bit";
+}
+
+std::string direct_bt::getMgmtSettingsString(const MgmtSetting settingMask) {
+    const uint32_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<32; i++) {
+        const MgmtSetting settingBit = static_cast<MgmtSetting>( one << i );
+        if( 0 != ( settingMask & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(getMgmtSettingBitString(settingBit));
+            has_pre = true;
+        }
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 #define STATUS_ENUM(X) \
     X(SUCCESS) \
     X(UNKNOWN_COMMAND) \
@@ -238,6 +285,10 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
             return new MgmtEvtCmdStatus(buffer, buffer_size);
         case MgmtEvent::Opcode::DISCOVERING:
             return new MgmtEvtDiscovering(buffer, buffer_size);
+        case MgmtEvent::Opcode::NEW_SETTINGS:
+            return new MgmtEvtNewSettings(buffer, buffer_size);
+        case MgmtEvent::Opcode::NEW_CONN_PARAM:
+            return new MgmtEvtNewConnectionParam(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_FOUND:
             return new MgmtEvtDeviceFound(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_CONNECTED:
@@ -254,6 +305,8 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
             return new MgmtEvtDeviceWhitelistRemoved(buffer, buffer_size);
         case MgmtEvent::Opcode::DEVICE_UNPAIRED:
             return new MgmtEvtDeviceUnpaired(buffer, buffer_size);
+        case MgmtEvent::Opcode::LOCAL_NAME_CHANGED:
+            return new MgmtEvtLocalNameChanged(buffer, buffer_size);
         default:
             return new MgmtEvent(buffer, buffer_size);
     }

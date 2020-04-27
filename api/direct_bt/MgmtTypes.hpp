@@ -68,6 +68,29 @@ namespace direct_bt {
         MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
+    enum MgmtSetting : uint32_t {
+        MGMT_SETTING_POWERED            = 0x00000001,
+        MGMT_SETTING_CONNECTABLE        = 0x00000002,
+        MGMT_SETTING_FAST_CONNECTABLE   = 0x00000004,
+        MGMT_SETTING_DISCOVERABLE       = 0x00000008,
+        MGMT_SETTING_BONDABLE           = 0x00000010,
+        MGMT_SETTING_LINK_SECURITY      = 0x00000020,
+        MGMT_SETTING_SSP                = 0x00000040,
+        MGMT_SETTING_BREDR              = 0x00000080,
+        MGMT_SETTING_HS                 = 0x00000100,
+        MGMT_SETTING_LE                 = 0x00000200,
+        MGMT_SETTING_ADVERTISING        = 0x00000400,
+        MGMT_SETTING_SECURE_CONN        = 0x00000800,
+        MGMT_SETTING_DEBUG_KEYS         = 0x00001000,
+        MGMT_SETTING_PRIVACY            = 0x00002000,
+        MGMT_SETTING_CONFIGURATION      = 0x00004000,
+        MGMT_SETTING_STATIC_ADDRESS     = 0x00008000,
+        MGMT_SETTING_PHY_CONFIGURATION  = 0x00010000
+    };
+
+    std::string getMgmtSettingBitString(const MgmtSetting settingBit);
+    std::string getMgmtSettingsString(const MgmtSetting settingBitMask);
+
     enum MgmtConst : int {
         MGMT_HEADER_SIZE       = 6
     };
@@ -500,6 +523,72 @@ namespace direct_bt {
     };
 
     /**
+     * uint32_t settings
+     */
+    class MgmtEvtNewSettings : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", settings="+getMgmtSettingsString(getSettingMask());
+            }
+
+        public:
+            MgmtEvtNewSettings(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), NEW_SETTINGS);
+            }
+            MgmtSetting getSettingMask() const { return static_cast<MgmtSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+4; }
+            int getDataSize() const override { return getParamSize()-4; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * int8_t store_hint,
+     * uint16_t min_interval;
+     * uint16_t max_interval;
+     * uint16_t latency,
+     * uint16_t timeout,
+     */
+    class MgmtEvtNewConnectionParam : public MgmtEvent
+    {
+        public:
+
+        protected:
+            std::string baseString() const override {
+                return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                       ", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", store-hint "+std::to_string(getStoreHint())+
+                       ", interval["+std::to_string(getMinInterval())+".."+std::to_string(getMaxInterval())+
+                       "], latency "+std::to_string(getLatency())+", timeout "+std::to_string(getTimeout());
+            }
+
+        public:
+            MgmtEvtNewConnectionParam(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), NEW_CONN_PARAM);
+            }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+
+            int8_t getStoreHint() const { return pdu.get_int8(MGMT_HEADER_SIZE+7); }
+            uint16_t getMinInterval() const { return pdu.get_uint32(MGMT_HEADER_SIZE+8); }
+            uint16_t getMaxInterval() const { return pdu.get_uint32(MGMT_HEADER_SIZE+10); }
+            uint16_t getLatency() const { return pdu.get_uint16(MGMT_HEADER_SIZE+12); }
+            uint16_t getTimeout() const { return pdu.get_uint16(MGMT_HEADER_SIZE+14); }
+
+            int getDataOffset() const override { return MGMT_HEADER_SIZE+14; }
+            int getDataSize() const override { return getParamSize()-14; }
+            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    };
+
+    /**
      * mgmt_addr_info { EUI48, uint8_t type },
      * int8_t rssi,
      * uint32_t flags,
@@ -749,6 +838,31 @@ namespace direct_bt {
             const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
     };
 
+    /**
+     * uint8_t name[MGMT_MAX_NAME_LENGTH];
+     * uint8_t short_name[MGMT_MAX_SHORT_NAME_LENGTH];
+     */
+    class MgmtEvtLocalNameChanged : public MgmtEvent
+    {
+        protected:
+            std::string valueString() const override {
+                return "name '"+getName()+"', shortName '"+getShortName()+"'";
+            }
+
+        public:
+            static int getRequiredSize() { return MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+
+            MgmtEvtLocalNameChanged(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvent(buffer, buffer_len)
+            {
+                checkOpcode(getOpcode(), LOCAL_NAME_CHANGED);
+                pdu.check_range(0, getRequiredSize());
+            }
+
+            const std::string getName() const { return std::string( (const char*)pdu.get_ptr(MGMT_HEADER_SIZE) ); }
+            const std::string getShortName() const { return std::string( (const char*)pdu.get_ptr(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH) ); }
+    };
+
     class MgmtEvtAdapterInfo : public MgmtEvtCmdComplete
     {
         protected:
@@ -756,11 +870,11 @@ namespace direct_bt {
                 return getMAC().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
                         ", settings[sup "+uint32HexString(getSupportedSetting(), true)+", cur "+uint32HexString(getCurrentSetting(), true)+
-                        "], name "+getName()+", shortName "+getShortName();
+                        "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 
         public:
-            static int getRequiredSize() { return 9 + 20 + MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+            static int getRequiredSize() { return MGMT_HEADER_SIZE + 3 + 20 + MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
 
             MgmtEvtAdapterInfo(const uint8_t* buffer, const int buffer_len)
             : MgmtEvtCmdComplete(buffer, buffer_len)

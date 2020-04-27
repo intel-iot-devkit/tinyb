@@ -311,9 +311,10 @@ next1:
     }
 
     if( ok ) {
-        addMgmtEventCallback(MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviChangedCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvLocalNameChangedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+        addMgmtEventCallback(MgmtEvent::Opcode::NEW_SETTINGS, bindClassFunction(this, &DBTManager::mgmtEvNewSettingsCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTManager::mgmtEvDeviceFoundCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
         addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
@@ -532,17 +533,25 @@ void DBTManager::clearAllMgmtEventCallbacks() {
     }
 }
 
-bool DBTManager::mgmtEvClassOfDeviChangedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBRManager::EventCB:ClassOfDeviChanged: %s", e->toString().c_str());
+bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
     return true;
 }
 bool DBTManager::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:LocalNameChanged: %s", e->toString().c_str());
+    const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
+    (void)event;
+    return true;
+}
+bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBRManager::EventCB:NewSettings: %s", e->toString().c_str());
+    const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
     (void)event;
     return true;
 }
@@ -554,33 +563,49 @@ bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
 }
 bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
+    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceConnected: %s", e->toString().c_str());
+    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:ConnectFailed: %s", e->toString().c_str());
+    const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDevicePinCodeRequestCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
+    const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
+    const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
+    const MgmtEvtNewConnectionParam &event = *static_cast<const MgmtEvtNewConnectionParam *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceAdded: %s", e->toString().c_str());
+    const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
+    (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:DeviceRemoved: %s", e->toString().c_str());
+    const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
+    (void)event;
     return true;
 }

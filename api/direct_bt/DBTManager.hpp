@@ -97,23 +97,10 @@ namespace direct_bt {
             std::shared_ptr<const AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
             void shutdownAdapter(const uint16_t dev_id);
 
-            /**
-             * DBTDeviceStatusListener reflecting certain MgmtEvent:
-                DEVICE_CONNECTED           = 0x000B, *
-                DEVICE_DISCONNECTED        = 0x000C, *
-                CONNECT_FAILED             = 0x000D, *
-                PIN_CODE_REQUEST           = 0x000E, *
-                DEVICE_FOUND               = 0x0012, *
-                DEVICE_WHITELIST_ADDED     = 0x001A, *
-                DEVICE_WHITELIST_REMOVED   = 0x001B, *
-
-                DEVICE_BLOCKED             = 0x0014,
-                DEVICE_UNBLOCKED           = 0x0015,
-                DEVICE_UNPAIRED            = 0x0016,
-             */
-            bool mgmtEvClassOfDeviChangedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
