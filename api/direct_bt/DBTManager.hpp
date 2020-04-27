@@ -156,16 +156,10 @@ namespace direct_bt {
 
             /**
              * Returns the AdapterInfo index (== dev_id) with the given address or -1 if not found.
-             * <p>
-             * Throws an InternalError if index != dev_id, validating consistency.
-             * </p>
              */
             int findAdapterInfoIdx(const EUI48 &mac) const;
             /**
              * Returns the AdapterInfo (index == dev_id) with the given address or nullptr if not found.
-             * <p>
-             * Throws an InternalError if index != dev_id, validating consistency.
-             * </p>
              */
             std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const;
             /**
@@ -173,16 +167,10 @@ namespace direct_bt {
              * <p>
              * Throws IndexOutOfBoundsException if index is > adapter count.
              * </p>
-             * <p>
-             * Throws an InternalError if index != dev_id, validating consistency.
-             * </p>
              */
             std::shared_ptr<AdapterInfo> getAdapterInfo(const int idx) const;
             /**
              * Returns the default AdapterInfo (0 == index == dev_id) or nullptr if no adapter is available.
-             * <p>
-             * Throws an InternalError if index != dev_id, validating consistency.
-             * </p>
              */
             std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
 

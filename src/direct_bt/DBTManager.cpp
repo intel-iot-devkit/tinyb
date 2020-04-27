@@ -155,6 +155,9 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             goto fail;
         }
         adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
+        if( dev_id != adapterInfo->dev_id ) {
+            throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
+        }
     }
 
     switch ( btMode ) {
@@ -366,12 +369,7 @@ int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const {
     if ( it == std::end(adapterInfos) ) {
         return -1;
     } else {
-        const int idx = std::distance(begin, it);
-        const int dev_id = (*it)->dev_id;
-        if( idx != dev_id ) {
-            throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+(*it)->toString(), E_FILE_LINE);
-        }
-        return idx;
+        return std::distance(begin, it);
     }
 }
 std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const {
@@ -382,11 +380,6 @@ std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const
     if ( it == std::end(adapterInfos) ) {
         return nullptr;
     } else {
-        const int idx = std::distance(begin, it);
-        const int dev_id = (*it)->dev_id;
-        if( idx != dev_id ) {
-            throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+(*it)->toString(), E_FILE_LINE);
-        }
         return *it;
     }
 }
@@ -395,10 +388,6 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
         throw IndexOutOfBoundsException(idx, adapterInfos.size(), 1, E_FILE_LINE);
     }
     std::shared_ptr<AdapterInfo> adapter = adapterInfos.at(idx);
-    const int dev_id = adapter->dev_id;
-    if( idx != dev_id ) {
-        throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+adapter->toString(), E_FILE_LINE);
-    }
     return adapter;
 }
 
