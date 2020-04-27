@@ -85,7 +85,7 @@ namespace direct_bt {
                 }
             }
 
-            std::vector<std::shared_ptr<const AdapterInfo>> adapters;
+            std::vector<std::shared_ptr<AdapterInfo>> adapterInfos;
             void mgmtReaderThreadImpl();
             std::shared_ptr<MgmtEvent> receiveNext();
 
@@ -94,7 +94,7 @@ namespace direct_bt {
             void operator=(const DBTManager&) = delete;
             void close();
 
-            std::shared_ptr<const AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
+            std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
             void shutdownAdapter(const uint16_t dev_id);
 
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e);
@@ -148,14 +148,43 @@ namespace direct_bt {
                 return comm.isOpen();
             }
 
-            std::string toString() const override { return "MgmtHandler["+std::to_string(adapters.size())+" adapter, "+javaObjectToString()+"]"; }
+            std::string toString() const override { return "MgmtHandler["+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]"; }
 
             /** retrieve information gathered at startup */
 
-            const std::vector<std::shared_ptr<const AdapterInfo>> getAdapters() const { return adapters; }
-            int getDefaultAdapterIdx() const { return adapters.size() > 0 ? 0 : -1; }
-            int findAdapterIdx(const EUI48 &mac) const;
-            std::shared_ptr<const AdapterInfo> getAdapter(const int idx) const;
+            const std::vector<std::shared_ptr<AdapterInfo>> getAdapterInfos() const { return adapterInfos; }
+
+            /**
+             * Returns the AdapterInfo index (== dev_id) with the given address or -1 if not found.
+             * <p>
+             * Throws an InternalError if index != dev_id, validating consistency.
+             * </p>
+             */
+            int findAdapterInfoIdx(const EUI48 &mac) const;
+            /**
+             * Returns the AdapterInfo (index == dev_id) with the given address or nullptr if not found.
+             * <p>
+             * Throws an InternalError if index != dev_id, validating consistency.
+             * </p>
+             */
+            std::shared_ptr<AdapterInfo> findAdapterInfo(const EUI48 &mac) const;
+            /**
+             * Returns the AdapterInfo (index == dev_id) with the given index.
+             * <p>
+             * Throws IndexOutOfBoundsException if index is > adapter count.
+             * </p>
+             * <p>
+             * Throws an InternalError if index != dev_id, validating consistency.
+             * </p>
+             */
+            std::shared_ptr<AdapterInfo> getAdapterInfo(const int idx) const;
+            /**
+             * Returns the default AdapterInfo (0 == index == dev_id) or nullptr if no adapter is available.
+             * <p>
+             * Throws an InternalError if index != dev_id, validating consistency.
+             * </p>
+             */
+            std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
 
             /**
              * In case response size check or devID and optional opcode validation fails,

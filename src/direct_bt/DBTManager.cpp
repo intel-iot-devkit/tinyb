@@ -140,8 +140,8 @@ std::shared_ptr<MgmtEvent> DBTManager::receiveNext() {
     return mgmtEventRing.getBlocking();
 }
 
-std::shared_ptr<const AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
-    std::shared_ptr<const AdapterInfo> adapterInfo = nullptr;
+std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
+    std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
     DBG_PRINT("DBTManager::initAdapter dev_id %d: req: %s", dev_id, req0.toString().c_str());
     {
@@ -154,7 +154,7 @@ std::shared_ptr<const AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id
             ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredSize(), res->toString().c_str());
             goto fail;
         }
-        adapterInfo = std::shared_ptr<const AdapterInfo>( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
+        adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
     }
 
     switch ( btMode ) {
@@ -289,17 +289,17 @@ next1:
             ERR_PRINT("Insufficient data for %d adapter indices: res %s", num_adapter, res->toString().c_str());
             goto fail;
         }
-        adapters.resize(num_adapter, nullptr);
+        adapterInfos.resize(num_adapter, nullptr);
         for(int i=0; ok && i < num_adapter; i++) {
             const uint16_t dev_id = get_uint16(data, 2+i*2, true /* littleEndian */);
             if( dev_id >= num_adapter ) {
                 throw InternalError("dev_id "+std::to_string(dev_id)+" >= num_adapter "+std::to_string(num_adapter), E_FILE_LINE);
             }
-            if( adapters[dev_id] != nullptr ) {
-                throw InternalError("adapters[dev_id="+std::to_string(dev_id)+"] != nullptr: "+adapters[dev_id]->toString(), E_FILE_LINE);
+            if( adapterInfos[dev_id] != nullptr ) {
+                throw InternalError("adapters[dev_id="+std::to_string(dev_id)+"] != nullptr: "+adapterInfos[dev_id]->toString(), E_FILE_LINE);
             }
-            std::shared_ptr<const AdapterInfo> adapterInfo = initAdapter(dev_id, btMode);
-            adapters[dev_id] = adapterInfo;
+            std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, btMode);
+            adapterInfos[dev_id] = adapterInfo;
             if( nullptr != adapterInfo ) {
                 DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
                 ok = true;
@@ -344,7 +344,7 @@ void DBTManager::close() {
         pthread_kill(tid, SIGINT);
     }
 
-    for (auto it = adapters.begin(); it != adapters.end(); ) {
+    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); ) {
         shutdownAdapter((*it)->dev_id);
     }
     comm.close();
@@ -358,23 +358,48 @@ void DBTManager::close() {
     DBG_PRINT("DBTManager::close: End");
 }
 
-int DBTManager::findAdapterIdx(const EUI48 &mac) const {
-    auto begin = adapters.begin();
-    auto it = std::find_if(begin, adapters.end(), [&](std::shared_ptr<const AdapterInfo> const& p) {
-        return p->mac == mac;
+int DBTManager::findAdapterInfoIdx(const EUI48 &mac) const {
+    auto begin = adapterInfos.begin();
+    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+        return p->address == mac;
     });
-    if ( it == std::end(adapters) ) {
+    if ( it == std::end(adapterInfos) ) {
         return -1;
     } else {
-        return std::distance(begin, it);
+        const int idx = std::distance(begin, it);
+        const int dev_id = (*it)->dev_id;
+        if( idx != dev_id ) {
+            throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+(*it)->toString(), E_FILE_LINE);
+        }
+        return idx;
     }
 }
-
-std::shared_ptr<const AdapterInfo> DBTManager::getAdapter(const int idx) const {
-    if( 0 > idx || idx >= static_cast<int>(adapters.size()) ) {
-        throw IndexOutOfBoundsException(idx, adapters.size(), 1, E_FILE_LINE);
+std::shared_ptr<AdapterInfo> DBTManager::findAdapterInfo(const EUI48 &mac) const {
+    auto begin = adapterInfos.begin();
+    auto it = std::find_if(begin, adapterInfos.end(), [&](std::shared_ptr<AdapterInfo> const& p) {
+        return p->address == mac;
+    });
+    if ( it == std::end(adapterInfos) ) {
+        return nullptr;
+    } else {
+        const int idx = std::distance(begin, it);
+        const int dev_id = (*it)->dev_id;
+        if( idx != dev_id ) {
+            throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+(*it)->toString(), E_FILE_LINE);
+        }
+        return *it;
     }
-    return adapters.at(idx);
+}
+std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
+    if( 0 > idx || idx >= static_cast<int>(adapterInfos.size()) ) {
+        throw IndexOutOfBoundsException(idx, adapterInfos.size(), 1, E_FILE_LINE);
+    }
+    std::shared_ptr<AdapterInfo> adapter = adapterInfos.at(idx);
+    const int dev_id = adapter->dev_id;
+    if( idx != dev_id ) {
+        throw InternalError("Adapter index "+std::to_string(idx)+" != dev_id="+std::to_string(dev_id)+"]: "+adapter->toString(), E_FILE_LINE);
+    }
+    return adapter;
 }
 
 bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) {
@@ -540,7 +565,22 @@ bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
 bool DBTManager::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:LocalNameChanged: %s", e->toString().c_str());
     const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
-    (void)event;
+    std::shared_ptr<AdapterInfo> adapterInfo = getAdapterInfo(event.getDevID());
+    std::string old_name = adapterInfo->getName();
+    std::string old_shortName = adapterInfo->getShortName();
+    bool nameChanged = old_name != event.getName();
+    bool shortNameChanged = old_shortName != event.getShortName();
+    if( nameChanged ) {
+        adapterInfo->setName(event.getName());
+    }
+    if( shortNameChanged ) {
+        adapterInfo->setShortName(event.getShortName());
+    }
+    DBG_PRINT("DBRManager::EventCB:LocalNameChanged: Name: %d: '%s' -> '%s'; ShortName: %d: '%s' -> '%s'",
+            nameChanged, old_name.c_str(), adapterInfo->getName().c_str(),
+            shortNameChanged, old_shortName.c_str(), adapterInfo->getShortName().c_str());
+    (void)nameChanged;
+    (void)shortNameChanged;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
@@ -552,7 +592,13 @@ bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
 bool DBTManager::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBRManager::EventCB:NewSettings: %s", e->toString().c_str());
     const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
-    (void)event;
+    std::shared_ptr<AdapterInfo> adapterInfo = getAdapterInfo(event.getDevID());
+    MgmtSetting old_setting = adapterInfo->getCurrentSetting();
+    int res = adapterInfo->setCurrentSetting(event.getSettings());
+    DBG_PRINT("DBRManager::EventCB:NewSettings: %d: %s -> %s", res,
+            getMgmtSettingsString(old_setting).c_str(),
+            getMgmtSettingsString(adapterInfo->getCurrentSetting()).c_str());
+    (void)res;
     return true;
 }
 bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {

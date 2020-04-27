@@ -153,7 +153,7 @@ bool DBTAdapter::validateDevInfo() {
         return false;
     }
 
-    adapterInfo = mgmt.getAdapter(dev_id);
+    adapterInfo = mgmt.getAdapterInfo(dev_id);
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
@@ -172,13 +172,13 @@ void DBTAdapter::sessionClosing()
 }
 
 DBTAdapter::DBTAdapter()
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(mgmt.getDefaultAdapterIdx())
+: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) 
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(mgmt.findAdapterIdx(mac))
+: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(mgmt.findAdapterInfoIdx(mac))
 {
     valid = validateDevInfo();
 }

@@ -69,7 +69,8 @@ jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobj
     try {
         DBTManager *manager = getInstance<DBTManager>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: Manager %s", manager->toString().c_str());
-        int defAdapterIdx = manager->getDefaultAdapterIdx();
+        (void) manager;
+        const int defAdapterIdx = 0;
         DBTAdapter * adapter = new DBTAdapter(defAdapterIdx);
         if( !adapter->isValid() ) {
             delete adapter;

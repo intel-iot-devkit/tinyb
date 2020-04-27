@@ -531,7 +531,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", settings="+getMgmtSettingsString(getSettingMask());
+                return MgmtEvent::baseString()+", settings="+getMgmtSettingsString(getSettings());
             }
 
         public:
@@ -540,7 +540,7 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), NEW_SETTINGS);
             }
-            MgmtSetting getSettingMask() const { return static_cast<MgmtSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
+            MgmtSetting getSettings() const { return static_cast<MgmtSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+4; }
             int getDataSize() const override { return getParamSize()-4; }
@@ -867,9 +867,9 @@ namespace direct_bt {
     {
         protected:
             std::string valueString() const override {
-                return getMAC().toString()+", version "+std::to_string(getVersion())+
+                return getAddress().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
-                        ", settings[sup "+uint32HexString(getSupportedSetting(), true)+", cur "+uint32HexString(getCurrentSetting(), true)+
+                        ", settings[sup "+getMgmtSettingsString(getSupportedSetting())+", cur "+getMgmtSettingsString(getCurrentSetting())+
                         "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 
@@ -882,11 +882,11 @@ namespace direct_bt {
                 pdu.check_range(0, getRequiredSize());
             }
 
-            const EUI48 getMAC() const { return EUI48(pdu.get_ptr(getDataOffset()+0)); }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(getDataOffset()+0)); }
             uint8_t getVersion() const { return pdu.get_uint8(getDataOffset()+6); }
             uint16_t getManufacturer() const { return pdu.get_uint16(getDataOffset()+7); }
-            uint32_t getSupportedSetting() const { return pdu.get_uint32(getDataOffset()+9); }
-            uint32_t getCurrentSetting() const { return pdu.get_uint32(getDataOffset()+13); }
+            MgmtSetting getSupportedSetting() const { return static_cast<MgmtSetting>( pdu.get_uint32(getDataOffset()+9) ); }
+            MgmtSetting getCurrentSetting() const { return static_cast<MgmtSetting>( pdu.get_uint32(getDataOffset()+13) ); }
             uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
                                                   | ( pdu.get_uint8(getDataOffset()+18) << 8 )
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
@@ -894,30 +894,72 @@ namespace direct_bt {
             const std::string getShortName() const { return std::string( (const char*)pdu.get_ptr(getDataOffset()+20+MgmtConstU16::MAX_NAME_LENGTH) ); }
     };
 
+    class DBTManager; // forward
+
     /** Immutable persistent adapter info */
     class AdapterInfo
     {
+        friend class DBTManager; // top manager
+
         public:
             const int dev_id;
-            const EUI48 mac;
+            const EUI48 address;
             const uint8_t version;
             const uint16_t manufacturer;
-            const uint32_t supported_setting;
-            const uint32_t current_setting;
-            const uint32_t dev_class;
-            const std::string name;
-            const std::string short_name;
+            const MgmtSetting supported_setting;
 
+        private:
+            MgmtSetting current_setting;
+            uint32_t dev_class;
+            std::string name;
+            std::string short_name;
+
+            /**
+             * Sets the current_setting.
+             * <p>
+             * Returns 1 if new_setting is supported and different from current_setting, current_setting updated.
+             * </p>
+             * <p>
+             * Returns 0 if new_setting is supported but _not_ different from current_setting, current_setting _not_ updated.
+             * </p>
+             * <p>
+             * Returns -1 if new_setting is _not_ supported, current_setting _not_ updated.
+             * </p>
+             */
+            int setCurrentSetting(const MgmtSetting new_setting) {
+                if( new_setting != ( new_setting & supported_setting ) ) {
+                    return -1;
+                }
+                if( new_setting != current_setting ) {
+                    current_setting = new_setting;
+                    return 1;
+                }
+                return 0;
+            }
+            void setDevClass(const uint32_t v) { dev_class = v; }
+            void setName(const std::string v) { name = v; }
+            void setShortName(const std::string v) { short_name = v; }
+
+        public:
             AdapterInfo(const MgmtEvtAdapterInfo &s)
-            : dev_id(s.getDevID()), mac(s.getMAC()), version(s.getVersion()), manufacturer(s.getManufacturer()),
-              supported_setting(s.getSupportedSetting()), current_setting(s.getCurrentSetting()),
-              dev_class(s.getDevClass()), name(s.getName()), short_name(s.getShortName())
+            : dev_id(s.getDevID()), address(s.getAddress()), version(s.getVersion()),
+              manufacturer(s.getManufacturer()), supported_setting(s.getSupportedSetting()),
+              current_setting(s.getCurrentSetting()), dev_class(s.getDevClass()),
+              name(s.getName()), short_name(s.getShortName())
             { }
 
+            bool isSettingSupported(const MgmtSetting setting) const {
+                return setting == ( setting & supported_setting );
+            }
+            MgmtSetting getCurrentSetting() const { return current_setting; }
+            uint32_t getDevClass() const { return dev_class; }
+            const std::string getName() const { return name; }
+            const std::string getShortName() const { return short_name; }
+
             std::string toString() const {
-                return "Adapter[id "+std::to_string(dev_id)+", mac "+mac.toString()+", version "+std::to_string(version)+
+                return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+uint32HexString(supported_setting, true)+", cur "+uint32HexString(current_setting, true)+
+                        ", settings[sup "+getMgmtSettingsString(supported_setting)+", cur "+getMgmtSettingsString(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
             }
     };

@@ -394,9 +394,9 @@ namespace direct_bt {
 
             bool hasDevId() const { return 0 <= dev_id; }
 
-            EUI48 const & getAddress() const { return adapterInfo->mac; }
-            std::string getAddressString() const { return adapterInfo->mac.toString(); }
-            std::string const & getName() const { return adapterInfo->name; }
+            EUI48 const & getAddress() const { return adapterInfo->address; }
+            std::string getAddressString() const { return adapterInfo->address.toString(); }
+            std::string getName() const { return adapterInfo->getName(); }
 
             /**
              * Returns a reference to the used singleton DBTManager instance.
