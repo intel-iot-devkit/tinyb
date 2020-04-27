@@ -70,7 +70,6 @@ namespace direct_bt {
             const BTMode btMode;
             POctets rbuffer;
             HCIComm comm;
-            std::recursive_mutex mtx_api;
 
             LFRingbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
             std::thread mgmtReaderThread;
@@ -79,6 +78,7 @@ namespace direct_bt {
 
             /** One MgmtEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT> mgmtEventCallbackLists;
+            std::recursive_mutex mtx_callbackLists;
             inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
                 if( opc >= mgmtEventCallbackLists.size() ) {
                     throw IndexOutOfBoundsException(opc, 1, mgmtEventCallbackLists.size(), E_FILE_LINE);

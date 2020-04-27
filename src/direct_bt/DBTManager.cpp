@@ -339,7 +339,6 @@ fail:
 
 void DBTManager::close() {
     DBG_PRINT("DBTManager::close: Start");
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
     clearAllMgmtEventCallbacks();
     if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
         mgmtReaderShallStop = true;
@@ -423,7 +422,6 @@ ScanType DBTManager::startDiscovery(const int dev_id) {
 ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
     MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, scanType);
     DBG_PRINT("DBTManager::startDiscovery: %s", req.toString().c_str());
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<MgmtEvent> res = send(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::startDiscovery res: NULL");
@@ -447,7 +445,6 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
 bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, type);
     DBG_PRINT("DBTManager::stopDiscovery: %s", req.toString().c_str());
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<MgmtEvent> res = send(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::stopDiscovery res: NULL");
@@ -474,7 +471,6 @@ uint16_t DBTManager::create_connection(const int dev_id,
                         const uint8_t initiator_filter) {
     // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
     DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
     (void)dev_id;
     (void)peer_mac_type;
     (void)own_mac_type;
@@ -493,7 +489,6 @@ uint16_t DBTManager::create_connection(const int dev_id,
 bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type) {
     MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
     DBG_PRINT("DBTManager::disconnect: %s", req.toString().c_str());
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<MgmtEvent> res = send(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::stopDiscovery res: NULL");
@@ -516,12 +511,12 @@ bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BD
  */
 
 void DBTManager::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
     mgmtEventCallbackLists[opc].push_back(cb);
 }
 int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
     int count = 0;
     MgmtEventCallbackList &l = mgmtEventCallbackLists[opc];
@@ -536,12 +531,12 @@ int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtE
     return count;
 }
 void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
     mgmtEventCallbackLists[opc].clear();
 }
 void DBTManager::clearAllMgmtEventCallbacks() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_api); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
         mgmtEventCallbackLists[i].clear();
     }
