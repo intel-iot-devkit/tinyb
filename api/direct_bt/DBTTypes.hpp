@@ -358,10 +358,6 @@ namespace direct_bt {
 
             void startDiscoveryBackground();
 
-            int discoverDevicesHCI(const int waitForDeviceCount, const EUI48 &waitForDevice,
-                                   const int timeoutMS, const uint32_t ad_type_req);
-            int discoverDevicesMgmt(const int waitForDeviceCount, const EUI48 &waitForDevice,
-                                    const int timeoutMS, const uint32_t ad_type_req);
         public:
             const int dev_id;
 

@@ -40,8 +40,6 @@
 
 using namespace direct_bt;
 
-#define USE_BT_MGMT 1
-
 DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
@@ -152,12 +150,13 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
     {
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
     }
-#ifdef USE_BT_MGMT
 
-    DBTManager & mngr = adapter.getManager();
-    mngr.create_connection(adapter.dev_id, address, addressType); // A NOP
+    {
+        // Currently doing nothing, but notifying
+        DBTManager & mngr = adapter.getManager();
+        mngr.create_connection(adapter.dev_id, address, addressType);
+    }
 
-#endif
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::le_connect: Not opened");
@@ -188,12 +187,13 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
     if( addressType != BDAddressType::BDADDR_BREDR ) {
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
     }
-#ifdef USE_BT_MGMT
 
-    DBTManager & mngr = adapter.getManager();
-    mngr.create_connection(adapter.dev_id, address, addressType); // A NOP
+    {
+        // Currently doing nothing, but notifying
+        DBTManager & mngr = adapter.getManager();
+        mngr.create_connection(adapter.dev_id, address, addressType);
+    }
 
-#endif
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::connect: Not opened");
@@ -244,10 +244,11 @@ void DBTDevice::disconnect(const uint8_t reason) {
         DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _leConnHandle, errno, strerror(errno));
     }
 
-#ifdef USE_BT_MGMT
-    DBTManager & mngr = adapter.getManager();
-    mngr.disconnect(adapter.dev_id, address, addressType); // actual disconnect cmd
-#endif
+    {
+        // Actually issuing DISCONNECT post HCI
+        DBTManager & mngr = adapter.getManager();
+        mngr.disconnect(adapter.dev_id, address, addressType);
+    }
 
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
     session->disconnected(thisDevice);

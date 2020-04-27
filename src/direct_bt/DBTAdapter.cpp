@@ -48,8 +48,6 @@ extern "C" {
 
 using namespace direct_bt;
 
-#define USE_BT_MGMT 1
-
 // *************************************************
 // *************************************************
 // *************************************************
@@ -236,7 +234,6 @@ std::shared_ptr<DBTDeviceStatusListener> DBTAdapter::setDeviceStatusListener(std
 bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
-#ifdef USE_BT_MGMT
     // FIXME:
     (void)own_mac_type;
     (void)interval;
@@ -245,34 +242,14 @@ bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
     keepDiscoveringAlive = true;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
-#else
-    if( nullptr == session || !session->isOpen() ) {
-        fprintf(stderr, "Session not open\n");
-        return false;
-    }
-    if( !session->hciComm.le_enable_scan(own_mac_type, interval, window) ) {
-        ERR_PRINT("Start scanning failed");
-        return false;
-    }
-    return true;
-#endif
 }
 
 void DBTAdapter::stopDiscovery() {
-#ifdef USE_BT_MGMT
     DBG_PRINT("DBTAdapter::stopDiscovery: ...");
     keepDiscoveringAlive = false;
     if( mgmt.stopDiscovery(dev_id, currentScanType) ) {
         currentScanType = ScanType::SCAN_TYPE_NONE;
     }
-#else
-    if( nullptr == session || !session->isOpen() ) {
-        DBG_PRINT("DBTAdapter::stopDiscovery: Not open");
-        return;
-    }
-    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
-    session->hciComm.le_disable_scan();
-#endif
     DBG_PRINT("DBTAdapter::stopDiscovery: X");
 }
 
@@ -350,176 +327,6 @@ std::string DBTAdapter::toString() const {
 
 // *************************************************
 
-int DBTAdapter::discoverDevices(const int waitForDeviceCount,
-                                const EUI48 &waitForDevice,
-                                const int timeoutMS,
-                                const uint32_t ad_type_req)
-{
-#ifdef USE_BT_MGMT
-    return discoverDevicesMgmt(waitForDeviceCount, waitForDevice, timeoutMS, ad_type_req);
-#else
-    return discoverDevicesHCI(waitForDeviceCount, waitForDevice, timeoutMS, ad_type_req);
-#endif
-}
-
-int DBTAdapter::discoverDevicesHCI(const int waitForDeviceCount,
-                                   const EUI48 &waitForDevice,
-                                   const int timeoutMS,
-                                   const uint32_t ad_type_req)
-{
-    if( nullptr == session || !session->isOpen() ) {
-        fprintf(stderr, "Session not open\n");
-        return false;
-    }
-    const std::lock_guard<std::recursive_mutex> lock(session->mutex()); // RAII-style acquire and relinquish via destructor
-
-    hci_ufilter nf, of;
-    socklen_t olen;
-    uint8_t buf[HCI_MAX_EVENT_SIZE];
-    int bytes_left = -1;
-    int err;
-
-    olen = sizeof(of);
-    if (getsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, &olen) < 0) {
-        ERR_PRINT("Could not get socket options");
-        return false;
-    }
-
-    HCIComm::filter_clear(&nf);
-    HCIComm::filter_set_ptype(HCI_EVENT_PKT, &nf);
-    HCIComm::filter_set_event(HCI_EV_LE_META, &nf);
-
-    if (setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
-        ERR_PRINT("Could not set socket options");
-        return false;
-    }
-    const int64_t t0 = getCurrentMilliseconds();
-    const uint32_t ad_req = static_cast<uint32_t>(EInfoReport::Element::BDADDR) |
-                            static_cast<uint32_t>(EInfoReport::Element::RSSI) |
-                            ad_type_req;
-    bool done = false;
-    int64_t t1;
-    int matchedDeviceCount = 0, loop=0;
-
-    while ( !done && ( ( t1 = getCurrentMilliseconds() ) - t0 ) < timeoutMS ) {
-        uint8_t hci_type;
-        hci_event_hdr *ehdr;
-        hci_ev_le_meta *meta;
-        loop++;
-
-        if( timeoutMS ) {
-            struct pollfd p;
-            int n;
-
-            p.fd = session->dd(); p.events = POLLIN;
-            while ((n = poll(&p, 1, timeoutMS)) < 0) {
-                if (errno == EAGAIN || errno == EINTR ) {
-                    // cont temp unavail or interruption
-                    continue;
-                }
-                goto errout;
-            }
-            if (!n) {
-                // A timeout is not considered an error for discovery.
-                // errno = ETIMEDOUT;
-                // goto errout;
-                goto done;
-            }
-        }
-
-        while ((bytes_left = read(session->dd(), buf, sizeof(buf))) < 0) {
-            if (errno == EAGAIN || errno == EINTR ) {
-                // cont temp unavail or interruption
-                continue;
-            }
-            goto errout;
-        }
-
-        if( bytes_left < HCI_TYPE_LEN + (int)sizeof(hci_event_hdr) + (int)sizeof(hci_ev_le_meta) ) {
-            // not enough data ..
-            continue;
-        }
-        hci_type = buf[0]; // sizeof HCI_TYPE_LEN
-
-        ehdr = (hci_event_hdr*)(void*) ( buf + HCI_TYPE_LEN ); // sizeof hci_event_hdr
-
-        bytes_left -= (HCI_TYPE_LEN + HCI_EVENT_HDR_SIZE);
-        meta = (hci_ev_le_meta*)(void *) ( buf + ( HCI_TYPE_LEN + (int)sizeof(hci_event_hdr) ) ); // sizeof hci_ev_le_meta
-
-        if( bytes_left < ehdr->plen ) {
-            // not enough data ..
-            fprintf(stderr, "DBTAdapter::discovery[%d]: Warning: Incomplete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes < plen %d!\n",
-                    loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
-            continue;
-        } else {
-            DBG_PRINT("DBTAdapter::discovery[%d]: Complete type 0x%.2X, event 0x%.2X, subevent 0x%.2X, remaining %d bytes >= plen %d",
-                    loop-1, hci_type, ehdr->evt, meta->subevent, bytes_left, ehdr->plen);
-        }
-
-        // HCI_LE_Advertising_Report == 0x3E == HCI_EV_LE_META
-        //        0x3E                                                           0x02
-        if ( HCI_Event_Types::LE_Advertising_Report != ehdr->evt || meta->subevent != HCI_EV_LE_ADVERTISING_REPORT ) {
-            continue; // next ..
-        }
-        bytes_left -= sizeof(hci_ev_le_meta);
-
-        std::vector<std::shared_ptr<EInfoReport>> ad_reports = EInfoReport::read_ad_reports(((uint8_t*)(void *)meta)+1, bytes_left);
-
-        const int num_reports = ad_reports.size();
-
-        for(int i = 0; i < num_reports && i < 0x19; i++) {
-            std::shared_ptr<EInfoReport> ad_report = ad_reports.at(i);
-            const bool matches = ( ad_req == ( ad_req & ad_report->getDataSet() ) ) &&
-                                 ( EUI48_ANY_DEVICE == waitForDevice || ad_report->getAddress() == waitForDevice );
-            if( matches ) {
-                matchedDeviceCount++;
-                if( 0 < waitForDeviceCount && waitForDeviceCount <= matchedDeviceCount ) {
-                    done = true;
-                }
-            }
-            DBG_PRINT("DBTAdapter::discovery[%d] %d/%d: matches %d, waitForDevice %s, ad_req %s, matchCount %d/%d, done %d",
-                    loop-1, i, num_reports, matches, waitForDevice.toString().c_str(), EInfoReport::dataSetToString(ad_req).c_str(),
-                    matchedDeviceCount, waitForDeviceCount, done);
-            DBG_PRINT("DBTAdapter::discovery[%d] %d/%d: %s", loop-1, i, num_reports, ad_report->toString().c_str());
-
-            int idx = findDevice(scannedDevices, ad_report->getAddress());
-            std::shared_ptr<DBTDevice> dev;
-            if( 0 > idx ) {
-                // new device
-                dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *ad_report));
-                scannedDevices.push_back(dev);
-            } else {
-                // existing device
-                dev = scannedDevices.at(idx);
-                dev->update(*ad_report);
-            }
-            if( matches ) {
-                if( addDiscoveredDevice(dev) ) {
-                    // new matching
-                    if( nullptr != deviceStatusListener ) {
-                        deviceStatusListener->deviceFound(*this, dev, ad_report->getTimestamp());
-                    }
-                } else {
-                    // update
-                    if( nullptr != deviceStatusListener ) {
-                        deviceStatusListener->deviceUpdated(*this, dev, ad_report->getTimestamp());
-                    }
-                }
-            }
-        }
-
-    }
-done:
-    setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
-    return matchedDeviceCount;
-
-errout:
-    err = errno;
-    setsockopt(session->dd(), SOL_HCI, HCI_FILTER, &of, sizeof(of));
-    errno = err;
-    return -1;
-}
-
 bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(keepDiscoveringAlive %d): %s",
             keepDiscoveringAlive, e->toString().c_str());
@@ -580,10 +387,11 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     }
     return true;
 }
-int DBTAdapter::discoverDevicesMgmt(const int waitForDeviceCount,
-                                    const EUI48 &waitForDevice,
-                                    const int timeoutMS,
-                                    const uint32_t ad_type_req)
+
+int DBTAdapter::discoverDevices(const int waitForDeviceCount,
+                                const EUI48 &waitForDevice,
+                                const int timeoutMS,
+                                const uint32_t ad_type_req)
 {
     mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB));
     const int64_t t0 = getCurrentMilliseconds();
