@@ -224,9 +224,13 @@ namespace direct_bt {
             uint64_t getCreationTimestamp() const { return ts_creation; }
             uint64_t getUpdateTimestamp() const { return ts_update; }
             uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
+
             EUI48 const & getAddress() const { return address; }
             std::string getAddressString() const { return address.toString(); }
             BDAddressType getAddressType() const { return addressType; }
+            bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
+            bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
+
             std::string const & getName() const { return name; }
             bool hasName() const { return name.length()>0; }
             int8_t getRSSI() const { return rssi; }

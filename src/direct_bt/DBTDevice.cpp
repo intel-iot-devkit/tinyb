@@ -145,9 +145,7 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         ERR_PRINT("DBTDevice::le_connect: Already connected");
         return 0;
     }
-    if( addressType != BDAddressType::BDADDR_LE_PUBLIC &&
-        addressType != BDAddressType::BDADDR_LE_RANDOM )
-    {
+    if( !isLEAddressType() ) {
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
     }
 
@@ -184,7 +182,8 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
         ERR_PRINT("DBTDevice::connect: Already connected");
         return 0;
     }
-    if( addressType != BDAddressType::BDADDR_BREDR ) {
+
+    if( !isBREDRAddressType() ) {
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
     }
 
@@ -214,12 +213,10 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
 
 uint16_t DBTDevice::defaultConnect()
 {
-    if( addressType == BDAddressType::BDADDR_LE_PUBLIC ||
-        addressType == BDAddressType::BDADDR_LE_RANDOM )
-    {
+    if( isLEAddressType() ) {
         return le_connect();
     }
-    if( addressType == BDAddressType::BDADDR_BREDR ) {
+    if( isBREDRAddressType() ) {
         return connect();
     }
     ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
