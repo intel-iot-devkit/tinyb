@@ -3,7 +3,14 @@
 rm -rf sloccount_direct_bt
 mkdir -p sloccount_direct_bt
 cd sloccount_direct_bt
-ln -s ../api/direct_bt api
+
+mkdir api
+cd api
+cp -a ../../api/direct_bt/* .
+rm -fv *Ioctl.hpp
+cd ..
+# ln -s ../api/direct_bt api
+
 ln -s ../include/cppunit cppunit
 ln -s ../src/direct_bt src
 ln -s ../test/direct_bt test
