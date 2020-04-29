@@ -33,24 +33,32 @@ The MIT License (MIT) (see above)
 Copyright © 2020 Gothel Software e.K.
 Copyright © 2020 ZAFENA AB
 
-Tinyb2's direct_bt imports certain information from Linux Kernel's BlueZ protocol stack,
-allowing the use of these kernel services via system calls.
-Therefore, the license has been aligned with this project.
-
+Direct-BT imports certain information from Linux Kernel's BlueZ protocol stack,
+originating from Qualcomm's sources under MIT license.
+This information enables the use of certain kernel services via system calls.
+Therefore, the license of this file has been aligned with this project's MIT license.
+ 
 Related files are
 - <api/direct_bt/BTIoctl.hpp>,
 - <api/direct_bt/HCIIoctl.hpp> and 
 - <api/direct_bt/L2CAPIoctl.hpp>.
 
-See Linus Torvalds's Linux Kernel license exception regarding kernel syscalls (ioctl):
+Notice Qualcomm's original MIT license of the respective files.
+
+Also notice Linus Torvalds's Linux Kernel license exception regarding kernel syscalls (ioctl):
 <https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note>
+and therefor <https://www.kernel.org/doc/html/v4.20/process/license-rules.html>.
 
 <quote>
-NOTE! This copyright does *not* cover user programs that use kernel
+ NOTE! This copyright does *not* cover user programs that use kernel
  services by normal system calls - this is merely considered normal use
  of the kernel, and does *not* fall under the heading of "derived work".
 </quote>
-
+ 
+Given the syscall usage and original file's MIT license, 
+we assume the following SPDX-License-Identifier should be declared: 
+"SPDX-License-Identifier: (GPL-2.0 WITH Linux-syscall-note) AND MIT"
+ 
 ...
 
 This documentation of our usage is certainly a better than GOOG's approach: 

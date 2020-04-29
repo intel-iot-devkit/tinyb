@@ -1,5 +1,28 @@
 /*
- * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (C) 2000-2001 Qualcomm Incorporated
+ * Copyright (C) 2009-2010 Gustavo F. Padovan <gustavo@padovan.org>
+ * Copyright (C) 2010 Google Inc.
+ * Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
+ *
+ * (Intentionally left out Linux Kernel license notice, see below.)
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF THIRD PARTY RIGHTS.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) AND AUTHOR(S) BE LIABLE FOR ANY
+ * CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ * ALL LIABILITY, INCLUDING LIABILITY FOR INFRINGEMENT OF ANY PATENTS,
+ * COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS, RELATING TO USE OF THIS
+ * SOFTWARE IS DISCLAIMED.
+ *
+ * ****************************************************************************************
+ * ****************************************************************************************
+ * ****************************************************************************************
+ *
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
@@ -26,12 +49,22 @@
  * ****************************************************************************************
  * ****************************************************************************************
  *
- * This file includes certain information from Linux Kernel's BlueZ protocol stack,
- * allowing the use of these kernel services via system calls.
- * Therefore, the license has been aligned with this project.
- * See file COPYING in the root folder of this project for more details,
- * as well as Linus Torvalds's Linux Kernel license exception regarding kernel syscalls (ioctl):
- * <https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note>.
+ * This file imports certain information from Linux Kernel's BlueZ protocol stack,
+ * originating from Qualcomm's sources under MIT license.
+ * This information enables the use of certain kernel services via system calls.
+ * Therefore, the license of this file has been aligned with this project.
+ *
+ * Notice Qualcomm's original MIT license of the respective files.
+ *
+ * Also notice Linus Torvalds's Linux Kernel license exception regarding kernel syscalls (ioctl):
+ * <https://github.com/torvalds/linux/blob/master/LICENSES/exceptions/Linux-syscall-note>
+ * and therefor <https://www.kernel.org/doc/html/v4.20/process/license-rules.html>.
+ *
+ * Given the syscall usage and original file's MIT license,
+ * we assume the following SPDX-License-Identifier should be declared:
+ * "SPDX-License-Identifier: (GPL-2.0 WITH Linux-syscall-note) AND MIT"
+ *
+ * See file COPYING in the root folder of this project for more details.
  *
  * Original sources:
  * linux-kernel 4.19 include/net/bluetooth/l2cap.h (git head d8edd9ed156a1a840f1b1c2dbbf458684d6eea6e).
@@ -41,6 +74,7 @@
  * Copyright (C) 2000-2001 Qualcomm Incorporated
  * Copyright (C) 2009-2010 Gustavo F. Padovan <gustavo@padovan.org>
  * Copyright (C) 2010 Google Inc.
+ * Written 2000,2001 by Maxim Krasnyansky <maxk@qualcomm.com>
  */
 
 #ifndef L2CAP_IOCTL_HPP_
