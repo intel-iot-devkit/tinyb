@@ -110,6 +110,7 @@ namespace direct_bt {
             bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e);
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
         public:
             /**
@@ -199,7 +200,7 @@ namespace direct_bt {
                                        const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
                                        const uint8_t initiator_filter=0);
 
-            bool disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type);
+            bool disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason=0);
 
             /** MgmtEventCallback handling  */
 

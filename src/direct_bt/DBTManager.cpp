@@ -96,6 +96,16 @@ void DBTManager::mgmtReaderThreadImpl() {
     mgmtReaderRunning = false;
 }
 
+void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
+    const MgmtEvent::Opcode opc = event->getOpcode();
+    MgmtEventCallbackList mgmtEventCallbackList = mgmtEventCallbackLists[opc];
+    DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %zd callbacks", event->toString().c_str(), mgmtEventCallbackList.size());
+    for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
+        MgmtEventCallback callback = *it;
+        callback.invoke(event);
+    }
+}
+
 static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
     INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d]",
             sig, info->si_code, info->si_errno, info->si_signo,
@@ -486,7 +496,7 @@ uint16_t DBTManager::create_connection(const int dev_id,
     return 0;
 }
 
-bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type) {
+bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason) {
     MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
     DBG_PRINT("DBTManager::disconnect: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = send(req);
@@ -497,7 +507,12 @@ bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BD
     DBG_PRINT("DBTManager::disconnect res: %s", res->toString().c_str());
     if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        return MgmtStatus::SUCCESS == res1.getStatus();
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            // explicit disconnected event
+            MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason);
+            sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
+            return true;
+        }
     } else {
         DBG_PRINT("DBTManager::disconnect res: NULL");
         return false;

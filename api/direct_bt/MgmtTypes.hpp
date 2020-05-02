@@ -324,6 +324,11 @@ namespace direct_bt {
             }
     };
 
+    /**
+     * uint16_t opcode,
+     * uint16_t dev-id,
+     * uint16_t param_size
+     */
     class MgmtEvent
     {
         public:
@@ -416,6 +421,22 @@ namespace direct_bt {
             {
                 pdu.check_range(0, MGMT_HEADER_SIZE+getParamSize());
                 checkOpcode(getOpcode(), CMD_COMPLETE, PHY_CONFIGURATION_CHANGED);
+            }
+            MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size=0)
+            : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(getCurrentMilliseconds())
+            {
+                // checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
+
+                pdu.put_uint16(0, opc);
+                pdu.put_uint16(2, dev_id);
+                pdu.put_uint16(4, param_size);
+            }
+            MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size, const uint8_t* param)
+            : MgmtEvent(opc, dev_id, param_size)
+            {
+                if( param_size > 0 ) {
+                    memcpy(pdu.get_wptr(MGMT_HEADER_SIZE), param, param_size);
+                }
             }
             virtual ~MgmtEvent() {}
 
@@ -712,6 +733,14 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), DEVICE_DISCONNECTED);
             }
+            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, uint8_t reason)
+            : MgmtEvent(DEVICE_DISCONNECTED, dev_id, 6+1+1)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, reason);
+            }
+
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 

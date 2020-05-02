@@ -244,7 +244,7 @@ void DBTDevice::disconnect(const uint8_t reason) {
     {
         // Actually issuing DISCONNECT post HCI
         DBTManager & mngr = adapter.getManager();
-        mngr.disconnect(adapter.dev_id, address, addressType);
+        mngr.disconnect(adapter.dev_id, address, addressType, reason);
     }
 
     std::shared_ptr<DBTDevice> thisDevice = getSharedInstance();
