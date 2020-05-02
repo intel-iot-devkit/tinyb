@@ -78,8 +78,11 @@ GATTHandler::State GATTHandler::validateState() {
     if( a || b || c ) {
         // something is open ...
         if( a != b || a != c || b != c ) {
-            throw InvalidStateException("Inconsistent open state: GattHandler "+getStateString()+
-                    ", l2cap[open "+std::to_string(b)+", state "+l2cap->getStateString()+"]", E_FILE_LINE);
+            // throw InvalidStateException("Inconsistent open state: GattHandler "+getStateString()+
+            //        ", l2cap[open "+std::to_string(b)+", state "+l2cap->getStateString()+"]", E_FILE_LINE);
+            ERR_PRINT("Inconsistent open state: GattHandler[open %d, %s], l2cap[open [%d, %d], state %s]",
+                    a, getStateString().c_str(), b, c, l2cap->getStateString().c_str());
+            disconnect(); // state -> Disconnected
         }
     }
     return state;
@@ -158,25 +161,22 @@ void GATTHandler::l2capReaderThreadImpl() {
     l2capReaderRunning = false;
 }
 
-static void gatthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
-    INFO_PRINT("GATTHandler.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d]",
-            sig, info->si_code, info->si_errno, info->si_signo,
-            info->si_pid, info->si_uid, info->si_fd);
-    (void)ucontext;
+GATTHandler::GATTHandler(std::shared_ptr<L2CAPComm> l2cap, const int timeoutMS)
+: rbuffer(ClientMaxMTU), state(Disconnected),
+  l2cap(l2cap), timeoutMS(timeoutMS),
+  attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
+  serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
+{ }
 
-    if( SIGINT != sig ) {
-        return;
-    }
-    {
-        struct sigaction sa_setup;
-        bzero(&sa_setup, sizeof(sa_setup));
-        sa_setup.sa_handler = SIG_DFL;
-        sigemptyset(&(sa_setup.sa_mask));
-        sa_setup.sa_flags = 0;
-        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            ERR_PRINT("GATTHandler.sigaction: Resetting sighandler");
-        }
-    }
+GATTHandler::GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS)
+: rbuffer(ClientMaxMTU), state(Disconnected),
+  l2cap(new L2CAPComm(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT)), timeoutMS(timeoutMS),
+  attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
+  serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
+{ }
+
+GATTHandler::~GATTHandler() {
+    disconnect();
 }
 
 bool GATTHandler::connect() {
@@ -192,16 +192,10 @@ bool GATTHandler::connect() {
         return false;
     }
 
-    {
-        struct sigaction sa_setup;
-        bzero(&sa_setup, sizeof(sa_setup));
-        sa_setup.sa_sigaction = gatthandler_sigaction;
-        sigemptyset(&(sa_setup.sa_mask));
-        sa_setup.sa_flags = SA_SIGINFO;
-        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
-            ERR_PRINT("GATTHandler.connect: Setting sighandler");
-        }
-    }
+    /**
+     * We utilize DBTManager's mgmthandler_sigaction SIGINT handler,
+     * as we only can install one handler.
+     */
     l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
 
     const uint16_t mtu = exchangeMTU(ClientMaxMTU);;
@@ -215,36 +209,41 @@ bool GATTHandler::connect() {
     return true;
 }
 
-GATTHandler::~GATTHandler() {
-    disconnect();
-}
-
 bool GATTHandler::disconnect() {
-    if( Disconnected >= validateState() ) {
+    if( Disconnected >= state ) {
         // not open
         return false;
     }
-    DBG_PRINT("GATTHandler.disconnect Start");
+    const pthread_t tid_self = pthread_self();
+    const pthread_t tid_l2capReader = l2capReaderThread.native_handle();
+    const bool is_l2capReader = tid_l2capReader == tid_self;
+    DBG_PRINT("GATTHandler.disconnect Start (is_l2capReader %d)", is_l2capReader);
     if( l2capReaderRunning && l2capReaderThread.joinable() ) {
         l2capReaderShallStop = true;
-        pthread_t tid = l2capReaderThread.native_handle();
-        pthread_kill(tid, SIGINT);
+        if( !is_l2capReader ) {
+            pthread_kill(tid_l2capReader, SIGINT);
+        }
     }
 
     l2cap->disconnect();
     state = Disconnected;
 
-    if( l2capReaderRunning && l2capReaderThread.joinable() ) {
-        // still running ..
-        DBG_PRINT("GATTHandler.disconnect join l2capReaderThread");
-        l2capReaderThread.join();
+    if( !is_l2capReader ) {
+        if( l2capReaderRunning && l2capReaderThread.joinable() ) {
+            // still running ..
+            DBG_PRINT("GATTHandler.disconnect join l2capReaderThread");
+            l2capReaderThread.join();
+        }
+    } else {
+        DBG_PRINT("GATTHandler.disconnect l2capReaderThread detaching self");
+        l2capReaderThread.detach();
     }
     l2capReaderThread = std::thread(); // empty
     DBG_PRINT("GATTHandler.disconnect End");
     return Disconnected == validateState();
 }
 
-bool GATTHandler::send(const AttPDUMsg &msg) {
+bool GATTHandler::send(const AttPDUMsg & msg) {
     if( Disconnected >= validateState() ) {
         // not open
         return false;
@@ -258,11 +257,18 @@ bool GATTHandler::send(const AttPDUMsg &msg) {
 
     const int res = l2cap->write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        ERR_PRINT("GATTHandler::send: l2cap write error");
+        ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect");
         state = Error;
+        disconnect(); // state -> Disconnected
         return false;
     }
-    return res == msg.pdu.getSize();
+    if( res != msg.pdu.getSize() ) {
+        ERR_PRINT("GATTHandler::send: l2cap write count error, %d < %d %s -> disconnect", res, msg.pdu.getSize(), msg.toString().c_str());
+        state = Error;
+        disconnect(); // state -> Disconnected
+        return false;
+    }
+    return true;
 }
 
 std::shared_ptr<const AttPDUMsg> GATTHandler::receiveNext() {

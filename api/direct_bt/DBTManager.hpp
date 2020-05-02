@@ -66,6 +66,8 @@ namespace direct_bt {
                 MGMTEVT_RING_CAPACITY = 256
             };
 
+            static const pid_t pidSelf;
+
         private:
             const BTMode btMode;
             POctets rbuffer;

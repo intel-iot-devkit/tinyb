@@ -170,17 +170,9 @@ namespace direct_bt {
             uint16_t exchangeMTU(const uint16_t clientMaxMTU=ClientMaxMTU);
 
         public:
-            GATTHandler(std::shared_ptr<L2CAPComm> l2cap, const int timeoutMS)
-            : rbuffer(ClientMaxMTU), state(Disconnected),
-              l2cap(l2cap), timeoutMS(timeoutMS),
-              attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
-              serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU) {}
+            GATTHandler(std::shared_ptr<L2CAPComm> l2cap, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
 
-            GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS)
-            : rbuffer(ClientMaxMTU), state(Disconnected),
-              l2cap(new L2CAPComm(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT)), timeoutMS(timeoutMS),
-              attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
-              serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU) {}
+            GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
 
             ~GATTHandler();
 

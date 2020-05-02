@@ -52,6 +52,8 @@ extern "C" {
 
 using namespace direct_bt;
 
+const pid_t DBTManager::pidSelf = getpid();
+
 void DBTManager::mgmtReaderThreadImpl() {
     mgmtReaderShallStop = false;
     mgmtReaderRunning = true;
@@ -107,14 +109,19 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
 }
 
 static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
-    INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d]",
+    bool pidMatch = info->si_pid == DBTManager::pidSelf;
+    INFO_PRINT("DBTManager.sigaction: sig %d, info[code %d, errno %d, signo %d, pid %d, uid %d, fd %d], pid-self %d (match %d)",
             sig, info->si_code, info->si_errno, info->si_signo,
-            info->si_pid, info->si_uid, info->si_fd);
+            info->si_pid, info->si_uid, info->si_fd,
+            DBTManager::pidSelf, pidMatch);
     (void)ucontext;
 
-    if( SIGINT != sig ) {
+    if( !pidMatch || SIGINT != sig ) {
         return;
     }
+#if 0
+    // We do not de-install the handler on single use,
+    // as we act for multiple SIGINT events within direct-bt
     {
         struct sigaction sa_setup;
         bzero(&sa_setup, sizeof(sa_setup));
@@ -125,6 +132,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
             ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
         }
     }
+#endif
 }
 
 std::shared_ptr<MgmtEvent> DBTManager::send(MgmtCommand &req) {
@@ -367,6 +375,16 @@ void DBTManager::close() {
         mgmtReaderThread.join();
     }
     mgmtReaderThread = std::thread(); // empty
+    {
+        struct sigaction sa_setup;
+        bzero(&sa_setup, sizeof(sa_setup));
+        sa_setup.sa_handler = SIG_DFL;
+        sigemptyset(&(sa_setup.sa_mask));
+        sa_setup.sa_flags = 0;
+        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+            ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
+        }
+    }
     DBG_PRINT("DBTManager::close: End");
 }
 
