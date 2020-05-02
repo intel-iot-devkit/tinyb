@@ -41,6 +41,7 @@
 jfieldID getInstanceField(JNIEnv *env, jobject obj)
 {
     jclass clazz = env->GetObjectClass(obj);
+    java_exception_check_and_throw(env, E_FILE_LINE);
     // J == long
     return env->GetFieldID(clazz, "nativeInstance", "J");
 }
@@ -48,10 +49,10 @@ jfieldID getInstanceField(JNIEnv *env, jobject obj)
 jclass search_class(JNIEnv *env, const char *clazz_name)
 {
     jclass clazz = env->FindClass(clazz_name);
+    java_exception_check_and_throw(env, E_FILE_LINE);
     if (!clazz)
     {
-        std::string error = "no class found: "; error += clazz_name;
-        throw std::runtime_error(error);
+        throw direct_bt::InternalError(std::string("no class found: ")+clazz_name, E_FILE_LINE);
     }
     return clazz;
 }
@@ -59,10 +60,10 @@ jclass search_class(JNIEnv *env, const char *clazz_name)
 jclass search_class(JNIEnv *env, jobject obj)
 {
     jclass clazz = env->GetObjectClass(obj);
+    java_exception_check_and_throw(env, E_FILE_LINE);
     if (!clazz)
     {
-        std::string error = "no class found: ";
-        throw std::runtime_error(error);
+        throw direct_bt::InternalError("no class found", E_FILE_LINE);
     }
     return clazz;
 }
@@ -79,10 +80,11 @@ jmethodID search_method(JNIEnv *env, jclass clazz, const char *method_name,
     {
         method = env->GetMethodID(clazz, method_name, prototype);
     }
+    java_exception_check_and_throw(env, E_FILE_LINE);
 
     if (!method)
     {
-        throw std::runtime_error("no method found\n");
+        throw direct_bt::InternalError(std::string("no method found: ")+method_name, E_FILE_LINE);
     }
 
     return method;
@@ -100,10 +102,11 @@ jfieldID search_field(JNIEnv *env, jclass clazz, const char *field_name,
     {
         field = env->GetFieldID(clazz, field_name, type);
     }
+    java_exception_check_and_throw(env, E_FILE_LINE);
 
     if (!field)
     {
-        throw std::runtime_error("no method found\n");
+        direct_bt::InternalError(std::string("no field found: ")+field_name, E_FILE_LINE);
     }
 
     return field;
@@ -125,7 +128,7 @@ bool from_jboolean_to_bool(jboolean val)
         }
         else
         {
-            throw std::invalid_argument("the jboolean value is not true/false\n");
+            throw direct_bt::InternalError("the jboolean value is not true/false", E_FILE_LINE);
         }
     }
 
@@ -173,7 +176,7 @@ jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
     jobject result = env->NewObject(arraylist_class, arraylist_ctor, size);
     if (!result)
     {
-        throw std::runtime_error("cannot create instance of class\n");
+        throw direct_bt::InternalError("Cannot create instance of class ArrayList", E_FILE_LINE);
     }
 
     *add = search_method(env, arraylist_class, "add", "(Ljava/lang/Object;)Z", false);

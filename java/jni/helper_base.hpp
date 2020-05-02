@@ -54,8 +54,9 @@ template <typename T>
 T *castInstance(jlong instance)
 {
     T *t = reinterpret_cast<T *>(instance);
-    if (t == nullptr)
+    if (t == nullptr) {
         throw std::runtime_error("Trying to cast null object");
+    }
     return t;
 }
 
@@ -64,16 +65,18 @@ T *getInstance(JNIEnv *env, jobject obj)
 {
     jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
     T *t = reinterpret_cast<T *>(instance);
-    if (t == nullptr)
+    if (t == nullptr) {
         throw std::runtime_error("Trying to acquire null object");
+    }
     return t;
 }
 
 template <typename T>
 void setInstance(JNIEnv *env, jobject obj, T *t)
 {
-    if (t == nullptr)
+    if (t == nullptr) {
         throw std::runtime_error("Trying to create null object");
+    }
     jlong instance = reinterpret_cast<jlong>(t);
     env->SetLongField(obj, getInstanceField(env, obj), instance);
 }
@@ -90,7 +93,7 @@ jobject generic_clone(JNIEnv *env, jobject obj)
     jobject result = env->NewObject(generic_class, generic_ctor, (jlong)copy_generic);
     if (!result)
     {
-        throw std::runtime_error("cannot create instance of class\n");
+        throw std::runtime_error("cannot create instance of class");
     }
 
     return result;
@@ -119,7 +122,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
         jobject object = env->NewObject(clazz, clazz_ctor, (jlong)elem);
         if (!object)
         {
-            throw std::runtime_error("cannot create instance of class\n");
+            throw direct_bt::InternalError("cannot create instance of class", E_FILE_LINE);
         }
         env->CallBooleanMethod(result, arraylist_add, object);
     }
