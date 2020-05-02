@@ -358,14 +358,13 @@ fail:
 void DBTManager::close() {
     DBG_PRINT("DBTManager::close: Start");
     clearAllMgmtEventCallbacks();
+    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
+        shutdownAdapter((*it)->dev_id);
+    }
     if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
         mgmtReaderShallStop = true;
         pthread_t tid = mgmtReaderThread.native_handle();
         pthread_kill(tid, SIGINT);
-    }
-
-    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); ) {
-        shutdownAdapter((*it)->dev_id);
     }
     comm.close();
 
