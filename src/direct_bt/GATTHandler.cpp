@@ -115,7 +115,7 @@ void GATTHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap->read(rbuffer.get_wptr(), rbuffer.getSize(), Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+        len = l2cap->read(rbuffer.get_wptr(), rbuffer.getSize(), timeoutMS);
         if( 0 < len ) {
             const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();

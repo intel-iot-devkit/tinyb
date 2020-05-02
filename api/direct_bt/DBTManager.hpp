@@ -61,8 +61,8 @@ namespace direct_bt {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
                 ClientMaxMTU = 512,
 
-                /** 10s poll timeout for mgmt reader thread */
-                MGMT_READER_THREAD_POLL_TIMEOUT = 10000,
+                /** 3s poll timeout for mgmt reader thread */
+                MGMT_READER_THREAD_POLL_TIMEOUT = 3000,
                 MGMTEVT_RING_CAPACITY = 256
             };
 

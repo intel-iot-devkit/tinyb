@@ -128,8 +128,8 @@ namespace direct_bt {
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
                 DEFAULT_MIN_ATT_MTU = 23,
 
-                /** 10s poll timeout for l2cap reader thread */
-                L2CAP_READER_THREAD_POLL_TIMEOUT = 10000,
+                /** 3s poll timeout for l2cap reader thread */
+                L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
                 ATTPDU_RING_CAPACITY = 256
             };
 
