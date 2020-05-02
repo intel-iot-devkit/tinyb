@@ -271,8 +271,22 @@ bool GATTHandler::send(const AttPDUMsg & msg) {
     return true;
 }
 
+std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & msg) {
+    if( !send( msg ) ) {
+        return nullptr;
+    }
+    // Ringbuffer read is thread safe
+    std::shared_ptr<const AttPDUMsg> res = receiveNext();
+    if( nullptr == res ) {
+        errno = ETIMEDOUT;
+        WARN_PRINT("GATTHandler::send: nullptr result (timeout): req %s", msg.toString().c_str());
+        return nullptr;
+    }
+    return res;
+}
+
 std::shared_ptr<const AttPDUMsg> GATTHandler::receiveNext() {
-    return attPDURing.getBlocking();
+    return attPDURing.getBlocking(timeoutMS);
 }
 
 uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
@@ -289,13 +303,15 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     uint16_t mtu = 0;
     DBG_PRINT("GATT send: %s", req.toString().c_str());
 
-    if( send(req) ) {
-        const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+    if( nullptr != pdu ) {
         DBG_PRINT("GATT recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
             mtu = p->getMTUSize();
         }
+    } else {
+        ERR_PRINT("GATT exchangeMTU send failed");
     }
     PERF_TS_TD("GATT exchangeMTU");
 
@@ -358,8 +374,8 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTPrimaryServiceRef> & r
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
         DBG_PRINT("GATT PRIM SRV discover send: %s", req.toString().c_str());
 
-        if( send(req) ) {
-            const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+        if( nullptr != pdu ) {
             DBG_PRINT("GATT PRIM SRV discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_GROUP_TYPE_RSP ) {
                 const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
@@ -419,8 +435,8 @@ bool GATTHandler::discoverCharacteristics(GATTPrimaryServiceRef service) {
         const AttReadByNTypeReq req(false /* group */, handle, service->declaration.endHandle, characteristicTypeReq);
         DBG_PRINT("GATT CCD discover send: %s", req.toString().c_str());
 
-        if( send(req) ) {
-            std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+        if( nullptr != pdu ) {
             DBG_PRINT("GATT CCD discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
                 const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
@@ -484,8 +500,8 @@ bool GATTHandler::discoverClientCharacteristicConfig(GATTPrimaryServiceRef servi
         const AttReadByNTypeReq req(false /* group */, handle, service->declaration.endHandle, clientCharConfigTypeReq);
         DBG_PRINT("GATT CCC discover send: %s", req.toString().c_str());
 
-        if( send(req) ) {
-            std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+        if( nullptr != pdu ) {
             DBG_PRINT("GATT CCC discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
                 const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
@@ -552,8 +568,8 @@ bool GATTHandler::discoverCharacteristicDescriptors(const GATTUUIDHandleRange & 
         const AttFindInfoReq req(handle, service.endHandle);
         DBG_PRINT("GATT CCD discover2 send: %s", req.toString().c_str());
 
-        if( send(req) ) {
-            const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+        if( nullptr != pdu ) {
             DBG_PRINT("GATT CCD discover2 recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_FIND_INFORMATION_RSP ) {
                 const AttFindInfoRsp * p = static_cast<const AttFindInfoRsp*>(pdu.get());
@@ -604,20 +620,19 @@ bool GATTHandler::readCharacteristicValue(const GATTCharacterisicsDecl & decl, P
             break; // done w/ only one request
         } // else 0 > expectedLength: implicit
 
-        bool sendRes;
+        std::shared_ptr<const AttPDUMsg> pdu = nullptr;
 
         if( 0 == offset ) {
             const AttReadReq req (decl.handle);
             DBG_PRINT("GATT CV send: %s", req.toString().c_str());
-            sendRes = send(req);
+            pdu = sendWithReply(req);
         } else {
             const AttReadBlobReq req (decl.handle, offset);
             DBG_PRINT("GATT CV send: %s", req.toString().c_str());
-            sendRes = send(req);
+            pdu = sendWithReply(req);
         }
 
-        if( sendRes ) {
-            const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+        if( nullptr != pdu ) {
             DBG_PRINT("GATT CV recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_RSP ) {
                 const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
@@ -677,9 +692,8 @@ bool GATTHandler::writeClientCharacteristicConfigReq(const GATTClientCharacteris
     AttWriteReq req(cccd.handle, value);
     DBG_PRINT("GATT send: %s", req.toString().c_str());
     bool res = false;
-    bool sendRes = send(req);
-    if( sendRes ) {
-        const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+    if( nullptr != pdu ) {
         DBG_PRINT("GATT recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {
             // OK
@@ -690,6 +704,8 @@ bool GATTHandler::writeClientCharacteristicConfigReq(const GATTClientCharacteris
         } else {
             WARN_PRINT("GATT writeCharacteristicValueReq unexpected reply %s", pdu->toString().c_str());
         }
+    } else {
+        ERR_PRINT("GATT writeCharacteristicValueReq send failed");
     }
     return res;
 }
@@ -703,9 +719,9 @@ bool GATTHandler::writeCharacteristicValueReq(const GATTCharacterisicsDecl & dec
     AttWriteReq req(decl.handle, value);
     DBG_PRINT("GATT send: %s", req.toString().c_str());
     bool res = false;
-    bool sendRes = send(req);
-    if( sendRes ) {
-        const std::shared_ptr<const AttPDUMsg> pdu = receiveNext();
+
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+    if( nullptr != pdu ) {
         DBG_PRINT("GATT recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {
             // OK
@@ -716,6 +732,8 @@ bool GATTHandler::writeCharacteristicValueReq(const GATTCharacterisicsDecl & dec
         } else {
             WARN_PRINT("GATT writeCharacteristicValueReq unexpected reply %s", pdu->toString().c_str());
         }
+    } else {
+        ERR_PRINT("GATT writeCharacteristicValueReq send failed");
     }
     return res;
 }

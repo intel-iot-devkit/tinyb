@@ -181,7 +181,7 @@ namespace direct_bt {
              * In case response size check or devID and optional opcode validation fails,
              * function returns NULL.
              */
-            std::shared_ptr<MgmtEvent> send(MgmtCommand &req);
+            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req);
 
             bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode);
 

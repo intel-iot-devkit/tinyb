@@ -202,6 +202,7 @@ namespace direct_bt {
             bool isOpen() const { return Disconnected < state && l2cap->isOpen(); }
 
             bool send(const AttPDUMsg & msg);
+            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
 
             uint16_t getServerMTU() const { return serverMTU; }
             uint16_t getUsedMTU()  const { return usedMTU; }

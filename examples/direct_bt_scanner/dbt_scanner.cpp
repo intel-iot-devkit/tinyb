@@ -112,10 +112,11 @@ class MyGATTIndicationListener : public direct_bt::GATTIndicationListener {
 
 int main(int argc, char *argv[])
 {
-    bool ok = true, done=false;
+    bool ok = true, foundDevice=false;
     int dev_id = 0; // default
     bool waitForEnter=false;
     EUI48 waitForDevice = EUI48_ANY_DEVICE;
+    bool forever = false;
 
     /**
      * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 7.9 PRIORITIZING DATA OVER HCI
@@ -131,6 +132,8 @@ int main(int argc, char *argv[])
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
+        } else if( !strcmp("-forever", argv[i]) ) {
+            forever = true;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-skipConnect", argv[i]) ) {
@@ -167,7 +170,7 @@ int main(int argc, char *argv[])
 
     std::shared_ptr<direct_bt::HCISession> session = adapter.open();
 
-    while( ok && !done && nullptr != session ) {
+    while( ok && ( forever || !foundDevice ) && nullptr != session ) {
         ok = adapter.startDiscovery();
         if( !ok) {
             perror("Adapter start discovery failed");
@@ -180,8 +183,8 @@ int main(int argc, char *argv[])
             while( nullptr == device ) { // FIXME deadlock, waiting forever!
                 cvDeviceFound.wait(lockRead);
                 if( nullptr != deviceFound ) {
-                    done = deviceFound->getAddress() == waitForDevice; // match
-                    if( done || ( EUI48_ANY_DEVICE == waitForDevice && deviceFound->isLEAddressType() ) ) {
+                    foundDevice = deviceFound->getAddress() == waitForDevice; // match
+                    if( foundDevice || ( EUI48_ANY_DEVICE == waitForDevice && deviceFound->isLEAddressType() ) ) {
                         // match or any LE device
                         device.swap(deviceFound); // take over deviceFound
                     }
@@ -225,7 +228,7 @@ int main(int argc, char *argv[])
             //
             const uint64_t t4 = direct_bt::getCurrentMilliseconds();
             // let's check further for full GATT
-            direct_bt::GATTHandler gatt(device, 10000);
+            direct_bt::GATTHandler gatt(device, GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
             if( gatt.connect() ) {
                 fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt.getServerMTU(), gatt.getUsedMTU());
 
@@ -257,25 +260,25 @@ int main(int argc, char *argv[])
                                     "  total %" PRIu64 " ms\n\n",
                                     td45, td47, (t7 - device->getCreationTimestamp()), td07);
                 }
-                {
+                if( gatt.isOpen() ) {
                     std::shared_ptr<GenericAccess> ga = gatt.getGenericAccess(primServices);
                     if( nullptr != ga ) {
                         fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                     }
                 }
-                {
+                if( gatt.isOpen() ) {
                     std::shared_ptr<DeviceInformation> di = gatt.getDeviceInformation(primServices);
                     if( nullptr != di ) {
                         fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                     }
                 }
 
-                for(size_t i=0; i<primServices.size(); i++) {
+                for(size_t i=0; i<primServices.size() && gatt.isOpen(); i++) {
                     GATTPrimaryService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
                     std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;
-                    for(size_t j=0; j<serviceCharacteristics.size(); j++) {
+                    for(size_t j=0; j<serviceCharacteristics.size() && gatt.isOpen(); j++) {
                         GATTCharacterisicsDecl & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Read) ) {
@@ -302,6 +305,8 @@ int main(int argc, char *argv[])
                     }
 #endif                            
                 }
+                // FIXME sleep 1s for potential callbacks ..
+                sleep(1);
                 gatt.disconnect();
             } else {
                 fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());

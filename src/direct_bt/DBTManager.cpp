@@ -135,7 +135,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 #endif
 }
 
-std::shared_ptr<MgmtEvent> DBTManager::send(MgmtCommand &req) {
+std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     DBG_PRINT("DBTManager::send: Command %s", req.toString().c_str());
     {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
@@ -147,15 +147,19 @@ std::shared_ptr<MgmtEvent> DBTManager::send(MgmtCommand &req) {
     }
     // Ringbuffer read is thread safe
     std::shared_ptr<MgmtEvent> res = receiveNext();
-    if( !res->validate(req) ) {
+    if( nullptr == res ) {
+        errno = ETIMEDOUT;
+        WARN_PRINT("DBTManager::send: nullptr result (timeout): req %s", req.toString().c_str());
+        return nullptr;
+    } else if( !res->validate(req) ) {
         WARN_PRINT("DBTManager::send: res mismatch: res %s; req %s", res->toString().c_str(), req.toString().c_str());
-        return nullptr; // FIXME:: Shall we push back the event to wait for the right one?
+        return nullptr;
     }
     return res;
 }
 
 std::shared_ptr<MgmtEvent> DBTManager::receiveNext() {
-    return mgmtEventRing.getBlocking();
+    return mgmtEventRing.getBlocking(MGMT_READER_THREAD_POLL_TIMEOUT);
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
@@ -163,7 +167,7 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
     DBG_PRINT("DBTManager::initAdapter dev_id %d: req: %s", dev_id, req0.toString().c_str());
     {
-        std::shared_ptr<MgmtEvent> res = send(req0);
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -215,6 +219,7 @@ DBTManager::DBTManager(const BTMode btMode)
 :btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL, Defaults::MGMT_READER_THREAD_POLL_TIMEOUT),
  mgmtEventRing(MGMTEVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
+    INFO_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
     if( !comm.isOpen() ) {
         ERR_PRINT("DBTManager::open: Could not open mgmt control channel");
         return;
@@ -239,7 +244,7 @@ DBTManager::DBTManager(const BTMode btMode)
     {
         MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0);
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -261,7 +266,7 @@ DBTManager::DBTManager(const BTMode btMode)
     {
         MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0);
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto next1;
         }
@@ -292,7 +297,7 @@ next1:
     {
         MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::INDEX_NONE);
         DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
-        std::shared_ptr<MgmtEvent> res = send(req0);
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
@@ -420,7 +425,7 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
 bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) {
     MgmtUint8Cmd req(opc, dev_id, mode);
     DBG_PRINT("DBTManager::setMode: %s", req.toString().c_str());
-    std::shared_ptr<MgmtEvent> res = send(req);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res ) {
         DBG_PRINT("DBTManager::setMode res: %s", res->toString().c_str());
         return true;
@@ -449,7 +454,7 @@ ScanType DBTManager::startDiscovery(const int dev_id) {
 ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
     MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, scanType);
     DBG_PRINT("DBTManager::startDiscovery: %s", req.toString().c_str());
-    std::shared_ptr<MgmtEvent> res = send(req);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::startDiscovery res: NULL");
         return ScanType::SCAN_TYPE_NONE;
@@ -472,7 +477,7 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
 bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, type);
     DBG_PRINT("DBTManager::stopDiscovery: %s", req.toString().c_str());
-    std::shared_ptr<MgmtEvent> res = send(req);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::stopDiscovery res: NULL");
         return false;
@@ -516,7 +521,7 @@ uint16_t DBTManager::create_connection(const int dev_id,
 bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason) {
     MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
     DBG_PRINT("DBTManager::disconnect: %s", req.toString().c_str());
-    std::shared_ptr<MgmtEvent> res = send(req);
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::stopDiscovery res: NULL");
         return false;
@@ -532,8 +537,8 @@ bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BD
         }
     } else {
         DBG_PRINT("DBTManager::disconnect res: NULL");
-        return false;
     }
+    return false;
 }
 
 /***
