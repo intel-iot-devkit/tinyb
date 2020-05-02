@@ -33,6 +33,7 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 #include "BasicTypes.hpp"
 
@@ -151,7 +152,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             }
         }
 
-        T getImpl(const bool blocking, const bool peek) /* throws InterruptedException */ {
+        T getImpl(const bool blocking, const bool peek, const int timeoutMS) {
             std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
 
             int localReadPos = readPos;
@@ -159,7 +160,15 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 if( blocking ) {
                     std::unique_lock<std::mutex> lockRead(syncRead); // RAII-style acquire and relinquish via destructor
                     while( localReadPos == writePos ) {
-                        cvRead.wait(lockRead);
+                        if( 0 == timeoutMS ) {
+                            cvRead.wait(lockRead);
+                        } else {
+                            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                            std::cv_status s = cvRead.wait_until(lockRead, t0 + std::chrono::milliseconds(timeoutMS));
+                            if( std::cv_status::timeout == s && localReadPos == writePos ) {
+                                return nullelem;
+                            }
+                        }
                     }
                 } else {
                     return nullelem;
@@ -179,7 +188,7 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
             return r;
         }
 
-        bool putImpl(const T &e, const bool sameRef, const bool blocking) /* throws InterruptedException */ {
+        bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) /* throws InterruptedException */ {
             std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // RAII-style acquire and relinquish via destructor
 
             int localWritePos = writePos;
@@ -188,7 +197,15 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 if( blocking ) {
                     std::unique_lock<std::mutex> lockWrite(syncWrite); // RAII-style acquire and relinquish via destructor
                     while( localWritePos == readPos ) {
-                        cvWrite.wait(lockWrite);
+                        if( 0 == timeoutMS ) {
+                            cvWrite.wait(lockWrite);
+                        } else {
+                            std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+                            std::cv_status s = cvWrite.wait_until(lockWrite, t0 + std::chrono::milliseconds(timeoutMS));
+                            if( std::cv_status::timeout == s && localWritePos == readPos ) {
+                                return false;
+                            }
+                        }
                     }
                 } else {
                     return false;
@@ -342,32 +359,34 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
 
         bool isFull() const override { return ( writePos + 1 ) % capacityPlusOne == readPos ; /* capacityPlusOne - 1 == size */; }
 
-        T get() override { return getImpl(false, false); }
+        T get() override { return getImpl(false, false, 0); }
 
-        T getBlocking() override /* throws InterruptedException */ {
-            return getImpl(true, false);
+        T getBlocking(const int timeoutMS=0) override /* throws InterruptedException */ {
+            return getImpl(true, false, timeoutMS);
         }
 
         T peek() override {
-            return getImpl(false, true);
+            return getImpl(false, true, 0);
         }
 
-        T peekBlocking() override /* throws InterruptedException */ {
-            return getImpl(true, true);
+        T peekBlocking(const int timeoutMS=0) override /* throws InterruptedException */ {
+            return getImpl(true, true, timeoutMS);
         }
 
         bool put(const T & e) override {
-            return putImpl(e, false, false);
+            return putImpl(e, false, false, 0);
         }
 
-        void putBlocking(const T & e) override /* throws InterruptedException */ {
-            if( !putImpl(e, false, true) ) {
-                throw InternalError("Blocking put failed: "+toString(), E_FILE_LINE);
-            }
+        bool putBlocking(const T & e, const int timeoutMS=0) override {
+            return !putImpl(e, false, true, timeoutMS);
         }
 
-        bool putSame(bool blocking) override /* throws InterruptedException */ {
-            return putImpl(nullelem, true, blocking);
+        bool putSame() override {
+            return putImpl(nullelem, true, false, 0);
+        }
+
+        bool putSameBlocking(const int timeoutMS=0) override {
+            return putImpl(nullelem, true, true, timeoutMS);
         }
 
         void waitForFreeSlots(const int count) override /* throws InterruptedException */ {

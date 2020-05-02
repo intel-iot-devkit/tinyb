@@ -110,12 +110,14 @@ template <class T> class Ringbuffer {
          * and move ownership to the caller.
          * </p>
          * <p>
-         * Methods blocks until an element becomes available via put.
+         * <code>timeoutMS</code> defaults to zero,
+         * i.e. infinitive blocking until an element available via put.<br>
+         * Otherwise this methods blocks for the given milliseconds.
          * </p>
-         * @return the oldest put element
+         * @return the oldest put element or <code>null</code> if timeout occurred.
          * @throws InterruptedException
          */
-        virtual T getBlocking() /* throws InterruptedException */ = 0;
+        virtual T getBlocking(const int timeoutMS=0) /* throws InterruptedException */ = 0;
 
         /**
          * Peeks the next element at the read position w/o modifying pointer, nor blocking.
@@ -124,10 +126,15 @@ template <class T> class Ringbuffer {
         virtual T peek() = 0;
 
         /**
-         * Peeks the next element at the read position w/o modifying pointer, but w/ blocking.
-         * @return <code>null</code> if empty, otherwise the element which would be read next.
+         * Peeks the next element at the read position w/o modifying pointer, but with blocking.
+         * <p>
+         * <code>timeoutMS</code> defaults to zero,
+         * i.e. infinitive blocking until an element available via put.<br>
+         * Otherwise this methods blocks for the given milliseconds.
+         * </p>
+         * @return <code>null</code> if empty or timeout occurred, otherwise the element which would be read next.
          */
-        virtual T peekBlocking() /* throws InterruptedException */ = 0;
+        virtual T peekBlocking(const int timeoutMS=0) /* throws InterruptedException */ = 0;
 
         /**
          * Enqueues the given element.
@@ -143,11 +150,15 @@ template <class T> class Ringbuffer {
         /**
          * Enqueues the given element.
          * <p>
-         * Method blocks until a free slot becomes available via get.
+         * <code>timeoutMS</code> defaults to zero,
+         * i.e. infinitive blocking until a free slot becomes available via get.<br>
+         * Otherwise this methods blocks for the given milliseconds.
          * </p>
-         * @throws InterruptedException
+         * <p>
+         * Returns true if successful, otherwise false in case timeout occurred.
+         * </p>
          */
-        virtual void putBlocking(const T & e) /* throws InterruptedException */ = 0;
+        virtual bool putBlocking(const T & e, const int timeoutMS=0) = 0;
 
         /**
          * Enqueues the same element at it's write position, if not full.
@@ -155,12 +166,25 @@ template <class T> class Ringbuffer {
          * Returns true if successful, otherwise false in case buffer is full.
          * </p>
          * <p>
-         * If <code>blocking</code> is true, method blocks until a free slot becomes available via get.
+         * Method is non blocking and returns immediately;.
          * </p>
-         * @param blocking if true, wait until a free slot becomes available via get.
          * @throws InterruptedException
          */
-        virtual bool putSame(const bool blocking) /* throws InterruptedException */ = 0;
+        virtual bool putSame() = 0;
+
+        /**
+         * Enqueues the same element at it's write position, if not full.
+         * <p>
+         * <code>timeoutMS</code> defaults to zero,
+         * i.e. infinitive blocking until a free slot becomes available via get.<br>
+         * Otherwise this methods blocks for the given milliseconds.
+         * </p>
+         * <p>
+         * Returns true if successful, otherwise false in case timeout occurred.
+         * </p>
+         * @throws InterruptedException
+         */
+        virtual bool putSameBlocking(const int timeoutMS=0) = 0;
 
         /**
          * Blocks until at least <code>count</code> free slots become available.
