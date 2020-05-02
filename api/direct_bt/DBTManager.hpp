@@ -155,7 +155,15 @@ namespace direct_bt {
 
             /** retrieve information gathered at startup */
 
+            /**
+             * Returns list of AdapterInfo with index == dev_id.
+             */
             const std::vector<std::shared_ptr<AdapterInfo>> getAdapterInfos() const { return adapterInfos; }
+
+            /**
+             * Returns number of AdapterInfo with index == dev_id.
+             */
+            int getAdapterCount() const { return adapterInfos.size(); }
 
             /**
              * Returns the AdapterInfo index (== dev_id) with the given address or -1 if not found.

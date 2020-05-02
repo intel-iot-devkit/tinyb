@@ -222,6 +222,21 @@ void Java_direct_1bt_tinyb_DBTAdapter_initImpl(JNIEnv *env, jobject obj, jobject
     }
 }
 
+jboolean Java_direct_1bt_tinyb_DBTAdapter_openImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
+        std::shared_ptr<direct_bt::HCISession> session = adapter->open();
+        if( nullptr == session ) {
+            throw BluetoothException("Couldn't open adapter "+adapter->toString(), E_FILE_LINE);
+        }
+        return JNI_TRUE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
@@ -262,13 +277,14 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, j
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         /**
-        std::function<jobject(JNIEnv*, jclass, jmethodID, DBTDevice*)> ctor_device = [&](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, DBTDevice *elem) {
-            // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
-            jstring addr = from_string_to_jstring(env, elem->getAddressString());
-            jstring name = from_string_to_jstring(env, elem->getName());
-            jobject object = env->NewObject(clazz, clazz_ctor, (jlong)elem, obj, addr, name);
-            return object;
-        };
+        std::function<jobject(JNIEnv*, jclass, jmethodID, DBTDevice*)> ctor_device =
+            [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, DBTDevice *elem) -> jobject {
+                // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
+                jstring addr = from_string_to_jstring(env, elem->getAddressString());
+                jstring name = from_string_to_jstring(env, elem->getName());
+                jobject object = env->NewObject(clazz, clazz_ctor, (jlong)elem, obj, addr, name);
+                return object;
+            };
         return convert_vector_to_jobject<DBTDevice>(env, array, "(JLdirect_bt/tinyb/Adapter;Ljava/lang/String;Ljava/lang/String;)V", ctor_device);
         */
         std::vector<std::shared_ptr<DBTDevice>> array = adapter->getDiscoveredDevices();

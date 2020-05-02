@@ -189,13 +189,23 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private native void initImpl(final BluetoothDeviceStatusListener l);
 
+    private synchronized void open() {
+        if( !isOpen ) {
+            isOpen = openImpl();
+        }
+    }
+    private native boolean openImpl();
+    boolean isOpen = false;
+
     @Override
     protected native void deleteImpl();
 
     /* discovery */
 
     @Override
-    public boolean startDiscovery() throws BluetoothException {
+    public synchronized boolean startDiscovery() throws BluetoothException {
+        open();
+        removeDevices();
         final boolean res = startDiscoveryImpl();
         isDiscovering = res;
         synchronized( stateLock ) {
@@ -207,7 +217,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private native boolean startDiscoveryImpl() throws BluetoothException;
 
     @Override
-    public boolean stopDiscovery() throws BluetoothException {
+    public synchronized boolean stopDiscovery() throws BluetoothException {
+        open();
         isDiscovering = false;
         final boolean res = stopDiscoveryImpl();
         synchronized( stateLock ) {
@@ -220,11 +231,16 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public List<BluetoothDevice> getDevices() {
-        return getDiscoveredDevices();
+        synchronized(discoveredDevicesLock) {
+            return new ArrayList<BluetoothDevice>(discoveredDevices);
+        }
     }
+    // std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
+    private native List<BluetoothDevice> getDiscoveredDevicesImpl();
 
     @Override
     public int removeDevices() throws BluetoothException {
+        open();
         final int cj = removeDiscoveredDevices();
         final int cn = removeDevicesImpl();
         if( cj != cn ) {
@@ -233,6 +249,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         return cn;
     }
     private native int removeDevicesImpl() throws BluetoothException;
+    private int removeDiscoveredDevices() {
+        synchronized(discoveredDevicesLock) {
+            final int n = discoveredDevices.size();
+            discoveredDevices = new ArrayList<BluetoothDevice>();
+            return n;
+        }
+    }
 
     @Override
     public boolean getDiscovering() { return isDiscovering; }
@@ -270,9 +293,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     private native void setDiscoveryFilter(List<String> uuids, int rssi, int pathloss, int transportType);
 
-    // std::vector<std::shared_ptr<direct_bt::HCIDevice>> discoveredDevices = adapter.getDiscoveredDevices();
-    private native List<BluetoothDevice> getDiscoveredDevicesImpl();
-
     ////////////////////////////////////
 
     private final Object stateLock = new Object();
@@ -286,7 +306,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         @Override
         public void deviceFound(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
             final BluetoothDeviceStatusListener l = userDeviceStatusListener;
-            System.err.println("DBTAdapter.DeviceStatusListener.added: "+device+" on "+a);
+            System.err.println("DBTAdapter.DeviceStatusListener.found: "+device+" on "+a);
             synchronized(discoveredDevicesLock) {
                 discoveredDevices.add(device);
             }
@@ -314,30 +334,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         public void deviceDisconnected(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
             final BluetoothDeviceStatusListener l = userDeviceStatusListener;
             System.err.println("DBTAdapter.DeviceStatusListener.disconnected: "+device+" on "+a);
-            synchronized(discoveredDevicesLock) {
-                discoveredDevices.remove(device);
-            }
             if( null != l ) {
                 l.deviceDisconnected(a, device, timestamp);
             }
         }
     };
-    public void setDiscoveringNotificationCallback(final BluetoothNotification<Boolean> cb) {
+    private void setDiscoveringNotificationCallback(final BluetoothNotification<Boolean> cb) {
         synchronized( stateLock ) {
             discoveringNotificationCB = cb;
             stateLock.notifyAll();
-        }
-    }
-    public List<BluetoothDevice> getDiscoveredDevices() {
-        synchronized(discoveredDevicesLock) {
-            return new ArrayList<BluetoothDevice>(discoveredDevices);
-        }
-    }
-    public int removeDiscoveredDevices() {
-        synchronized(discoveredDevicesLock) {
-            final int n = discoveredDevices.size();
-            discoveredDevices = new ArrayList<BluetoothDevice>();
-            return n;
         }
     }
     private static AtomicInteger globThreadID = new AtomicInteger(0);

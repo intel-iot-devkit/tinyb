@@ -114,6 +114,7 @@ public class DBTManager implements BluetoothManager
      * @throws BluetoothException in case adapter is invalid or could not have been opened.
      */
     private native DBTAdapter getDefaultAdapterImpl() throws BluetoothException;
+    private native List<BluetoothAdapter> getAdapterListImpl();
 
     private native void initImpl() throws BluetoothException;
     private native void deleteImpl();

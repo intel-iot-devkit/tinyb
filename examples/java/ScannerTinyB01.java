@@ -48,6 +48,7 @@ public class ScannerTinyB01 {
 
     public static void main(final String[] args) throws InterruptedException {
         int factory = 0;
+        int dev_id = 0; // default
         int mode = 0;
         boolean forever = false;
         final String mac;
@@ -56,11 +57,13 @@ public class ScannerTinyB01 {
             for(int i=0; i< args.length; i++) {
                 final String arg = args[i];
 
-                if( arg.equals("-mac") ) {
+                if( arg.equals("-dev_id") && args.length > (i+1) ) {
+                    dev_id = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-mac") && args.length > (i+1) ) {
                     _mac = args[++i];
-                } else if( arg.equals("-mode") ) {
+                } else if( arg.equals("-mode") && args.length > (i+1) ) {
                     mode = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-factory") ) {
+                } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     factory = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-forever") ) {
                     forever = true;
@@ -68,7 +71,7 @@ public class ScannerTinyB01 {
             }
 
             if ( null == _mac ) {
-                System.err.println("Run with '-mac <device_address> [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+                System.err.println("Run with '-mac <device_address> [-dev_id <adapter-index>] [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
                 System.exit(-1);
             }
             mac = _mac;
@@ -89,7 +92,12 @@ public class ScannerTinyB01 {
             }
             manager = _manager;
         }
-        final BluetoothAdapter adapter = manager.getDefaultAdapter();
+        final BluetoothAdapter adapter;
+        {
+            final List<BluetoothAdapter> adapters = manager.getAdapters();
+            adapter = adapters.get(dev_id);
+        }
+
         final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
 
         final BluetoothDeviceStatusListener deviceDiscListener = new BluetoothDeviceStatusListener() {
@@ -132,7 +140,6 @@ public class ScannerTinyB01 {
                 System.err.println(adapter.toString());
             }
         };
-        adapter.removeDevices();
         adapter.setDeviceStatusListener(deviceDiscListener);
 
         do {
@@ -177,7 +184,7 @@ public class ScannerTinyB01 {
             }
             System.err.println("Found device in "+(t1-t0)+" ms: ");
             printDevice(sensor);
-            adapter.stopDiscovery(); // FIXME ????
+            adapter.stopDiscovery();
 
             final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
             final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
