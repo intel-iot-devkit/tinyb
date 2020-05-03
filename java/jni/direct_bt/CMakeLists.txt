@@ -46,7 +46,7 @@ set_target_properties(
     SOVERSION ${tinyb_VERSION_MAJOR}
     VERSION ${tinyb_VERSION_STRING}
     CXX_STANDARD 11
-    COMPILE_FLAGS "-Wall -Wextra"
+    COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 
 install(TARGETS javadirect_bt LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})

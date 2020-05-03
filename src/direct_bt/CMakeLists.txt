@@ -40,7 +40,7 @@ set_target_properties(
    SOVERSION ${tinyb_VERSION_MAJOR}
    VERSION ${tinyb_VERSION_STRING}
    CXX_STANDARD 11
-   COMPILE_FLAGS "-Wall -Wextra"
+   COMPILE_FLAGS "-Wall -Wextra -Werror"
 )
 install (DIRECTORY ${PROJECT_SOURCE_DIR}/api/direct_bt/ DESTINATION include/direct_bt)
 
