@@ -328,8 +328,8 @@ std::string DBTAdapter::toString() const {
 // *************************************************
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(keepDiscoveringAlive %d): %s",
-            keepDiscoveringAlive, e->toString().c_str());
+    DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(dev_id %d, keepDiscoveringAlive %d): %s",
+        dev_id, keepDiscoveringAlive, e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     if( keepDiscoveringAlive && !event.getEnabled() ) {
         std::thread bg(&DBTAdapter::startDiscoveryBackground, this);
@@ -340,6 +340,9 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
 
 bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
+    if( nullptr == session ) {
+        throw InternalError("NULL session @ receiving "+event.toString(), E_FILE_LINE);
+    }
     EInfoReport ad_report;
     {
         ad_report.setSource(EInfoReport::Source::EIR);
@@ -348,40 +351,54 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
+    bool new_connect = false;
     std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
+    if( nullptr == device ) {
+        device = findDiscoveredDevice(event.getAddress());
+        new_connect = true;
+    }
     if( nullptr != device ) {
-        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected: %s,\n    %s\n    -> %s",
-                event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        EIRDataType updateMask = device->update(ad_report);
+        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
+            dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        if( new_connect ) {
+            session->connected(device); // track it
+        }
         if( nullptr != deviceStatusListener ) {
+            if( EIRDataType::NONE != updateMask ) {
+                deviceStatusListener->deviceUpdated(*this, device, ad_report.getTimestamp(), updateMask);
+            }
             deviceStatusListener->deviceConnected(*this, device, event.getTimestamp());
         }
     } else {
-        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected: %s,\n    %s\n    -> Device not tracked",
-                event.toString().c_str(), ad_report.toString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s,\n    %s\n    -> Device not tracked nor discovered",
+                dev_id, event.toString().c_str(), ad_report.toString().c_str());
     }
-    (void)ad_report;
     return true;
 }
 bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
+    if( nullptr == session ) {
+        throw InternalError("NULL session @ receiving "+event.toString(), E_FILE_LINE);
+    }
     std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
     if( nullptr != device ) {
-        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected: %s\n    -> %s", event.toString().c_str(), device->toString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> %s",
+            dev_id, event.toString().c_str(), device->toString().c_str());
         if( nullptr != deviceStatusListener ) {
             deviceStatusListener->deviceDisconnected(*this, device, event.getTimestamp());
         }
     } else {
-        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected: %s\n    -> Device not tracked", event.toString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
+            dev_id, event.toString().c_str());
     }
     return true;
 }
 
 bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: %s", e->toString().c_str());
+    DBG_PRINT("DBTAdapter::EventCB:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
-    if( deviceFoundEvent.getDevID() != dev_id ) {
-        return true;
-    }
+
     EInfoReport ad_report;
     ad_report.setSource(EInfoReport::Source::EIR);
     ad_report.setTimestamp(deviceFoundEvent.getTimestamp());
