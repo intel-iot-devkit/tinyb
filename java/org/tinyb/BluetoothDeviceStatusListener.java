@@ -36,7 +36,7 @@ public interface BluetoothDeviceStatusListener {
     /** A {@link BluetoothDevice} has been newly discovered. */
     public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
     /** An already discovered {@link BluetoothDevice} has been updated. */
-    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask);
     /** {@link BluetoothDevice} has been connected. */
     public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
     /** {@link BluetoothDevice} has been disconnected. */

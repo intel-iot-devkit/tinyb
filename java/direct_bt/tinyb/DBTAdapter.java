@@ -38,6 +38,7 @@ import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.EIRDataType;
 import org.tinyb.BluetoothDeviceStatusListener;
 import org.tinyb.TransportType;
 
@@ -209,7 +210,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         final boolean res = startDiscoveryImpl();
         isDiscovering = res;
         synchronized( stateLock ) {
-            discoveringNotificationCB.run(res);
+            if( null != discoveringNotificationCB ) {
+                discoveringNotificationCB.run(res);
+            }
             stateLock.notifyAll();
         }
         return res;
@@ -222,7 +225,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         isDiscovering = false;
         final boolean res = stopDiscoveryImpl();
         synchronized( stateLock ) {
-            discoveringNotificationCB.run(false);
+            if( null != discoveringNotificationCB ) {
+                discoveringNotificationCB.run(false);
+            }
             stateLock.notifyAll();
         }
         return res;
@@ -316,10 +321,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            System.err.println("DBTAdapter.DeviceStatusListener.updated: "+device+" on "+a);
+        public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask) {
+            System.err.println("DBTAdapter.DeviceStatusListener.updated: "+updateMask+" of "+device+" on "+a);
             // nop on discoveredDevices
-            userDeviceStatusListener.deviceUpdated(a, device, timestamp);
+            userDeviceStatusListener.deviceUpdated(a, device, timestamp, updateMask);
         }
 
         @Override

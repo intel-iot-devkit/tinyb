@@ -25,7 +25,7 @@
 
 #include "direct_bt_tinyb_DBTManager.h"
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "JNIMem.hpp"
@@ -109,10 +109,10 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: Manager %s", manager->toString().c_str());
 
         // index == dev_id
+        std::vector<std::unique_ptr<DBTAdapter>> adapters;
         const int adapterCount = manager->getAdapterCount();
-        std::vector<std::shared_ptr<DBTAdapter>> adapters(adapterCount);
         for(int idx = 0; idx < adapterCount; idx++) {
-            std::shared_ptr<DBTAdapter> adapter(new DBTAdapter( idx ) );
+            std::unique_ptr<DBTAdapter> adapter(new DBTAdapter( idx ) );
             if( !adapter->isValid() ) {
                 throw BluetoothException("Invalid adapter @ idx "+std::to_string( idx ), E_FILE_LINE);
             }
@@ -122,10 +122,10 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
             if( idx != adapter->dev_id ) { // just make sure idx == dev_id
                 throw BluetoothException("Invalid adapter dev-id "+std::to_string( adapter->dev_id )+" != index "+std::to_string( idx ), E_FILE_LINE);
             }
-            adapters.push_back(adapter);
+            adapters.push_back(std::move(adapter));
         }
-        std::function<jobject(JNIEnv*, jclass, jmethodID, DBTAdapter*)> ctor_adapter=
-                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, DBTAdapter *adapter)->jobject {
+        std::function<jobject(JNIEnv*, jclass, jmethodID, DBTAdapter*)> ctor_adapter =
+                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, DBTAdapter* adapter)->jobject {
                     // prepare adapter ctor
                     const jstring addr = from_string_to_jstring(env, adapter->getAddressString());
                     const jstring name = from_string_to_jstring(env, adapter->getName());

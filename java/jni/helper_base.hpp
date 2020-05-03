@@ -101,7 +101,7 @@ jobject generic_clone(JNIEnv *env, jobject obj)
 
 template <typename T>
 jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
-                                const char *ctor_prototype)
+        const char *ctor_prototype)
 {
     unsigned int array_size = array.size();
 
@@ -130,8 +130,8 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 }
 
 template <typename T>
-jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::shared_ptr<T>>& array,
-                                const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, T*)> ctor)
+jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
+        const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, T*)> ctor)
 {
     unsigned int array_size = array.size();
 
@@ -148,7 +148,37 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::shared_ptr<T>>& 
 
     for (unsigned int i = 0; i < array_size; ++i)
     {
-        T *elem = array.at(i).get();
+        T *elem = array.at(i).release();
+        jobject object = ctor(env, clazz, clazz_ctor, elem);
+        if (!object)
+        {
+            throw std::runtime_error("cannot create instance of class\n");
+        }
+        env->CallBooleanMethod(result, arraylist_add, object);
+    }
+    return result;
+}
+
+template <typename T>
+jobject convert_vector_to_shared_jobject(JNIEnv *env, std::vector<std::shared_ptr<T>>& array,
+                                         const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, std::shared_ptr<T>)> ctor)
+{
+    unsigned int array_size = array.size();
+
+    jmethodID arraylist_add;
+    jobject result = get_new_arraylist(env, array_size, &arraylist_add);
+
+    if (array_size == 0)
+    {
+        return result;
+    }
+
+    jclass clazz = search_class(env, T::java_class().c_str());
+    jmethodID clazz_ctor = search_method(env, clazz, "<init>", ctor_prototype, false);
+
+    for (unsigned int i = 0; i < array_size; ++i)
+    {
+        std::shared_ptr<T> elem = array.at(i);
         jobject object = ctor(env, clazz, clazz_ctor, elem);
         if (!object)
         {

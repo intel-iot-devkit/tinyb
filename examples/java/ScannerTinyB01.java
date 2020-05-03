@@ -38,6 +38,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
+import org.tinyb.EIRDataType;
 
 public class ScannerTinyB01 {
     static {
@@ -95,6 +96,13 @@ public class ScannerTinyB01 {
         final BluetoothAdapter adapter;
         {
             final List<BluetoothAdapter> adapters = manager.getAdapters();
+            for(int i=0; i < adapters.size(); i++) {
+                System.err.println("Adapter["+i+"]: "+adapters.get(i));
+            }
+            if( adapters.size() <= dev_id ) {
+                System.err.println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
+                System.exit(-1);
+            }
             adapter = adapters.get(dev_id);
         }
 
@@ -104,8 +112,8 @@ public class ScannerTinyB01 {
             @Override
             public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
-                System.err.println("****** ADDED__: "+device.toString()+" - match "+matches);
-                System.err.println("Status HCIAdapter:");
+                System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
+                System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
 
                 if( matches ) {
@@ -117,10 +125,10 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask) {
                 final boolean matches = device.getAddress().equals(mac);
-                System.err.println("****** UPDATED: "+device.toString()+" - match "+matches);
-                System.err.println("Status HCIAdapter:");
+                System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
+                System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
             }
 
@@ -128,7 +136,7 @@ public class ScannerTinyB01 {
             public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** CONNECTED: "+device.toString()+" - match "+matches);
-                System.err.println("Status HCIAdapter:");
+                System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
             }
 
@@ -136,7 +144,7 @@ public class ScannerTinyB01 {
             public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** DISCONNECTED: "+device.toString()+" - match "+matches);
-                System.err.println("Status HCIAdapter:");
+                System.err.println("Status Adapter:");
                 System.err.println(adapter.toString());
             }
         };

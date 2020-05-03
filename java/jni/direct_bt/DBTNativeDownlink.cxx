@@ -25,7 +25,7 @@
 
 #include "direct_bt_tinyb_DBTNativeDownlink.h"
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "JNIMem.hpp"
@@ -43,6 +43,7 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
         std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj) );
         javaUplink->setJavaObject( jobjRef );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %s", javaUplink->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

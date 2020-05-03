@@ -122,7 +122,7 @@ public class DBTManager implements BluetoothManager
     {
         initImpl();
         try {
-            adapters.add(getDefaultAdapterImpl());
+            adapters.addAll(getAdapterListImpl());
         } catch (final BluetoothException be) {
             be.printStackTrace();
         }
