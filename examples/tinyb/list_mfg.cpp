@@ -36,7 +36,7 @@ using namespace tinyb;
  * @param[in] raw_temp The temperature read from the sensor (two bytes)
  * @return The Celsius value of the temperature
  */
-static float celsius_temp(uint16_t raw_temp)
+float celsius_temp(uint16_t raw_temp)
 {
     const float SCALE_LSB = 0.03125;
     return ((float)(raw_temp >> 2)) * SCALE_LSB;
@@ -58,6 +58,9 @@ void signal_handler(int signum)
  */
 int main(int argc, char **argv)
 {
+   (void)argc; // FIXME
+   (void)argv; // FIXME
+
    BluetoothManager *manager = nullptr;
     try {
         manager = BluetoothManager::get_bluetooth_manager();
@@ -72,6 +75,9 @@ int main(int argc, char **argv)
 
     BluetoothDevice *sensor_tag = NULL;
     BluetoothGattService *temperature_service = NULL;
+
+    (void)sensor_tag; // FIXME
+    (void)temperature_service; // FIXME
 
     for (;;) {
         std::cout << "Discovered devices: " << std::endl;
