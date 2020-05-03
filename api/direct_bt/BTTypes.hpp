@@ -262,9 +262,14 @@ namespace direct_bt {
 
         ManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len);
 
-        std::string getCompanyString() const;
         std::string toString() const;
     };
+
+    inline bool operator==(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs)
+    { return lhs.company == rhs.company && lhs.data == rhs.data; }
+
+    inline bool operator!=(const ManufactureSpecificData& lhs, const ManufactureSpecificData& rhs)
+    { return !(lhs == rhs); }
 
     // *************************************************
     // *************************************************
