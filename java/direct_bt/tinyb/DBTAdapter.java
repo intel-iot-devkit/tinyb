@@ -54,8 +54,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final Object discoveredDevicesLock = new Object();
 
     private volatile BluetoothDeviceStatusListener userDeviceStatusListener = null;
-    private volatile BluetoothNotification<Boolean> discoveringNotificationCB = null;
+    private volatile long discoveringCBHandle = 0;
     private volatile boolean isDiscovering = false;
+    private volatile long poweredCBHandle = 0;
 
     private boolean isOpen = false;
     private List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
@@ -70,8 +71,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized void close() {
-        isOpen = false;
         stopDiscovery();
+        isOpen = false;
         super.close();
     }
 
@@ -147,10 +148,29 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public native boolean getPowered();
 
     @Override
-    public native void enablePoweredNotifications(BluetoothNotification<Boolean> callback);
+    public synchronized void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
+        if( 0 != poweredCBHandle ) {
+            removePoweredNotificationsImpl(poweredCBHandle);
+            poweredCBHandle = 0;
+        }
+        poweredCBHandle = addPoweredNotificationsImpl(callback);
+        if( 0 == poweredCBHandle ) {
+            throw new InternalError("addPoweredNotificationsImpl(..) == 0");
+        }
+    }
+    private native long addPoweredNotificationsImpl(final BluetoothNotification<Boolean> callback);
 
     @Override
-    public native void disablePoweredNotifications();
+    public synchronized void disablePoweredNotifications() {
+        if( 0 != poweredCBHandle ) {
+            int count;
+            if( 1 != ( count = removePoweredNotificationsImpl(poweredCBHandle) ) ) {
+                throw new InternalError("removePoweredNotificationsImpl(0x"+Long.toHexString(poweredCBHandle)+") != 1, but "+count);
+            }
+            poweredCBHandle = 0;
+        }
+    }
+    private native int removePoweredNotificationsImpl(final long callbackHandle);
 
     @Override
     public native void setPowered(boolean value);
@@ -222,12 +242,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         removeDevices();
         final boolean res = startDiscoveryImpl();
         isDiscovering = res;
-        synchronized( stateLock ) {
-            if( null != discoveringNotificationCB ) {
-                discoveringNotificationCB.run(res);
-            }
-            stateLock.notifyAll();
-        }
         return res;
     }
     private native boolean startDiscoveryImpl() throws BluetoothException;
@@ -237,12 +251,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         open();
         isDiscovering = false;
         final boolean res = stopDiscoveryImpl();
-        synchronized( stateLock ) {
-            if( null != discoveringNotificationCB ) {
-                discoveringNotificationCB.run(false);
-            }
-            stateLock.notifyAll();
-        }
         return res;
     }
     private native boolean stopDiscoveryImpl() throws BluetoothException;
@@ -279,29 +287,34 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public boolean getDiscovering() { return isDiscovering; }
 
     @Override
-    public void setDeviceStatusListener(final BluetoothDeviceStatusListener l) {
-        synchronized( stateLock ) {
-            userDeviceStatusListener = l;
-            stateLock.notifyAll();
-        }
+    public synchronized void setDeviceStatusListener(final BluetoothDeviceStatusListener l) {
+        userDeviceStatusListener = l;
     }
 
     @Override
-    public void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
-        setDiscoveringNotificationCallback(callback);
-    }
-
-    @Override
-    public void disableDiscoveringNotifications() {
-        setDiscoveringNotificationCallback(null);
-    }
-
-    private void setDiscoveringNotificationCallback(final BluetoothNotification<Boolean> cb) {
-        synchronized( stateLock ) {
-            discoveringNotificationCB = cb;
-            stateLock.notifyAll();
+    public synchronized void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
+        if( 0 != discoveringCBHandle ) {
+            removeDiscoveringNotificationsImpl(discoveringCBHandle);
+            discoveringCBHandle = 0;
+        }
+        discoveringCBHandle = addDiscoveringNotificationsImpl(callback);
+        if( 0 == discoveringCBHandle ) {
+            throw new InternalError("addDiscoveringNotificationsImpl(..) == 0");
         }
     }
+    private native long addDiscoveringNotificationsImpl(final BluetoothNotification<Boolean> callback);
+
+    @Override
+    public synchronized void disableDiscoveringNotifications() {
+        if( 0 != discoveringCBHandle ) {
+            int count;
+            if( 1 != ( count = removeDiscoveringNotificationsImpl(discoveringCBHandle) ) ) {
+                throw new InternalError("removeDiscoveringNotificationsImpl(0x"+Long.toHexString(discoveringCBHandle)+") != 1, but "+count);
+            }
+            discoveringCBHandle = 0;
+        }
+    }
+    private native int removeDiscoveringNotificationsImpl(final long callbackHandle);
 
     @Override
     public void setDiscoveryFilter(final List<UUID> uuids, final int rssi, final int pathloss, final TransportType transportType) {

@@ -149,6 +149,18 @@ public class ScannerTinyB01 {
             }
         };
         adapter.setDeviceStatusListener(deviceDiscListener);
+        adapter.enableDiscoveringNotifications(new BluetoothNotification<Boolean>() {
+            @Override
+            public void run(final Boolean value) {
+                System.err.println("****** DiscoveringNotification: "+value);
+            }
+        });
+        adapter.enablePoweredNotifications(new BluetoothNotification<Boolean>() {
+            @Override
+            public void run(final Boolean value) {
+                System.err.println("****** PoweredNotification: "+value);
+            }
+        });
 
         do {
             final long t0 = BluetoothUtils.getCurrentMilliseconds();
@@ -246,9 +258,14 @@ public class ScannerTinyB01 {
         } while( forever );
         System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
         adapter.stopDiscovery();
-        System.err.println("ScannerTinyB01 02 close: "+adapter);
+
+        System.err.println("ScannerTinyB01 02 clear listener etc .. ");
+        adapter.disableDiscoveringNotifications();
+        adapter.disablePoweredNotifications();
+
+        System.err.println("ScannerTinyB01 03 close: "+adapter);
         adapter.close();
-        System.err.println("ScannerTinyB01 05");
+        System.err.println("ScannerTinyB01 04");
         manager.shutdown();
         System.err.println("ScannerTinyB01 XX");
     }
