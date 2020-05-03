@@ -44,8 +44,21 @@ import org.tinyb.TransportType;
 
 public class DBTAdapter extends DBTObject implements BluetoothAdapter
 {
+    private static AtomicInteger globThreadID = new AtomicInteger(0);
+    private static int discoverTimeoutMS = 100;
+
     private final String address;
     private final String name;
+
+    private final Object stateLock = new Object();
+    private final Object discoveredDevicesLock = new Object();
+
+    private volatile BluetoothDeviceStatusListener userDeviceStatusListener = null;
+    private volatile BluetoothNotification<Boolean> discoveringNotificationCB = null;
+    private volatile boolean isDiscovering = false;
+
+    private boolean isOpen = false;
+    private List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
     /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name)
     {
@@ -57,6 +70,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized void close() {
+        isOpen = false;
         stopDiscovery();
         super.close();
     }
@@ -196,7 +210,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
     }
     private native boolean openImpl();
-    boolean isOpen = false;
 
     @Override
     protected native void deleteImpl();
@@ -283,6 +296,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         setDiscoveringNotificationCallback(null);
     }
 
+    private void setDiscoveringNotificationCallback(final BluetoothNotification<Boolean> cb) {
+        synchronized( stateLock ) {
+            discoveringNotificationCB = cb;
+            stateLock.notifyAll();
+        }
+    }
+
     @Override
     public void setDiscoveryFilter(final List<UUID> uuids, final int rssi, final int pathloss, final TransportType transportType) {
         final List<String> uuidsFmt = new ArrayList<>(uuids.size());
@@ -299,13 +319,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private native void setDiscoveryFilter(List<String> uuids, int rssi, int pathloss, int transportType);
 
     ////////////////////////////////////
-
-    private final Object stateLock = new Object();
-    private volatile BluetoothDeviceStatusListener userDeviceStatusListener = null;
-    private volatile BluetoothNotification<Boolean> discoveringNotificationCB = null;
-    private List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
-    private final Object discoveredDevicesLock = new Object();
-    private volatile boolean isDiscovering = false;
 
     private final BluetoothDeviceStatusListener deviceDiscoveryListener = new BluetoothDeviceStatusListener() {
         @Override
@@ -344,12 +357,4 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
     };
-    private void setDiscoveringNotificationCallback(final BluetoothNotification<Boolean> cb) {
-        synchronized( stateLock ) {
-            discoveringNotificationCB = cb;
-            stateLock.notifyAll();
-        }
-    }
-    private static AtomicInteger globThreadID = new AtomicInteger(0);
-    private static int discoverTimeoutMS = 100;
 }
