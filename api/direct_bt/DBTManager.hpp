@@ -42,11 +42,11 @@
 #include "JavaUplink.hpp"
 #include "MgmtTypes.hpp"
 #include "LFRingbuffer.hpp"
-#include "ClassFunction.hpp"
+#include "FunctionDef.hpp"
 
 namespace direct_bt {
 
-    typedef ClassFunction<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
+    typedef FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
 
     class MgmtAdapterEventCallback {
         private:

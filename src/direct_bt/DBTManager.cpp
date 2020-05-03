@@ -349,19 +349,19 @@ next1:
     }
 
     if( ok ) {
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvLocalNameChangedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS, bindClassFunction(this, &DBTManager::mgmtEvNewSettingsCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTManager::mgmtEvDeviceFoundCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindClassFunction(this, &DBTManager::mgmtEvDevicePinCodeRequestCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvLocalNameChangedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTManager::mgmtEvNewSettingsCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvDevicePinCodeRequestCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }

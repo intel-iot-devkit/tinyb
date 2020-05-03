@@ -7,7 +7,7 @@
 
 #include <direct_bt/BasicTypes.hpp>
 #include <direct_bt/BTAddress.hpp>
-#include <direct_bt/ClassFunction.hpp>
+#include <direct_bt/FunctionDef.hpp>
 
 using namespace direct_bt;
 
@@ -47,9 +47,17 @@ class Cppunit_tests : public Cppunit {
         int res = i+1000;
         return res;;
     }
+    static int Func3a_static(int i) {
+        int res = i+100;
+        return res;;
+    }
+    static int Func3b_static(int i) {
+        int res = i+1000;
+        return res;;
+    }
 
     // template<typename R, typename... A>
-    typedef ClassFunction<int, int> MyClassFunction;
+    typedef FunctionDef<int, int> MyClassFunction;
 
     void test_FunctionPointer00(std::string msg, bool expEqual, int value, int expRes, MyClassFunction & f1, MyClassFunction &f2) {
         // test std::function identity
@@ -70,19 +78,34 @@ class Cppunit_tests : public Cppunit {
     void single_test() override {
 
         {
-            // FunctionPointer(Cppunit_tests &base, Func1Type func)
-            MyClassFunction f2a_1 = bindClassFunction<int, Cppunit_tests, int>(this, &Cppunit_tests::func2a_member);
-            MyClassFunction f2a_2 = bindClassFunction(this, &Cppunit_tests::func2a_member);
+            // FunctionDef(Cppunit_tests &base, Func1Type func)
+            MyClassFunction f2a_1 = bindMemberFunc<int, Cppunit_tests, int>(this, &Cppunit_tests::func2a_member);
+            MyClassFunction f2a_2 = bindMemberFunc(this, &Cppunit_tests::func2a_member);
             test_FunctionPointer00("FuncPtr2a_member_11", true, 1, 101, f2a_1, f2a_1);
             test_FunctionPointer00("FuncPtr2a_member_12", true, 1, 101, f2a_1, f2a_2);
 
-            MyClassFunction f2b_1 = bindClassFunction(this, &Cppunit_tests::func2b_member);
-            MyClassFunction f2b_2 = bindClassFunction(this, &Cppunit_tests::func2b_member);
+            MyClassFunction f2b_1 = bindMemberFunc(this, &Cppunit_tests::func2b_member);
+            MyClassFunction f2b_2 = bindMemberFunc(this, &Cppunit_tests::func2b_member);
             test_FunctionPointer00("FuncPtr2b_member_11", true, 1, 1001, f2b_1, f2b_1);
             test_FunctionPointer00("FuncPtr2b_member_12", true, 1, 1001, f2b_1, f2b_2);
 
             test_FunctionPointer00("FuncPtr2ab_member_11", false, 1, 0, f2a_1, f2b_1);
             test_FunctionPointer00("FuncPtr2ab_member_22", false, 1, 0, f2a_2, f2b_2);
+        }
+        {
+            // FunctionDef(Func1Type func)
+            MyClassFunction f3a_1 = bindPlainFunc<int, int>(&Cppunit_tests::Func3a_static);
+            MyClassFunction f3a_2 = bindPlainFunc(&Cppunit_tests::Func3a_static);
+            test_FunctionPointer00("FuncPtr3a_static_11", true, 1, 101, f3a_1, f3a_1);
+            test_FunctionPointer00("FuncPtr3a_static_12", true, 1, 101, f3a_1, f3a_2);
+
+            MyClassFunction f3b_1 = bindPlainFunc(&Cppunit_tests::Func3b_static);
+            MyClassFunction f3b_2 = bindPlainFunc(&Func3b_static);
+            test_FunctionPointer00("FuncPtr3b_static_11", true, 1, 1001, f3b_1, f3b_1);
+            test_FunctionPointer00("FuncPtr3b_static_12", true, 1, 1001, f3b_1, f3b_2);
+
+            test_FunctionPointer00("FuncPtr3ab_static_11", false, 1, 0, f3a_1, f3b_1);
+            test_FunctionPointer00("FuncPtr3ab_static_22", false, 1, 0, f3a_2, f3b_2);
         }
         {
             test_int32_t("INT32_MIN", INT32_MIN, 14, "-2,147,483,648");

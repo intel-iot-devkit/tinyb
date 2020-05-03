@@ -86,6 +86,9 @@ namespace direct_bt {
             InvocationFunc& operator=(const InvocationFunc &o) = default;
             InvocationFunc& operator=(InvocationFunc &&o) = default;
 
+            /** Poor man's RTTI */
+            virtual int getType() const = 0;
+
             virtual R invoke(A... args) const = 0;
 
             virtual bool operator==(const InvocationFunc<R, A...>& rhs) const = 0;
@@ -96,15 +99,17 @@ namespace direct_bt {
     };
 
     template<typename R, typename C, typename... A>
-    class InvocationFuncDef : public InvocationFunc<R, A...> {
+    class ClassInvocationFunc : public InvocationFunc<R, A...> {
         private:
             C* base;
             R(C::*member)(A...);
 
         public:
-            InvocationFuncDef(C *_base, R(C::*_member)(A...))
+            ClassInvocationFunc(C *_base, R(C::*_member)(A...))
             : base(_base), member(_member) {
             }
+
+            int getType() const override { return 1; }
 
             R invoke(A... args) const override {
                 return (base->*member)(args...);
@@ -112,13 +117,19 @@ namespace direct_bt {
 
             bool operator==(const InvocationFunc<R, A...>& rhs) const override
             {
-                const InvocationFuncDef<R, C, A...> * prhs = static_cast<const InvocationFuncDef<R, C, A...>*>(&rhs);
+                if( getType() != rhs.getType() ) {
+                    return false;
+                }
+                const ClassInvocationFunc<R, C, A...> * prhs = static_cast<const ClassInvocationFunc<R, C, A...>*>(&rhs);
                 return base == prhs->base && member == prhs->member;
             }
 
             bool operator!=(const InvocationFunc<R, A...>& rhs) const override
             {
-                const InvocationFuncDef<R, C, A...> * prhs = static_cast<const InvocationFuncDef<R, C, A...>*>(&rhs);
+                if( getType() != rhs.getType() ) {
+                    return true;
+                }
+                const ClassInvocationFunc<R, C, A...> * prhs = static_cast<const ClassInvocationFunc<R, C, A...>*>(&rhs);
                 return base != prhs->base || member != prhs->member;
             }
 
@@ -129,23 +140,63 @@ namespace direct_bt {
     };
 
     template<typename R, typename... A>
-    class ClassFunction {
+    class PlainInvocationFunc : public InvocationFunc<R, A...> {
+        private:
+            R(*function)(A...);
+
+        public:
+            PlainInvocationFunc(R(*_function)(A...))
+            : function(_function) {
+            }
+
+            int getType() const override { return 2; }
+
+            R invoke(A... args) const override {
+                return (*function)(args...);
+            }
+
+            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            {
+                if( getType() != rhs.getType() ) {
+                    return false;
+                }
+                const PlainInvocationFunc<R, A...> * prhs = static_cast<const PlainInvocationFunc<R, A...>*>(&rhs);
+                return function == prhs->function;
+            }
+
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            {
+                if( getType() != rhs.getType() ) {
+                    return true;
+                }
+                const PlainInvocationFunc<R, A...> * prhs = static_cast<const PlainInvocationFunc<R, A...>*>(&rhs);
+                return function != prhs->function;
+            }
+
+            std::string toString() const override {
+                // hack to convert function pointer to void *: '*((void**)&function)'
+                return aptrHexString( *((void**)&function) );
+            }
+    };
+
+    template<typename R, typename... A>
+    class FunctionDef {
         private:
             std::shared_ptr<InvocationFunc<R, A...>> func;
 
         public:
-            ClassFunction(std::shared_ptr<InvocationFunc<R, A...>> _func)
+            FunctionDef(std::shared_ptr<InvocationFunc<R, A...>> _func)
             : func(_func) { }
 
-            ClassFunction(const ClassFunction &o) = default;
-            ClassFunction(ClassFunction &&o) = default;
-            ClassFunction& operator=(const ClassFunction &o) = default;
-            ClassFunction& operator=(ClassFunction &&o) = default;
+            FunctionDef(const FunctionDef &o) = default;
+            FunctionDef(FunctionDef &&o) = default;
+            FunctionDef& operator=(const FunctionDef &o) = default;
+            FunctionDef& operator=(FunctionDef &&o) = default;
 
-            bool operator==(const ClassFunction<R, A...>& rhs) const
+            bool operator==(const FunctionDef<R, A...>& rhs) const
             { return *func == *rhs.func; }
 
-            bool operator!=(const ClassFunction<R, A...>& rhs) const
+            bool operator!=(const FunctionDef<R, A...>& rhs) const
             { return *func != *rhs.func; }
 
             std::string toString() const {
@@ -158,10 +209,18 @@ namespace direct_bt {
     };
 
     template<typename R, typename C, typename... A>
-    inline ClassFunction<R, A...>
-    bindClassFunction(C *base, R(C::*mfunc)(A...)) {
-        return ClassFunction<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new InvocationFuncDef<R, C, A...>(base, mfunc) )
+    inline FunctionDef<R, A...>
+    bindMemberFunc(C *base, R(C::*mfunc)(A...)) {
+        return FunctionDef<R, A...>(
+                std::shared_ptr<InvocationFunc<R, A...>>( new ClassInvocationFunc<R, C, A...>(base, mfunc) )
+               );
+    }
+
+    template<typename R, typename... A>
+    inline FunctionDef<R, A...>
+    bindPlainFunc(R(*func)(A...)) {
+        return FunctionDef<R, A...>(
+                std::shared_ptr<InvocationFunc<R, A...>>( new PlainInvocationFunc<R, A...>(func) )
                );
     }
 
