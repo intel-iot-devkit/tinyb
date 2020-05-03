@@ -56,7 +56,7 @@ namespace direct_bt {
             MgmtEventCallback callback;
 
         public:
-            MgmtAdapterEventCallback(int _dev_id, MgmtEventCallback _callback)
+            MgmtAdapterEventCallback(int _dev_id, const MgmtEventCallback & _callback)
             : dev_id(_dev_id), callback(_callback) {}
 
             MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) = default;
