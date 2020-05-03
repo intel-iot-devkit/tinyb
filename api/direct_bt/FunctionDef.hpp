@@ -100,6 +100,32 @@ namespace direct_bt {
     };
 
     template<typename R, typename C, typename... A>
+    class NullInvocationFunc : public InvocationFunc<R, A...> {
+        public:
+            NullInvocationFunc() { }
+
+            int getType() const override { return 0; }
+
+            R invoke(A... args) const override {
+                return (R)0;
+            }
+
+            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            {
+                return getType() == rhs.getType();
+            }
+
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            {
+                return !( *this == rhs );
+            }
+
+            std::string toString() const override {
+                return "NIL";
+            }
+    };
+
+    template<typename R, typename C, typename... A>
     class ClassInvocationFunc : public InvocationFunc<R, A...> {
         private:
             C* base;
@@ -127,11 +153,7 @@ namespace direct_bt {
 
             bool operator!=(const InvocationFunc<R, A...>& rhs) const override
             {
-                if( getType() != rhs.getType() ) {
-                    return true;
-                }
-                const ClassInvocationFunc<R, C, A...> * prhs = static_cast<const ClassInvocationFunc<R, C, A...>*>(&rhs);
-                return base != prhs->base || member != prhs->member;
+                return !( *this == rhs );
             }
 
             std::string toString() const override {
@@ -167,11 +189,45 @@ namespace direct_bt {
 
             bool operator!=(const InvocationFunc<R, A...>& rhs) const override
             {
+                return !( *this == rhs );
+            }
+
+            std::string toString() const override {
+                // hack to convert function pointer to void *: '*((void**)&function)'
+                return aptrHexString( *((void**)&function) );
+            }
+    };
+
+    template<typename R, typename I, typename... A>
+    class CaptureInvocationFunc : public InvocationFunc<R, A...> {
+        private:
+            I data;
+            R(*function)(I, A...);
+            bool dataIsIdentity;
+
+        public:
+            CaptureInvocationFunc(I _data, R(*_function)(I, A...), bool dataIsIdentity)
+            : data(_data), function(_function), dataIsIdentity(dataIsIdentity) {
+            }
+
+            int getType() const override { return 3; }
+
+            R invoke(A... args) const override {
+                return (*function)(data, args...);
+            }
+
+            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            {
                 if( getType() != rhs.getType() ) {
-                    return true;
+                    return false;
                 }
-                const PlainInvocationFunc<R, A...> * prhs = static_cast<const PlainInvocationFunc<R, A...>*>(&rhs);
-                return function != prhs->function;
+                const CaptureInvocationFunc<R, I, A...> * prhs = static_cast<const CaptureInvocationFunc<R, I, A...>*>(&rhs);
+                return dataIsIdentity == prhs->dataIsIdentity && function == prhs->function && ( !dataIsIdentity || data == prhs->data );
+            }
+
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            {
+                return !( *this == rhs );
             }
 
             std::string toString() const override {
@@ -194,7 +250,7 @@ namespace direct_bt {
             : id(_id), function() {
             }
 
-            int getType() const override { return 3; }
+            int getType() const override { return 10; }
 
             R invoke(A... args) const override {
                 return function(args...);
@@ -211,11 +267,7 @@ namespace direct_bt {
 
             bool operator!=(const InvocationFunc<R, A...>& rhs) const override
             {
-                if( getType() != rhs.getType() ) {
-                    return true;
-                }
-                const StdInvocationFunc<R, A...> * prhs = static_cast<const StdInvocationFunc<R, A...>*>(&rhs);
-                return id != prhs->id;
+                return !( *this == rhs );
             }
 
             std::string toString() const override {
@@ -229,6 +281,10 @@ namespace direct_bt {
             std::shared_ptr<InvocationFunc<R, A...>> func;
 
         public:
+            FunctionDef()
+            : func(std::shared_ptr<InvocationFunc<R, A...>>( new NullInvocationFunc<R, A...>() ))
+            {};
+
             FunctionDef(std::shared_ptr<InvocationFunc<R, A...>> _func)
             : func(_func) { }
 
@@ -265,6 +321,14 @@ namespace direct_bt {
     bindPlainFunc(R(*func)(A...)) {
         return FunctionDef<R, A...>(
                 std::shared_ptr<InvocationFunc<R, A...>>( new PlainInvocationFunc<R, A...>(func) )
+               );
+    }
+
+    template<typename R, typename I, typename... A>
+    inline FunctionDef<R, A...>
+    bindCaptureFunc(I data, R(*func)(I, A...), bool dataIsIdentity=true) {
+        return FunctionDef<R, A...>(
+                std::shared_ptr<InvocationFunc<R, A...>>( new CaptureInvocationFunc<R, I, A...>(data, func, dataIsIdentity) )
                );
     }
 
