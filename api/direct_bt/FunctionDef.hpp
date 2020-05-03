@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <functional>
 
 #include "BasicTypes.hpp"
 
@@ -180,6 +181,49 @@ namespace direct_bt {
     };
 
     template<typename R, typename... A>
+    class StdInvocationFunc : public InvocationFunc<R, A...> {
+        private:
+            uint64_t id;
+            std::function<R(A...)> function;
+
+        public:
+            StdInvocationFunc(uint64_t _id, std::function<R(A...)> _function)
+            : id(_id), function(_function) {
+            }
+            StdInvocationFunc(uint64_t _id)
+            : id(_id), function() {
+            }
+
+            int getType() const override { return 3; }
+
+            R invoke(A... args) const override {
+                return function(args...);
+            }
+
+            bool operator==(const InvocationFunc<R, A...>& rhs) const override
+            {
+                if( getType() != rhs.getType() ) {
+                    return false;
+                }
+                const StdInvocationFunc<R, A...> * prhs = static_cast<const StdInvocationFunc<R, A...>*>(&rhs);
+                return id == prhs->id;
+            }
+
+            bool operator!=(const InvocationFunc<R, A...>& rhs) const override
+            {
+                if( getType() != rhs.getType() ) {
+                    return true;
+                }
+                const StdInvocationFunc<R, A...> * prhs = static_cast<const StdInvocationFunc<R, A...>*>(&rhs);
+                return id != prhs->id;
+            }
+
+            std::string toString() const override {
+                return uint64HexString( id );
+            }
+    };
+
+    template<typename R, typename... A>
     class FunctionDef {
         private:
             std::shared_ptr<InvocationFunc<R, A...>> func;
@@ -221,6 +265,21 @@ namespace direct_bt {
     bindPlainFunc(R(*func)(A...)) {
         return FunctionDef<R, A...>(
                 std::shared_ptr<InvocationFunc<R, A...>>( new PlainInvocationFunc<R, A...>(func) )
+               );
+    }
+
+    template<typename R, typename... A>
+    inline FunctionDef<R, A...>
+    bindStdFunc(uint64_t id, std::function<R(A...)> func) {
+        return FunctionDef<R, A...>(
+                std::shared_ptr<InvocationFunc<R, A...>>( new StdInvocationFunc<R, A...>(id, func) )
+               );
+    }
+    template<typename R, typename... A>
+    inline FunctionDef<R, A...>
+    bindStdFunc(uint64_t id) {
+        return FunctionDef<R, A...>(
+                std::shared_ptr<InvocationFunc<R, A...>>( new StdInvocationFunc<R, A...>(id) )
                );
     }
 
