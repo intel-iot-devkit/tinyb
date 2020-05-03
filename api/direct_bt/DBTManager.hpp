@@ -128,7 +128,6 @@ namespace direct_bt {
             DBTManager(const BTMode btMode);
             DBTManager(const DBTManager&) = delete;
             void operator=(const DBTManager&) = delete;
-            void close();
 
             std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
             void shutdownAdapter(const uint16_t dev_id);
@@ -170,6 +169,8 @@ namespace direct_bt {
                 return s;
             }
             ~DBTManager() { close(); }
+
+            void close();
 
             std::string get_java_class() const override {
                 return java_class();
