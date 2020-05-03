@@ -152,10 +152,10 @@ bool DBTAdapter::validateDevInfo() {
     }
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
-    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
-    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
-    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
-    mgmt.addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB));
+    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
+    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
+    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
+    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceFoundCB));
 
     return true;
 }
@@ -193,8 +193,8 @@ DBTAdapter::~DBTAdapter() {
     keepDiscoveringAlive = false;
     {
         int count;
-        if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB)) ) ) {
-            ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 1 but %d", count);
+        if( 4 != ( count = mgmt.removeMgmtEventCallback(dev_id) ) ) {
+            ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 4 but %d", count);
         }
     }
     deviceStatusListener = nullptr;

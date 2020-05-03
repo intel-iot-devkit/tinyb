@@ -47,7 +47,41 @@
 namespace direct_bt {
 
     typedef ClassFunction<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
-    typedef std::vector<MgmtEventCallback> MgmtEventCallbackList;
+
+    class MgmtAdapterEventCallback {
+        private:
+            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
+            int dev_id;
+            /** MgmtEventCallback instance */
+            MgmtEventCallback callback;
+
+        public:
+            MgmtAdapterEventCallback(int _dev_id, MgmtEventCallback _callback)
+            : dev_id(_dev_id), callback(_callback) {}
+
+            MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) = default;
+            MgmtAdapterEventCallback(MgmtAdapterEventCallback &&o) = default;
+            MgmtAdapterEventCallback& operator=(const MgmtAdapterEventCallback &o) = default;
+            MgmtAdapterEventCallback& operator=(MgmtAdapterEventCallback &&o) = default;
+
+            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
+            int getDevID() const { return dev_id; }
+
+            /** MgmtEventCallback reference */
+            MgmtEventCallback& getCallback() { return callback; }
+
+            bool operator==(const MgmtAdapterEventCallback& rhs) const
+            { return dev_id == rhs.dev_id && callback == rhs.callback; }
+
+            bool operator!=(const MgmtAdapterEventCallback& rhs) const
+            { return !(*this == rhs); }
+
+            std::string toString() const {
+                return "MgmtAdapterEventCallback[dev_id "+std::to_string(dev_id)+", "+callback.toString()+"]";
+            }
+    };
+
+    typedef std::vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
 
     /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
@@ -78,12 +112,12 @@ namespace direct_bt {
             volatile bool mgmtReaderRunning;
             volatile bool mgmtReaderShallStop;
 
-            /** One MgmtEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
-            std::array<MgmtEventCallbackList, MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT> mgmtEventCallbackLists;
+            /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
+            std::array<MgmtAdapterEventCallbackList, MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT> mgmtAdapterEventCallbackLists;
             std::recursive_mutex mtx_callbackLists;
             inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
-                if( opc >= mgmtEventCallbackLists.size() ) {
-                    throw IndexOutOfBoundsException(opc, 1, mgmtEventCallbackLists.size(), E_FILE_LINE);
+                if( opc >= mgmtAdapterEventCallbackLists.size() ) {
+                    throw IndexOutOfBoundsException(opc, 1, mgmtAdapterEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
 
@@ -214,10 +248,19 @@ namespace direct_bt {
 
             /** MgmtEventCallback handling  */
 
-            /** Appends the given MgmtEventCallback to the named MgmtEvent::Opcode list. */
-            void addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            /**
+             * Appends the given MgmtEventCallback for the given adapter dev_id to the named MgmtEvent::Opcode list,
+             * if it is not present already (dev_id + opcode + callback).
+             * <p>
+             * The adapter dev_id allows filtering the events only directed to the given adapter.
+             * Use dev_id <code>-1</code> to receive the event for all adapter.
+             * </p>
+             */
+            void addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
             /** Returns count of removed given MgmtEventCallback from the named MgmtEvent::Opcode list. */
             int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            /** Returns count of removed MgmtEventCallback from the named MgmtEvent::Opcode list matching the given adapter dev_id . */
+            int removeMgmtEventCallback(const int dev_id);
             /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */

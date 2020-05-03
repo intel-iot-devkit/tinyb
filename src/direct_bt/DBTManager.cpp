@@ -82,12 +82,18 @@ void DBTManager::mgmtReaderThreadImpl() {
                 mgmtEventRing.putBlocking( event );
             } else {
                 // issue a callback
-                MgmtEventCallbackList mgmtEventCallbackList = mgmtEventCallbackLists[opc];
-                DBG_PRINT("DBTManager::reader: Event %s -> %zd callbacks", event->toString().c_str(), mgmtEventCallbackList.size());
+                const int dev_id = event->getDevID();
+                MgmtAdapterEventCallbackList mgmtEventCallbackList = mgmtAdapterEventCallbackLists[opc];
+                int invokeCount = 0;
                 for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-                    MgmtEventCallback callback = *it;
-                    callback.invoke(event);
+                    if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
+                        it->getCallback().invoke(event);
+                        invokeCount++;
+                    }
                 }
+                DBG_PRINT("DBTManager::reader: Event %s -> %d/%zd callbacks",
+                        event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+                (void)invokeCount;
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
             ERR_PRINT("DBTManager::reader: HCIComm error");
@@ -99,13 +105,19 @@ void DBTManager::mgmtReaderThreadImpl() {
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
+    const int dev_id = event->getDevID();
     const MgmtEvent::Opcode opc = event->getOpcode();
-    MgmtEventCallbackList mgmtEventCallbackList = mgmtEventCallbackLists[opc];
-    DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %zd callbacks", event->toString().c_str(), mgmtEventCallbackList.size());
+    MgmtAdapterEventCallbackList mgmtEventCallbackList = mgmtAdapterEventCallbackLists[opc];
+    int invokeCount = 0;
     for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-        MgmtEventCallback callback = *it;
-        callback.invoke(event);
+        if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
+            it->getCallback().invoke(event);
+            invokeCount++;
+        }
     }
+    DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks",
+            event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    (void)invokeCount;
 }
 
 static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
@@ -337,19 +349,19 @@ next1:
     }
 
     if( ok ) {
-        addMgmtEventCallback(MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvLocalNameChangedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::NEW_SETTINGS, bindClassFunction(this, &DBTManager::mgmtEvNewSettingsCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTManager::mgmtEvDeviceFoundCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::PIN_CODE_REQUEST, bindClassFunction(this, &DBTManager::mgmtEvDevicePinCodeRequestCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-        addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindClassFunction(this, &DBTManager::mgmtEvLocalNameChangedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindClassFunction(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_SETTINGS, bindClassFunction(this, &DBTManager::mgmtEvNewSettingsCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindClassFunction(this, &DBTManager::mgmtEvDeviceFoundCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindClassFunction(this, &DBTManager::mgmtEvDeviceConnectedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindClassFunction(this, &DBTManager::mgmtEvConnectFailedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindClassFunction(this, &DBTManager::mgmtEvDevicePinCodeRequestCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindClassFunction(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindClassFunction(this, &DBTManager::mgmtEvNewConnectionParamCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindClassFunction(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -547,18 +559,25 @@ bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BD
  *
  */
 
-void DBTManager::addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
+void DBTManager::addMgmtEventCallback(const int dev_id, const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
-    mgmtEventCallbackLists[opc].push_back(cb);
+    MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[opc];
+    for (auto it = l.begin(); it != l.end(); ++it) {
+        if ( it->getDevID() == dev_id && it->getCallback() == cb ) {
+            // already exists for given adapter
+            return;
+        }
+    }
+    l.push_back( MgmtAdapterEventCallback(dev_id, cb) );
 }
 int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
     int count = 0;
-    MgmtEventCallbackList &l = mgmtEventCallbackLists[opc];
+    MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[opc];
     for (auto it = l.begin(); it != l.end(); ) {
-        if ( *it == cb ) {
+        if ( it->getCallback() == cb ) {
             it = l.erase(it);
             count++;
         } else {
@@ -567,15 +586,31 @@ int DBTManager::removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtE
     }
     return count;
 }
+int DBTManager::removeMgmtEventCallback(const int dev_id) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
+    int count = 0;
+    for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
+        MgmtAdapterEventCallbackList &l = mgmtAdapterEventCallbackLists[i];
+        for (auto it = l.begin(); it != l.end(); ) {
+            if ( it->getDevID() == dev_id ) {
+                it = l.erase(it);
+                count++;
+            } else {
+                ++it;
+            }
+        }
+    }
+    return count;
+}
 void DBTManager::clearMgmtEventCallbacks(const MgmtEvent::Opcode opc) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     checkMgmtEventCallbackListsIndex(opc);
-    mgmtEventCallbackLists[opc].clear();
+    mgmtAdapterEventCallbackLists[opc].clear();
 }
 void DBTManager::clearAllMgmtEventCallbacks() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-    for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
-        mgmtEventCallbackLists[i].clear();
+    for(size_t i=0; i<mgmtAdapterEventCallbackLists.size(); i++) {
+        mgmtAdapterEventCallbackLists[i].clear();
     }
 }
 
