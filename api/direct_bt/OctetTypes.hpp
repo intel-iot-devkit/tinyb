@@ -117,6 +117,13 @@ namespace direct_bt {
                 return _data + i;
             }
 
+            bool operator==(const TROOctets& rhs) const {
+                return _size == rhs._size && 0 == memcmp(_data, rhs._data, _size);
+            }
+            bool operator!=(const TROOctets& rhs) const {
+                return !(*this == rhs);
+            }
+
             std::string toString() const {
                 return "size "+std::to_string(_size)+", ro: "+bytesHexString(_data, 0, _size, true /* lsbFirst */, true /* leading0X */);
             }
