@@ -39,7 +39,7 @@
 namespace direct_bt {
 
     enum HCIDefaults : int {
-        HCI_TO_SEND_REQ_POLL_MS = 1000
+        HCI_TO_SEND_REQ_POLL_MS = 3000
     };
 
     enum HCI_Event_Types : uint8_t {
@@ -68,7 +68,7 @@ namespace direct_bt {
                                         const uint8_t filter_policy);
 
         public:
-            HCIComm(const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS)
+            HCIComm(const uint16_t dev_id, const uint16_t channel, const int timeoutMS=HCIDefaults::HCI_TO_SEND_REQ_POLL_MS)
             : timeoutMS(timeoutMS), dev_id(dev_id), channel(channel), _dd(-1), le_scanning(false) {
                 _dd = hci_open_dev(dev_id, channel);
             }

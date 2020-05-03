@@ -214,7 +214,7 @@ std::shared_ptr<HCISession> DBTAdapter::open()
     if( !valid ) {
         return nullptr;
     }
-    HCISession * s = new HCISession( *this, HCI_CHANNEL_RAW );
+    HCISession * s = new HCISession( *this, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
     if( !s->isOpen() ) {
         delete s;
         ERR_PRINT("Could not open device");
