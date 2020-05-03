@@ -389,9 +389,9 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
         }
     } else {
         // existing device
-        dev->update(ad_report);
-        if( nullptr != deviceStatusListener ) {
-            deviceStatusListener->deviceUpdated(*this, dev, ad_report.getTimestamp());
+        EIRDataType updateMask = dev->update(ad_report);
+        if( EIRDataType::NONE != updateMask && nullptr != deviceStatusListener ) {
+            deviceStatusListener->deviceUpdated(*this, dev, ad_report.getTimestamp(), updateMask);
         }
     }
     return true;

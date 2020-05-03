@@ -275,6 +275,41 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    enum class EIRDataType : uint32_t {
+        NONE         = 0,
+        EVT_TYPE     = (1 << 0),
+        BDADDR_TYPE  = (1 << 1),
+        BDADDR       = (1 << 2),
+        FLAGS        = (1 << 3),
+        NAME         = (1 << 4),
+        NAME_SHORT   = (1 << 5),
+        RSSI         = (1 << 6),
+        TX_POWER     = (1 << 7),
+        MANUF_DATA   = (1 << 8),
+        DEVICE_CLASS = (1 << 9),
+        APPEARANCE   = (1 << 10),
+        HASH         = (1 << 11),
+        RANDOMIZER   = (1 << 12),
+        DEVICE_ID    = (1 << 13),
+        SERVICE_UUID = (1 << 30)
+    };
+    inline EIRDataType operator |(const EIRDataType lhs, const EIRDataType rhs) {
+        return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
+    }
+    inline EIRDataType operator &(const EIRDataType lhs, const EIRDataType rhs) {
+        return static_cast<EIRDataType> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
+    }
+    inline bool operator ==(const EIRDataType lhs, const EIRDataType rhs) {
+        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
+    }
+    inline bool operator !=(const EIRDataType lhs, const EIRDataType rhs) {
+        return !( lhs == rhs );
+    }
+
+    inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) { return EIRDataType::NONE != ( mask & bit ); }
+    inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) { mask = mask | bit; }
+    std::string eirDataMaskToString(const EIRDataType mask);
+
     /**
      * Collection of 'Advertising Data' (AD)
      * or 'Extended Inquiry Response' (EIR) information.
@@ -290,27 +325,11 @@ namespace direct_bt {
             /** Extended Inquiry Response (EIR) */
             EIR
         };
-        enum class Element : uint32_t {
-            EVT_TYPE     = (1 << 0),
-            BDADDR_TYPE  = (1 << 1),
-            BDADDR       = (1 << 2),
-            FLAGS        = (1 << 3),
-            NAME         = (1 << 4),
-            NAME_SHORT   = (1 << 5),
-            RSSI         = (1 << 6),
-            TX_POWER     = (1 << 7),
-            MANUF_DATA   = (1 << 8),
-            DEVICE_CLASS = (1 << 9),
-            APPEARANCE   = (1 << 10),
-            HASH         = (1 << 11),
-            RANDOMIZER   = (1 << 12),
-            DEVICE_ID    = (1 << 13)
-        };
 
     private:
         Source source = Source::NA;
         uint64_t timestamp = 0;
-        uint32_t data_set = 0;
+        EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
         uint8_t evt_type = 0;
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
@@ -332,27 +351,27 @@ namespace direct_bt {
         uint16_t did_product = 0;
         uint16_t did_version = 0;
 
-        void set(Element bit) { data_set |= static_cast<uint32_t>(bit); }
-        void setEvtType(uint8_t et) { evt_type = et; set(Element::EVT_TYPE); }
-        void setFlags(uint8_t f) { flags = f; set(Element::FLAGS); }
+        void set(EIRDataType bit) { eir_data_mask = eir_data_mask | bit; }
+        void setEvtType(uint8_t et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
+        void setFlags(uint8_t f) { flags = f; set(EIRDataType::FLAGS); }
         void setName(const uint8_t *buffer, int buffer_len);
         void setShortName(const uint8_t *buffer, int buffer_len);
-        void setTxPower(int8_t v) { tx_power = v; set(Element::TX_POWER); }
+        void setTxPower(int8_t v) { tx_power = v; set(EIRDataType::TX_POWER); }
         void setManufactureSpecificData(uint16_t const company, uint8_t const * const data, int const data_len) {
             msd = std::shared_ptr<ManufactureSpecificData>(new ManufactureSpecificData(company, data, data_len));
-            set(Element::MANUF_DATA);
+            set(EIRDataType::MANUF_DATA);
         }
         void addService(std::shared_ptr<uuid_t> const &uuid);
-        void setDeviceClass(uint32_t c) { device_class= c; set(Element::DEVICE_CLASS); }
-        void setAppearance(uint16_t a) { appearance= a; set(Element::APPEARANCE); }
-        void setHash(const uint8_t * h) { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(Element::HASH); }
-        void setRandomizer(const uint8_t * r) { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(Element::RANDOMIZER); }
+        void setDeviceClass(uint32_t c) { device_class= c; set(EIRDataType::DEVICE_CLASS); }
+        void setAppearance(uint16_t a) { appearance= a; set(EIRDataType::APPEARANCE); }
+        void setHash(const uint8_t * h) { hash.resize(16); memcpy(hash.get_wptr(), h, 16); set(EIRDataType::HASH); }
+        void setRandomizer(const uint8_t * r) { randomizer.resize(16); memcpy(randomizer.get_wptr(), r, 16); set(EIRDataType::RANDOMIZER); }
         void setDeviceID(const uint16_t source, const uint16_t vendor, const uint16_t product, const uint16_t version) {
             did_source = source;
             did_vendor = vendor;
             did_product = product;
             did_version = version;
-            set(Element::DEVICE_ID);
+            set(EIRDataType::DEVICE_ID);
         }
 
         int next_data_elem(uint8_t *eir_elem_len, uint8_t *eir_elem_type, uint8_t const **eir_elem_data,
@@ -361,14 +380,11 @@ namespace direct_bt {
     public:
         EInfoReport() : hash(16, 0), randomizer(16, 0) {}
 
-        static bool isSet(const uint32_t data_set, Element bit) { return 0 != (data_set & static_cast<uint32_t>(bit)); }
-        static std::string dataSetToString(const uint32_t data_Set);
-
         void setSource(Source s) { source = s; }
         void setTimestamp(uint64_t ts) { timestamp = ts; }
-        void setAddressType(BDAddressType at) { addressType = at; set(Element::BDADDR_TYPE); }
-        void setAddress(EUI48 const &a) { address = a; set(Element::BDADDR); }
-        void setRSSI(int8_t v) { rssi = v; set(Element::RSSI); }
+        void setAddressType(BDAddressType at) { addressType = at; set(EIRDataType::BDADDR_TYPE); }
+        void setAddress(EUI48 const &a) { address = a; set(EIRDataType::BDADDR); }
+        void setRSSI(int8_t v) { rssi = v; set(EIRDataType::RSSI); }
 
         /**
          * Reads a complete Advertising Data (AD) Report
@@ -410,8 +426,8 @@ namespace direct_bt {
 
         Source getSource() const { return source; }
         uint64_t getTimestamp() const { return timestamp; }
-        bool isSet(Element bit) const { return 0 != (data_set & static_cast<uint32_t>(bit)); }
-        uint32_t getDataSet() const { return data_set; }
+        bool isSet(EIRDataType bit) const { return EIRDataType::NONE != (eir_data_mask & bit); }
+        EIRDataType getEIRDataMask() const { return eir_data_mask; }
 
         uint8_t getEvtType() const { return evt_type; }
         BDAddressType getAddressType() const { return addressType; }
@@ -435,7 +451,7 @@ namespace direct_bt {
 
         std::string getSourceString() const;
         std::string getAddressString() const { return address.toString(); }
-        std::string dataSetToString() const;
+        std::string eirDataMaskToString() const;
         std::string toString() const;
     };
 

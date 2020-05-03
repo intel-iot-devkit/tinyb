@@ -168,7 +168,7 @@ namespace direct_bt {
     class DBTDeviceStatusListener {
         public:
             virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
             virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual ~DBTDeviceStatusListener() {}
@@ -192,10 +192,10 @@ namespace direct_bt {
 
             DBTDevice(DBTAdapter const & adapter, EInfoReport const & r);
 
-            void addService(std::shared_ptr<uuid_t> const &uuid);
-            void addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
+            bool addService(std::shared_ptr<uuid_t> const &uuid);
+            bool addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
 
-            void update(EInfoReport const & data);
+            EIRDataType update(EInfoReport const & data);
 
         public:
             const uint64_t ts_creation;

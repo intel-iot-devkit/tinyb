@@ -43,8 +43,11 @@ using namespace direct_bt;
 DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
-    if( !r.isSet(EInfoReport::Element::BDADDR) ) {
-        throw IllegalArgumentException("HCIDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
+    if( !r.isSet(EIRDataType::BDADDR) ) {
+        throw IllegalArgumentException("DBTDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
+    }
+    if( !r.isSet(EIRDataType::BDADDR_TYPE) ) {
+        throw IllegalArgumentException("DBTDevice ctor: AddressType not set: "+r.toString(), E_FILE_LINE);
     }
     update(r);
 }
@@ -63,18 +66,22 @@ std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
     return myself;
 }
 
-void DBTDevice::addService(std::shared_ptr<uuid_t> const &uuid)
+bool DBTDevice::addService(std::shared_ptr<uuid_t> const &uuid)
 {
     if( 0 > findService(uuid) ) {
         services.push_back(uuid);
+        return true;
     }
+    return false;
 }
-void DBTDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & services)
+bool DBTDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & services)
 {
+    bool res = false;
     for(size_t j=0; j<services.size(); j++) {
         const std::shared_ptr<uuid_t> uuid = services.at(j);
-        addService(uuid);
+        res = addService(uuid) || res;
     }
+    return res;
 }
 
 int DBTDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
@@ -110,28 +117,55 @@ std::string DBTDevice::toString() const {
     return out;
 }
 
-void DBTDevice::update(EInfoReport const & data) {
+EIRDataType DBTDevice::update(EInfoReport const & data) {
+    EIRDataType res = EIRDataType::NONE;
     ts_update = data.getTimestamp();
-    if( data.isSet(EInfoReport::Element::NAME) ) {
+    if( data.isSet(EIRDataType::BDADDR) ) {
+        if( data.getAddress() != this->address ) {
+            WARN_PRINT("DBTDevice::update:: BDADDR update not supported: %s for %s",
+                    data.toString().c_str(), this->toString().c_str());
+        }
+    }
+    if( data.isSet(EIRDataType::BDADDR_TYPE) ) {
+        if( data.getAddressType() != this->addressType ) {
+            WARN_PRINT("DBTDevice::update:: BDADDR_TYPE update not supported: %s for %s",
+                    data.toString().c_str(), this->toString().c_str());
+        }
+    }
+    if( data.isSet(EIRDataType::NAME) ) {
         if( !name.length() || data.getName().length() > name.length() ) {
             name = data.getName();
+            setEIRDataTypeSet(res, EIRDataType::NAME);
         }
     }
-    if( data.isSet(EInfoReport::Element::NAME_SHORT) ) {
+    if( data.isSet(EIRDataType::NAME_SHORT) ) {
         if( !name.length() ) {
             name = data.getShortName();
+            setEIRDataTypeSet(res, EIRDataType::NAME_SHORT);
         }
     }
-    if( data.isSet(EInfoReport::Element::RSSI) ) {
-        rssi = data.getRSSI();
+    if( data.isSet(EIRDataType::RSSI) ) {
+        if( rssi != data.getRSSI() ) {
+            rssi = data.getRSSI();
+            setEIRDataTypeSet(res, EIRDataType::RSSI);
+        }
     }
-    if( data.isSet(EInfoReport::Element::TX_POWER) ) {
-        tx_power = data.getTxPower();
+    if( data.isSet(EIRDataType::TX_POWER) ) {
+        if( tx_power != data.getTxPower() ) {
+            tx_power = data.getTxPower();
+            setEIRDataTypeSet(res, EIRDataType::TX_POWER);
+        }
     }
-    if( data.isSet(EInfoReport::Element::MANUF_DATA) ) {
-        msd = data.getManufactureSpecificData();
+    if( data.isSet(EIRDataType::MANUF_DATA) ) {
+        if( msd != data.getManufactureSpecificData() ) {
+            msd = data.getManufactureSpecificData();
+            setEIRDataTypeSet(res, EIRDataType::MANUF_DATA);
+        }
     }
-    addServices(data.getServices());
+    if( addServices( data.getServices() ) ) {
+        setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
+    }
+    return res;
 }
 
 uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,

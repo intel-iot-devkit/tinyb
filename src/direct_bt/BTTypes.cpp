@@ -35,6 +35,8 @@
 
 #include "BTTypes.hpp"
 
+using namespace direct_bt;
+
 #define CHAR_DECL_BDADDRESSTYPE_ENUM(X) \
         X(BDADDR_BREDR) \
         X(BDADDR_LE_PUBLIC) \
@@ -122,6 +124,76 @@ std::string ManufactureSpecificData::toString() const {
 // *************************************************
 // *************************************************
 
+std::string direct_bt::eirDataMaskToString(const EIRDataType mask) {
+    bool has_pre = false;
+    std::string out("[");
+    if( isEIRDataTypeSet(mask, EIRDataType::EVT_TYPE) ) {
+        out.append("EVT_TYPE"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::BDADDR_TYPE) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("BDADDR_TYPE"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::BDADDR) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("BDADDR"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::FLAGS) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("FLAGS"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::NAME) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("NAME"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::NAME_SHORT) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("NAME_SHORT"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::RSSI) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("RSSI"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::TX_POWER) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("TX_POWER"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::MANUF_DATA) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("MANUF_DATA"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_CLASS) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("DEVICE_CLASS"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::APPEARANCE) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("APPEARANCE"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::HASH) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("HASH"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::RANDOMIZER) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("RANDOMIZER"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_ID) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("DEVICE_ID"); has_pre = true;
+    }
+    if( isEIRDataTypeSet(mask, EIRDataType::SERVICE_UUID) ) {
+        if( has_pre ) { out.append(", "); }
+        out.append("SERVICE_UUID"); has_pre = true;
+    }
+    out.append("]");
+    return out;
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 std::string EInfoReport::getSourceString() const {
     switch (source) {
         case Source::NA: return "N/A";
@@ -133,12 +205,12 @@ std::string EInfoReport::getSourceString() const {
 
 void EInfoReport::setName(const uint8_t *buffer, int buffer_len) {
     name = get_string(buffer, buffer_len, 30);
-    set(Element::NAME);
+    set(EIRDataType::NAME);
 }
 
 void EInfoReport::setShortName(const uint8_t *buffer, int buffer_len) {
     name_short = get_string(buffer, buffer_len, 30);
-    set(Element::NAME_SHORT);
+    set(EIRDataType::NAME_SHORT);
 }
 
 void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
@@ -152,75 +224,14 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
     }
 }
 
-std::string EInfoReport::dataSetToString(const uint32_t data_set) {
-    bool has_pre = false;
-    std::string out("[");
-    if( isSet(data_set, Element::EVT_TYPE) ) {
-        out.append("EVT_TYPE"); has_pre = true;
-    }
-    if( isSet(data_set, Element::BDADDR_TYPE) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("BDADDR_TYPE"); has_pre = true;
-    }
-    if( isSet(data_set, Element::BDADDR) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("BDADDR"); has_pre = true;
-    }
-    if( isSet(data_set, Element::FLAGS) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("FLAGS"); has_pre = true;
-    }
-    if( isSet(data_set, Element::NAME) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("NAME"); has_pre = true;
-    }
-    if( isSet(data_set, Element::NAME_SHORT) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("NAME_SHORT"); has_pre = true;
-    }
-    if( isSet(data_set, Element::RSSI) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("RSSI"); has_pre = true;
-    }
-    if( isSet(data_set, Element::TX_POWER) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("TX_POWER"); has_pre = true;
-    }
-    if( isSet(data_set, Element::MANUF_DATA) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("MANUF_DATA"); has_pre = true;
-    }
-    if( isSet(data_set, Element::DEVICE_CLASS) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("DEVICE_CLASS"); has_pre = true;
-    }
-    if( isSet(data_set, Element::APPEARANCE) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("APPEARANCE"); has_pre = true;
-    }
-    if( isSet(data_set, Element::HASH) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("HASH"); has_pre = true;
-    }
-    if( isSet(data_set, Element::RANDOMIZER) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("RANDOMIZER"); has_pre = true;
-    }
-    if( isSet(data_set, Element::DEVICE_ID) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("DEVICE_ID"); has_pre = true;
-    }
-    out.append("]");
-    return out;
-}
-std::string EInfoReport::dataSetToString() const {
-    return std::string("DataSet"+dataSetToString(data_set));
+std::string EInfoReport::eirDataMaskToString() const {
+    return std::string("DataSet"+ direct_bt::eirDataMaskToString(eir_data_mask) );
 }
 std::string EInfoReport::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("EInfoReport::"+getSourceString()+
                     "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+"'/'"+name_short+
-                    "'], "+dataSetToString()+
+                    "'], "+eirDataMaskToString()+
                     ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+

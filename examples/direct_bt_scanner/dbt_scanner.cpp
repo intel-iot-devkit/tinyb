@@ -43,7 +43,7 @@ std::condition_variable cvDeviceFound;
 class DeviceStatusListener : public direct_bt::DBTDeviceStatusListener {
     void deviceFound(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         {
             std::unique_lock<std::mutex> lockRead(mtxDeviceFound); // RAII-style acquire and relinquish via destructor
@@ -52,21 +52,21 @@ class DeviceStatusListener : public direct_bt::DBTDeviceStatusListener {
         }
         (void)timestamp;
     }
-    void deviceUpdated(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** UPDATED: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status HCIAdapter:\n");
+    void deviceUpdated(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
+        fprintf(stderr, "****** UPDATED: %s of %s\n", direct_bt::eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
+        fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
     }
     void deviceConnected(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** CONNECTED: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
     }
     void deviceDisconnected(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status HCIAdapter:\n");
+        fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
     }
