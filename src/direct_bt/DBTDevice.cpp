@@ -61,7 +61,7 @@ DBTDevice::~DBTDevice() {
 std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
     const std::shared_ptr<DBTDevice> myself = adapter.findDiscoveredDevice(address);
     if( nullptr == myself ) {
-        throw InternalError("HCIDevice: Not present in HCIAdapter: "+toString(), E_FILE_LINE);
+        throw InternalError("DBTDevice: Not present in DBTAdapter: "+toString(), E_FILE_LINE);
     }
     return myself;
 }

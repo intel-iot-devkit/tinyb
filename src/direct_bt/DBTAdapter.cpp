@@ -60,12 +60,19 @@ HCISession::HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutM
 {}
 
 void HCISession::connected(std::shared_ptr<DBTDevice> & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
+        if ( *device == **it ) {
+            return; // already connected
+        }
+    }
     connectedDevices.push_back(device);
 }
 
 void HCISession::disconnected(std::shared_ptr<DBTDevice> & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
-        if ( *it == device ) {
+        if ( **it == *device ) {
             it = connectedDevices.erase(it);
         } else {
             ++it;
@@ -284,6 +291,11 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac) 
 
 void DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ++it) {
+        if ( *device == **it ) {
+            // already discovered, just replace
+        }
+    }
     discoveredDevices.push_back(device);
 }
 
