@@ -90,7 +90,9 @@ namespace direct_bt {
             /** Poor man's RTTI */
             virtual int getType() const = 0;
 
-            virtual R invoke(A... args) const = 0;
+            virtual InvocationFunc<R, A...> * clone() const = 0;
+
+            virtual R invoke(A... args) = 0;
 
             virtual bool operator==(const InvocationFunc<R, A...>& rhs) const = 0;
 
@@ -106,7 +108,9 @@ namespace direct_bt {
 
             int getType() const override { return 0; }
 
-            R invoke(A... args) const override {
+            InvocationFunc<R, A...> clone() const override { return NullInvocationFunc(); }
+
+            R invoke(A... args) override {
                 return (R)0;
             }
 
@@ -121,7 +125,7 @@ namespace direct_bt {
             }
 
             std::string toString() const override {
-                return "NIL";
+                return "NullInvocation";
             }
     };
 
@@ -138,12 +142,17 @@ namespace direct_bt {
 
             int getType() const override { return 1; }
 
-            R invoke(A... args) const override {
+            InvocationFunc<R, A...> * clone() const override { return new ClassInvocationFunc(*this); }
+
+            R invoke(A... args) override {
                 return (base->*member)(args...);
             }
 
             bool operator==(const InvocationFunc<R, A...>& rhs) const override
             {
+                if( &rhs == this ) {
+                    return true;
+                }
                 if( getType() != rhs.getType() ) {
                     return false;
                 }
@@ -158,7 +167,7 @@ namespace direct_bt {
 
             std::string toString() const override {
                 // hack to convert member pointer to void *: '*((void**)&member)'
-                return uint64HexString((uint64_t)base)+"->"+aptrHexString( *((void**)&member) );
+                return "ClassInvocation "+uint64HexString((uint64_t)base)+"->"+aptrHexString( *((void**)&member) );
             }
     };
 
@@ -174,12 +183,17 @@ namespace direct_bt {
 
             int getType() const override { return 2; }
 
-            R invoke(A... args) const override {
+            InvocationFunc<R, A...> * clone() const override { return new PlainInvocationFunc(*this); }
+
+            R invoke(A... args) override {
                 return (*function)(args...);
             }
 
             bool operator==(const InvocationFunc<R, A...>& rhs) const override
             {
+                if( &rhs == this ) {
+                    return true;
+                }
                 if( getType() != rhs.getType() ) {
                     return false;
                 }
@@ -194,7 +208,7 @@ namespace direct_bt {
 
             std::string toString() const override {
                 // hack to convert function pointer to void *: '*((void**)&function)'
-                return aptrHexString( *((void**)&function) );
+                return "PlainInvocation "+aptrHexString( *((void**)&function) );
             }
     };
 
@@ -202,22 +216,33 @@ namespace direct_bt {
     class CaptureInvocationFunc : public InvocationFunc<R, A...> {
         private:
             I data;
-            R(*function)(I, A...);
+            R(*function)(I&, A...);
             bool dataIsIdentity;
 
         public:
-            CaptureInvocationFunc(I _data, R(*_function)(I, A...), bool dataIsIdentity)
+            /** Utilizes copy-ctor from 'const I& _data' */
+            CaptureInvocationFunc(const I& _data, R(*_function)(I&, A...), bool dataIsIdentity)
             : data(_data), function(_function), dataIsIdentity(dataIsIdentity) {
+            }
+
+            /** Utilizes move-ctor from moved 'I&& _data' */
+            CaptureInvocationFunc(I&& _data, R(*_function)(I&, A...), bool dataIsIdentity)
+            : data(std::move(_data)), function(_function), dataIsIdentity(dataIsIdentity) {
             }
 
             int getType() const override { return 3; }
 
-            R invoke(A... args) const override {
+            InvocationFunc<R, A...> * clone() const override { return new CaptureInvocationFunc(*this); }
+
+            R invoke(A... args) override {
                 return (*function)(data, args...);
             }
 
             bool operator==(const InvocationFunc<R, A...>& rhs) const override
             {
+                if( &rhs == this ) {
+                    return true;
+                }
                 if( getType() != rhs.getType() ) {
                     return false;
                 }
@@ -232,7 +257,7 @@ namespace direct_bt {
 
             std::string toString() const override {
                 // hack to convert function pointer to void *: '*((void**)&function)'
-                return aptrHexString( *((void**)&function) );
+                return "CaptureInvocation "+aptrHexString( *((void**)&function) );
             }
     };
 
@@ -252,12 +277,17 @@ namespace direct_bt {
 
             int getType() const override { return 10; }
 
-            R invoke(A... args) const override {
+            InvocationFunc<R, A...> * clone() const override { return new StdInvocationFunc(*this); }
+
+            R invoke(A... args) override {
                 return function(args...);
             }
 
             bool operator==(const InvocationFunc<R, A...>& rhs) const override
             {
+                if( &rhs == this ) {
+                    return true;
+                }
                 if( getType() != rhs.getType() ) {
                     return false;
                 }
@@ -271,7 +301,7 @@ namespace direct_bt {
             }
 
             std::string toString() const override {
-                return uint64HexString( id );
+                return "StdInvocation "+uint64HexString( id );
             }
     };
 
@@ -281,12 +311,28 @@ namespace direct_bt {
             std::shared_ptr<InvocationFunc<R, A...>> func;
 
         public:
+            /**
+             * Constructs an instance with a null function.
+             */
             FunctionDef()
             : func(std::shared_ptr<InvocationFunc<R, A...>>( new NullInvocationFunc<R, A...>() ))
             {};
 
+            /**
+             * Constructs an instance using the shared InvocationFunc<R, A...> function.
+             */
             FunctionDef(std::shared_ptr<InvocationFunc<R, A...>> _func)
             : func(_func) { }
+
+            /**
+             * Constructs an instance by wrapping the given naked InvocationFunc<R, A...> function pointer
+             * in a shared_ptr and taking ownership.
+             * <p>
+             * A convenience method.
+             * </p.
+             */
+            FunctionDef(InvocationFunc<R, A...> * _funcPtr)
+            : func(std::shared_ptr<InvocationFunc<R, A...>>(_funcPtr)) { }
 
             FunctionDef(const FunctionDef &o) = default;
             FunctionDef(FunctionDef &&o) = default;
@@ -299,11 +345,17 @@ namespace direct_bt {
             bool operator!=(const FunctionDef<R, A...>& rhs) const
             { return *func != *rhs.func; }
 
+            /** Returns the shared InvocationFunc<R, A...> function */
+            std::shared_ptr<InvocationFunc<R, A...>> getFunction() { return func; }
+
+            /** Returns a new instance of the held InvocationFunc<R, A...> function. */
+            InvocationFunc<R, A...> * cloneFunction() const { return func->clone(); }
+
             std::string toString() const {
-                return "ClassFunction["+func->toString()+"]";
+                return "FunctionDef["+func->toString()+"]";
             }
 
-            R invoke(A... args) const {
+            R invoke(A... args) {
                 return func->invoke(args...);
             }
     };
@@ -311,40 +363,49 @@ namespace direct_bt {
     template<typename R, typename C, typename... A>
     inline FunctionDef<R, A...>
     bindMemberFunc(C *base, R(C::*mfunc)(A...)) {
-        return FunctionDef<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new ClassInvocationFunc<R, C, A...>(base, mfunc) )
-               );
+        return FunctionDef<R, A...>( new ClassInvocationFunc<R, C, A...>(base, mfunc) );
     }
 
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
     bindPlainFunc(R(*func)(A...)) {
-        return FunctionDef<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new PlainInvocationFunc<R, A...>(func) )
-               );
+        return FunctionDef<R, A...>( new PlainInvocationFunc<R, A...>(func) );
     }
 
+    /**
+     * <code>const I& data</code> will be copied into the InvocationFunc<..> specialization
+     * and hence captured by copy.
+     * <p>
+     * The function call will have the reference of the copied data being passed for efficiency.
+     * </p>
+     */
     template<typename R, typename I, typename... A>
     inline FunctionDef<R, A...>
-    bindCaptureFunc(I data, R(*func)(I, A...), bool dataIsIdentity=true) {
-        return FunctionDef<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new CaptureInvocationFunc<R, I, A...>(data, func, dataIsIdentity) )
-               );
+    bindCaptureFunc(const I& data, R(*func)(I&, A...), bool dataIsIdentity=true) {
+        return FunctionDef<R, A...>( new CaptureInvocationFunc<R, I, A...>(data, func, dataIsIdentity) );
+    }
+
+    /**
+     * <code>I&& data</code> will be moved into the InvocationFunc<..> specialization.
+     * <p>
+     * The function call will have the reference of the copied data being passed for efficiency.
+     * </p>
+     */
+    template<typename R, typename I, typename... A>
+    inline FunctionDef<R, A...>
+    bindCaptureFunc(I&& data, R(*func)(I&, A...), bool dataIsIdentity=true) {
+        return FunctionDef<R, A...>( new CaptureInvocationFunc<R, I, A...>(std::move(data), func, dataIsIdentity) );
     }
 
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
     bindStdFunc(uint64_t id, std::function<R(A...)> func) {
-        return FunctionDef<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new StdInvocationFunc<R, A...>(id, func) )
-               );
+        return FunctionDef<R, A...>( new StdInvocationFunc<R, A...>(id, func) );
     }
     template<typename R, typename... A>
     inline FunctionDef<R, A...>
     bindStdFunc(uint64_t id) {
-        return FunctionDef<R, A...>(
-                std::shared_ptr<InvocationFunc<R, A...>>( new StdInvocationFunc<R, A...>(id) )
-               );
+        return FunctionDef<R, A...>( new StdInvocationFunc<R, A...>(id) );
     }
 
 } // namespace direct_bt
