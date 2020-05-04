@@ -26,7 +26,16 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <cstdio>
+
 #include "JNIMem.hpp"
+
+// #define VERBOSE_ON 1
+#ifdef VERBOSE_ON
+    #define DBG_PRINT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+#else
+    #define DBG_PRINT(...)
+#endif
 
 JavaVM* vm;
 thread_local JNIEnvContainer jni_env;
@@ -92,6 +101,41 @@ JNIGlobalRef::JNIGlobalRef(jobject object) {
         throw direct_bt::RuntimeException("JNIGlobalRef ctor null jobject", E_FILE_LINE);
     }
     this->object = jni_env->NewGlobalRef(object);
+    DBG_PRINT("JNIGlobalRef::def_ctor %p -> %p", object, this->object);
+}
+
+JNIGlobalRef::JNIGlobalRef(const JNIGlobalRef &o) {
+    if( nullptr == o.object ) {
+        throw direct_bt::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
+    }
+    object = jni_env->NewGlobalRef(o.object);
+    DBG_PRINT("JNIGlobalRef::copy_ctor %p -> %p", o.object, object);
+}
+JNIGlobalRef::JNIGlobalRef(JNIGlobalRef &&o)
+: object(o.object) {
+    DBG_PRINT("JNIGlobalRef::move_ctor %p (nulled) -> %p", o.object, object);
+    o.object = nullptr;
+}
+JNIGlobalRef& JNIGlobalRef::operator=(const JNIGlobalRef &o) {
+    if( &o == this ) {
+        return *this;
+    }
+    JNIEnv * env = *jni_env;
+    if( nullptr != object ) { // always
+        env->DeleteGlobalRef(object);
+    }
+    if( nullptr == o.object ) {
+        throw direct_bt::RuntimeException("Other JNIGlobalRef jobject is null", E_FILE_LINE);
+    }
+    object = jni_env->NewGlobalRef(o.object);
+    DBG_PRINT("JNIGlobalRef::copy_assign %p -> %p", o.object, object);
+    return *this;
+}
+JNIGlobalRef& JNIGlobalRef::operator=(JNIGlobalRef &&o) {
+    object = o.object;
+    DBG_PRINT("JNIGlobalRef::move_assign %p (nulled) -> %p", o.object, object);
+    o.object = nullptr;
+    return *this;
 }
 
 JNIGlobalRef::~JNIGlobalRef() {
@@ -100,12 +144,22 @@ JNIGlobalRef::~JNIGlobalRef() {
         if( nullptr == env ) {
             throw direct_bt::RuntimeException("JNIGlobalRef dtor null JNIEnv", E_FILE_LINE);
         }
-        if( nullptr == object ) {
-            throw direct_bt::RuntimeException("JNIGlobalRef dtor null jobject", E_FILE_LINE);
-        } else {
+        DBG_PRINT("JNIGlobalRef::dtor %p", object);
+        if( nullptr != object ) {
+            // due to move ctor and assignment, we accept nullptr object
             env->DeleteGlobalRef(object);
         }
     } catch (std::exception &e) {
         fprintf(stderr, "JNIGlobalRef dtor: Caught %s\n", e.what());
     }
+}
+
+bool JNIGlobalRef::operator==(const JNIGlobalRef& rhs) const {
+    if( &rhs == this ) {
+        DBG_PRINT("JNIGlobalRef::== true: %p == %p (ptr)", object, rhs.object);
+        return true;
+    }
+    bool res = JNI_TRUE == jni_env->IsSameObject(object, rhs.object);
+    DBG_PRINT("JNIGlobalRef::== %d: %p == %p (IsSameObject)", res, object, rhs.object);
+    return res;
 }

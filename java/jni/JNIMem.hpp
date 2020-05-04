@@ -84,6 +84,12 @@ public:
     /* Creates a GlobalRef from an object passed to it */
     JNIGlobalRef(jobject object);
 
+    JNIGlobalRef(const JNIGlobalRef &o);
+    JNIGlobalRef(JNIGlobalRef &&o);
+
+    JNIGlobalRef& operator=(const JNIGlobalRef &o);
+    JNIGlobalRef& operator=(JNIGlobalRef &&o);
+
     /* Deletes the stored GlobalRef */
     ~JNIGlobalRef();
 
@@ -94,6 +100,11 @@ public:
     jobject getObject() const { return object; }
     /* Provides access to the stored GlobalRef as a jclass. */
     jclass getClass() const { return (jclass)object; }
+
+    bool operator==(const JNIGlobalRef& rhs) const;
+
+    bool operator!=(const JNIGlobalRef& rhs) const
+    { return !( *this == rhs ); }
 };
 
 #endif /* JNIMEM__HPP_ */
