@@ -388,23 +388,52 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj
     return 0;
 }
 
-jlong Java_direct_1bt_tinyb_DBTAdapter_addDiscoveringNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
+//
+// Discovering
+//
+
+static void disableDiscoveringNotifications(JNIEnv *env, jobject obj, DBTManager &mgmt)
 {
-    // org.tinyb.BluetoothDeviceDiscoveryListener
+    InvocationFunc<bool, std::shared_ptr<MgmtEvent>> * funcptr =
+            getObjectRef<InvocationFunc<bool, std::shared_ptr<MgmtEvent>>>(env, obj, "discoveringNotificationRef");
+    if( nullptr != funcptr ) {
+        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef( funcptr );
+        funcptr = nullptr;
+        setObjectRef(env, obj, funcptr, "discoveringNotificationRef"); // clear java ref
+        int count;
+        if( 1 != ( count = mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, funcDef) ) ) {
+            throw direct_bt::InternalError(std::string("removeMgmtEventCallback of ")+funcDef.toString()+" not 1 but "+std::to_string(count), E_FILE_LINE);
+        }
+    }
+}
+void Java_direct_1bt_tinyb_DBTAdapter_disableDiscoveringNotifications(JNIEnv *env, jobject obj)
+{
+    // org.tinyb.BluetoothAdapterStatusListener
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         DBTManager & mgmt = adapter->getManager();
-        std::shared_ptr<JNIGlobalRef> javaCallback_ptr(new JNIGlobalRef(javaCallback));
 
-#if 1
-        // this function instance satisfies to be key for identity,
-        // as it is uniquely created for this javaCallback.
-        bool(*nativeCallback)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>) =
-                [](std::shared_ptr<JNIGlobalRef> javaCallback_ptr, std::shared_ptr<MgmtEvent> e)->bool {
+        disableDiscoveringNotifications(env, obj, mgmt);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+void Java_direct_1bt_tinyb_DBTAdapter_enableDiscoveringNotifications(JNIEnv *env, jobject obj, jobject javaCallback)
+{
+    // org.tinyb.BluetoothAdapterStatusListener
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        DBTManager & mgmt = adapter->getManager();
+
+        disableDiscoveringNotifications(env, obj, mgmt);
+
+        bool(*nativeCallback)(JNIGlobalRef&, std::shared_ptr<MgmtEvent>) =
+                [](JNIGlobalRef& javaCallback_ref, std::shared_ptr<MgmtEvent> e)->bool {
             const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
 
-            jclass notification = search_class(*jni_env, **javaCallback_ptr);
+            jclass notification = search_class(*jni_env, *javaCallback_ref);
             jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
             jni_env->DeleteLocalRef(notification);
 
@@ -414,140 +443,15 @@ jlong Java_direct_1bt_tinyb_DBTAdapter_addDiscoveringNotificationsImpl(JNIEnv *e
             jobject result = jni_env->NewObject(boolean_cls, constructor, event.getEnabled() ? JNI_TRUE : JNI_FALSE);
             jni_env->DeleteLocalRef(boolean_cls);
 
-            jni_env->CallVoidMethod(**javaCallback_ptr, method, result);
+            jni_env->CallVoidMethod(*javaCallback_ref, method, result);
             jni_env->DeleteLocalRef(result);
             return true;
         };
-        mgmt.addMgmtEventCallback(adapter->dev_id, MgmtEvent::Opcode::DISCOVERING, bindCaptureFunc(javaCallback_ptr, nativeCallback, false));
-        // hack to convert function pointer to void *: '*((void**)&function)'
-        return (jlong)( *((void**)&nativeCallback) );
-#elif 0
-        const uint64_t id = (jlong)obj;
-        std::function<bool(std::shared_ptr<MgmtEvent> e)> nativeCallback = [javaCallback_ptr](std::shared_ptr<MgmtEvent> e)->bool {
-            const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
-
-            jclass notification = search_class(*jni_env, **javaCallback_ptr);
-            jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
-            jni_env->DeleteLocalRef(notification);
-
-            jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
-            jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-
-            jobject result = jni_env->NewObject(boolean_cls, constructor, event.getEnabled() ? JNI_TRUE : JNI_FALSE);
-            jni_env->DeleteLocalRef(boolean_cls);
-
-            jni_env->CallVoidMethod(**javaCallback_ptr, method, result);
-            jni_env->DeleteLocalRef(result);
-            return true;
-        };
-        mgmt.addMgmtEventCallback(adapter->dev_id, MgmtEvent::Opcode::DISCOVERING, bindStdFunc(id, nativeCallback));
-        return id;
-#else
-        // Capturing Lambda -> EventCallbackFunc type issues, need to learn how std::function does it!
-        typedef bool(*EventCallbackFunc)(std::shared_ptr<MgmtEvent>);
-        EventCallbackFunc nativeCallback = [javaCallback_ptr](std::shared_ptr<MgmtEvent> e)->bool {
-            const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
-
-            jclass notification = search_class(*jni_env, **javaCallback_ptr);
-            jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
-            jni_env->DeleteLocalRef(notification);
-
-            jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
-            jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-
-            jobject result = jni_env->NewObject(boolean_cls, constructor, event.getEnabled() ? JNI_TRUE : JNI_FALSE);
-            jni_env->DeleteLocalRef(boolean_cls);
-
-            jni_env->CallVoidMethod(**javaCallback_ptr, method, result);
-            jni_env->DeleteLocalRef(result);
-            return true;
-        };
-        mgmt.addMgmtEventCallback(adapter->dev_id, MgmtEvent::Opcode::DISCOVERING, bindPlainFunc(nativeCallback));
-        // hack to convert function pointer to void *: '*((void**)&function)'
-        return (jlong)( *((void**)&nativeCallback) );
-#endif
+        // move JNIGlobalRef into CaptureInvocationFunc and operator== includes javaCallback comparison
+        FunctionDef<bool, std::shared_ptr<MgmtEvent>> funcDef = bindCaptureFunc(JNIGlobalRef(javaCallback), nativeCallback);
+        setObjectRef(env, obj, funcDef.cloneFunction(), "discoveringNotificationRef"); // set java ref
+        mgmt.addMgmtEventCallback(adapter->dev_id, MgmtEvent::Opcode::DISCOVERING, funcDef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    return 0;
 }
-
-int Java_direct_1bt_tinyb_DBTAdapter_removeDiscoveringNotificationsImpl(JNIEnv *env, jobject obj, jlong jNativeCallback)
-{
-    // org.tinyb.BluetoothDeviceDiscoveryListener
-    try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        DBTManager & mgmt = adapter->getManager();
-#if 1
-        bool(*nativeCallback)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>) =
-                (bool(*)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>)) ( void *) jNativeCallback;
-        return mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindCaptureFunc(std::shared_ptr<JNIGlobalRef>(nullptr), nativeCallback, false));
-#elif 0
-        const uint64_t id = (uint64_t)jNativeCallback;
-        return mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindStdFunc<bool, std::shared_ptr<MgmtEvent>>(id));
-#else
-        bool(*nativeCallback)(std::shared_ptr<MgmtEvent>) = (bool(*)(std::shared_ptr<MgmtEvent>)) ( (void *)jNativeCallback );
-        return mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::DISCOVERING, bindPlainFunc(nativeCallback));
-#endif
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return 0;
-}
-
-jlong Java_direct_1bt_tinyb_DBTAdapter_addPoweredNotificationsImpl(JNIEnv *env, jobject obj, jobject javaCallback)
-{
-    // org.tinyb.BluetoothDeviceDiscoveryListener
-    try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        DBTManager & mgmt = adapter->getManager();
-        std::shared_ptr<JNIGlobalRef> javaCallback_ptr(new JNIGlobalRef(javaCallback));
-
-        // this function instance satisfies to be key for identity,
-        // as it is uniquely created for this javaCallback.
-        bool(*nativeCallback)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>) =
-                [](std::shared_ptr<JNIGlobalRef> javaCallback_ptr, std::shared_ptr<MgmtEvent> e)->bool {
-            const MgmtEvtNewSettings &event = *static_cast<const MgmtEvtNewSettings *>(e.get());
-
-            jclass notification = search_class(*jni_env, **javaCallback_ptr);
-            jmethodID  method = search_method(*jni_env, notification, "run", "(Ljava/lang/Object;)V", false);
-            jni_env->DeleteLocalRef(notification);
-
-            jclass boolean_cls = search_class(*jni_env, "java/lang/Boolean");
-            jmethodID constructor = search_method(*jni_env, boolean_cls, "<init>", "(Z)V", false);
-
-            jobject result = jni_env->NewObject(boolean_cls, constructor, ( 0 != ( event.getSettings() & MGMT_SETTING_POWERED ) ) ? JNI_TRUE : JNI_FALSE);
-            jni_env->DeleteLocalRef(boolean_cls);
-
-            jni_env->CallVoidMethod(**javaCallback_ptr, method, result);
-            jni_env->DeleteLocalRef(result);
-            return true;
-        };
-        mgmt.addMgmtEventCallback(adapter->dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindCaptureFunc(javaCallback_ptr, nativeCallback, false));
-        // hack to convert function pointer to void *: '*((void**)&function)'
-        return (jlong)( *((void**)&nativeCallback) );
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return 0;
-}
-
-int Java_direct_1bt_tinyb_DBTAdapter_removePoweredNotificationsImpl(JNIEnv *env, jobject obj, jlong jNativeCallback)
-{
-    // org.tinyb.BluetoothDeviceDiscoveryListener
-    try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
-        DBTManager & mgmt = adapter->getManager();
-
-        bool(*nativeCallback)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>) =
-                (bool(*)(std::shared_ptr<JNIGlobalRef>, std::shared_ptr<MgmtEvent>)) ( void *) jNativeCallback;
-        return mgmt.removeMgmtEventCallback(MgmtEvent::Opcode::NEW_SETTINGS, bindCaptureFunc(std::shared_ptr<JNIGlobalRef>(nullptr), nativeCallback, false));
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return 0;
-}
-
