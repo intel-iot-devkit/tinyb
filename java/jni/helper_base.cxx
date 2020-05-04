@@ -38,14 +38,14 @@
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
 
-jfieldID getInstanceField(JNIEnv *env, jobject obj)
-{
+jfieldID getField(JNIEnv *env, jobject obj, const char* field_name, const char* field_signature) {
     jclass clazz = env->GetObjectClass(obj);
     java_exception_check_and_throw(env, E_FILE_LINE);
     // J == long
-    return env->GetFieldID(clazz, "nativeInstance", "J");
+    jfieldID res = env->GetFieldID(clazz, field_name, field_signature);
+    java_exception_check_and_throw(env, E_FILE_LINE);
+    return res;
 }
-
 jclass search_class(JNIEnv *env, const char *clazz_name)
 {
     jclass clazz = env->FindClass(clazz_name);
