@@ -135,7 +135,6 @@ namespace direct_bt {
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);

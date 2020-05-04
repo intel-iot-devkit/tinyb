@@ -305,9 +305,9 @@ namespace direct_bt {
     inline bool operator !=(const EIRDataType lhs, const EIRDataType rhs) {
         return !( lhs == rhs );
     }
-
     inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) { return EIRDataType::NONE != ( mask & bit ); }
     inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) { mask = mask | bit; }
+    std::string eirDataBitToString(const EIRDataType bit);
     std::string eirDataMaskToString(const EIRDataType mask);
 
     /**

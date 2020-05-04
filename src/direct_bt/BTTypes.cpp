@@ -44,6 +44,7 @@ using namespace direct_bt;
         X(BDADDR_UNDEFINED)
 
 #define CASE_TO_STRING(V) case V: return #V;
+#define CASE2_TO_STRING(U,V) case U::V: return #V;
 
 std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
     switch(type) {
@@ -124,67 +125,43 @@ std::string ManufactureSpecificData::toString() const {
 // *************************************************
 // *************************************************
 
+#define EIRDATATYPE_ENUM(X) \
+    X(EIRDataType,NONE) \
+    X(EIRDataType,EVT_TYPE) \
+    X(EIRDataType,BDADDR_TYPE) \
+    X(EIRDataType,BDADDR) \
+    X(EIRDataType,FLAGS) \
+    X(EIRDataType,NAME) \
+    X(EIRDataType,NAME_SHORT) \
+    X(EIRDataType,RSSI) \
+    X(EIRDataType,TX_POWER) \
+    X(EIRDataType,MANUF_DATA) \
+    X(EIRDataType,DEVICE_CLASS) \
+    X(EIRDataType,APPEARANCE) \
+    X(EIRDataType,HASH) \
+    X(EIRDataType,RANDOMIZER) \
+    X(EIRDataType,DEVICE_ID) \
+    X(EIRDataType,SERVICE_UUID)
+
+std::string direct_bt::eirDataBitToString(const EIRDataType bit) {
+    switch(bit) {
+    EIRDATATYPE_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown EIRDataType Bit";
+}
+
 std::string direct_bt::eirDataMaskToString(const EIRDataType mask) {
+    const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
-    if( isEIRDataTypeSet(mask, EIRDataType::EVT_TYPE) ) {
-        out.append("EVT_TYPE"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::BDADDR_TYPE) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("BDADDR_TYPE"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::BDADDR) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("BDADDR"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::FLAGS) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("FLAGS"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::NAME) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("NAME"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::NAME_SHORT) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("NAME_SHORT"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::RSSI) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("RSSI"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::TX_POWER) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("TX_POWER"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::MANUF_DATA) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("MANUF_DATA"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_CLASS) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("DEVICE_CLASS"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::APPEARANCE) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("APPEARANCE"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::HASH) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("HASH"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::RANDOMIZER) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("RANDOMIZER"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::DEVICE_ID) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("DEVICE_ID"); has_pre = true;
-    }
-    if( isEIRDataTypeSet(mask, EIRDataType::SERVICE_UUID) ) {
-        if( has_pre ) { out.append(", "); }
-        out.append("SERVICE_UUID"); has_pre = true;
+    for(int i=0; i<32; i++) {
+        const EIRDataType settingBit = static_cast<EIRDataType>( one << i );
+        if( EIRDataType::NONE != ( mask & settingBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(eirDataBitToString(settingBit));
+            has_pre = true;
+        }
     }
     out.append("]");
     return out;

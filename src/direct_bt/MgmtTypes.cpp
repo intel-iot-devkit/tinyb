@@ -55,43 +55,45 @@ using namespace direct_bt;
 // *************************************************
 
 #define CASE_TO_STRING(V) case V: return #V;
+#define CASE2_TO_STRING(U,V) case U::V: return #V;
 
 #define SETTING_ENUM(X) \
-    X(MGMT_SETTING_POWERED) \
-    X(MGMT_SETTING_CONNECTABLE) \
-    X(MGMT_SETTING_FAST_CONNECTABLE) \
-    X(MGMT_SETTING_DISCOVERABLE) \
-    X(MGMT_SETTING_BONDABLE) \
-    X(MGMT_SETTING_LINK_SECURITY) \
-    X(MGMT_SETTING_SSP) \
-    X(MGMT_SETTING_BREDR) \
-    X(MGMT_SETTING_HS) \
-    X(MGMT_SETTING_LE) \
-    X(MGMT_SETTING_ADVERTISING) \
-    X(MGMT_SETTING_SECURE_CONN) \
-    X(MGMT_SETTING_DEBUG_KEYS) \
-    X(MGMT_SETTING_PRIVACY) \
-    X(MGMT_SETTING_CONFIGURATION) \
-    X(MGMT_SETTING_STATIC_ADDRESS) \
-    X(MGMT_SETTING_PHY_CONFIGURATION) \
+    X(AdapterSetting,NONE) \
+    X(AdapterSetting,POWERED) \
+    X(AdapterSetting,CONNECTABLE) \
+    X(AdapterSetting,FAST_CONNECTABLE) \
+    X(AdapterSetting,DISCOVERABLE) \
+    X(AdapterSetting,BONDABLE) \
+    X(AdapterSetting,LINK_SECURITY) \
+    X(AdapterSetting,SSP) \
+    X(AdapterSetting,BREDR) \
+    X(AdapterSetting,HS) \
+    X(AdapterSetting,LE) \
+    X(AdapterSetting,ADVERTISING) \
+    X(AdapterSetting,SECURE_CONN) \
+    X(AdapterSetting,DEBUG_KEYS) \
+    X(AdapterSetting,PRIVACY) \
+    X(AdapterSetting,CONFIGURATION) \
+    X(AdapterSetting,STATIC_ADDRESS) \
+    X(AdapterSetting,PHY_CONFIGURATION)
 
-std::string direct_bt::getMgmtSettingBitString(const MgmtSetting settingBit) {
+std::string direct_bt::adapterSettingBitToString(const AdapterSetting settingBit) {
     switch(settingBit) {
-        SETTING_ENUM(CASE_TO_STRING)
+        SETTING_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown Setting Bit";
 }
 
-std::string direct_bt::getMgmtSettingsString(const MgmtSetting settingMask) {
+std::string direct_bt::adapterSettingsToString(const AdapterSetting settingMask) {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
     for(int i=0; i<32; i++) {
-        const MgmtSetting settingBit = static_cast<MgmtSetting>( one << i );
-        if( 0 != ( settingMask & settingBit ) ) {
+        const AdapterSetting settingBit = static_cast<AdapterSetting>( one << i );
+        if( AdapterSetting::NONE != ( settingMask & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append(getMgmtSettingBitString(settingBit));
+            out.append(adapterSettingBitToString(settingBit));
             has_pre = true;
         }
     }

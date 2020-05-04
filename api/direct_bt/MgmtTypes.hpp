@@ -68,28 +68,45 @@ namespace direct_bt {
         MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
-    enum MgmtSetting : uint32_t {
-        MGMT_SETTING_POWERED            = 0x00000001,
-        MGMT_SETTING_CONNECTABLE        = 0x00000002,
-        MGMT_SETTING_FAST_CONNECTABLE   = 0x00000004,
-        MGMT_SETTING_DISCOVERABLE       = 0x00000008,
-        MGMT_SETTING_BONDABLE           = 0x00000010,
-        MGMT_SETTING_LINK_SECURITY      = 0x00000020,
-        MGMT_SETTING_SSP                = 0x00000040,
-        MGMT_SETTING_BREDR              = 0x00000080,
-        MGMT_SETTING_HS                 = 0x00000100,
-        MGMT_SETTING_LE                 = 0x00000200,
-        MGMT_SETTING_ADVERTISING        = 0x00000400,
-        MGMT_SETTING_SECURE_CONN        = 0x00000800,
-        MGMT_SETTING_DEBUG_KEYS         = 0x00001000,
-        MGMT_SETTING_PRIVACY            = 0x00002000,
-        MGMT_SETTING_CONFIGURATION      = 0x00004000,
-        MGMT_SETTING_STATIC_ADDRESS     = 0x00008000,
-        MGMT_SETTING_PHY_CONFIGURATION  = 0x00010000
+    enum class AdapterSetting : uint32_t {
+        NONE               =          0,
+        POWERED            = 0x00000001,
+        CONNECTABLE        = 0x00000002,
+        FAST_CONNECTABLE   = 0x00000004,
+        DISCOVERABLE       = 0x00000008,
+        BONDABLE           = 0x00000010,
+        LINK_SECURITY      = 0x00000020,
+        SSP                = 0x00000040,
+        BREDR              = 0x00000080,
+        HS                 = 0x00000100,
+        LE                 = 0x00000200,
+        ADVERTISING        = 0x00000400,
+        SECURE_CONN        = 0x00000800,
+        DEBUG_KEYS         = 0x00001000,
+        PRIVACY            = 0x00002000,
+        CONFIGURATION      = 0x00004000,
+        STATIC_ADDRESS     = 0x00008000,
+        PHY_CONFIGURATION  = 0x00010000
     };
-
-    std::string getMgmtSettingBitString(const MgmtSetting settingBit);
-    std::string getMgmtSettingsString(const MgmtSetting settingBitMask);
+    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
+    }
+    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
+    }
+    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
+    }
+    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
+    }
+    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return !( lhs == rhs );
+    }
+    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) { return AdapterSetting::NONE != ( mask & bit ); }
+    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) { mask = mask | bit; }
+    std::string adapterSettingBitToString(const AdapterSetting settingBit);
+    std::string adapterSettingsToString(const AdapterSetting settingBitMask);
 
     enum MgmtConst : int {
         MGMT_HEADER_SIZE       = 6
@@ -552,7 +569,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", settings="+getMgmtSettingsString(getSettings());
+                return MgmtEvent::baseString()+", settings="+adapterSettingsToString(getSettings());
             }
 
         public:
@@ -561,7 +578,7 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), NEW_SETTINGS);
             }
-            MgmtSetting getSettings() const { return static_cast<MgmtSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
+            AdapterSetting getSettings() const { return static_cast<AdapterSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+4; }
             int getDataSize() const override { return getParamSize()-4; }
@@ -898,7 +915,7 @@ namespace direct_bt {
             std::string valueString() const override {
                 return getAddress().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
-                        ", settings[sup "+getMgmtSettingsString(getSupportedSetting())+", cur "+getMgmtSettingsString(getCurrentSetting())+
+                        ", settings[sup "+adapterSettingsToString(getSupportedSetting())+", cur "+adapterSettingsToString(getCurrentSetting())+
                         "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 
@@ -914,8 +931,8 @@ namespace direct_bt {
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(getDataOffset()+0)); }
             uint8_t getVersion() const { return pdu.get_uint8(getDataOffset()+6); }
             uint16_t getManufacturer() const { return pdu.get_uint16(getDataOffset()+7); }
-            MgmtSetting getSupportedSetting() const { return static_cast<MgmtSetting>( pdu.get_uint32(getDataOffset()+9) ); }
-            MgmtSetting getCurrentSetting() const { return static_cast<MgmtSetting>( pdu.get_uint32(getDataOffset()+13) ); }
+            AdapterSetting getSupportedSetting() const { return static_cast<AdapterSetting>( pdu.get_uint32(getDataOffset()+9) ); }
+            AdapterSetting getCurrentSetting() const { return static_cast<AdapterSetting>( pdu.get_uint32(getDataOffset()+13) ); }
             uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
                                                   | ( pdu.get_uint8(getDataOffset()+18) << 8 )
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
@@ -924,46 +941,38 @@ namespace direct_bt {
     };
 
     class DBTManager; // forward
+    class DBTAdapter; // forward
 
     /** Immutable persistent adapter info */
     class AdapterInfo
     {
         friend class DBTManager; // top manager
+        friend class DBTAdapter; // direct manager
 
         public:
             const int dev_id;
             const EUI48 address;
             const uint8_t version;
             const uint16_t manufacturer;
-            const MgmtSetting supported_setting;
+            const AdapterSetting supported_setting;
 
         private:
-            MgmtSetting current_setting;
+            AdapterSetting current_setting;
             uint32_t dev_class;
             std::string name;
             std::string short_name;
 
             /**
-             * Sets the current_setting.
-             * <p>
-             * Returns 1 if new_setting is supported and different from current_setting, current_setting updated.
-             * </p>
-             * <p>
-             * Returns 0 if new_setting is supported but _not_ different from current_setting, current_setting _not_ updated.
-             * </p>
-             * <p>
-             * Returns -1 if new_setting is _not_ supported, current_setting _not_ updated.
-             * </p>
+             * Sets the current_setting and returns the changed MgmtSetting bit-mask.
              */
-            int setCurrentSetting(const MgmtSetting new_setting) {
-                if( new_setting != ( new_setting & supported_setting ) ) {
-                    return -1;
-                }
-                if( new_setting != current_setting ) {
+            AdapterSetting setCurrentSetting(AdapterSetting new_setting) {
+                new_setting = new_setting & supported_setting;
+                AdapterSetting changes = new_setting ^ current_setting;
+
+                if( AdapterSetting::NONE != changes ) {
                     current_setting = new_setting;
-                    return 1;
                 }
-                return 0;
+                return changes;
             }
             void setDevClass(const uint32_t v) { dev_class = v; }
             void setName(const std::string v) { name = v; }
@@ -977,10 +986,10 @@ namespace direct_bt {
               name(s.getName()), short_name(s.getShortName())
             { }
 
-            bool isSettingSupported(const MgmtSetting setting) const {
+            bool isSettingSupported(const AdapterSetting setting) const {
                 return setting == ( setting & supported_setting );
             }
-            MgmtSetting getCurrentSetting() const { return current_setting; }
+            AdapterSetting getCurrentSetting() const { return current_setting; }
             uint32_t getDevClass() const { return dev_class; }
             const std::string getName() const { return name; }
             const std::string getShortName() const { return short_name; }
@@ -988,7 +997,7 @@ namespace direct_bt {
             std::string toString() const {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+getMgmtSettingsString(supported_setting)+", cur "+getMgmtSettingsString(current_setting)+
+                        ", settings[sup "+adapterSettingsToString(supported_setting)+", cur "+adapterSettingsToString(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
             }
     };

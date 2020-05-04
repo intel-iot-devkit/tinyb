@@ -166,13 +166,15 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class DBTDeviceStatusListener {
+    class DBTAdapterStatusListener {
         public:
+            virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+                                                const AdapterSetting changedmask, const uint64_t timestamp) = 0;
             virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
             virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual ~DBTDeviceStatusListener() {}
+            virtual ~DBTAdapterStatusListener() {}
     };
 
     class DBTDevice : public DBTObject
@@ -338,7 +340,7 @@ namespace direct_bt {
 
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
-            std::shared_ptr<DBTDeviceStatusListener> deviceStatusListener = nullptr;
+            std::shared_ptr<DBTAdapterStatusListener> statusListener = nullptr;
             std::recursive_mutex mtx_discoveredDevices;
 
             bool validateDevInfo();
@@ -351,6 +353,7 @@ namespace direct_bt {
             void addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
@@ -412,9 +415,9 @@ namespace direct_bt {
             // device discovery aka device scanning
 
             /**
-             * Replaces the DBTDeviceStatusListener with the given instance, returning the replaced one.
+             * Replaces the DBTAdapterStatusListener with the given instance, returning the replaced one.
              */
-            std::shared_ptr<DBTDeviceStatusListener> setDeviceStatusListener(std::shared_ptr<DBTDeviceStatusListener> l);
+            std::shared_ptr<DBTAdapterStatusListener> setStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
 
             /**
              * Starts a new discovery session.

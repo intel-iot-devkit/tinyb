@@ -27,9 +27,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 import java.util.List;
 
+import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothDeviceStatusListener;
+import org.tinyb.BluetoothAdapterStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -38,7 +39,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
-import org.tinyb.EIRDataType;
+import org.tinyb.EIRDataTypeSet;
 
 public class ScannerTinyB01 {
     static {
@@ -108,7 +109,15 @@ public class ScannerTinyB01 {
 
         final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
 
-        final BluetoothDeviceStatusListener deviceDiscListener = new BluetoothDeviceStatusListener() {
+        final BluetoothAdapterStatusListener deviceDiscListener = new BluetoothAdapterStatusListener() {
+            @Override
+            public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
+                                               final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
+                System.err.println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+                System.err.println("Status Adapter:");
+                System.err.println(adapter.toString());
+            }
+
             @Override
             public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
@@ -125,7 +134,7 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask) {
+            public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
                 System.err.println("Status Adapter:");
@@ -148,17 +157,29 @@ public class ScannerTinyB01 {
                 System.err.println(adapter.toString());
             }
         };
-        adapter.setDeviceStatusListener(deviceDiscListener);
+        adapter.setStatusListener(deviceDiscListener);
+        adapter.enableDiscoverableNotifications(new BluetoothNotification<Boolean>() {
+            @Override
+            public void run(final Boolean value) {
+                System.err.println("****** Discoverable: "+value);
+            }
+        });
         adapter.enableDiscoveringNotifications(new BluetoothNotification<Boolean>() {
             @Override
             public void run(final Boolean value) {
-                System.err.println("****** DiscoveringNotification: "+value);
+                System.err.println("****** Discovering: "+value);
+            }
+        });
+        adapter.enablePairableNotifications(new BluetoothNotification<Boolean>() {
+            @Override
+            public void run(final Boolean value) {
+                System.err.println("****** Pairable: "+value);
             }
         });
         adapter.enablePoweredNotifications(new BluetoothNotification<Boolean>() {
             @Override
             public void run(final Boolean value) {
-                System.err.println("****** PoweredNotification: "+value);
+                System.err.println("****** Powered: "+value);
             }
         });
 
@@ -260,7 +281,10 @@ public class ScannerTinyB01 {
         adapter.stopDiscovery();
 
         System.err.println("ScannerTinyB01 02 clear listener etc .. ");
+        adapter.setStatusListener(null);
+        adapter.disableDiscoverableNotifications();
         adapter.disableDiscoveringNotifications();
+        adapter.disablePairableNotifications();
         adapter.disablePoweredNotifications();
 
         System.err.println("ScannerTinyB01 03 close: "+adapter);

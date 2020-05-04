@@ -40,7 +40,12 @@ std::shared_ptr<direct_bt::DBTDevice> deviceFound = nullptr;
 std::mutex mtxDeviceFound;
 std::condition_variable cvDeviceFound;
 
-class DeviceStatusListener : public direct_bt::DBTDeviceStatusListener {
+class AdapterStatusListener : public direct_bt::DBTAdapterStatusListener {
+    void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+                                const AdapterSetting changedmask, const uint64_t timestamp) override {
+
+    }
+
     void deviceFound(direct_bt::DBTAdapter const &a, std::shared_ptr<direct_bt::DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString().c_str());
         fprintf(stderr, "Status Adapter:\n");
@@ -164,7 +169,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
         adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
 
-    adapter.setDeviceStatusListener(std::shared_ptr<direct_bt::DBTDeviceStatusListener>(new DeviceStatusListener()));
+    adapter.setStatusListener(std::shared_ptr<direct_bt::DBTAdapterStatusListener>(new AdapterStatusListener()));
 
     const int64_t t0 = direct_bt::getCurrentMilliseconds();
 

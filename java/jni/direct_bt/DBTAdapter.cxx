@@ -36,55 +36,80 @@
 
 using namespace direct_bt;
 
-static const std::string _eirDataTypeClassName("org/tinyb/EIRDataType");
-static const std::string _eirDataTypeClazzCreateArgs("(I)Lorg/tinyb/EIRDataType;");
+static const std::string _adapterSettingsClassName("org/tinyb/AdapterSettings");
+static const std::string _adapterSettingsClazzCtorArgs("(I)V");
+static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
+static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;Ljava/lang/String;J)V");
+static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
 static const std::string _deviceStatusMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;J)V");
-static const std::string _deviceStatusUpdateMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;JLorg/tinyb/EIRDataType;)V");
+static const std::string _deviceStatusUpdateMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;JLorg/tinyb/EIRDataTypeSet;)V");
 
-class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
+class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
   public:
     /**
         package org.tinyb;
 
-        public interface BluetoothDeviceStatusListener {
+        public interface BluetoothAdapterStatusListener {
+            public void adapterSettingsChanged(final BluetoothAdapter adapter,
+                                               final AdapterSetting oldmask, final AdapterSetting newmask,
+                                               final AdapterSetting changedmask, final long timestamp);
             public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
             public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask);
             public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
             public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
         };
-     */
+    */
     std::shared_ptr<JavaAnonObj> adapterObjRef;
-    std::unique_ptr<JNIGlobalRef> eirDataTypeClazzRef;
-    jmethodID eirDataTypeClazzCreate;
+    std::unique_ptr<JNIGlobalRef> adapterSettingsClazzRef;
+    jmethodID adapterSettingsClazzCtor;
+    std::unique_ptr<JNIGlobalRef> eirDataTypeSetClazzRef;
+    jmethodID eirDataTypeSetClazzCtor;
     std::unique_ptr<JNIGlobalRef> deviceClazzRef;
     jmethodID deviceClazzCtor;
     jfieldID deviceClazzTSUpdateField;
     std::unique_ptr<JNIGlobalRef> listenerObjRef;
     std::unique_ptr<JNIGlobalRef> listenerClazzRef;
+    jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDeviceFound = nullptr;
     jmethodID  mDeviceUpdated = nullptr;
     jmethodID  mDeviceConnected = nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
 
-    DeviceStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
+    AdapterStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
         adapterObjRef = adapter->getJavaObject();
         JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
 
-        // eirDataTypeClazzRef, eirDataTypeClazzCreate
+        // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
-            jclass eirDataTypeClazz = search_class(env, _eirDataTypeClassName.c_str());
+            jclass adapterSettingsClazz = search_class(env, _adapterSettingsClassName.c_str());
             java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == eirDataTypeClazz ) {
-                throw InternalError("DBTDevice::java_class not found: "+_eirDataTypeClassName, E_FILE_LINE);
+            if( nullptr == adapterSettingsClazz ) {
+                throw InternalError("DBTDevice::java_class not found: "+_adapterSettingsClassName, E_FILE_LINE);
             }
-            eirDataTypeClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(eirDataTypeClazz));
-            env->DeleteLocalRef(eirDataTypeClazz);
+            adapterSettingsClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(adapterSettingsClazz));
+            env->DeleteLocalRef(adapterSettingsClazz);
         }
-        eirDataTypeClazzCreate = search_method(env, eirDataTypeClazzRef->getClass(), "create", _eirDataTypeClazzCreateArgs.c_str(), true);
+        adapterSettingsClazzCtor = search_method(env, adapterSettingsClazzRef->getClass(), "<init>", _adapterSettingsClazzCtorArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == eirDataTypeClazzCreate ) {
-            throw InternalError("EIRDataType ctor not found: "+_eirDataTypeClassName+".create"+_eirDataTypeClazzCreateArgs, E_FILE_LINE);
+        if( nullptr == adapterSettingsClazzCtor ) {
+            throw InternalError("AdapterSettings ctor not found: "+_adapterSettingsClassName+".<init>"+_adapterSettingsClazzCtorArgs, E_FILE_LINE);
+        }
+
+        // eirDataTypeSetClazzRef, eirDataTypeSetClazzCtor
+        {
+            jclass eirDataTypeSetClazz = search_class(env, _eirDataTypeSetClassName.c_str());
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            if( nullptr == eirDataTypeSetClazz ) {
+                throw InternalError("DBTDevice::java_class not found: "+_eirDataTypeSetClassName, E_FILE_LINE);
+            }
+            eirDataTypeSetClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(eirDataTypeSetClazz));
+            env->DeleteLocalRef(eirDataTypeSetClazz);
+        }
+        eirDataTypeSetClazzCtor = search_method(env, eirDataTypeSetClazzRef->getClass(), "<init>", _eirDataTypeSetClazzCtorArgs.c_str(), false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == eirDataTypeSetClazzCtor ) {
+            throw InternalError("EIRDataType ctor not found: "+_eirDataTypeSetClassName+".<init>"+_eirDataTypeSetClazzCtorArgs, E_FILE_LINE);
         }
 
         // deviceClazzRef, deviceClazzCtor
@@ -113,30 +138,70 @@ class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
             jclass listenerClazz = search_class(env, listenerObjRef->getObject());
             java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == listenerClazz ) {
-                throw InternalError("BluetoothDeviceDiscoveryListener not found", E_FILE_LINE);
+                throw InternalError("BluetoothAdapterStatusListener not found", E_FILE_LINE);
             }
             listenerClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listenerClazz));
             env->DeleteLocalRef(listenerClazz);
         }
+
+
+        mAdapterSettingsChanged = search_method(env, listenerClazzRef->getClass(), "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mAdapterSettingsChanged ) {
+            throw InternalError("BluetoothAdapterStatusListener has no adapterSettingsChanged"+_adapterSettingsChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        }
         mDeviceFound = search_method(env, listenerClazzRef->getClass(), "deviceFound", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceFound ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("BluetoothAdapterStatusListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceUpdated = search_method(env, listenerClazzRef->getClass(), "deviceUpdated", _deviceStatusUpdateMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceUpdated ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("BluetoothAdapterStatusListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceConnected = search_method(env, listenerClazzRef->getClass(), "deviceConnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceConnected ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("BluetoothAdapterStatusListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceDisconnected = search_method(env, listenerClazzRef->getClass(), "deviceDisconnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceDisconnected ) {
-            throw InternalError("BluetoothDeviceDiscoveryListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("BluetoothAdapterStatusListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+        }
+    }
+
+    void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
+                                const AdapterSetting changedmask, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+        try {
+            #ifdef VERBOSE_ON
+                fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
+                        direct_bt::adapterSettingsToString(oldmask).c_str(),
+                        direct_bt::adapterSettingsToString(newmask).c_str(),
+                        direct_bt::adapterSettingsToString(changedmask).c_str());
+                fprintf(stderr, "Status DBTAdapter:\n");
+                fprintf(stderr, "%s\n", a.toString().c_str());
+            #endif
+            (void)a;
+            jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            JNIGlobalRef::check(adapterSettingOld, E_FILE_LINE);
+
+            jobject adapterSettingNew = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)newmask);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            JNIGlobalRef::check(adapterSettingNew, E_FILE_LINE);
+
+            jobject adapterSettingChanged = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)changedmask);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            JNIGlobalRef::check(adapterSettingChanged, E_FILE_LINE);
+
+            env->CallVoidMethod(listenerObjRef->getObject(), mAdapterSettingsChanged,
+                    JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
+            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+        } catch(...) {
+            rethrow_and_raise_java_exception(env);
         }
     }
 
@@ -181,10 +246,13 @@ class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            jobject eirDataType = env->CallStaticObjectMethod(eirDataTypeClazzRef->getClass(), eirDataTypeClazzCreate, (jint)updateMask);
+
+            jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef->getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            JNIGlobalRef::check(eirDataTypeSet, E_FILE_LINE);
+
             env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated,
-                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataType);
+                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataTypeSet);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
         } catch(...) {
             rethrow_and_raise_java_exception(env);
@@ -232,16 +300,16 @@ class DeviceStatusCallbackListener : public DBTDeviceStatusListener {
     }
 };
 
-void Java_direct_1bt_tinyb_DBTAdapter_initImpl(JNIEnv *env, jobject obj, jobject deviceDiscoveryListener)
+void Java_direct_1bt_tinyb_DBTAdapter_initImpl(JNIEnv *env, jobject obj, jobject statusListener)
 {
-    // org.tinyb.BluetoothDeviceDiscoveryListener
+    // org.tinyb.BluetoothAdapterStatusListener
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         // set our callback discovery listener.
-        DeviceStatusCallbackListener *l = new DeviceStatusCallbackListener(env, adapter, deviceDiscoveryListener);
-        adapter->setDeviceStatusListener(std::shared_ptr<DBTDeviceStatusListener>(l));
+        AdapterStatusCallbackListener *l = new AdapterStatusCallbackListener(env, adapter, statusListener);
+        adapter->setStatusListener(std::shared_ptr<DBTAdapterStatusListener>(l));
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -267,7 +335,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        adapter->setDeviceStatusListener(nullptr);
+        adapter->setStatusListener(nullptr);
         delete adapter;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
