@@ -64,7 +64,7 @@ class Cppunit {
         serr << "  Checking " << stra << " == " << strb << std::endl;
     }
 
-    void print(cs m, cs file, int line, cs func) {
+    static void print(cs m, cs file, int line, cs func) {
         std::cerr << std::endl << m << "; file \"" << file << "\", line " << line << " in " << func << std::endl;
     }
 
