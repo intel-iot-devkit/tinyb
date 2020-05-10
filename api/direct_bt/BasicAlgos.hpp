@@ -38,8 +38,8 @@ namespace direct_bt {
      * where n is being retrieved once before the loop!
      * </p>
      */
-    template<class InputIt, class UnaryFunction>
-    constexpr UnaryFunction for_each_idx(InputIt &array, UnaryFunction f)
+    template<class InputArray, class UnaryFunction>
+    constexpr UnaryFunction for_each_idx(InputArray &array, UnaryFunction f)
     {
         size_t size = array.size();
         for (size_t i = 0; i < size; i++) {
@@ -60,8 +60,8 @@ namespace direct_bt {
      * by operating within an RAII-style std::lock_guard block.
      * </p>
      */
-    template<class Mutex, class InputIt, class UnaryFunction>
-    constexpr UnaryFunction for_each_idx_mtx(Mutex &mtx, InputIt &array, UnaryFunction f)
+    template<class Mutex, class InputArray, class UnaryFunction>
+    constexpr UnaryFunction for_each_idx_mtx(Mutex &mtx, InputArray &array, UnaryFunction f)
     {
         const std::lock_guard<Mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
 
