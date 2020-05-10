@@ -30,7 +30,7 @@ import java.util.List;
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
-import org.tinyb.BluetoothAdapterStatusListener;
+import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -109,7 +109,7 @@ public class ScannerTinyB01 {
 
         final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
 
-        final BluetoothAdapterStatusListener deviceDiscListener = new BluetoothAdapterStatusListener() {
+        final AdapterStatusListener statusListener = new AdapterStatusListener() {
             @Override
             public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
                                                final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
@@ -157,7 +157,7 @@ public class ScannerTinyB01 {
                 System.err.println(adapter.toString());
             }
         };
-        adapter.setStatusListener(deviceDiscListener);
+        adapter.addStatusListener(statusListener);
         adapter.enableDiscoverableNotifications(new BluetoothNotification<Boolean>() {
             @Override
             public void run(final Boolean value) {
@@ -281,7 +281,7 @@ public class ScannerTinyB01 {
         adapter.stopDiscovery();
 
         System.err.println("ScannerTinyB01 02 clear listener etc .. ");
-        adapter.setStatusListener(null);
+        adapter.removeStatusListener(statusListener);
         adapter.disableDiscoverableNotifications();
         adapter.disableDiscoveringNotifications();
         adapter.disablePairableNotifications();

@@ -28,6 +28,9 @@ package direct_bt.tinyb;
 import java.util.List;
 import java.util.Map;
 
+import org.tinyb.AdapterSettings;
+import org.tinyb.BluetoothAdapter;
+import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattService;
@@ -35,6 +38,7 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
+import org.tinyb.EIRDataTypeSet;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -44,6 +48,58 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final long ts_creation;
     long ts_update;
 
+    private final long connectedNotificationRef = 0;
+    private boolean connected = false;
+    private final Object userCallbackLock = new Object();
+    private BluetoothNotification<Boolean> userConnectedNotificationsCB = null;
+    private BluetoothNotification<Short> userRSSINotificationsCB = null;
+    private BluetoothNotification<Map<Short, byte[]> > userManufDataNotificationsCB = null;
+    private BluetoothNotification<Boolean> userServicesResolvedNotificationsCB = null;
+    private boolean servicesResolved = false;
+    private short appearance = 0;
+
+    final AdapterStatusListener statusListener = new AdapterStatusListener() {
+        @Override
+        public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+            if( device != DBTDevice.this ) {
+                return;
+            }
+            synchronized(userCallbackLock) {
+                if( updateMask.isSet( EIRDataTypeSet.DataType.RSSI ) && null != userRSSINotificationsCB ) {
+                    userRSSINotificationsCB.run(getRSSI());
+                }
+                if( updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA ) && null != userManufDataNotificationsCB ) {
+                    userManufDataNotificationsCB.run(getManufacturerData());
+                }
+            }
+        }
+        @Override
+        public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            if( device != DBTDevice.this ) {
+                return;
+            }
+            connected = true;
+            synchronized(userCallbackLock) {
+                if( null != userConnectedNotificationsCB ) {
+                    userConnectedNotificationsCB.run(true);
+                }
+            }
+        }
+        @Override
+        public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            if( device != DBTDevice.this ) {
+                return;
+            }
+            connected = false;
+            synchronized(userCallbackLock) {
+                if( null != userConnectedNotificationsCB ) {
+                    userConnectedNotificationsCB.run(false);
+                }
+            }
+        }
+    };
+
+
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr, final String address, final String name, final long ts_creation)
     {
         super(nativeInstance, compHash(address, name));
@@ -52,7 +108,38 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         this.name = name;
         this.ts_creation = ts_creation;
         ts_update = ts_creation;
+        appearance = 0;
         initImpl();
+        // this.adapter.addStatusListener(statusListener);
+        this.addStatusListener(statusListener);
+    }
+
+    /**
+     * Special proxy of {@link DBTAdapter#addStatusListener(AdapterStatusListener)}
+     * to be used from out constructor called via native deviceFound callback!
+     * <p>
+     * FIXME: Without this proxy hook, we end up in a crash within the addStatusListener(..).
+     * FIXME: Analyze reason! Triage!
+     * </p>
+     */
+    private native boolean addStatusListener(final AdapterStatusListener l);
+
+    @Override
+    public synchronized void close() {
+        disconnect();
+
+        disableConnectedNotifications();
+        disableRSSINotifications();
+        disableManufacturerDataNotifications();
+        disableServicesResolvedNotifications();
+
+        disableBlockedNotifications();
+        disablePairedNotifications();
+        disableServiceDataNotifications();
+        disableTrustedNotifications();
+
+        this.adapter.removeStatusListener(statusListener);
+        super.close();
     }
 
     @Override

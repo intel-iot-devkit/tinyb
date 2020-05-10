@@ -175,6 +175,18 @@ namespace direct_bt {
             virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
             virtual ~DBTAdapterStatusListener() {}
+
+            /**
+             * Default comparison operator, merely testing for same memory reference.
+             * <p>
+             * Specializations may override.
+             * </p>
+             */
+            virtual bool operator==(const DBTAdapterStatusListener& rhs) const
+            { return this == &rhs; }
+
+            bool operator!=(const DBTAdapterStatusListener& rhs) const
+            { return !(*this == rhs); }
     };
 
     class DBTDevice : public DBTObject
@@ -415,9 +427,31 @@ namespace direct_bt {
             // device discovery aka device scanning
 
             /**
-             * Replaces the DBTAdapterStatusListener with the given instance, returning the replaced one.
+             * Add the given listener to the list if not already present.
+             * <p>
+             * Returns true if the given listener is not element of the list and has been newly added,
+             * otherwise false.
+             * </p>
              */
-            std::shared_ptr<DBTAdapterStatusListener> setStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
+            bool addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool removeStatusListener(const DBTAdapterStatusListener * l);
 
             /**
              * Starts a new discovery session.

@@ -30,20 +30,27 @@ package org.tinyb;
  * as well as for certain {@link BluetoothAdapter} events.
  * <p>
  * A listener instance may be attached to a {@link BluetoothAdapter} via
- * {@link BluetoothAdapter#setStatusListener(BluetoothDeviceDiscoveryListener)}.
+ * {@link BluetoothAdapter#addStatusListener(BluetoothDeviceDiscoveryListener)}.
  * </p>
  */
-public interface BluetoothAdapterStatusListener {
+public abstract class AdapterStatusListener {
+    long nativeInstance;
+
     /** A {@link BluetoothAdapter} setting has been changed. */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                        final AdapterSettings oldmask, final AdapterSettings newmask,
-                                       final AdapterSettings changedmask, final long timestamp);
+                                       final AdapterSettings changedmask, final long timestamp) {
+    }
     /** A {@link BluetoothDevice} has been newly discovered. */
-    public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+    }
     /** An already discovered {@link BluetoothDevice} has been updated. */
-    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask);
+    public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+    }
     /** {@link BluetoothDevice} has been connected. */
-    public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+    }
     /** {@link BluetoothDevice} has been disconnected. */
-    public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+    public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+    }
 };

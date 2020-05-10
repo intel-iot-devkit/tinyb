@@ -46,11 +46,11 @@ static const std::string _deviceStatusMethodArgs("(Lorg/tinyb/BluetoothAdapter;L
 static const std::string _deviceStatusUpdateMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;JLorg/tinyb/EIRDataTypeSet;)V");
 
 class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
-  public:
+  private:
     /**
         package org.tinyb;
 
-        public interface BluetoothAdapterStatusListener {
+        public interface AdapterStatusListener {
             public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                                final AdapterSetting oldmask, final AdapterSetting newmask,
                                                final AdapterSetting changedmask, final long timestamp);
@@ -76,7 +76,9 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
     jmethodID  mDeviceConnected = nullptr;
     jmethodID  mDeviceDisconnected = nullptr;
 
-    AdapterStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject deviceDiscoveryListener) {
+  public:
+
+    AdapterStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener) {
         adapterObjRef = adapter->getJavaObject();
         JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
 
@@ -133,12 +135,12 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
             throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_update", E_FILE_LINE);
         }
 
-        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(deviceDiscoveryListener));
+        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(statusListener));
         {
             jclass listenerClazz = search_class(env, listenerObjRef->getObject());
             java_exception_check_and_throw(env, E_FILE_LINE);
             if( nullptr == listenerClazz ) {
-                throw InternalError("BluetoothAdapterStatusListener not found", E_FILE_LINE);
+                throw InternalError("AdapterStatusListener not found", E_FILE_LINE);
             }
             listenerClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listenerClazz));
             env->DeleteLocalRef(listenerClazz);
@@ -148,27 +150,27 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
         mAdapterSettingsChanged = search_method(env, listenerClazzRef->getClass(), "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mAdapterSettingsChanged ) {
-            throw InternalError("BluetoothAdapterStatusListener has no adapterSettingsChanged"+_adapterSettingsChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("AdapterStatusListener has no adapterSettingsChanged"+_adapterSettingsChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceFound = search_method(env, listenerClazzRef->getClass(), "deviceFound", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceFound ) {
-            throw InternalError("BluetoothAdapterStatusListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("AdapterStatusListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceUpdated = search_method(env, listenerClazzRef->getClass(), "deviceUpdated", _deviceStatusUpdateMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceUpdated ) {
-            throw InternalError("BluetoothAdapterStatusListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("AdapterStatusListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceConnected = search_method(env, listenerClazzRef->getClass(), "deviceConnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceConnected ) {
-            throw InternalError("BluetoothAdapterStatusListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("AdapterStatusListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
         mDeviceDisconnected = search_method(env, listenerClazzRef->getClass(), "deviceDisconnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceDisconnected ) {
-            throw InternalError("BluetoothAdapterStatusListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
+            throw InternalError("AdapterStatusListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
     }
 
@@ -300,19 +302,62 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
     }
 };
 
-void Java_direct_1bt_tinyb_DBTAdapter_initImpl(JNIEnv *env, jobject obj, jobject statusListener)
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
 {
-    // org.tinyb.BluetoothAdapterStatusListener
     try {
+        if( nullptr == statusListener ) {
+            throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
+        }
+        {
+            AdapterStatusCallbackListener * pre =
+                    getObjectRef<AdapterStatusCallbackListener>(env, statusListener, "nativeInstance");
+            if( nullptr != pre ) {
+                WARN_PRINT("statusListener's nativeInstance not null, already in use");
+                return false;
+            }
+        }
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        std::shared_ptr<DBTAdapterStatusListener> l =
+                std::shared_ptr<DBTAdapterStatusListener>( new AdapterStatusCallbackListener(env, adapter, statusListener) );
+
+        if( adapter->addStatusListener( l ) ) {
+            setInstance(env, statusListener, l.get());
+            return JNI_TRUE;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
+{
+    try {
+        if( nullptr == statusListener ) {
+            throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
+        }
+        const AdapterStatusCallbackListener * pre =
+                getObjectRef<AdapterStatusCallbackListener>(env, statusListener, "nativeInstance");
+        if( nullptr == pre ) {
+            WARN_PRINT("statusListener's nativeInstance is null, not in use");
+            return false;
+        }
+        setObjectRef<AdapterStatusCallbackListener>(env, statusListener, nullptr, "nativeInstance");
+
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         // set our callback discovery listener.
-        AdapterStatusCallbackListener *l = new AdapterStatusCallbackListener(env, adapter, statusListener);
-        adapter->setStatusListener(std::shared_ptr<DBTAdapterStatusListener>(l));
+        if( ! adapter->removeStatusListener( pre ) ) {
+            throw InternalError("Failed to remove statusListener with nativeInstance", E_FILE_LINE);
+        }
+        return true;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    return JNI_FALSE;
 }
 
 jboolean Java_direct_1bt_tinyb_DBTAdapter_openImpl(JNIEnv *env, jobject obj) {
@@ -335,7 +380,6 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        adapter->setStatusListener(nullptr);
         delete adapter;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -408,7 +452,7 @@ static void disableDiscoveringNotifications(JNIEnv *env, jobject obj, DBTManager
 }
 void Java_direct_1bt_tinyb_DBTAdapter_disableDiscoveringNotifications(JNIEnv *env, jobject obj)
 {
-    // org.tinyb.BluetoothAdapterStatusListener
+    // org.tinyb.AdapterStatusListener
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
@@ -421,7 +465,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_disableDiscoveringNotifications(JNIEnv *en
 }
 void Java_direct_1bt_tinyb_DBTAdapter_enableDiscoveringNotifications(JNIEnv *env, jobject obj, jobject javaCallback)
 {
-    // org.tinyb.BluetoothAdapterStatusListener
+    // org.tinyb.AdapterStatusListener
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);

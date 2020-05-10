@@ -205,7 +205,7 @@ DBTAdapter::~DBTAdapter() {
             ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 5 but %d", count);
         }
     }
-    statusListener = nullptr;
+    statusListenerList.clear();
 
     removeDiscoveredDevices();
 
@@ -232,11 +232,52 @@ std::shared_ptr<HCISession> DBTAdapter::open()
     return session;
 }
 
-std::shared_ptr<DBTAdapterStatusListener> DBTAdapter::setStatusListener(std::shared_ptr<DBTAdapterStatusListener> l)
-{
-    std::shared_ptr<DBTAdapterStatusListener> o = statusListener;
-    statusListener = l;
-    return o;
+bool DBTAdapter::addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l) {
+    if( nullptr == l ) {
+        throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
+        if ( **it == *l ) {
+            return false; // already included
+        } else {
+            ++it;
+        }
+    }
+    statusListenerList.push_back(l);
+    return true;
+}
+
+bool DBTAdapter::removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> l) {
+    if( nullptr == l ) {
+        throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
+        if ( **it == *l ) {
+            it = statusListenerList.erase(it);
+            return true;
+        } else {
+            ++it;
+        }
+    }
+    return false;
+}
+
+bool DBTAdapter::removeStatusListener(const DBTAdapterStatusListener * l) {
+    if( nullptr == l ) {
+        throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    for(auto it = statusListenerList.begin(); it != statusListenerList.end(); ) {
+        if ( **it == *l ) {
+            it = statusListenerList.erase(it);
+            return true;
+        } else {
+            ++it;
+        }
+    }
+    return false;
 }
 
 bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
@@ -348,10 +389,20 @@ bool DBTAdapter::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
             adapterSettingsToString(old_setting).c_str(),
             adapterSettingsToString(adapterInfo->getCurrentSetting()).c_str(),
             adapterSettingsToString(changes).c_str() );
-    if( nullptr != statusListener ) {
-        statusListener->adapterSettingsChanged(*this, old_setting, adapterInfo->getCurrentSetting(), changes, event.getTimestamp());
+
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+        l->adapterSettingsChanged(*this, old_setting, adapterInfo->getCurrentSetting(), changes, event.getTimestamp());
+    });
+
+    return true;
     }
     return true;
+}
+
+void DBTAdapter::sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) {
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+        l->deviceUpdated(*this, device, timestamp, updateMask);
+    });
 }
 
 bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
@@ -380,12 +431,12 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         if( new_connect ) {
             session->connected(device); // track it
         }
-        if( nullptr != statusListener ) {
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
             if( EIRDataType::NONE != updateMask ) {
-                statusListener->deviceUpdated(*this, device, ad_report.getTimestamp(), updateMask);
+                l->deviceUpdated(*this, device, ad_report.getTimestamp(), updateMask);
             }
-            statusListener->deviceConnected(*this, device, event.getTimestamp());
-        }
+            l->deviceConnected(*this, device, event.getTimestamp());
+        });
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s,\n    %s\n    -> Device not tracked nor discovered",
                 dev_id, event.toString().c_str(), ad_report.toString().c_str());
@@ -401,9 +452,10 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     if( nullptr != device ) {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
-        if( nullptr != statusListener ) {
-            statusListener->deviceDisconnected(*this, device, event.getTimestamp());
-        }
+
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+            l->deviceDisconnected(*this, device, event.getTimestamp());
+        });
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
             dev_id, event.toString().c_str());
@@ -429,14 +481,16 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
         // new device
         dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
         addDiscoveredDevice(dev);
-        if( nullptr != statusListener ) {
-            statusListener->deviceFound(*this, dev, ad_report.getTimestamp());
-        }
+
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+            l->deviceFound(*this, dev, ad_report.getTimestamp());
+        });
+
     } else {
         // existing device
         EIRDataType updateMask = dev->update(ad_report);
-        if( EIRDataType::NONE != updateMask && nullptr != statusListener ) {
-            statusListener->deviceUpdated(*this, dev, ad_report.getTimestamp(), updateMask);
+        if( EIRDataType::NONE != updateMask ) {
+            sendDeviceUpdated(dev, ad_report.getTimestamp(), updateMask);
         }
     }
     return true;

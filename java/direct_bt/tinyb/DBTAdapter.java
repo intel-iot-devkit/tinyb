@@ -40,7 +40,7 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
-import org.tinyb.BluetoothAdapterStatusListener;
+import org.tinyb.AdapterStatusListener;
 import org.tinyb.TransportType;
 
 public class DBTAdapter extends DBTObject implements BluetoothAdapter
@@ -54,7 +54,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final Object stateLock = new Object();
     private final Object discoveredDevicesLock = new Object();
 
-    private volatile BluetoothAdapterStatusListener userStatusListener = null;
     private volatile boolean isDiscovering = false;
     private final long discoveringNotificationRef = 0;
 
@@ -70,13 +69,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         super(nativeInstance, compHash(address, name));
         this.address = address;
         this.name = name;
-        initImpl(this.adapterStatusListener);
+        addStatusListener(this.statusListener);
     }
 
     @Override
     public synchronized void close() {
         stopDiscovery();
-        setStatusListener(null);
+        removeStatusListener(this.statusListener);
         disableDiscoverableNotifications();
         disableDiscoveringNotifications();
         disablePairableNotifications();
@@ -224,8 +223,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     /* internal */
 
-    private native void initImpl(final BluetoothAdapterStatusListener l);
-
     private synchronized void open() {
         if( !isOpen ) {
             isOpen = openImpl();
@@ -289,9 +286,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public boolean getDiscovering() { return isDiscovering; }
 
     @Override
-    public synchronized void setStatusListener(final BluetoothAdapterStatusListener l) {
-        userStatusListener = l;
-    }
+    public native boolean addStatusListener(final AdapterStatusListener l);
+
+    @Override
+    public native boolean removeStatusListener(final AdapterStatusListener l);
 
     @Override
     public native void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback);
@@ -316,15 +314,11 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     ////////////////////////////////////
 
-    private final BluetoothAdapterStatusListener adapterStatusListener = new BluetoothAdapterStatusListener() {
+    private final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void adapterSettingsChanged(final BluetoothAdapter a, final AdapterSettings oldmask, final AdapterSettings newmask,
                                            final AdapterSettings changedmask, final long timestamp) {
-            final BluetoothAdapterStatusListener l = userStatusListener;
             System.err.println("Adapter.StatusListener.settings: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
-            if( null != l ) {
-                l.adapterSettingsChanged(a, oldmask, newmask, changedmask, timestamp);
-            }
             {
                 final BluetoothNotification<Boolean> _poweredNotification = poweredNotification;
                 if( null != _poweredNotification && changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
@@ -346,13 +340,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
         @Override
         public void deviceFound(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            final BluetoothAdapterStatusListener l = userStatusListener;
             System.err.println("Adapter.StatusListener.found: "+device+" on "+a);
             synchronized(discoveredDevicesLock) {
                 discoveredDevices.add(device);
-            }
-            if( null != l ) {
-                l.deviceFound(a, device, timestamp);
             }
         }
 
@@ -360,24 +350,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
             System.err.println("Adapter.StatusListener.updated: "+updateMask+" of "+device+" on "+a);
             // nop on discoveredDevices
-            userStatusListener.deviceUpdated(a, device, timestamp, updateMask);
         }
 
         @Override
         public void deviceConnected(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            final BluetoothAdapterStatusListener l = userStatusListener;
             System.err.println("Adapter.StatusListener.connected: "+device+" on "+a);
-            if( null != l ) {
-                l.deviceConnected(a, device, timestamp);
-            }
         }
         @Override
         public void deviceDisconnected(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            final BluetoothAdapterStatusListener l = userStatusListener;
             System.err.println("Adapter.StatusListener.disconnected: "+device+" on "+a);
-            if( null != l ) {
-                l.deviceDisconnected(a, device, timestamp);
-            }
         }
     };
 }
