@@ -39,6 +39,7 @@
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
 #include "DBTTypes.hpp"
+#include "BasicAlgos.hpp"
 
 extern "C" {
     #include <inttypes.h>
@@ -59,25 +60,28 @@ HCISession::HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutM
   name(name_counter.fetch_add(1))
 {}
 
-void HCISession::connected(std::shared_ptr<DBTDevice> & device) {
+bool HCISession::connected(std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
         if ( *device == **it ) {
-            return; // already connected
+            return false; // already connected
         }
     }
     connectedDevices.push_back(device);
+    return true;
 }
 
-void HCISession::disconnected(std::shared_ptr<DBTDevice> & device) {
+bool HCISession::disconnected(std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( **it == *device ) {
             it = connectedDevices.erase(it);
+            return true;
         } else {
             ++it;
         }
     }
+    return false;
 }
 
 int HCISession::disconnectAllDevices(const uint8_t reason) {
@@ -161,6 +165,7 @@ bool DBTAdapter::validateDevInfo() {
     adapterInfo = mgmt.getAdapterInfo(dev_id);
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringCB));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsCB));
+    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedCB));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundCB));
@@ -201,8 +206,8 @@ DBTAdapter::~DBTAdapter() {
     keepDiscoveringAlive = false;
     {
         int count;
-        if( 5 != ( count = mgmt.removeMgmtEventCallback(dev_id) ) ) {
-            ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 5 but %d", count);
+        if( 6 != ( count = mgmt.removeMgmtEventCallback(dev_id) ) ) {
+            ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 6 but %d", count);
         }
     }
     statusListenerList.clear();
@@ -215,6 +220,22 @@ DBTAdapter::~DBTAdapter() {
         session = nullptr;
     }
     DBG_PRINT("DBTAdapter::dtor: XXX");
+}
+
+std::shared_ptr<NameAndShortName> DBTAdapter::setLocalName(const std::string &name, const std::string &short_name) {
+    return mgmt.setLocalName(dev_id, name, short_name);
+}
+
+void DBTAdapter::setPowered(bool value) {
+    mgmt.setMode(dev_id, MgmtOpcode::SET_POWERED, value ? 1 : 0);
+}
+
+void DBTAdapter::setDiscoverable(bool value) {
+    mgmt.setMode(dev_id, MgmtOpcode::SET_DISCOVERABLE, value ? 1 : 0);
+}
+
+void DBTAdapter::setBondable(bool value) {
+    mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
 }
 
 std::shared_ptr<HCISession> DBTAdapter::open() 
@@ -331,14 +352,16 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac) 
     }
 }
 
-void DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
+bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ++it) {
         if ( *device == **it ) {
-            // already discovered, just replace
+            // already discovered
+            return false;
         }
     }
     discoveredDevices.push_back(device);
+    return true;
 }
 
 int DBTAdapter::removeDiscoveredDevices() {
@@ -395,7 +418,26 @@ bool DBTAdapter::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
     });
 
     return true;
+}
+
+bool DBTAdapter::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
+    DBG_PRINT("DBTAdapter::EventCB:LocalNameChanged: %s", e->toString().c_str());
+    const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
+    std::string old_name = localName.getName();
+    std::string old_shortName = localName.getShortName();
+    bool nameChanged = old_name != event.getName();
+    bool shortNameChanged = old_shortName != event.getShortName();
+    if( nameChanged ) {
+        localName.setName(event.getName());
     }
+    if( shortNameChanged ) {
+        localName.setShortName(event.getShortName());
+    }
+    DBG_PRINT("DBTAdapter::EventCB:LocalNameChanged: Local name: %d: '%s' -> '%s'; short_name: %d: '%s' -> '%s'",
+            nameChanged, old_name.c_str(), localName.getName().c_str(),
+            shortNameChanged, old_shortName.c_str(), localName.getShortName().c_str());
+    (void)nameChanged;
+    (void)shortNameChanged;
     return true;
 }
 

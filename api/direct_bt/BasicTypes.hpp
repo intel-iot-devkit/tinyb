@@ -85,10 +85,10 @@ namespace direct_bt {
         : RuntimeException("IllegalArgumentException", m, file, line) {}
     };
 
-    class InvalidStateException : public RuntimeException {
+    class IllegalStateException : public RuntimeException {
       public:
-        InvalidStateException(std::string const m, const char* file, int line) noexcept
-        : RuntimeException("InvalidStateException", m, file, line) {}
+        IllegalStateException(std::string const m, const char* file, int line) noexcept
+        : RuntimeException("IllegalStateException", m, file, line) {}
     };
 
     class UnsupportedOperationException : public RuntimeException {

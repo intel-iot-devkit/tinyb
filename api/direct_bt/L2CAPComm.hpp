@@ -37,9 +37,10 @@
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
-#include "DBTTypes.hpp"
 
 namespace direct_bt {
+
+    class DBTDevice; // forward
 
     class L2CAPComm {
         public:
@@ -57,7 +58,7 @@ namespace direct_bt {
             static int l2cap_close_dev(int dd);
 
             State state;
-            std::shared_ptr<DBTDevice> device = nullptr;
+            std::shared_ptr<DBTDevice> device;
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;

@@ -48,6 +48,8 @@ extern "C" {
 
 #include "GATTHandler.hpp"
 
+#include "DBTTypes.hpp"
+
 using namespace direct_bt;
 
 #define STATE_ENUM(X) \

@@ -350,7 +350,6 @@ next1:
 
     if( ok ) {
         addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvLocalNameChangedCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
@@ -484,8 +483,6 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
         } else {
             DBG_PRINT("DBTManager::startDiscovery no-success or invalid res: %s", res1.toString().c_str());
         }
-    } else {
-        DBG_PRINT("DBTManager::startDiscovery res: NULL");
     }
     return type;
 }
@@ -502,7 +499,6 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         return MgmtStatus::SUCCESS == res1.getStatus();
     } else {
-        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
         return false;
     }
 }
@@ -550,10 +546,59 @@ bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BD
             sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
             return true;
         }
-    } else {
-        DBG_PRINT("DBTManager::disconnect res: NULL");
     }
     return false;
+}
+
+std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+    MgmtGetConnectionInfoCmd req(dev_id, address, address_type);
+    DBG_PRINT("DBTManager::getConnectionInfo: %s", req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::getConnectionInfo res: NULL");
+        return nullptr;
+    }
+    DBG_PRINT("DBTManager::getConnectionInfo res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            const int min_size = ConnectionInfo::minimumDataSize();
+            if( res1.getDataSize() <  min_size ) {
+                ERR_PRINT("Data size < %d: %s", min_size, res1.toString().c_str());
+                return nullptr;
+            }
+            std::shared_ptr<ConnectionInfo> result(new ConnectionInfo(res1));
+            return result;
+        }
+    }
+    return nullptr;
+}
+
+std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) {
+    MgmtSetLocalNameCmd req (dev_id, name, short_name);
+    DBG_PRINT("DBTManager::setLocalName: '%s', short '%s': %s", name.c_str(), short_name.c_str(), req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::setLocalName res: NULL");
+        return nullptr;
+    }
+    DBG_PRINT("DBTManager::setLocalName res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            const int min_size = NameAndShortName::minimumDataSize();
+            if( res1.getDataSize() <  min_size ) {
+                ERR_PRINT("Data size < %d: %s", min_size, res1.toString().c_str());
+                return nullptr;
+            }
+            std::shared_ptr<NameAndShortName> result(new NameAndShortName(res1));
+            // explicit LocalNameChanged event
+            MgmtEvtLocalNameChanged * e = new MgmtEvtLocalNameChanged(dev_id, result->getName(), result->getShortName());
+            sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
+            return result;
+        }
+    }
+    return nullptr;
 }
 
 /***
@@ -619,27 +664,6 @@ void DBTManager::clearAllMgmtEventCallbacks() {
 
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
-    return true;
-}
-bool DBTManager::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:LocalNameChanged: %s", e->toString().c_str());
-    const MgmtEvtLocalNameChanged &event = *static_cast<const MgmtEvtLocalNameChanged *>(e.get());
-    std::shared_ptr<AdapterInfo> adapterInfo = getAdapterInfo(event.getDevID());
-    std::string old_name = adapterInfo->getName();
-    std::string old_shortName = adapterInfo->getShortName();
-    bool nameChanged = old_name != event.getName();
-    bool shortNameChanged = old_shortName != event.getShortName();
-    if( nameChanged ) {
-        adapterInfo->setName(event.getName());
-    }
-    if( shortNameChanged ) {
-        adapterInfo->setShortName(event.getShortName());
-    }
-    DBG_PRINT("DBTManager::EventCB:LocalNameChanged: Name: %d: '%s' -> '%s'; ShortName: %d: '%s' -> '%s'",
-            nameChanged, old_name.c_str(), adapterInfo->getName().c_str(),
-            shortNameChanged, old_shortName.c_str(), adapterInfo->getShortName().c_str());
-    (void)nameChanged;
-    (void)shortNameChanged;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {

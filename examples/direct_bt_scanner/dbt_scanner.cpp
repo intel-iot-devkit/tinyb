@@ -239,17 +239,17 @@ int main(int argc, char *argv[])
             //
             const uint64_t t4 = direct_bt::getCurrentMilliseconds();
             // let's check further for full GATT
-            direct_bt::GATTHandler gatt(device, GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
-            if( gatt.connect() ) {
-                fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt.getServerMTU(), gatt.getUsedMTU());
+            std::shared_ptr<direct_bt::GATTHandler> gatt = device->connectGATT(GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+            if( nullptr != gatt ) {
+                fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt->getServerMTU(), gatt->getUsedMTU());
 
-                gatt.setGATTIndicationListener(std::shared_ptr<GATTIndicationListener>(new MyGATTIndicationListener()), true /* sendConfirmation */);
-                gatt.setGATTNotificationListener(std::shared_ptr<GATTNotificationListener>(new MyGATTNotificationListener()));
+                gatt->setGATTIndicationListener(std::shared_ptr<GATTIndicationListener>(new MyGATTIndicationListener()), true /* sendConfirmation */);
+                gatt->setGATTNotificationListener(std::shared_ptr<GATTNotificationListener>(new MyGATTNotificationListener()));
 
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                         
                 std::vector<std::vector<GATTUUIDHandle>> servicesCharacteristicDescriptors;
 #endif                        
-                std::vector<GATTPrimaryServiceRef> & primServices = gatt.discoverCompletePrimaryServices();
+                std::vector<GATTPrimaryServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
                 const uint64_t t5 = direct_bt::getCurrentMilliseconds();
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                        
                 for(size_t i=0; i<primServices.size(); i++) {
@@ -271,30 +271,30 @@ int main(int argc, char *argv[])
                                     "  total %" PRIu64 " ms\n\n",
                                     td45, td47, (t7 - device->getCreationTimestamp()), td07);
                 }
-                if( gatt.isOpen() ) {
-                    std::shared_ptr<GenericAccess> ga = gatt.getGenericAccess(primServices);
+                if( gatt->isOpen() ) {
+                    std::shared_ptr<GenericAccess> ga = gatt->getGenericAccess(primServices);
                     if( nullptr != ga ) {
                         fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                     }
                 }
-                if( gatt.isOpen() ) {
-                    std::shared_ptr<DeviceInformation> di = gatt.getDeviceInformation(primServices);
+                if( gatt->isOpen() ) {
+                    std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
                     if( nullptr != di ) {
                         fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
                     }
                 }
 
-                for(size_t i=0; i<primServices.size() && gatt.isOpen(); i++) {
+                for(size_t i=0; i<primServices.size() && gatt->isOpen(); i++) {
                     GATTPrimaryService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
                     std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;
-                    for(size_t j=0; j<serviceCharacteristics.size() && gatt.isOpen(); j++) {
+                    for(size_t j=0; j<serviceCharacteristics.size() && gatt->isOpen(); j++) {
                         GATTCharacterisicsDecl & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Read) ) {
                             POctets value(GATTHandler::ClientMaxMTU, 0);
-                            if( gatt.readCharacteristicValue(serviceChar, value) ) {
+                            if( gatt->readCharacteristicValue(serviceChar, value) ) {
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
                             }
                         }
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
                             const bool enableNotification = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Notify);
                             const bool enableIndication = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Indicate);
                             if( enableNotification || enableIndication ) {
-                                bool res = gatt.configIndicationNotification(*serviceChar.config, enableNotification, enableIndication);
+                                bool res = gatt->configIndicationNotification(*serviceChar.config, enableNotification, enableIndication);
                                 fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
                                         (int)i, (int)j, enableNotification, enableIndication, res);
                             }
@@ -318,11 +318,11 @@ int main(int argc, char *argv[])
                 }
                 // FIXME sleep 1s for potential callbacks ..
                 sleep(1);
-                gatt.disconnect();
+                device->disconnectGATT(); // redundant: also done at gatt->disconnect()
             } else {
-                fprintf(stderr, "GATT connect failed: %s\n", gatt.getStateString().c_str());
+                fprintf(stderr, "GATT connect failed: %s\n", gatt->getStateString().c_str());
             }
-            device->disconnect(); // OK if not connected
+            device->disconnect(); // OK if not connected, also issues device->disconnectGATT() -> gatt->disconnect()
         } // if( ok && nullptr != device )
     }
 

@@ -63,3 +63,31 @@ jobject direct_bt::convert_vector_to_jobject(JNIEnv *env, std::vector<std::share
 
 #endif
 
+static std::string jStringEmpty("");
+static std::string jAddressTypePublic("public");
+static std::string jAddressTypeRandom("random");
+
+BDAddressType direct_bt::fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType) {
+    if( nullptr != jAddressType ) {
+        std::string saddressType = from_jstring_to_string(env, jAddressType);
+        if( jAddressTypePublic == saddressType ) {
+            return BDAddressType::BDADDR_LE_PUBLIC;
+        }
+        if( jAddressTypeRandom == saddressType ) {
+            return BDAddressType::BDADDR_LE_RANDOM;
+        }
+    }
+    return BDAddressType::BDADDR_BREDR;
+}
+jstring direct_bt::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType) {
+    switch( bdAddressType ) {
+        case BDAddressType::BDADDR_LE_PUBLIC:
+            return from_string_to_jstring(env, jAddressTypePublic);
+        case BDAddressType::BDADDR_LE_RANDOM:
+            return from_string_to_jstring(env, jAddressTypeRandom);
+        case BDAddressType::BDADDR_BREDR:
+            // fall through intended
+        default:
+            return from_string_to_jstring(env, jStringEmpty);
+    }
+}

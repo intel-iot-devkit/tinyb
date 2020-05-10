@@ -38,6 +38,7 @@
 
 #include "HCIComm.hpp"
 #include "L2CAPComm.hpp"
+#include "DBTTypes.hpp"
 
 extern "C" {
     #include <unistd.h>

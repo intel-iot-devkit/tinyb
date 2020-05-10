@@ -231,6 +231,32 @@ std::string EInfoReport::toString() const {
     return out;
 }
 
+std::string EInfoReport::getDeviceIDModalias() const {
+    char *cstr = NULL;
+    int length;
+
+    switch (did_source) {
+        case 0x0001:
+            length = asprintf(&cstr, "bluetooth:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
+            break;
+        case 0x0002:
+            length = asprintf(&cstr, "usb:v%04Xp%04Xd%04X", did_vendor, did_product, did_version);
+            break;
+        default:
+            length = asprintf(&cstr, "source<0x%X>:v%04Xp%04Xd%04X", did_source, did_vendor, did_product, did_version);
+            break;
+    }
+    if( 0 >= length ) {
+        if( NULL != cstr ) {
+            free(cstr);
+        }
+        return std::string();
+    }
+    std::string res(cstr);
+    free(cstr);
+    return res;
+}
+
 // *************************************************
 // *************************************************
 // *************************************************

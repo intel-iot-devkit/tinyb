@@ -448,7 +448,7 @@ namespace direct_bt {
         uint16_t getDeviceIDVendor() const { return did_vendor; }
         uint16_t getDeviceIDProduct() const { return did_product; }
         uint16_t getDeviceIDVersion() const { return did_version; }
-
+        std::string getDeviceIDModalias() const;
         std::string getSourceString() const;
         std::string getAddressString() const { return address.toString(); }
         std::string eirDataMaskToString() const;

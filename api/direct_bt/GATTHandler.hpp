@@ -38,7 +38,6 @@
 
 #include "UUID.hpp"
 #include "BTTypes.hpp"
-#include "DBTTypes.hpp"
 #include "L2CAPComm.hpp"
 #include "ATTPDUTypes.hpp"
 #include "GATTTypes.hpp"
@@ -52,6 +51,8 @@
  */
 
 namespace direct_bt {
+
+    class DBTDevice; // forward
 
     typedef std::shared_ptr<GATTCharacterisicsDecl> GATTCharacterisicsDeclRef;
 

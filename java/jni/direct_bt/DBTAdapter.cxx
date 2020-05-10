@@ -499,3 +499,87 @@ void Java_direct_1bt_tinyb_DBTAdapter_enableDiscoveringNotifications(JNIEnv *env
         rethrow_and_raise_java_exception(env);
     }
 }
+
+//
+// misc
+//
+
+void Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        adapter->setPowered(JNI_TRUE == value ? true : false);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        return from_string_to_jstring(env, adapter->getLocalName().getName());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
+void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        std::string newalias = from_jstring_to_string(env, jnewalias);
+        adapter->setLocalName(newalias, std::string());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+void Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        adapter->setDiscoverable(JNI_TRUE == value ? true : false);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}
+
+jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        std::string saddress = from_jstring_to_string(env, jaddress);
+        EUI48 address(saddress);
+        std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address);
+        if( nullptr != device ) {
+            const BDAddressType addressType = fromJavaAdressTypeToBDAddressType(env, jaddressType);
+            const BDAddressType addressTypeDevice = device->getAddressType();
+            if( addressTypeDevice != addressType ) {
+                // oops?
+                WARN_PRINT("DBTAdapter::connectDevice: AddressType mismatch, ignoring request: Requested %s, Device %s %s",
+                        getBDAddressTypeString(addressType).c_str(), getBDAddressTypeString(addressTypeDevice).c_str(),
+                        device->toString().c_str());
+            }
+            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+
+            device->defaultConnect();
+            return JavaGlobalObj::GetObject(jDeviceRef);
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
+void Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+        adapter->setBondable(JNI_TRUE == value ? true : false);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+}

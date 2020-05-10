@@ -153,6 +153,11 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
+    public DBTAdapter getAdapter() {
+        return adapter;
+    }
+
+    @Override
     public String getAddress() { return address; }
 
     @Override
@@ -162,10 +167,6 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public BluetoothType getBluetoothType() { return class_type(); }
 
     static BluetoothType class_type() { return BluetoothType.DEVICE; }
-
-    @Override
-    public final BluetoothDevice clone()
-    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public BluetoothGattService find(final String UUID, final long timeoutMS) {
@@ -186,8 +187,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         // std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
         final String msdstr = "MSD[null]";
         out.append("Device[").append(getAddress()).append(", '").append(getName())
-                .append("', age ").append(t0-ts_creation).append(" ms, lup ").append(t0-ts_update).append(" ms, rssi ").append(getRSSI())
-                .append(", tx-power ").append(getTxPower()).append(", ").append(msdstr).append("]");
+                .append("', age ").append(t0-ts_creation).append(" ms, lup ").append(t0-ts_update).append(" ms, connected ").append(connected)
+                .append(", rssi ").append(getRSSI()).append(", tx-power ").append(getTxPower()).append(", ").append(msdstr).append("]");
         /**
         if(services.size() > 0 ) {
             out.append("\n");
@@ -203,6 +204,26 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         return out.toString();
     }
 
+    /* Unsupported */
+
+    @Override
+    public int getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public final BluetoothDevice clone() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public boolean pair() throws BluetoothException { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public boolean cancelPairing() throws BluetoothException { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public String getAlias() { return null; } // FIXME
+
+    @Override
+    public void setAlias(final String value) { throw new UnsupportedOperationException(); } // FIXME
+
     /* internal */
 
     private native void initImpl();
@@ -211,14 +232,19 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public final void enableConnectedNotifications(final BluetoothNotification<Boolean> callback) {
-        connectedNotifications = callback;
+        synchronized(userCallbackLock) {
+            userConnectedNotificationsCB = callback;
+        }
     }
-    private BluetoothNotification<Boolean> connectedNotifications = null;
-    private boolean connected = false;
+    @Override
+    public final void disableConnectedNotifications() {
+        synchronized(userCallbackLock) {
+            userConnectedNotificationsCB = null;
+        }
+    }
 
     @Override
     public final boolean getConnected() { return connected; }
-    // private native boolean getConnectedImpl();
 
     @Override
     public final boolean disconnect() throws BluetoothException {
@@ -226,8 +252,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         if( connected ) {
             res = disconnectImpl();
             if( res ) {
-                connectedNotifications.run(Boolean.FALSE);
+                // FIXME: Split up - may offload to other thread
+                // Currently service resolution performed in connectImpl()!
+                servicesResolved = false;
+                userServicesResolvedNotificationsCB.run(Boolean.FALSE);
+
                 connected = false;
+                userConnectedNotificationsCB.run(Boolean.FALSE);
             }
         }
         return res;
@@ -240,15 +271,99 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         if( !connected ) {
             res = connectImpl();
             if( res ) {
-                connectedNotifications.run(Boolean.TRUE);
                 connected = true;
+                userConnectedNotificationsCB.run(Boolean.TRUE);
+
+                // FIXME: Split up - may offload to other thread
+                // Currently service resolution performed in connectImpl()!
+                servicesResolved = true;
+                userServicesResolvedNotificationsCB.run(Boolean.TRUE);
             }
         }
         return res;
     }
     private native boolean connectImpl() throws BluetoothException;
 
-    /* DBT method calls: */
+    /* DBT Java callbacks */
+
+    @Override
+    public final void enableRSSINotifications(final BluetoothNotification<Short> callback) {
+        synchronized(userCallbackLock) {
+            userRSSINotificationsCB = callback;
+        }
+    }
+
+    @Override
+    public final void disableRSSINotifications() {
+        synchronized(userCallbackLock) {
+            userRSSINotificationsCB = null;
+        }
+    }
+
+
+    @Override
+    public final void enableManufacturerDataNotifications(final BluetoothNotification<Map<Short, byte[]> > callback) {
+        synchronized(userCallbackLock) {
+            userManufDataNotificationsCB = callback;
+        }
+    }
+
+    @Override
+    public final void disableManufacturerDataNotifications() {
+        synchronized(userCallbackLock) {
+            userManufDataNotificationsCB = null;
+        }
+    }
+
+
+    @Override
+    public final void enableServicesResolvedNotifications(final BluetoothNotification<Boolean> callback) {
+        synchronized(userCallbackLock) {
+            userServicesResolvedNotificationsCB = callback;
+        }
+    }
+
+    @Override
+    public void disableServicesResolvedNotifications() {
+        synchronized(userCallbackLock) {
+            userServicesResolvedNotificationsCB = null;
+        }
+    }
+
+    @Override
+    public boolean getServicesResolved () { return servicesResolved; }
+
+    @Override
+    public short getAppearance() { return appearance; }
+
+    /* DBT native callbacks */
+
+    @Override
+    public native void enableBlockedNotifications(BluetoothNotification<Boolean> callback);
+
+    @Override
+    public void disableBlockedNotifications() { } // FIXME
+
+    @Override
+    public native void enableServiceDataNotifications(BluetoothNotification<Map<String, byte[]> > callback);
+
+    @Override
+    public void disableServiceDataNotifications() { } // FIXME
+
+    @Override
+    public native void enablePairedNotifications(BluetoothNotification<Boolean> callback);
+
+    @Override
+    public void disablePairedNotifications() { } // FIXME
+
+    @Override
+    public native void enableTrustedNotifications(BluetoothNotification<Boolean> callback);
+
+    @Override
+    public void disableTrustedNotifications() { } // FIXME
+
+
+    /* DBT native method calls: */
 
     @Override
     public native boolean connectProfile(String arg_UUID) throws BluetoothException;
@@ -256,34 +371,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
-    @Override
-    public boolean pair() throws BluetoothException
-    { throw new UnsupportedOperationException(); } // FIXME
-
      @Override
     public native boolean remove() throws BluetoothException;
-
-    @Override
-    public boolean cancelPairing() throws BluetoothException
-    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public native List<BluetoothGattService> getServices();
 
     /* property accessors: */
-
-    @Override
-    public String getAlias() { return null; } // FIXME
-
-    @Override
-    public void setAlias(final String value)
-    { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public native int getBluetoothClass();
-
-    @Override
-    public native short getAppearance();
 
     @Override
     public native String getIcon();
@@ -292,31 +386,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public native boolean getPaired();
 
     @Override
-    public native void enablePairedNotifications(BluetoothNotification<Boolean> callback);
-
-    @Override
-    public native void disablePairedNotifications();
-
-    @Override
     public native boolean getTrusted();
-
-    @Override
-    public native void enableTrustedNotifications(BluetoothNotification<Boolean> callback);
-
-    @Override
-    public native void disableTrustedNotifications();
 
     @Override
     public native void setTrusted(boolean value);
 
     @Override
     public native boolean getBlocked();
-
-    @Override
-    public native void enableBlockedNotifications(BluetoothNotification<Boolean> callback);
-
-    @Override
-    public native void disableBlockedNotifications();
 
     @Override
     public native void setBlocked(boolean value);
@@ -328,56 +404,19 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public native short getRSSI();
 
     @Override
-    public native void enableRSSINotifications(BluetoothNotification<Short> callback);
-
-    @Override
-    public native void disableRSSINotifications();
-
-     @Override
-    public native void disableConnectedNotifications();
-
-    @Override
     public native String[] getUUIDs();
 
     @Override
     public native String getModalias();
 
     @Override
-    public native DBTAdapter getAdapter();
-
-    @Override
     public native Map<Short, byte[]> getManufacturerData();
-
-    @Override
-    public native void enableManufacturerDataNotifications(BluetoothNotification<Map<Short, byte[]> > callback);
-
-    @Override
-    public native void disableManufacturerDataNotifications();
-
 
     @Override
     public native Map<String, byte[]> getServiceData();
 
     @Override
-    public native void enableServiceDataNotifications(BluetoothNotification<Map<String, byte[]> > callback);
-
-    @Override
-    public native void disableServiceDataNotifications();
-
-    @Override
     public native short getTxPower ();
-
-    @Override
-    public native boolean getServicesResolved ();
-
-    @Override
-    public final void enableServicesResolvedNotifications(final BluetoothNotification<Boolean> callback) {
-        servicesResolvedNotifications = callback;
-    }
-    private BluetoothNotification<Boolean> servicesResolvedNotifications = null;
-
-    @Override
-    public native void disableServicesResolvedNotifications();
 
     @Override
     protected native void deleteImpl();

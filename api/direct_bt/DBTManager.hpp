@@ -133,7 +133,6 @@ namespace direct_bt {
             void shutdownAdapter(const uint16_t dev_id);
 
             bool mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
@@ -245,6 +244,9 @@ namespace direct_bt {
                                        const uint8_t initiator_filter=0);
 
             bool disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason=0);
+
+            std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+            std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name);
 
             /** MgmtEventCallback handling  */
 

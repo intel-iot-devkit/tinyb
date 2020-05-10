@@ -40,6 +40,7 @@
 #include "BTTypes.hpp"
 #include "HCIComm.hpp"
 #include "DBTManager.hpp"
+#include "GATTHandler.hpp"
 #include "JavaUplink.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
@@ -76,11 +77,23 @@ namespace direct_bt {
             /** Opens a new HCI session on the given BT dev_id and HCI channel. */
             HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS);
 
-            /** add the new {@link DBTDevice} to the list of connected devices */
-            void connected(std::shared_ptr<DBTDevice> & device);
+            /**
+             * Add the new {@link DBTDevice} to the list of connected devices, if not already present.
+             * <p>
+             * Returns true if the given device is newly connected and has been added to the list of connected devices,
+             * otherwise false.
+             * </p>
+             */
+            bool connected(std::shared_ptr<DBTDevice> & device);
 
-            /** remove the {@link DBTDevice} from the list of connected devices */
-            void disconnected(std::shared_ptr<DBTDevice> & device);
+            /**
+             * Remove the {@link DBTDevice} from the list of connected devices.
+             * <p>
+             * Returns true if the given device is an element of the list of connected devices and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool disconnected(std::shared_ptr<DBTDevice> & device);
 
             /**
              * Issues {@link #disconnectAllDevices()} and closes the underlying HCI session.
@@ -196,16 +209,19 @@ namespace direct_bt {
         private:
             static const int to_connect_ms = 5000;
 
-            DBTAdapter const & adapter;
+            DBTAdapter & adapter;
             uint64_t ts_update;
             std::string name;
             int8_t rssi = 0;
             int8_t tx_power = 0;
+            uint16_t appearance = 0;
             uint16_t connHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
+            std::shared_ptr<GATTHandler> gattHandler = nullptr;
+            std::recursive_mutex mtx_gatt;
 
-            DBTDevice(DBTAdapter const & adapter, EInfoReport const & r);
+            DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             bool addService(std::shared_ptr<uuid_t> const &uuid);
             bool addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
@@ -250,6 +266,7 @@ namespace direct_bt {
             bool hasName() const { return name.length()>0; }
             int8_t getRSSI() const { return rssi; }
             int8_t getTxPower() const { return tx_power; }
+            uint16_t getAppearance() const { return appearance; }
             std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const { return msd; }
 
             std::vector<std::shared_ptr<uuid_t>> getServices() const { return services; }
@@ -258,6 +275,16 @@ namespace direct_bt {
             int findService(std::shared_ptr<uuid_t> const &uuid) const;
 
             std::string toString() const override;
+
+            /**
+             * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,
+             * otherwise returns nullptr.
+             * <p>
+             * Before this method returns, the internal rssi and tx_power will be updated if any changed
+             * and therefore all DBTAdapterStatusListener's deviceUpdated(..) method called for notification.
+             * </p>
+             */
+            std::shared_ptr<ConnectionInfo> getConnectionInfo();
 
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
@@ -322,8 +349,36 @@ namespace direct_bt {
              * <p>
              * The device will be removed from the managing adapter's HCISession instance.
              * </p>
+             * <p>
+             * An open GATTHandler will also be closed via disconnectGATT()
+             * </p>
              */
             void disconnect(const uint8_t reason=0);
+
+            /**
+             * Returns a newly established GATT connection or an already open GATT connection.
+             * <p>
+             * The HCI le_connect or HCI connect (defaultConnect) must be performed first,
+             * to produce orderly behavior and best performance.
+             * </p>
+             * <p>
+             * The returned GATTHandler is managed by this device instance
+             * and closed @ disconnect() or explicitly @ disconnectGATT().
+             * May return nullptr if not connected or failure.
+             * </p>
+             */
+            std::shared_ptr<GATTHandler> connectGATT(int timeoutMS=GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+
+            /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
+            std::shared_ptr<GATTHandler> getGATTHandler();
+
+            /**
+             * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()
+             * <p>
+             * Implementation will also discard the GATTHandler reference.
+             * </p>
+             */
+            void disconnectGATT();
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
@@ -347,13 +402,16 @@ namespace direct_bt {
 
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
+            NameAndShortName localName;
             ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
             volatile bool keepDiscoveringAlive = false;
 
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::shared_ptr<DBTAdapterStatusListener> statusListener = nullptr;
+            std::vector<std::shared_ptr<DBTAdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_discoveredDevices;
+            std::recursive_mutex mtx_statusListenerList;
 
             bool validateDevInfo();
 
@@ -361,16 +419,21 @@ namespace direct_bt {
             void sessionClosing();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
+            friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
 
-            void addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
+            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
 
             void startDiscoveryBackground();
+
+            void sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
+
 
         public:
             const int dev_id;
@@ -406,7 +469,48 @@ namespace direct_bt {
 
             EUI48 const & getAddress() const { return adapterInfo->address; }
             std::string getAddressString() const { return adapterInfo->address.toString(); }
+
+            /**
+             * Returns the system name.
+             */
             std::string getName() const { return adapterInfo->getName(); }
+
+            /**
+             * Returns the short system name.
+             */
+            std::string getShortName() const { return adapterInfo->getShortName(); }
+
+            /**
+             * Returns the local friendly name and short_name. Contains empty strings if not set.
+             * <p>
+             * The value is being updated via SET_LOCAL_NAME management event reply.
+             * </p>
+             */
+            const NameAndShortName & getLocalName() const { return localName; }
+
+            /**
+             * Sets the local friendly name.
+             * <p>
+             * Returns the immediate SET_LOCAL_NAME reply if successful, otherwise nullptr.
+             * The corresponding management event will be received separately.
+             * </p>
+             */
+            std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name);
+
+            /**
+             * Set the power state of the adapter.
+             */
+            void setPowered(bool value);
+
+            /**
+             * Set the discoverable state of the adapter.
+             */
+            void setDiscoverable(bool value);
+
+            /**
+             * Set the bondable (aka pairable) state of the adapter.
+             */
+            void setBondable(bool value);
 
             /**
              * Returns a reference to the used singleton DBTManager instance.

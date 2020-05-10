@@ -31,6 +31,7 @@
 
 #include "direct_bt/JavaUplink.hpp"
 #include "direct_bt/BasicTypes.hpp"
+#include "direct_bt/BTAddress.hpp"
 
 namespace direct_bt {
 
@@ -107,6 +108,9 @@ namespace direct_bt {
     }
 
 #endif
+
+    BDAddressType fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType);
+    jstring fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType);
 
 } // namespace direct_bt
 

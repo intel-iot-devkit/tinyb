@@ -31,6 +31,7 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 
 #include <mutex>
 #include <atomic>
@@ -97,6 +98,18 @@ namespace direct_bt {
             EUI48 get_eui48(const int i) const {
                 check_range(i, sizeof(EUI48));
                 return EUI48(_data+i);
+            }
+
+            /** Assumes a null terminated string */
+            std::string get_string(const int i) const {
+                check_range(i, 1); // minimum size
+                return std::string( (const char*)(_data+i) );
+            }
+
+            /** Assumes a string with defined length, not necessarily null terminated */
+            std::string get_string(const int i, const int length) const {
+                check_range(i, length);
+                return std::string( (const char*)(_data+i), length );
             }
 
             uuid16_t get_uuid16(const int i) const {
@@ -168,8 +181,18 @@ namespace direct_bt {
             }
 
             void put_octets(const int i, const TROOctets & v) {
-                check_range(i, sizeof(v.getSize()));
+                check_range(i, v.getSize());
                 memcpy(data() + i, v.get_ptr(), v.getSize());
+            }
+
+            void put_string(const int i, const std::string & v, const int max_len, const bool includeEOS) {
+                const int size1 = v.size() + ( includeEOS ? 1 : 0 );
+                const int size = std::min(size1, max_len);
+                check_range(i, size);
+                memcpy(data() + i, v.c_str(), size);
+                if( size < size1 && includeEOS ) {
+                    *(data() + i + size - 1) = 0; // ensure EOS
+                }
             }
 
             void put_uuid(const int i, const uuid_t & v) {

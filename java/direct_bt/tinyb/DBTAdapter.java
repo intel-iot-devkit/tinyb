@@ -58,8 +58,11 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final long discoveringNotificationRef = 0;
 
     private BluetoothNotification<Boolean> discoverableNotification = null;
+    private boolean isDiscoverable = false;
     private BluetoothNotification<Boolean> poweredNotification = null;
+    private boolean isPowered = false;
     private BluetoothNotification<Boolean> pairableNotification = null;
+    private boolean isPairable = false;
 
     private boolean isOpen = false;
     private List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
@@ -100,18 +103,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public String getName() { return name; }
 
-    public String getInterfaceName() {
-        throw new UnsupportedOperationException(); // FIXME
-    }
-
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
 
     static BluetoothType class_type() { return BluetoothType.ADAPTER; }
-
-    @Override
-    public final BluetoothAdapter clone()
-    { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
     public BluetoothDevice find(final String name, final String address, final long timeoutMS) {
@@ -141,19 +136,40 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         return out.toString();
     }
 
-    /* property accessors: */
-
-    @Override
-    public String getAlias() { throw new UnsupportedOperationException(); } // FIXME
-
-    @Override
-    public void setAlias(final String value) { throw new UnsupportedOperationException(); } // FIXME
+    /* Unsupported */
 
     @Override
     public long getBluetoothClass() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public native boolean getPowered();
+    public final BluetoothAdapter clone() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public String getInterfaceName() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public long getDiscoverableTimeout() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public void setDiscoverableTimout(final long value) { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public long getPairableTimeout() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public void setPairableTimeout(final long value) { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public String getModalias() { throw new UnsupportedOperationException(); } // FIXME
+
+    @Override
+    public String[] getUUIDs() { throw new UnsupportedOperationException(); } // FIXME
+
+
+    /* Java callbacks */
+
+    @Override
+    public boolean getPowered() { return isPowered; }
 
     @Override
     public synchronized void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
@@ -166,10 +182,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public native void setPowered(boolean value);
-
-    @Override
-    public native boolean getDiscoverable();
+    public boolean getDiscoverable() { return isDiscoverable; }
 
     @Override
     public synchronized void enableDiscoverableNotifications(final BluetoothNotification<Boolean> callback) {
@@ -182,19 +195,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public native void setDiscoverable(boolean value);
-
-    @Override
-    public native long getDiscoverableTimeout();
-
-    @Override
-    public native void setDiscoverableTimout(long value);
-
-    @Override
-    public native BluetoothDevice connectDevice(String address, String addressType);
-
-    @Override
-    public native boolean getPairable();
+    public boolean getPairable() { return isPairable; }
 
     @Override
     public synchronized void enablePairableNotifications(final BluetoothNotification<Boolean> callback) {
@@ -206,20 +207,27 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         pairableNotification = null;
     }
 
+    /* Native callbacks */
+
+    /* Native functionality / properties */
+
+    @Override
+    public native void setPowered(boolean value);
+
+    @Override
+    public native String getAlias();
+
+    @Override
+    public native void setAlias(final String value);
+
+    @Override
+    public native void setDiscoverable(boolean value);
+
+    @Override
+    public native BluetoothDevice connectDevice(String address, String addressType);
+
     @Override
     public native void setPairable(boolean value);
-
-    @Override
-    public native long getPairableTimeout();
-
-    @Override
-    public native void setPairableTimeout(long value);
-
-    @Override
-    public native String[] getUUIDs();
-
-    @Override
-    public native String getModalias();
 
     /* internal */
 
@@ -320,21 +328,30 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
                                            final AdapterSettings changedmask, final long timestamp) {
             System.err.println("Adapter.StatusListener.settings: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
             {
-                final BluetoothNotification<Boolean> _poweredNotification = poweredNotification;
-                if( null != _poweredNotification && changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
-                    _poweredNotification.run(newmask.isSet(AdapterSettings.SettingType.POWERED));
+                if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
+                    isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
+                    final BluetoothNotification<Boolean> _poweredNotification = poweredNotification;
+                    if( null != _poweredNotification ) {
+                        _poweredNotification.run(isPowered);
+                    }
                 }
             }
             {
-                final BluetoothNotification<Boolean> _discoverableNotification = discoverableNotification;
-                if( null != _discoverableNotification && changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
-                    _discoverableNotification.run(newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE));
+                if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
+                    isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
+                    final BluetoothNotification<Boolean> _discoverableNotification = discoverableNotification;
+                    if( null != _discoverableNotification ) {
+                        _discoverableNotification.run( isDiscoverable );
+                    }
                 }
             }
             {
-                final BluetoothNotification<Boolean> _pairableNotification = pairableNotification;
-                if( null != _pairableNotification && changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
-                    _pairableNotification.run(newmask.isSet(AdapterSettings.SettingType.BONDABLE));
+                if( changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
+                    isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
+                    final BluetoothNotification<Boolean> _pairableNotification = pairableNotification;
+                    if( null != _pairableNotification ) {
+                        _pairableNotification.run( isPairable );
+                    }
                 }
             }
         }

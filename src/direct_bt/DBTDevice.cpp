@@ -40,7 +40,7 @@
 
 using namespace direct_bt;
 
-DBTDevice::DBTDevice(DBTAdapter const & a, EInfoReport const & r)
+DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
     if( !r.isSet(EIRDataType::BDADDR) ) {
@@ -102,7 +102,7 @@ std::string DBTDevice::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+getName()+
             "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
-            ", tx-power "+std::to_string(tx_power)+", "+msdstr+", "+javaObjectToString()+"]");
+            ", tx-power "+std::to_string(tx_power)+", appearance "+uint16HexString(appearance)+", "+msdstr+", "+javaObjectToString()+"]");
     if(services.size() > 0 ) {
         out.append("\n");
         int i=0;
@@ -156,6 +156,12 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
             setEIRDataTypeSet(res, EIRDataType::TX_POWER);
         }
     }
+    if( data.isSet(EIRDataType::APPEARANCE) ) {
+        if( appearance != data.getAppearance() ) {
+            appearance = data.getAppearance();
+            setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
+        }
+    }
     if( data.isSet(EIRDataType::MANUF_DATA) ) {
         if( msd != data.getManufactureSpecificData() ) {
             msd = data.getManufactureSpecificData();
@@ -166,6 +172,26 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
         setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
     }
     return res;
+}
+
+std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
+    DBTManager & mgmt = adapter.getManager();
+    std::shared_ptr<ConnectionInfo> connInfo = mgmt.getConnectionInfo(adapter.dev_id, address, addressType);
+    if( nullptr != connInfo ) {
+        EIRDataType updateMask = EIRDataType::NONE;
+        if( rssi != connInfo->getRSSI() ) {
+            rssi = connInfo->getRSSI();
+            setEIRDataTypeSet(updateMask, EIRDataType::RSSI);
+        }
+        if( tx_power != connInfo->getTxPower() ) {
+            tx_power = connInfo->getTxPower();
+            setEIRDataTypeSet(updateMask, EIRDataType::TX_POWER);
+        }
+        if( EIRDataType::NONE != updateMask ) {
+            adapter.sendDeviceUpdated(getSharedInstance(), getCurrentMilliseconds(), updateMask);
+        }
+    }
+    return connInfo;
 }
 
 uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
@@ -183,16 +209,16 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
     }
 
-    {
-        // Currently doing nothing, but notifying
-        DBTManager & mngr = adapter.getManager();
-        mngr.create_connection(adapter.dev_id, address, addressType);
-    }
-
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::le_connect: Not opened");
         return 0;
+    }
+
+    {
+        // Currently doing nothing, but notifying
+        DBTManager & mngr = adapter.getManager();
+        mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
     connHandle = session->hciComm.le_create_conn(
@@ -221,16 +247,16 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
         ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
     }
 
-    {
-        // Currently doing nothing, but notifying
-        DBTManager & mngr = adapter.getManager();
-        mngr.create_connection(adapter.dev_id, address, addressType);
-    }
-
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::connect: Not opened");
         return 0;
+    }
+
+    {
+        // Currently doing nothing, but notifying
+        DBTManager & mngr = adapter.getManager();
+        mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
     connHandle = session->hciComm.create_conn(address, pkt_type, clock_offset, role_switch);
@@ -247,17 +273,22 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
 
 uint16_t DBTDevice::defaultConnect()
 {
-    if( isLEAddressType() ) {
-        return le_connect();
+    switch( addressType ) {
+        case BDAddressType::BDADDR_LE_PUBLIC:
+            return le_connect(HCIAddressType::HCIADDR_LE_PUBLIC);
+        case BDAddressType::BDADDR_LE_RANDOM:
+            return le_connect(HCIAddressType::HCIADDR_LE_RANDOM);
+        case BDAddressType::BDADDR_BREDR:
+            return connect();
+        default:
+            ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
+            return 0;
     }
-    if( isBREDRAddressType() ) {
-        return connect();
-    }
-    ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
-    return 0;
 }
 
 void DBTDevice::disconnect(const uint8_t reason) {
+    disconnectGATT();
+
     if( 0 == connHandle ) {
         DBG_PRINT("DBTDevice::disconnect: Not connected");
         return;
@@ -265,7 +296,7 @@ void DBTDevice::disconnect(const uint8_t reason) {
 
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Not opened");
+        DBG_PRINT("DBTDevice::disconnect: Session not opened");
         return;
     }
 
@@ -285,3 +316,40 @@ void DBTDevice::disconnect(const uint8_t reason) {
     session->disconnected(thisDevice);
 }
 
+std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
+    if( 0 == connHandle ) {
+        DBG_PRINT("DBTDevice::connectGATT: Not connected");
+        return nullptr;
+    }
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        DBG_PRINT("DBTDevice::connectGATT: Session not opened");
+        return nullptr;
+    }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    if( nullptr != gattHandler ) {
+        return gattHandler;
+    }
+    std::shared_ptr<GATTHandler> _gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(this->getSharedInstance(), timeoutMS));
+    if( _gattHandler->connect() ) {
+        gattHandler = _gattHandler;
+    } else {
+        DBG_PRINT("DBTDevice::connectGATT: Connection failed");
+        _gattHandler = nullptr;
+    }
+    return gattHandler;
+}
+
+std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    return gattHandler;
+}
+
+void DBTDevice::disconnectGATT() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    if( nullptr != gattHandler ) {
+        DBG_PRINT("DBTDevice::disconnectGATT: Disconnecting...");
+        gattHandler->disconnect();
+        gattHandler = nullptr;
+    }
+}

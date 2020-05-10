@@ -310,6 +310,20 @@ namespace direct_bt {
 
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtGetConnectionInfoCmd : public MgmtCommand
+    {
+        public:
+        MgmtGetConnectionInfoCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            : MgmtCommand(MgmtOpcode::GET_CONN_INFO, dev_id, 6+1)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+            }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
      * uint8_t pin_len,
      * uint8_t pin_code[16]
      */
@@ -338,6 +352,21 @@ namespace direct_bt {
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+            }
+    };
+
+    /**
+     * uint8_t name[MGMT_MAX_NAME_LENGTH];
+     * uint8_t short_name[MGMT_MAX_SHORT_NAME_LENGTH];
+     */
+    class MgmtSetLocalNameCmd : public MgmtCommand
+    {
+        public:
+            MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
+            : MgmtCommand(MgmtOpcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
+            {
+                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);
             }
     };
 
@@ -904,10 +933,117 @@ namespace direct_bt {
                 checkOpcode(getOpcode(), LOCAL_NAME_CHANGED);
                 pdu.check_range(0, getRequiredSize());
             }
+            MgmtEvtLocalNameChanged(const uint16_t dev_id, const std::string & name, const std::string & short_name)
+            : MgmtEvent(LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
+            {
+                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);
+            }
 
-            const std::string getName() const { return std::string( (const char*)pdu.get_ptr(MGMT_HEADER_SIZE) ); }
-            const std::string getShortName() const { return std::string( (const char*)pdu.get_ptr(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH) ); }
+            const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
+            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
     };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * int8_t rssi,
+     * int8_t tx_power,
+     * int8_t max_tx_power;
+     */
+    class ConnectionInfo
+    {
+        private:
+            EUI48 address;
+            BDAddressType addressType;
+            int8_t rssi;
+            int8_t tx_power;
+            int8_t max_tx_power;
+
+        public:
+            static int minimumDataSize() { return 6 + 1 + 1 + 1 + 1; }
+
+            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power)
+            : address(address), addressType(addressType), rssi(rssi), tx_power(tx_power), max_tx_power(max_tx_power) {}
+
+            ConnectionInfo(const MgmtEvtCmdComplete & evt)
+            {
+                if( MgmtStatus::SUCCESS != evt.getStatus() ) {
+                    throw IllegalArgumentException("Event state: "+evt.toString(), E_FILE_LINE);
+                }
+                const int min_size = minimumDataSize();
+                if( evt.getDataSize() <  min_size ) {
+                    throw IllegalArgumentException("Data size < "+std::to_string(min_size)+": "+evt.toString(), E_FILE_LINE);
+                }
+                address = EUI48( evt.getData() );
+                addressType = static_cast<BDAddressType>( direct_bt::get_uint8(evt.getData(), 6) );
+                rssi = direct_bt::get_int8(evt.getData(), 7);
+                tx_power = direct_bt::get_int8(evt.getData(), 8);
+                max_tx_power = direct_bt::get_int8(evt.getData(), 9);
+            }
+
+            const EUI48 getAddress() const { return address; }
+            BDAddressType getAddressType() const { return addressType; }
+            int8_t getRSSI() const { return rssi; }
+            int8_t getTxPower() const { return tx_power; }
+            int8_t getMaxTxPower() const { return max_tx_power; }
+
+            std::string toString() const {
+                return "address="+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", rssi "+std::to_string(rssi)+
+                       ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
+            }
+    };
+
+    class DBTManager; // forward
+    class DBTAdapter; // forward
+
+    class NameAndShortName
+    {
+        friend class DBTManager; // top manager
+        friend class DBTAdapter; // direct manager
+
+        private:
+            std::string name;
+            std::string short_name;
+
+        protected:
+            void setName(const std::string v) { name = v; }
+            void setShortName(const std::string v) { short_name = v; }
+
+        public:
+            static int minimumDataSize() { return MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+
+            NameAndShortName()
+            : name(), short_name() {}
+
+            NameAndShortName(const std::string & name, const std::string & short_name)
+            : name(name), short_name(short_name) {}
+
+            NameAndShortName(const MgmtEvtLocalNameChanged & evt)
+            : name(evt.getName()), short_name(evt.getShortName()) {}
+
+            NameAndShortName(const MgmtEvtCmdComplete & evt)
+            {
+                if( MgmtStatus::SUCCESS != evt.getStatus() ) {
+                    throw IllegalArgumentException("Event state: "+evt.toString(), E_FILE_LINE);
+                }
+                const int min_size = minimumDataSize();
+                if( evt.getDataSize() <  min_size ) {
+                    throw IllegalArgumentException("Data size < "+std::to_string(min_size)+": "+evt.toString(), E_FILE_LINE);
+                }
+                name = std::string( (const char*) ( evt.getData() ) );
+                short_name = std::string( (const char*) ( evt.getData() + MgmtConstU16::MAX_NAME_LENGTH ) );
+            }
+
+            std::string getName() const { return name; }
+            std::string getShortName() const { return short_name; }
+
+            std::string toString() const {
+                return "name '"+getName()+"', shortName '"+getShortName()+"'";
+            }
+    };
+
+
 
     class MgmtEvtAdapterInfo : public MgmtEvtCmdComplete
     {
@@ -936,12 +1072,9 @@ namespace direct_bt {
             uint32_t getDevClass() const { return pdu.get_uint8(getDataOffset()+17)
                                                   | ( pdu.get_uint8(getDataOffset()+18) << 8 )
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
-            const std::string getName() const { return std::string( (const char*)pdu.get_ptr(getDataOffset()+20) ); }
-            const std::string getShortName() const { return std::string( (const char*)pdu.get_ptr(getDataOffset()+20+MgmtConstU16::MAX_NAME_LENGTH) ); }
+            std::string getName() const { return pdu.get_string(getDataOffset()+20); }
+            std::string getShortName() const { return pdu.get_string(getDataOffset()+20+MgmtConstU16::MAX_NAME_LENGTH); }
     };
-
-    class DBTManager; // forward
-    class DBTAdapter; // forward
 
     /** Immutable persistent adapter info */
     class AdapterInfo
@@ -991,8 +1124,8 @@ namespace direct_bt {
             }
             AdapterSetting getCurrentSetting() const { return current_setting; }
             uint32_t getDevClass() const { return dev_class; }
-            const std::string getName() const { return name; }
-            const std::string getShortName() const { return short_name; }
+            std::string getName() const { return name; }
+            std::string getShortName() const { return short_name; }
 
             std::string toString() const {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
