@@ -163,15 +163,8 @@ void GATTHandler::l2capReaderThreadImpl() {
     l2capReaderRunning = false;
 }
 
-GATTHandler::GATTHandler(std::shared_ptr<L2CAPComm> l2cap, const int timeoutMS)
-: rbuffer(ClientMaxMTU), state(Disconnected),
-  l2cap(l2cap), timeoutMS(timeoutMS),
-  attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
-  serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
-{ }
-
-GATTHandler::GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS)
-: rbuffer(ClientMaxMTU), state(Disconnected),
+GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int timeoutMS)
+: device(device), rbuffer(ClientMaxMTU), state(Disconnected),
   l2cap(new L2CAPComm(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT)), timeoutMS(timeoutMS),
   attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
@@ -386,11 +379,13 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceDeclRef> & resu
                 for(int i=0; i<count; i++) {
                     const int ePDUOffset = p->getElementPDUOffset(i);
                     const int esz = p->getElementTotalSize();
-                    result.push_back( GATTServiceDeclRef( new GATTServiceDecl( GATTUUIDHandleRange(
-                    	GATTUUIDHandleRange::Type::Service,
-                        p->pdu.get_uint16(ePDUOffset), // start-handle
-                        p->pdu.get_uint16(ePDUOffset + 2), // end-handle
-                        p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) ) ) ) ); // uuid
+                    result.push_back( GATTServiceDeclRef( new GATTServiceDecl( device, true,
+                        GATTUUIDHandleRange(
+                            GATTUUIDHandleRange::Type::Service,
+                            p->pdu.get_uint16(ePDUOffset), // start-handle
+                            p->pdu.get_uint16(ePDUOffset + 2), // end-handle
+                            p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
+                        ) ) ) );
                     DBG_PRINT("GATT PRIM SRV discovered[%d/%d]: %s", i, count, result.at(result.size()-1)->toString().c_str());
                 }
                 startHandle = p->getElementEndHandle(count-1);
@@ -415,7 +410,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceDeclRef> & resu
     return result.size() > 0;
 }
 
-bool GATTHandler::discoverCharacteristics(GATTServiceDeclRef service) {
+bool GATTHandler::discoverCharacteristics(GATTServiceDeclRef & service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      * <p>
@@ -450,9 +445,8 @@ bool GATTHandler::discoverCharacteristics(GATTServiceDeclRef service) {
                     const int ePDUOffset = p->getElementPDUOffset(i);
                     const int esz = p->getElementTotalSize();
                     service->characteristicDeclList.push_back( GATTCharacterisicsDeclRef( new GATTCharacterisicsDecl(
-                        service->declaration.uuid,
+                        service,
                         p->pdu.get_uint16(ePDUOffset), // service-handle
-                        service->declaration.endHandle,
                         static_cast<GATTCharacterisicsDecl::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // properties
                         p->pdu.get_uint16(ePDUOffset + 2 + 1), // handle
                         p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // uuid
@@ -481,7 +475,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceDeclRef service) {
     return service->characteristicDeclList.size() > 0;
 }
 
-bool GATTHandler::discoverClientCharacteristicConfig(GATTServiceDeclRef service) {
+bool GATTHandler::discoverClientCharacteristicConfig(GATTServiceDeclRef & service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      * <p>
@@ -523,7 +517,7 @@ bool GATTHandler::discoverClientCharacteristicConfig(GATTServiceDeclRef service)
                             if( j+1 < service->characteristicDeclList.size() ) {
                                 decl_handle_end = service->characteristicDeclList.at(j+1)->handle;
                             } else {
-                                decl_handle_end = decl.service_handle_end;
+                                decl_handle_end = service->declaration.endHandle;
                             }
                             if( config_handle > decl.handle && config_handle <= decl_handle_end ) {
                                 decl.config = std::shared_ptr<GATTClientCharacteristicConfigDecl>(
@@ -780,7 +774,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
 
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
         const GATTCharacterisicsDecl & charDecl = *genericAccessCharDeclList.at(i);
-        if( _GENERIC_ACCESS != *charDecl.service_uuid ) {
+        if( _GENERIC_ACCESS != *charDecl.service->declaration.uuid ) {
         	continue;
         }
         if( _DEVICE_NAME == *charDecl.uuid ) {
@@ -831,7 +825,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
 
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         const GATTCharacterisicsDecl & charDecl = *characteristicDeclList.at(i);
-        if( _DEVICE_INFORMATION != *charDecl.service_uuid ) {
+        if( _DEVICE_INFORMATION != *charDecl.service->declaration.uuid ) {
             continue;
         }
         found = true;

@@ -102,6 +102,7 @@ namespace direct_bt {
             static std::string getStateString(const State state);
 
        private:
+            std::shared_ptr<DBTDevice> device;
             std::recursive_mutex mtx_write;
             POctets rbuffer;
 
@@ -136,9 +137,7 @@ namespace direct_bt {
             uint16_t exchangeMTU(const uint16_t clientMaxMTU=ClientMaxMTU);
 
         public:
-            GATTHandler(std::shared_ptr<L2CAPComm> l2cap, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
-
-            GATTHandler(std::shared_ptr<DBTDevice> device, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
 
             ~GATTHandler();
 
@@ -227,7 +226,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characterisic Declaration Attribute Value
              * </p>
              */
-            bool discoverCharacteristics(GATTServiceDeclRef service);
+            bool discoverCharacteristics(GATTServiceDeclRef & service);
 
             /**
              * Discover all client characteristics config declaration _only_.
@@ -235,7 +234,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool discoverClientCharacteristicConfig(GATTServiceDeclRef service);
+            bool discoverClientCharacteristicConfig(GATTServiceDeclRef & service);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors

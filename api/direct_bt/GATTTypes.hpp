@@ -168,6 +168,9 @@ namespace direct_bt {
             }
     };
 
+    class GATTServiceDecl; // forward
+    typedef std::shared_ptr<GATTServiceDecl> GATTServiceDeclRef;
+
     /**
      * <p>
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
@@ -197,13 +200,11 @@ namespace direct_bt {
 
             static std::string getPropertiesString(const PropertyBitVal properties);
 
-            /* Characteristics's Service UUID - key to service */
-            std::shared_ptr<const uuid_t> service_uuid;
+            /* Characteristics's Service */
+            GATTServiceDeclRef service;
 
-            /* Characteristics's Service Handle - key to service's handle range */
+            /* Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data */
             const uint16_t service_handle;
-            /* Characteristics's Service Handle End of Range - key to service's handle range */
-            const uint16_t service_handle_end;
 
             /* Characteristics Property */
             const PropertyBitVal properties;
@@ -215,10 +216,9 @@ namespace direct_bt {
             /* Optional Client Characteristic Configuration declaration */
             std::shared_ptr<GATTClientCharacteristicConfigDecl> config;
 
-            GATTCharacterisicsDecl(std::shared_ptr<const uuid_t> service_uuid,
-                               const uint16_t service_handle, const uint16_t service_handle_end,
-                               const PropertyBitVal properties, const uint16_t handle, std::shared_ptr<const uuid_t> uuid)
-            : service_uuid(service_uuid), service_handle(service_handle), service_handle_end(service_handle_end),
+            GATTCharacterisicsDecl(GATTServiceDeclRef service, const uint16_t service_handle,
+                                   const PropertyBitVal properties, const uint16_t handle, std::shared_ptr<const uuid_t> uuid)
+            : service(service), service_handle(service_handle),
               properties(properties), handle(handle), uuid(uuid), config(nullptr) {}
 
             std::string get_java_class() const override {
@@ -233,29 +233,11 @@ namespace direct_bt {
             std::string getPropertiesString() const {
                 return getPropertiesString(properties);
             }
-            std::string toString() const {
-            	std::string service_name = "";
-            	std::string char_name = "";
-            	std::string config_str = "";
-            	if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
-            		const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
-            		service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
-            	}
-            	if( uuid_t::UUID16_SZ == uuid->getTypeSize() ) {
-            		const uint16_t uuid16 = (static_cast<const uuid16_t*>(uuid.get()))->value;
-            		char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
-            	}
-            	if( nullptr != config ) {
-            	    config_str = ", config[ "+config->toString()+" ]";
-            	}
-                return "props "+uint8HexString(properties, true)+" "+getPropertiesString()+", handle "+uint16HexString(handle, true)+
-                	   ", uuid "+uuid->toString()+char_name+config_str+
-                       ", service[ "+service_uuid->toString()+
-                       ", handle[ "+uint16HexString(service_handle, true)+".."+uint16HexString(service_handle_end, true)+" ]"+
-                       service_name+" ]";
-            }
+            std::string toString() const;
     };
     typedef std::shared_ptr<GATTCharacterisicsDecl> GATTCharacterisicsDeclRef;
+
+    class DBTDevice; // forward
 
     /**
      * Representing a complete [Primary] Service Declaration
@@ -264,13 +246,16 @@ namespace direct_bt {
      */
     class GATTServiceDecl : public JavaUplink {
         public:
+            std::shared_ptr<DBTDevice> device;
+            const bool isPrimary;
+
             /** The primary service declaration itself */
             const GATTUUIDHandleRange declaration;
             /** List of Characteristic Declarations as shared reference */
             std::vector<GATTCharacterisicsDeclRef> characteristicDeclList;
 
-            GATTServiceDecl(const GATTUUIDHandleRange serviceDecl)
-            : declaration(serviceDecl), characteristicDeclList() {
+            GATTServiceDecl(const std::shared_ptr<DBTDevice> &device, const bool isPrimary, const GATTUUIDHandleRange serviceDecl)
+            : device(device), isPrimary(isPrimary), declaration(serviceDecl), characteristicDeclList() {
                 characteristicDeclList.reserve(10);
             }
 
@@ -281,19 +266,8 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
 
-            std::string toString() const {
-                std::string res = declaration.toString()+"[ ";
-                for(size_t i=0; i<characteristicDeclList.size(); i++) {
-                    if( 0 < i ) {
-                        res += ", ";
-                    }
-                    res += std::to_string(i)+"[ "+characteristicDeclList.at(i)->toString()+" ]";
-                }
-                res += " ]";
-                return res;
-            }
+            std::string toString() const;
     };
-    typedef std::shared_ptr<GATTServiceDecl> GATTServiceDeclRef;
 
 } // namespace direct_bt
 

@@ -244,7 +244,6 @@ public class ScannerTinyB01 {
                 System.exit(-1);
             }
 
-            if( false ) {
             synchronized( servicesResolvedNotification ) {
                 while( !servicesResolvedNotification.getValue() ) {
                     final long tn = BluetoothUtils.getCurrentMilliseconds();
@@ -267,11 +266,10 @@ public class ScannerTinyB01 {
             //adapter.stopDiscovery();
 
             final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
-            if (allBluetoothServices.isEmpty()) {
+            if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {
                 System.err.println("No BluetoothGattService found!");
-                System.exit(1);
-            }
-            printAllServiceInfo(allBluetoothServices);
+            } else {
+                printAllServiceInfo(allBluetoothServices);
             }
 
             sensor.disconnect();
