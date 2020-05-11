@@ -310,7 +310,6 @@ bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
     (void)interval;
     (void)window;
 
-    removeDiscoveredDevices();
     keepDiscoveringAlive = true;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
