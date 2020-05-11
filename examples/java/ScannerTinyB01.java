@@ -184,102 +184,106 @@ public class ScannerTinyB01 {
         });
 
         int loop = 0;
-        do {
-            loop++;
-            System.err.println("****** Loop "+loop);
+        try {
+            do {
+                loop++;
+                System.err.println("****** Loop "+loop);
 
-            final long t0 = BluetoothUtils.getCurrentMilliseconds();
+                final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-            final boolean discoveryStarted = adapter.startDiscovery();
+                final boolean discoveryStarted = adapter.startDiscovery();
 
-            System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode);
-            if( !discoveryStarted ) {
-                break;
-            }
-            BluetoothDevice sensor = null;
-
-            if( 0 == mode ) {
-                synchronized(matchingDiscoveredDeviceBucket) {
-                    while( null == matchingDiscoveredDeviceBucket[0] ) {
-                        matchingDiscoveredDeviceBucket.wait(TO_DISCOVER);
-                    }
-                    sensor = matchingDiscoveredDeviceBucket[0];
-                    matchingDiscoveredDeviceBucket[0] = null;
+                System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode);
+                if( !discoveryStarted ) {
+                    break;
                 }
-            } else if( 1 == mode ) {
-                sensor = adapter.find(null, mac, TO_DISCOVER);
-            } else {
-                boolean timeout = false;
-                while( null == sensor && !timeout ) {
-                    final List<BluetoothDevice> devices = adapter.getDevices();
-                    for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
-                        final BluetoothDevice d = id.next();
-                        if(d.getAddress().equals(mac)) {
-                            sensor = d;
-                            break;
+                BluetoothDevice sensor = null;
+
+                if( 0 == mode ) {
+                    synchronized(matchingDiscoveredDeviceBucket) {
+                        while( null == matchingDiscoveredDeviceBucket[0] ) {
+                            matchingDiscoveredDeviceBucket.wait(TO_DISCOVER);
                         }
+                        sensor = matchingDiscoveredDeviceBucket[0];
+                        matchingDiscoveredDeviceBucket[0] = null;
+                    }
+                } else if( 1 == mode ) {
+                    sensor = adapter.find(null, mac, TO_DISCOVER);
+                } else {
+                    boolean timeout = false;
+                    while( null == sensor && !timeout ) {
+                        final List<BluetoothDevice> devices = adapter.getDevices();
+                        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
+                            final BluetoothDevice d = id.next();
+                            if(d.getAddress().equals(mac)) {
+                                sensor = d;
+                                break;
+                            }
+                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            timeout = ( tn - t0 ) > TO_DISCOVER;
+                        }
+                    }
+                }
+                final long t1 = BluetoothUtils.getCurrentMilliseconds();
+                if (sensor == null) {
+                    System.err.println("No sensor found within "+(t1-t0)+" ms");
+                    System.exit(-1);
+                }
+                System.err.println("Found device in "+(t1-t0)+" ms: ");
+                printDevice(sensor);
+                adapter.stopDiscovery();
+
+                final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
+                final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
+                sensor.enableConnectedNotifications(connectedNotification);
+                sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
+
+                final long t2 = BluetoothUtils.getCurrentMilliseconds();
+                final long t3;
+                if ( sensor.connect() ) {
+                    t3 = BluetoothUtils.getCurrentMilliseconds();
+                    System.err.println("Sensor connected: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
+                    System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
+                } else {
+                    t3 = BluetoothUtils.getCurrentMilliseconds();
+                    System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
+                    System.exit(-1);
+                }
+
+                synchronized( servicesResolvedNotification ) {
+                    while( !servicesResolvedNotification.getValue() ) {
                         final long tn = BluetoothUtils.getCurrentMilliseconds();
-                        timeout = ( tn - t0 ) > TO_DISCOVER;
+                        if( tn - t3 > 20000 ) {
+                            break; // 20s TO
+                        }
+                        servicesResolvedNotification.wait();
                     }
                 }
-            }
-            final long t1 = BluetoothUtils.getCurrentMilliseconds();
-            if (sensor == null) {
-                System.err.println("No sensor found within "+(t1-t0)+" ms");
-                System.exit(-1);
-            }
-            System.err.println("Found device in "+(t1-t0)+" ms: ");
-            printDevice(sensor);
-            adapter.stopDiscovery();
-
-            final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
-            final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
-            sensor.enableConnectedNotifications(connectedNotification);
-            sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
-
-            final long t2 = BluetoothUtils.getCurrentMilliseconds();
-            final long t3;
-            if ( sensor.connect() ) {
-                t3 = BluetoothUtils.getCurrentMilliseconds();
-                System.err.println("Sensor connected: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
-            } else {
-                t3 = BluetoothUtils.getCurrentMilliseconds();
-                System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                System.exit(-1);
-            }
-
-            synchronized( servicesResolvedNotification ) {
-                while( !servicesResolvedNotification.getValue() ) {
-                    final long tn = BluetoothUtils.getCurrentMilliseconds();
-                    if( tn - t3 > 20000 ) {
-                        break; // 20s TO
-                    }
-                    servicesResolvedNotification.wait();
+                final long t4;
+                if ( servicesResolvedNotification.getValue() ) {
+                    t4 = BluetoothUtils.getCurrentMilliseconds();
+                    System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
+                } else {
+                    t4 = BluetoothUtils.getCurrentMilliseconds();
+                    System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
+                    System.exit(-1);
                 }
-            }
-            final long t4;
-            if ( servicesResolvedNotification.getValue() ) {
-                t4 = BluetoothUtils.getCurrentMilliseconds();
-                System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
-            } else {
-                t4 = BluetoothUtils.getCurrentMilliseconds();
-                System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
-                System.exit(-1);
-            }
 
-            final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
-            if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {
-                System.err.println("No BluetoothGattService found!");
-            } else {
-                printAllServiceInfo(allBluetoothServices);
-            }
+                final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
+                if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {
+                    System.err.println("No BluetoothGattService found!");
+                } else {
+                    printAllServiceInfo(allBluetoothServices);
+                }
 
-            sensor.disconnect();
-            sensor.remove();
-            System.err.println("ScannerTinyB01 04 ...: "+adapter);
-        } while( forever );
-        System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
+                sensor.disconnect();
+                sensor.remove();
+                System.err.println("ScannerTinyB01 04 ...: "+adapter);
+            } while( forever );
+        } catch (final Throwable t) {
+            System.err.println("Caught: "+t.getMessage());
+            t.printStackTrace();
+        }
 
         System.err.println("ScannerTinyB01 02 clear listener etc .. ");
         adapter.removeStatusListener(statusListener);
