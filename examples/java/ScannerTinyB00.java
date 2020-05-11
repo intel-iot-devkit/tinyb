@@ -172,6 +172,7 @@ public class ScannerTinyB00 {
             printAllServiceInfo(allBluetoothServices);
 
             sensor.disconnect();
+            sensor.remove();
         } while( forever );
     }
     private static void printDevice(final BluetoothDevice device) {

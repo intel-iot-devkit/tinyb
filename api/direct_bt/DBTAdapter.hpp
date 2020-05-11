@@ -80,11 +80,6 @@ namespace direct_bt {
 
             /**
              * Remove the {@link DBTDevice} from the list of connected devices.
-             * <p>
-             * Throws an InternalError if the given device was not added to the list of connected devices.
-             * Comparison is done by DBTDevice's address.
-             * This ensures runtime consistency regarding overall DBTDevice reference tracking.
-             * </p>
              */
             void disconnected(const DBTDevice & device);
 

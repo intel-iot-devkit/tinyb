@@ -70,6 +70,7 @@ void HCISession::connected(const std::shared_ptr<DBTDevice> & device) {
         }
     }
     connectedDevices.push_back(device);
+    DBG_PRINT("HCISession::connected: Device connected: %s", device->toString().c_str());
 }
 
 void HCISession::disconnected(const DBTDevice & device) {
@@ -77,12 +78,13 @@ void HCISession::disconnected(const DBTDevice & device) {
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( &device == (*it).get() ) { // compare actual device address
             it = connectedDevices.erase(it);
+            DBG_PRINT("HCISession::disconnected: Device disconnected: %s", device.toString().c_str());
             return;
         } else {
             ++it;
         }
     }
-    throw InternalError("Device not connected: "+device.toString(), E_FILE_LINE);
+    DBG_PRINT("HCISession::disconnected: Device not connected: %s", device.toString().c_str());
 }
 
 int HCISession::disconnectAllDevices(const uint8_t reason) {

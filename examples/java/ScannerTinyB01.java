@@ -183,7 +183,11 @@ public class ScannerTinyB01 {
             }
         });
 
+        int loop = 0;
         do {
+            loop++;
+            System.err.println("****** Loop "+loop);
+
             final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
             final boolean discoveryStarted = adapter.startDiscovery();
@@ -200,6 +204,7 @@ public class ScannerTinyB01 {
                         matchingDiscoveredDeviceBucket.wait(TO_DISCOVER);
                     }
                     sensor = matchingDiscoveredDeviceBucket[0];
+                    matchingDiscoveredDeviceBucket[0] = null;
                 }
             } else if( 1 == mode ) {
                 sensor = adapter.find(null, mac, TO_DISCOVER);
@@ -271,10 +276,10 @@ public class ScannerTinyB01 {
             }
 
             sensor.disconnect();
+            sensor.remove();
             System.err.println("ScannerTinyB01 04 ...: "+adapter);
         } while( forever );
         System.err.println("ScannerTinyB01 01 stopDiscovery: "+adapter);
-        adapter.stopDiscovery();
 
         System.err.println("ScannerTinyB01 02 clear listener etc .. ");
         adapter.removeStatusListener(statusListener);
