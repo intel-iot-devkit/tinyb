@@ -324,7 +324,7 @@ GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHan
     return findCharacterisics(charHandle, services);
 }
 
-GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHandle, std::vector<GATTPrimaryServiceRef> &services) {
+GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceDeclRef> &services) {
     for(auto it = services.begin(); it != services.end(); it++) {
         GATTCharacterisicsDeclRef decl = findCharacterisics(charHandle, *it);
         if( nullptr != decl ) {
@@ -334,7 +334,7 @@ GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHan
     return nullptr;
 }
 
-GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHandle, GATTPrimaryServiceRef service) {
+GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHandle, GATTServiceDeclRef service) {
     for(auto it = service->characteristicDeclList.begin(); it != service->characteristicDeclList.end(); it++) {
         GATTCharacterisicsDeclRef decl = *it;
         if( charHandle == decl->handle ) {
@@ -344,12 +344,12 @@ GATTCharacterisicsDeclRef GATTHandler::findCharacterisics(const uint16_t charHan
     return nullptr;
 }
 
-std::vector<GATTPrimaryServiceRef> & GATTHandler::discoverCompletePrimaryServices() {
+std::vector<GATTServiceDeclRef> & GATTHandler::discoverCompletePrimaryServices() {
     if( !discoverPrimaryServices(services) ) {
         return services;
     }
     for(auto it = services.begin(); it != services.end(); it++) {
-        GATTPrimaryServiceRef primSrv = *it;
+        GATTServiceDeclRef primSrv = *it;
         if( discoverCharacteristics(primSrv) ) {
             discoverClientCharacteristicConfig(primSrv);
         }
@@ -357,7 +357,7 @@ std::vector<GATTPrimaryServiceRef> & GATTHandler::discoverCompletePrimaryService
     return services;
 }
 
-bool GATTHandler::discoverPrimaryServices(std::vector<GATTPrimaryServiceRef> & result) {
+bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceDeclRef> & result) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
      *
@@ -386,7 +386,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTPrimaryServiceRef> & r
                 for(int i=0; i<count; i++) {
                     const int ePDUOffset = p->getElementPDUOffset(i);
                     const int esz = p->getElementTotalSize();
-                    result.push_back( GATTPrimaryServiceRef( new GATTPrimaryService( GATTUUIDHandleRange(
+                    result.push_back( GATTServiceDeclRef( new GATTServiceDecl( GATTUUIDHandleRange(
                     	GATTUUIDHandleRange::Type::Service,
                         p->pdu.get_uint16(ePDUOffset), // start-handle
                         p->pdu.get_uint16(ePDUOffset + 2), // end-handle
@@ -415,7 +415,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTPrimaryServiceRef> & r
     return result.size() > 0;
 }
 
-bool GATTHandler::discoverCharacteristics(GATTPrimaryServiceRef service) {
+bool GATTHandler::discoverCharacteristics(GATTServiceDeclRef service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      * <p>
@@ -481,7 +481,7 @@ bool GATTHandler::discoverCharacteristics(GATTPrimaryServiceRef service) {
     return service->characteristicDeclList.size() > 0;
 }
 
-bool GATTHandler::discoverClientCharacteristicConfig(GATTPrimaryServiceRef service) {
+bool GATTHandler::discoverClientCharacteristicConfig(GATTServiceDeclRef service) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      * <p>
@@ -806,7 +806,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
     return res;
 }
 
-std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTPrimaryServiceRef> & primServices) {
+std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTServiceDeclRef> & primServices) {
 	std::shared_ptr<GenericAccess> res = nullptr;
 	for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
 		res = getGenericAccess(primServices.at(i)->characteristicDeclList);
@@ -885,7 +885,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
     return res;
 }
 
-std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTPrimaryServiceRef> & primServices) {
+std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTServiceDeclRef> & primServices) {
     std::shared_ptr<DeviceInformation> res = nullptr;
     for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
         res = getDeviceInformation(primServices.at(i)->characteristicDeclList);

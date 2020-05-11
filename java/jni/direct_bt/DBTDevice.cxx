@@ -100,7 +100,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
         std::shared_ptr<GATTHandler> gatt = device->connectGATT();
         if( nullptr != gatt ) {
             // FIXME: Split up - may offload to other thread
-            std::vector<GATTPrimaryServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
+            std::vector<GATTServiceDeclRef> & primServices = gatt->discoverCompletePrimaryServices();
 
             std::shared_ptr<GenericAccess> ga = gatt->getGenericAccess(primServices);
             if( nullptr != ga ) {

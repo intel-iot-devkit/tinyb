@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                         
                 std::vector<std::vector<GATTUUIDHandle>> servicesCharacteristicDescriptors;
 #endif                        
-                std::vector<GATTPrimaryServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
+                std::vector<GATTServiceDeclRef> & primServices = gatt->discoverCompletePrimaryServices();
                 const uint64_t t5 = direct_bt::getCurrentMilliseconds();
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                        
                 for(size_t i=0; i<primServices.size(); i++) {
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
                 }
 
                 for(size_t i=0; i<primServices.size() && gatt->isOpen(); i++) {
-                    GATTPrimaryService & primService = *primServices.at(i);
+                    GATTServiceDecl & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
                     std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;

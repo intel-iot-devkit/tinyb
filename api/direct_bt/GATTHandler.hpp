@@ -54,8 +54,6 @@ namespace direct_bt {
 
     class DBTDevice; // forward
 
-    typedef std::shared_ptr<GATTCharacterisicsDecl> GATTCharacterisicsDeclRef;
-
     class GATTNotificationListener {
         public:
             virtual void notificationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacterisicsDeclRef charDecl,
@@ -68,39 +66,6 @@ namespace direct_bt {
                                             std::shared_ptr<const AttHandleValueRcv> charValue, const bool confirmationSent) = 0;
             virtual ~GATTIndicationListener() {}
     };
-
-    /**
-     * Representing a complete Primary Service Declaration
-     * including its list of Characteristic Declarations,
-     * which also may include its client config if available.
-     */
-    class GATTPrimaryService {
-        public:
-            /** The primary service declaration itself */
-            const GATTUUIDHandleRange declaration;
-            /** List of Characteristic Declarations as shared reference */
-            std::vector<GATTCharacterisicsDeclRef> characteristicDeclList;
-
-            GATTPrimaryService(const GATTUUIDHandleRange serviceDecl)
-            : declaration(serviceDecl), characteristicDeclList() {
-                characteristicDeclList.reserve(10);
-            }
-
-            std::string toString() const {
-                std::string res = declaration.toString()+"[ ";
-                for(size_t i=0; i<characteristicDeclList.size(); i++) {
-                    if( 0 < i ) {
-                        res += ", ";
-                    }
-                    res += std::to_string(i)+"[ "+characteristicDeclList.at(i)->toString()+" ]";
-                }
-                res += " ]";
-                return res;
-            }
-    };
-
-    typedef std::shared_ptr<GATTPrimaryService> GATTPrimaryServiceRef;
-
 
     /**
      * A thread safe GATT handler.
@@ -155,7 +120,7 @@ namespace direct_bt {
 
             uint16_t serverMTU;
             uint16_t usedMTU;
-            std::vector<GATTPrimaryServiceRef> services;
+            std::vector<GATTServiceDeclRef> services;
 
             State validateState();
 
@@ -224,7 +189,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, std::vector<GATTPrimaryServiceRef> &services);
+            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceDeclRef> &services);
 
             /**
              * Find and return the GATTCharacterisicsDecl within given primary service
@@ -233,7 +198,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, GATTPrimaryServiceRef service);
+            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, GATTServiceDeclRef service);
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -243,7 +208,7 @@ namespace direct_bt {
              * </p>
              * Method returns reference to GATTHandler internal data.
              */
-            std::vector<GATTPrimaryServiceRef> & discoverCompletePrimaryServices();
+            std::vector<GATTServiceDeclRef> & discoverCompletePrimaryServices();
 
             /**
              * Discover all primary services _only_.
@@ -251,7 +216,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
              * </p>
              */
-            bool discoverPrimaryServices(std::vector<GATTPrimaryServiceRef> & result);
+            bool discoverPrimaryServices(std::vector<GATTServiceDeclRef> & result);
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -262,7 +227,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characterisic Declaration Attribute Value
              * </p>
              */
-            bool discoverCharacteristics(GATTPrimaryServiceRef service);
+            bool discoverCharacteristics(GATTServiceDeclRef service);
 
             /**
              * Discover all client characteristics config declaration _only_.
@@ -270,7 +235,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool discoverClientCharacteristicConfig(GATTPrimaryServiceRef service);
+            bool discoverClientCharacteristicConfig(GATTServiceDeclRef service);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
@@ -345,10 +310,10 @@ namespace direct_bt {
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTPrimaryServiceRef> & primServices);
+            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTServiceDeclRef> & primServices);
             std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTCharacterisicsDeclRef> & genericAccessCharDeclList);
 
-            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTPrimaryServiceRef> & primServices);
+            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTServiceDeclRef> & primServices);
             std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTCharacterisicsDeclRef> & deviceInfoCharDeclList);
 
             /**
