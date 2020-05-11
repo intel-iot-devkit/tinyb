@@ -262,8 +262,6 @@ public class ScannerTinyB01 {
                 System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                 System.exit(-1);
             }
-            // Will shut down everything .. ??
-            //adapter.stopDiscovery();
 
             final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
             if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {

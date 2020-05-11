@@ -163,8 +163,6 @@ public class ScannerTinyB00 {
                 System.out.println("Could not connect device.");
                 System.exit(-1);
             }
-            // Will shut down everything .. ??
-            //adapter.stopDiscovery();
 
             final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
             if (allBluetoothServices.isEmpty()) {
