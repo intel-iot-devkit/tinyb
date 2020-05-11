@@ -116,7 +116,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     /**
      * Special proxy of {@link DBTAdapter#addStatusListener(AdapterStatusListener)}
-     * to be used from out constructor called via native deviceFound callback!
+     * to be used from the constructor called via native
+     * {@link AdapterStatusListener#deviceFound(BluetoothAdapter, BluetoothDevice, long)} callback.
      * <p>
      * FIXME: Without this proxy hook, we end up in a crash within the addStatusListener(..).
      * FIXME: Analyze reason! Triage!

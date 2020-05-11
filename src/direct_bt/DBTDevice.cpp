@@ -36,7 +36,9 @@
 #include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
-#include "DBTTypes.hpp"
+
+#include "DBTDevice.hpp"
+#include "DBTAdapter.hpp"
 
 using namespace direct_bt;
 

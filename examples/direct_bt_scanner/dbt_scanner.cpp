@@ -23,11 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <direct_bt/BTAddress.hpp>
-#include <direct_bt/ATTPDUTypes.hpp>
-#include <direct_bt/GATTHandler.hpp>
-#include <direct_bt/GATTNumbers.hpp>
-#include <direct_bt/DBTTypes.hpp>
+#include <direct_bt/DirectBT.hpp>
 #include <cinttypes>
 
 extern "C" {

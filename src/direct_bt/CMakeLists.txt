@@ -18,6 +18,7 @@ set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/L2CAPComm.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/MgmtTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTManager.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTAdapter.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTDevice.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/ATTPDUTypes.cpp

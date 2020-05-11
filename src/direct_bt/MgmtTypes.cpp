@@ -57,54 +57,6 @@ using namespace direct_bt;
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-#define SETTING_ENUM(X) \
-    X(AdapterSetting,NONE) \
-    X(AdapterSetting,POWERED) \
-    X(AdapterSetting,CONNECTABLE) \
-    X(AdapterSetting,FAST_CONNECTABLE) \
-    X(AdapterSetting,DISCOVERABLE) \
-    X(AdapterSetting,BONDABLE) \
-    X(AdapterSetting,LINK_SECURITY) \
-    X(AdapterSetting,SSP) \
-    X(AdapterSetting,BREDR) \
-    X(AdapterSetting,HS) \
-    X(AdapterSetting,LE) \
-    X(AdapterSetting,ADVERTISING) \
-    X(AdapterSetting,SECURE_CONN) \
-    X(AdapterSetting,DEBUG_KEYS) \
-    X(AdapterSetting,PRIVACY) \
-    X(AdapterSetting,CONFIGURATION) \
-    X(AdapterSetting,STATIC_ADDRESS) \
-    X(AdapterSetting,PHY_CONFIGURATION)
-
-std::string direct_bt::adapterSettingBitToString(const AdapterSetting settingBit) {
-    switch(settingBit) {
-        SETTING_ENUM(CASE2_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown Setting Bit";
-}
-
-std::string direct_bt::adapterSettingsToString(const AdapterSetting settingMask) {
-    const uint32_t one = 1;
-    bool has_pre = false;
-    std::string out("[");
-    for(int i=0; i<32; i++) {
-        const AdapterSetting settingBit = static_cast<AdapterSetting>( one << i );
-        if( AdapterSetting::NONE != ( settingMask & settingBit ) ) {
-            if( has_pre ) { out.append(", "); }
-            out.append(adapterSettingBitToString(settingBit));
-            has_pre = true;
-        }
-    }
-    out.append("]");
-    return out;
-}
-
-// *************************************************
-// *************************************************
-// *************************************************
-
 #define STATUS_ENUM(X) \
     X(SUCCESS) \
     X(UNKNOWN_COMMAND) \
@@ -312,4 +264,67 @@ MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_si
         default:
             return new MgmtEvent(buffer, buffer_size);
     }
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
+std::shared_ptr<ConnectionInfo> MgmtEvtCmdComplete::toConnectionInfo() const {
+    if( MgmtOpcode::GET_CONN_INFO != getReqOpcode() ) {
+        ERR_PRINT("Not a GET_CONN_INFO reply: %s", toString().c_str());
+        return nullptr;
+    }
+    if( MgmtStatus::SUCCESS != getStatus() ) {
+        ERR_PRINT("No Success: %s", toString().c_str());
+        return nullptr;
+    }
+    const int min_size = ConnectionInfo::minimumDataSize();
+    if( getDataSize() <  min_size ) {
+        ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
+        return nullptr;
+    }
+
+    const uint8_t *data = getData();
+    EUI48 address = EUI48( data );
+    BDAddressType addressType = static_cast<BDAddressType>( direct_bt::get_uint8(data, 6) );
+    int8_t rssi = direct_bt::get_int8(data, 7);
+    int8_t tx_power = direct_bt::get_int8(data, 8);
+    int8_t max_tx_power = direct_bt::get_int8(data, 9);
+    return std::shared_ptr<ConnectionInfo>(new ConnectionInfo(address, addressType, rssi, tx_power, max_tx_power) );
+}
+
+std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const {
+    if( MgmtOpcode::SET_LOCAL_NAME != getReqOpcode() ) {
+        ERR_PRINT("Not a SET_LOCAL_NAME reply: %s", toString().c_str());
+        return nullptr;
+    }
+    if( MgmtStatus::SUCCESS != getStatus() ) {
+        ERR_PRINT("No Success: %s", toString().c_str());
+        return nullptr;
+    }
+    const int min_size = MgmtEvtLocalNameChanged::namesDataSize();
+    if( getDataSize() <  min_size ) {
+        ERR_PRINT("Data size < %d: %s", min_size, toString().c_str());
+        return nullptr;
+    }
+
+
+    const uint8_t *data = getData();
+    std::string name = std::string( (const char*) ( data ) );
+    std::string short_name = std::string( (const char*) ( data + MgmtConstU16::MAX_NAME_LENGTH ) );
+
+    return std::shared_ptr<NameAndShortName>(new NameAndShortName(name, short_name) );
+}
+
+std::shared_ptr<NameAndShortName> MgmtEvtLocalNameChanged::toNameAndShortName() const {
+    return std::shared_ptr<NameAndShortName>(new NameAndShortName(getName(), getShortName()) );
+}
+
+std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const {
+    return std::shared_ptr<AdapterInfo>(new AdapterInfo(
+            getDevID(), getAddress(), getVersion(),
+            getManufacturer(), getSupportedSetting(),
+            getCurrentSetting(), getDevClass(),
+            getName(), getShortName()) );
 }

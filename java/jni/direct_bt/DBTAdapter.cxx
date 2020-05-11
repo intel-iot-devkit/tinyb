@@ -32,7 +32,7 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-#include "direct_bt/DBTTypes.hpp"
+#include "direct_bt/DBTAdapter.hpp"
 
 using namespace direct_bt;
 

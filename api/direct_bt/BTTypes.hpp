@@ -38,6 +38,12 @@
 
 namespace direct_bt {
 
+    enum BTMode : uint8_t {
+        BT_MODE_DUAL        = 1,
+        BT_MODE_BREDR       = 2,
+        BT_MODE_LE          = 3
+    };
+
     enum AD_Type_Const : uint8_t {
         AD_FLAGS_LIMITED_MODE_BIT = 0x01,
         AD_FLAGS_GENERAL_MODE_BIT = 0x02

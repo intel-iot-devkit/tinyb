@@ -35,11 +35,13 @@
 #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
+#include "BasicAlgos.hpp"
+
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 #include "HCIComm.hpp"
-#include "DBTTypes.hpp"
-#include "BasicAlgos.hpp"
+
+#include "DBTAdapter.hpp"
 
 extern "C" {
     #include <inttypes.h>

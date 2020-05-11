@@ -38,7 +38,7 @@
 
 #include "HCIComm.hpp"
 #include "L2CAPComm.hpp"
-#include "DBTTypes.hpp"
+#include "DBTAdapter.hpp"
 
 extern "C" {
     #include <unistd.h>

@@ -188,7 +188,8 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredSize(), res->toString().c_str());
             goto fail;
         }
-        adapterInfo = std::shared_ptr<AdapterInfo>( new AdapterInfo( *static_cast<MgmtEvtAdapterInfo*>(res.get()) ) );
+        const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
+        adapterInfo = res1->toAdapterInfo();
         if( dev_id != adapterInfo->dev_id ) {
             throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
         }
@@ -562,12 +563,7 @@ std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, 
     if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            const int min_size = ConnectionInfo::minimumDataSize();
-            if( res1.getDataSize() <  min_size ) {
-                ERR_PRINT("Data size < %d: %s", min_size, res1.toString().c_str());
-                return nullptr;
-            }
-            std::shared_ptr<ConnectionInfo> result(new ConnectionInfo(res1));
+            std::shared_ptr<ConnectionInfo> result = res1.toConnectionInfo();
             return result;
         }
     }
@@ -586,12 +582,8 @@ std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, con
     if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            const int min_size = NameAndShortName::minimumDataSize();
-            if( res1.getDataSize() <  min_size ) {
-                ERR_PRINT("Data size < %d: %s", min_size, res1.toString().c_str());
-                return nullptr;
-            }
-            std::shared_ptr<NameAndShortName> result(new NameAndShortName(res1));
+            std::shared_ptr<NameAndShortName> result = res1.toNameAndShortName();
+
             // explicit LocalNameChanged event
             MgmtEvtLocalNameChanged * e = new MgmtEvtLocalNameChanged(dev_id, result->getName(), result->getShortName());
             sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));

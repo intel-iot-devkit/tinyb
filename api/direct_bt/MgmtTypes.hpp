@@ -37,6 +37,8 @@
 #include "OctetTypes.hpp"
 #include "HCIComm.hpp"
 
+#include "DBTTypes.hpp"
+
 namespace direct_bt {
 
     class MgmtException : public RuntimeException {
@@ -55,12 +57,6 @@ namespace direct_bt {
             : MgmtException("MgmtOpcodeException", m, file, line) {}
     };
 
-    enum BTMode : uint8_t {
-        BT_MODE_DUAL        = 1,
-        BT_MODE_BREDR       = 2,
-        BT_MODE_LE          = 3
-    };
-
     enum MgmtConstU16 : uint16_t {
         INDEX_NONE          = 0xFFFF,
         /* Net length, guaranteed to be null-terminated */
@@ -68,45 +64,6 @@ namespace direct_bt {
         MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
-    enum class AdapterSetting : uint32_t {
-        NONE               =          0,
-        POWERED            = 0x00000001,
-        CONNECTABLE        = 0x00000002,
-        FAST_CONNECTABLE   = 0x00000004,
-        DISCOVERABLE       = 0x00000008,
-        BONDABLE           = 0x00000010,
-        LINK_SECURITY      = 0x00000020,
-        SSP                = 0x00000040,
-        BREDR              = 0x00000080,
-        HS                 = 0x00000100,
-        LE                 = 0x00000200,
-        ADVERTISING        = 0x00000400,
-        SECURE_CONN        = 0x00000800,
-        DEBUG_KEYS         = 0x00001000,
-        PRIVACY            = 0x00002000,
-        CONFIGURATION      = 0x00004000,
-        STATIC_ADDRESS     = 0x00008000,
-        PHY_CONFIGURATION  = 0x00010000
-    };
-    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
-    }
-    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
-    }
-    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) {
-        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
-    }
-    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) {
-        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
-    }
-    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) {
-        return !( lhs == rhs );
-    }
-    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) { return AdapterSetting::NONE != ( mask & bit ); }
-    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) { mask = mask | bit; }
-    std::string adapterSettingBitToString(const AdapterSetting settingBit);
-    std::string adapterSettingsToString(const AdapterSetting settingBitMask);
 
     enum MgmtConst : int {
         MGMT_HEADER_SIZE       = 6
@@ -535,6 +492,20 @@ namespace direct_bt {
             bool validate(const MgmtCommand &req) const override {
                 return MgmtEvent::validate(req) && req.getOpcode() == getReqOpcode();
             }
+
+            /**
+             * Convert this instance into ConnectionInfo
+             * if getReqOpcode() == GET_CONN_INFO, getStatus() == SUCCESS and size allows,
+             * otherwise returns nullptr.
+             */
+            std::shared_ptr<ConnectionInfo> toConnectionInfo() const;
+
+            /**
+             * Convert this instance into ConnectionInfo
+             * if getReqOpcode() == SET_LOCAL_NAME, getStatus() == SUCCESS and size allows,
+             * otherwise returns nullptr.
+             */
+            std::shared_ptr<NameAndShortName> toNameAndShortName() const;
     };
 
     class MgmtEvtCmdStatus : public MgmtEvent
@@ -925,7 +896,8 @@ namespace direct_bt {
             }
 
         public:
-            static int getRequiredSize() { return MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+            static int namesDataSize() { return MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+            static int getRequiredSize() { return MGMT_HEADER_SIZE + namesDataSize(); }
 
             MgmtEvtLocalNameChanged(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
@@ -942,108 +914,9 @@ namespace direct_bt {
 
             const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
             const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
+
+            std::shared_ptr<NameAndShortName> toNameAndShortName() const;
     };
-
-    /**
-     * mgmt_addr_info { EUI48, uint8_t type },
-     * int8_t rssi,
-     * int8_t tx_power,
-     * int8_t max_tx_power;
-     */
-    class ConnectionInfo
-    {
-        private:
-            EUI48 address;
-            BDAddressType addressType;
-            int8_t rssi;
-            int8_t tx_power;
-            int8_t max_tx_power;
-
-        public:
-            static int minimumDataSize() { return 6 + 1 + 1 + 1 + 1; }
-
-            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power)
-            : address(address), addressType(addressType), rssi(rssi), tx_power(tx_power), max_tx_power(max_tx_power) {}
-
-            ConnectionInfo(const MgmtEvtCmdComplete & evt)
-            {
-                if( MgmtStatus::SUCCESS != evt.getStatus() ) {
-                    throw IllegalArgumentException("Event state: "+evt.toString(), E_FILE_LINE);
-                }
-                const int min_size = minimumDataSize();
-                if( evt.getDataSize() <  min_size ) {
-                    throw IllegalArgumentException("Data size < "+std::to_string(min_size)+": "+evt.toString(), E_FILE_LINE);
-                }
-                address = EUI48( evt.getData() );
-                addressType = static_cast<BDAddressType>( direct_bt::get_uint8(evt.getData(), 6) );
-                rssi = direct_bt::get_int8(evt.getData(), 7);
-                tx_power = direct_bt::get_int8(evt.getData(), 8);
-                max_tx_power = direct_bt::get_int8(evt.getData(), 9);
-            }
-
-            const EUI48 getAddress() const { return address; }
-            BDAddressType getAddressType() const { return addressType; }
-            int8_t getRSSI() const { return rssi; }
-            int8_t getTxPower() const { return tx_power; }
-            int8_t getMaxTxPower() const { return max_tx_power; }
-
-            std::string toString() const {
-                return "address="+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", rssi "+std::to_string(rssi)+
-                       ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
-            }
-    };
-
-    class DBTManager; // forward
-    class DBTAdapter; // forward
-
-    class NameAndShortName
-    {
-        friend class DBTManager; // top manager
-        friend class DBTAdapter; // direct manager
-
-        private:
-            std::string name;
-            std::string short_name;
-
-        protected:
-            void setName(const std::string v) { name = v; }
-            void setShortName(const std::string v) { short_name = v; }
-
-        public:
-            static int minimumDataSize() { return MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
-
-            NameAndShortName()
-            : name(), short_name() {}
-
-            NameAndShortName(const std::string & name, const std::string & short_name)
-            : name(name), short_name(short_name) {}
-
-            NameAndShortName(const MgmtEvtLocalNameChanged & evt)
-            : name(evt.getName()), short_name(evt.getShortName()) {}
-
-            NameAndShortName(const MgmtEvtCmdComplete & evt)
-            {
-                if( MgmtStatus::SUCCESS != evt.getStatus() ) {
-                    throw IllegalArgumentException("Event state: "+evt.toString(), E_FILE_LINE);
-                }
-                const int min_size = minimumDataSize();
-                if( evt.getDataSize() <  min_size ) {
-                    throw IllegalArgumentException("Data size < "+std::to_string(min_size)+": "+evt.toString(), E_FILE_LINE);
-                }
-                name = std::string( (const char*) ( evt.getData() ) );
-                short_name = std::string( (const char*) ( evt.getData() + MgmtConstU16::MAX_NAME_LENGTH ) );
-            }
-
-            std::string getName() const { return name; }
-            std::string getShortName() const { return short_name; }
-
-            std::string toString() const {
-                return "name '"+getName()+"', shortName '"+getShortName()+"'";
-            }
-    };
-
-
 
     class MgmtEvtAdapterInfo : public MgmtEvtCmdComplete
     {
@@ -1074,65 +947,9 @@ namespace direct_bt {
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
             std::string getName() const { return pdu.get_string(getDataOffset()+20); }
             std::string getShortName() const { return pdu.get_string(getDataOffset()+20+MgmtConstU16::MAX_NAME_LENGTH); }
-    };
 
-    /** Immutable persistent adapter info */
-    class AdapterInfo
-    {
-        friend class DBTManager; // top manager
-        friend class DBTAdapter; // direct manager
+            std::shared_ptr<AdapterInfo> toAdapterInfo() const;
 
-        public:
-            const int dev_id;
-            const EUI48 address;
-            const uint8_t version;
-            const uint16_t manufacturer;
-            const AdapterSetting supported_setting;
-
-        private:
-            AdapterSetting current_setting;
-            uint32_t dev_class;
-            std::string name;
-            std::string short_name;
-
-            /**
-             * Sets the current_setting and returns the changed MgmtSetting bit-mask.
-             */
-            AdapterSetting setCurrentSetting(AdapterSetting new_setting) {
-                new_setting = new_setting & supported_setting;
-                AdapterSetting changes = new_setting ^ current_setting;
-
-                if( AdapterSetting::NONE != changes ) {
-                    current_setting = new_setting;
-                }
-                return changes;
-            }
-            void setDevClass(const uint32_t v) { dev_class = v; }
-            void setName(const std::string v) { name = v; }
-            void setShortName(const std::string v) { short_name = v; }
-
-        public:
-            AdapterInfo(const MgmtEvtAdapterInfo &s)
-            : dev_id(s.getDevID()), address(s.getAddress()), version(s.getVersion()),
-              manufacturer(s.getManufacturer()), supported_setting(s.getSupportedSetting()),
-              current_setting(s.getCurrentSetting()), dev_class(s.getDevClass()),
-              name(s.getName()), short_name(s.getShortName())
-            { }
-
-            bool isSettingSupported(const AdapterSetting setting) const {
-                return setting == ( setting & supported_setting );
-            }
-            AdapterSetting getCurrentSetting() const { return current_setting; }
-            uint32_t getDevClass() const { return dev_class; }
-            std::string getName() const { return name; }
-            std::string getShortName() const { return short_name; }
-
-            std::string toString() const {
-                return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
-                        ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+adapterSettingsToString(supported_setting)+", cur "+adapterSettingsToString(current_setting)+
-                        "], name '"+name+"', shortName '"+short_name+"']";
-            }
     };
 
 } // namespace direct_bt

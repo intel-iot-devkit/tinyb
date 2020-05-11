@@ -26,21 +26,13 @@
 #ifndef DBT_TYPES_HPP_
 #define DBT_TYPES_HPP_
 
-#include <cstring>
-#include <string>
-#include <memory>
-#include <cstdint>
-#include <vector>
-
 #include <mutex>
 #include <atomic>
 
 #include "UUID.hpp"
 #include "BTAddress.hpp"
 #include "BTTypes.hpp"
-#include "HCIComm.hpp"
-#include "DBTManager.hpp"
-#include "GATTHandler.hpp"
+
 #include "JavaUplink.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
@@ -48,107 +40,8 @@
 
 namespace direct_bt {
 
-    // *************************************************
-    // *************************************************
-    // *************************************************
-
     class DBTAdapter; // forward
     class DBTDevice; // forward
-
-    /**
-     * A HCI session, using an underlying {@link HCIComm} instance,
-     * tracking all open connections.
-     * <p>
-     * At destruction, all remaining connections will be closed.
-     * </p>
-     */
-    class HCISession
-    {
-        friend class DBTAdapter; // top manager: adapter open/close
-        friend class DBTDevice;  // local device manager: device connect/disconnect
-
-        private:
-            static std::atomic_int name_counter;
-            DBTAdapter * adapter;
-            HCIComm hciComm;
-            std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
-            std::recursive_mutex mtx_connectedDevices;
-
-            /** Opens a new HCI session on the given BT dev_id and HCI channel. */
-            HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS);
-
-            /**
-             * Add the new {@link DBTDevice} to the list of connected devices, if not already present.
-             * <p>
-             * Returns true if the given device is newly connected and has been added to the list of connected devices,
-             * otherwise false.
-             * </p>
-             */
-            bool connected(std::shared_ptr<DBTDevice> & device);
-
-            /**
-             * Remove the {@link DBTDevice} from the list of connected devices.
-             * <p>
-             * Returns true if the given device is an element of the list of connected devices and has been removed,
-             * otherwise false.
-             * </p>
-             */
-            bool disconnected(std::shared_ptr<DBTDevice> & device);
-
-            /**
-             * Issues {@link #disconnectAllDevices()} and closes the underlying HCI session.
-             * <p>
-             * This shutdown hook is solely intended for adapter's destructor.
-             * </p>
-             */
-            void shutdown();
-
-        public:
-            const int name;
-
-            /**
-             * Releases this instance after {@link #close()}.
-             */
-            ~HCISession();
-
-            /** Return connected {@link DBTDevice}s. */
-            std::vector<std::shared_ptr<DBTDevice>> getConnectedDevices() { return connectedDevices; }
-
-            /** Disconnect all connected devices. Returns number of removed discovered devices. */
-            int disconnectAllDevices(const uint8_t reason=0);
-
-            /** Returns connected DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
-
-            /**
-             * Closes this instance by {@link #disconnectAllLEDevices()}
-             * and closing the underlying HCI session.
-             */
-            bool close();
-
-            bool isOpen() const { return hciComm.isOpen(); }
-
-            /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
-            int dd() const { return hciComm.dd(); }
-            /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
-            std::recursive_mutex & mutex() { return hciComm.mutex(); }
-
-            std::string toString() const;
-    };
-
-    inline bool operator<(const HCISession& lhs, const HCISession& rhs)
-    { return lhs.name < rhs.name; }
-
-    inline bool operator==(const HCISession& lhs, const HCISession& rhs)
-    { return lhs.name == rhs.name; }
-
-    inline bool operator!=(const HCISession& lhs, const HCISession& rhs)
-    { return !(lhs == rhs); }
-
-
-    // *************************************************
-    // *************************************************
-    // *************************************************
 
     class DBTObject : public JavaUplink
     {
@@ -175,435 +68,167 @@ namespace direct_bt {
             bool isValid() { return valid; }
     };
 
-    // *************************************************
-    // *************************************************
-    // *************************************************
-
-    class DBTAdapterStatusListener {
-        public:
-            virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
-                                                const AdapterSetting changedmask, const uint64_t timestamp) = 0;
-            virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
-            virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual ~DBTAdapterStatusListener() {}
-
-            /**
-             * Default comparison operator, merely testing for same memory reference.
-             * <p>
-             * Specializations may override.
-             * </p>
-             */
-            virtual bool operator==(const DBTAdapterStatusListener& rhs) const
-            { return this == &rhs; }
-
-            bool operator!=(const DBTAdapterStatusListener& rhs) const
-            { return !(*this == rhs); }
-    };
-
-    class DBTDevice : public DBTObject
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * int8_t rssi,
+     * int8_t tx_power,
+     * int8_t max_tx_power;
+     */
+    class ConnectionInfo
     {
-        friend DBTAdapter; // managing us: ctor and update(..) during discovery
-
         private:
-            static const int to_connect_ms = 5000;
-
-            DBTAdapter & adapter;
-            uint64_t ts_update;
-            std::string name;
-            int8_t rssi = 0;
-            int8_t tx_power = 0;
-            uint16_t appearance = 0;
-            uint16_t connHandle = 0;
-            std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-            std::vector<std::shared_ptr<uuid_t>> services;
-            std::shared_ptr<GATTHandler> gattHandler = nullptr;
-            std::recursive_mutex mtx_gatt;
-
-            DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
-
-            bool addService(std::shared_ptr<uuid_t> const &uuid);
-            bool addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
-
-            EIRDataType update(EInfoReport const & data);
+            EUI48 address;
+            BDAddressType addressType;
+            int8_t rssi;
+            int8_t tx_power;
+            int8_t max_tx_power;
 
         public:
-            const uint64_t ts_creation;
-            /** Device mac address */
-            const EUI48 address;
-            const BDAddressType addressType;
+            static int minimumDataSize() { return 6 + 1 + 1 + 1 + 1; }
 
-            /**
-             * Releases this instance after {@link #le_disconnect()}.
-             */
-            ~DBTDevice();
+            ConnectionInfo(const EUI48 &address, BDAddressType addressType, int8_t rssi, int8_t tx_power, int8_t max_tx_power)
+            : address(address), addressType(addressType), rssi(rssi), tx_power(tx_power), max_tx_power(max_tx_power) {}
 
-            std::string get_java_class() const override {
-                return java_class();
-            }
-            static std::string java_class() {
-                return std::string(JAVA_DBT_PACKAGE "DBTDevice");
-            }
-
-            /** Returns the managing adapter */
-            DBTAdapter const & getAdapter() const { return adapter; }
-
-            /** Returns the shares reference of this instance, managed by the adapter */
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
-
-            uint64_t getCreationTimestamp() const { return ts_creation; }
-            uint64_t getUpdateTimestamp() const { return ts_update; }
-            uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
-
-            EUI48 const & getAddress() const { return address; }
-            std::string getAddressString() const { return address.toString(); }
+            const EUI48 getAddress() const { return address; }
             BDAddressType getAddressType() const { return addressType; }
-            bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
-            bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
-
-            std::string const & getName() const { return name; }
-            bool hasName() const { return name.length()>0; }
             int8_t getRSSI() const { return rssi; }
             int8_t getTxPower() const { return tx_power; }
-            uint16_t getAppearance() const { return appearance; }
-            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const { return msd; }
+            int8_t getMaxTxPower() const { return max_tx_power; }
 
-            std::vector<std::shared_ptr<uuid_t>> getServices() const { return services; }
-
-            /** Returns index >= 0 if found, otherwise -1 */
-            int findService(std::shared_ptr<uuid_t> const &uuid) const;
-
-            std::string toString() const override;
-
-            /**
-             * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,
-             * otherwise returns nullptr.
-             * <p>
-             * Before this method returns, the internal rssi and tx_power will be updated if any changed
-             * and therefore all DBTAdapterStatusListener's deviceUpdated(..) method called for notification.
-             * </p>
-             */
-            std::shared_ptr<ConnectionInfo> getConnectionInfo();
-
-            /**
-             * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
-             * <p>
-             * If this device's addressType is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM, 0 is being returned.
-             * </p>
-             * <p>
-             * Returns the new connection handle or 0 if not successful.
-             * </p>
-             * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
-             * </p>
-             * <p>
-             * Default parameter values are chosen for using public address resolution
-             * and usual connection latency, interval etc.
-             * </p>
-             */
-            uint16_t le_connect(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                                const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                                const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                                const uint8_t initiator_filter=0);
-
-            /**
-             * Establish a HCI BDADDR_BREDR connection to this device.
-             * <p>
-             * If this device's addressType is not BDADDR_BREDR, 0 is being returned.
-             * </p>
-             * <p>
-             * Returns the new connection handle or 0 if not successful.
-             * </p>
-             * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
-             * </p>
-             */
-            uint16_t connect(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                             const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
-
-            /**
-             * Establish a connection to this device, using certain default parameter.
-             * <p>
-             * Depending on this device's addressType,
-             * either a BDADDR_BREDR or BDADDR_LE_PUBLIC connection is attempted.
-             * </p>
-             * <p>
-             * Returns the new connection handle or 0 if not successful.
-             * </p>
-             * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
-             * </p>
-             */
-            uint16_t defaultConnect();
-
-
-            /** Return the connection handle to the LE or BREDR peer, 0 if not connected. */
-            uint16_t getConnectionHandle() const { return connHandle; }
-
-            /**
-             * Disconnect the LE or BREDR peer.
-             * <p>
-             * The device will be removed from the managing adapter's HCISession instance.
-             * </p>
-             * <p>
-             * An open GATTHandler will also be closed via disconnectGATT()
-             * </p>
-             */
-            void disconnect(const uint8_t reason=0);
-
-            /**
-             * Returns a newly established GATT connection or an already open GATT connection.
-             * <p>
-             * The HCI le_connect or HCI connect (defaultConnect) must be performed first,
-             * to produce orderly behavior and best performance.
-             * </p>
-             * <p>
-             * The returned GATTHandler is managed by this device instance
-             * and closed @ disconnect() or explicitly @ disconnectGATT().
-             * May return nullptr if not connected or failure.
-             * </p>
-             */
-            std::shared_ptr<GATTHandler> connectGATT(int timeoutMS=GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
-
-            /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
-            std::shared_ptr<GATTHandler> getGATTHandler();
-
-            /**
-             * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()
-             * <p>
-             * Implementation will also discard the GATTHandler reference.
-             * </p>
-             */
-            void disconnectGATT();
+            std::string toString() const {
+                return "address="+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                       ", rssi "+std::to_string(rssi)+
+                       ", tx_power[set "+std::to_string(tx_power)+", max "+std::to_string(tx_power)+"]";
+            }
     };
 
-    inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return lhs.address < rhs.address; }
-
-    inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return lhs.address == rhs.address; }
-
-    inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return !(lhs == rhs); }
-
-    // *************************************************
-    // *************************************************
-    // *************************************************
-
-    class DBTAdapter : public DBTObject
+    class NameAndShortName
     {
+        friend class DBTManager; // top manager
+        friend class DBTAdapter; // direct manager
+
         private:
-            /** Returns index >= 0 if found, otherwise -1 */
-            static int findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac);
+            std::string name;
+            std::string short_name;
 
-            DBTManager& mgmt;
-            std::shared_ptr<AdapterInfo> adapterInfo;
-            NameAndShortName localName;
-            ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
-            volatile bool keepDiscoveringAlive = false;
+        protected:
+            void setName(const std::string v) { name = v; }
+            void setShortName(const std::string v) { short_name = v; }
 
-            std::shared_ptr<HCISession> session;
-            std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
-            std::shared_ptr<DBTAdapterStatusListener> statusListener = nullptr;
-            std::vector<std::shared_ptr<DBTAdapterStatusListener>> statusListenerList;
-            std::recursive_mutex mtx_discoveredDevices;
-            std::recursive_mutex mtx_statusListenerList;
+        public:
+            NameAndShortName()
+            : name(), short_name() {}
 
-            bool validateDevInfo();
+            NameAndShortName(const std::string & name, const std::string & short_name)
+            : name(name), short_name(short_name) {}
 
-            friend bool HCISession::close();
-            void sessionClosing();
+            std::string getName() const { return name; }
+            std::string getShortName() const { return short_name; }
 
-            friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
-            friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
+            std::string toString() const {
+                return "name '"+getName()+"', shortName '"+getShortName()+"'";
+            }
+    };
 
-            bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
+    enum class AdapterSetting : uint32_t {
+        NONE               =          0,
+        POWERED            = 0x00000001,
+        CONNECTABLE        = 0x00000002,
+        FAST_CONNECTABLE   = 0x00000004,
+        DISCOVERABLE       = 0x00000008,
+        BONDABLE           = 0x00000010,
+        LINK_SECURITY      = 0x00000020,
+        SSP                = 0x00000040,
+        BREDR              = 0x00000080,
+        HS                 = 0x00000100,
+        LE                 = 0x00000200,
+        ADVERTISING        = 0x00000400,
+        SECURE_CONN        = 0x00000800,
+        DEBUG_KEYS         = 0x00001000,
+        PRIVACY            = 0x00002000,
+        CONFIGURATION      = 0x00004000,
+        STATIC_ADDRESS     = 0x00008000,
+        PHY_CONFIGURATION  = 0x00010000
+    };
+    inline AdapterSetting operator ^(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) ^ static_cast<uint32_t>(rhs) );
+    }
+    inline AdapterSetting operator |(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs) );
+    }
+    inline AdapterSetting operator &(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<AdapterSetting> ( static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs) );
+    }
+    inline bool operator ==(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return static_cast<uint32_t>(lhs) == static_cast<uint32_t>(rhs);
+    }
+    inline bool operator !=(const AdapterSetting lhs, const AdapterSetting rhs) {
+        return !( lhs == rhs );
+    }
+    inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) { return AdapterSetting::NONE != ( mask & bit ); }
+    inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) { mask = mask | bit; }
+    std::string adapterSettingBitToString(const AdapterSetting settingBit);
+    std::string adapterSettingsToString(const AdapterSetting settingBitMask);
 
-            bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
-
-            void startDiscoveryBackground();
-
-            void sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
-
+    class AdapterInfo
+    {
+        friend class DBTManager; // top manager
+        friend class DBTAdapter; // direct manager
 
         public:
             const int dev_id;
+            const EUI48 address;
+            const uint8_t version;
+            const uint16_t manufacturer;
+            const AdapterSetting supported_setting;
+
+        private:
+            AdapterSetting current_setting;
+            uint32_t dev_class;
+            std::string name;
+            std::string short_name;
 
             /**
-             * Using the default adapter device
+             * Sets the current_setting and returns the changed AdapterSetting bit-mask.
              */
-            DBTAdapter();
+            AdapterSetting setCurrentSetting(AdapterSetting new_setting) {
+                new_setting = new_setting & supported_setting;
+                AdapterSetting changes = new_setting ^ current_setting;
 
-            /**
-             * @param[in] mac address
-             */
-            DBTAdapter(EUI48 &mac);
-
-            /**
-             * @param[in] dev_id an already identified HCI device id
-             */
-            DBTAdapter(const int dev_id);
-
-            /**
-             * Releases this instance after HCISession shutdown().
-             */
-            ~DBTAdapter();
-
-            std::string get_java_class() const override {
-                return java_class();
+                if( AdapterSetting::NONE != changes ) {
+                    current_setting = new_setting;
+                }
+                return changes;
             }
-            static std::string java_class() {
-                return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
+            void setDevClass(const uint32_t v) { dev_class = v; }
+            void setName(const std::string v) { name = v; }
+            void setShortName(const std::string v) { short_name = v; }
+
+        public:
+            AdapterInfo(const int dev_id, const EUI48 & address,
+                        const uint8_t version, const uint16_t manufacturer,
+                        const AdapterSetting supported_setting, const AdapterSetting current_setting,
+                        const uint32_t dev_class, const std::string & name, const std::string & short_name)
+            : dev_id(dev_id), address(address), version(version),
+              manufacturer(manufacturer), supported_setting(supported_setting),
+              current_setting(current_setting), dev_class(dev_class),
+              name(name), short_name(short_name)
+            { }
+
+            bool isSettingSupported(const AdapterSetting setting) const {
+                return setting == ( setting & supported_setting );
             }
+            AdapterSetting getCurrentSetting() const { return current_setting; }
+            uint32_t getDevClass() const { return dev_class; }
+            std::string getName() const { return name; }
+            std::string getShortName() const { return short_name; }
 
-            bool hasDevId() const { return 0 <= dev_id; }
-
-            EUI48 const & getAddress() const { return adapterInfo->address; }
-            std::string getAddressString() const { return adapterInfo->address.toString(); }
-
-            /**
-             * Returns the system name.
-             */
-            std::string getName() const { return adapterInfo->getName(); }
-
-            /**
-             * Returns the short system name.
-             */
-            std::string getShortName() const { return adapterInfo->getShortName(); }
-
-            /**
-             * Returns the local friendly name and short_name. Contains empty strings if not set.
-             * <p>
-             * The value is being updated via SET_LOCAL_NAME management event reply.
-             * </p>
-             */
-            const NameAndShortName & getLocalName() const { return localName; }
-
-            /**
-             * Sets the local friendly name.
-             * <p>
-             * Returns the immediate SET_LOCAL_NAME reply if successful, otherwise nullptr.
-             * The corresponding management event will be received separately.
-             * </p>
-             */
-            std::shared_ptr<NameAndShortName> setLocalName(const std::string &name, const std::string &short_name);
-
-            /**
-             * Set the power state of the adapter.
-             */
-            void setPowered(bool value);
-
-            /**
-             * Set the discoverable state of the adapter.
-             */
-            void setDiscoverable(bool value);
-
-            /**
-             * Set the bondable (aka pairable) state of the adapter.
-             */
-            void setBondable(bool value);
-
-            /**
-             * Returns a reference to the used singleton DBTManager instance.
-             */
-            DBTManager& getManager() const { return mgmt; }
-
-            /**
-             * Returns a reference to the newly opened session
-             * if successful, otherwise nullptr is returned.
-             */
-            std::shared_ptr<HCISession> open();
-
-            /**
-             * Returns the {@link #open()} session or {@code nullptr} if closed.
-             */
-            std::shared_ptr<HCISession> getOpenSession() const { return session; }
-
-            // device discovery aka device scanning
-
-            /**
-             * Add the given listener to the list if not already present.
-             * <p>
-             * Returns true if the given listener is not element of the list and has been newly added,
-             * otherwise false.
-             * </p>
-             */
-            bool addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
-
-            /**
-             * Remove the given listener from the list.
-             * <p>
-             * Returns true if the given listener is an element of the list and has been removed,
-             * otherwise false.
-             * </p>
-             */
-            bool removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
-
-            /**
-             * Remove the given listener from the list.
-             * <p>
-             * Returns true if the given listener is an element of the list and has been removed,
-             * otherwise false.
-             * </p>
-             */
-            bool removeStatusListener(const DBTAdapterStatusListener * l);
-
-            /**
-             * Starts a new discovery session.
-             * <p>
-             * Returns true if successful, otherwise false;
-             * </p>
-             * <p>
-             * Default parameter values are chosen for using public address resolution
-             * and usual discovery intervals etc.
-             * </p>
-             * <p>
-             * This adapter's DBTManager instance is used, i.e. the management channel.
-             * </p>
-             * <p>
-             * Also clears previous discovered devices via removeDiscoveredDevices().
-             * </p>
-             */
-            bool startDiscovery(HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                uint16_t interval=0x0004, uint16_t window=0x0004);
-
-            /**
-             * Closes the discovery session.
-             * <p>
-             * This adapter's DBTManager instance is used, i.e. the management channel.
-             * </p>
-             * @return true if no error, otherwise false.
-             */
-            void stopDiscovery();
-
-            /**
-             * Returns discovered devices from the last discovery.
-             * <p>
-             * Note that this list will be cleared when a new discovery is started over via startDiscovery().
-             * </p>
-             * <p>
-             * Note that devices in this list might be no more available,
-             * use 'DeviceStatusListener::deviceFound(..)' callback.
-             * </p>
-             */
-            std::vector<std::shared_ptr<DBTDevice>> getDiscoveredDevices() const;
-
-            /** Discards all discovered devices. Returns number of removed discovered devices. */
-            int removeDiscoveredDevices();
-
-            /** Returns shared DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac) const;
-
-            std::string toString() const override;
+            std::string toString() const {
+                return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
+                        ", manuf "+std::to_string(manufacturer)+
+                        ", settings[sup "+adapterSettingsToString(supported_setting)+", cur "+adapterSettingsToString(current_setting)+
+                        "], name '"+name+"', shortName '"+short_name+"']";
+            }
     };
 
 } // namespace direct_bt
