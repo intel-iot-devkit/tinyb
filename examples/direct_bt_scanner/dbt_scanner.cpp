@@ -319,6 +319,7 @@ int main(int argc, char *argv[])
                 fprintf(stderr, "GATT connect failed: %s\n", gatt->getStateString().c_str());
             }
             device->disconnect(); // OK if not connected, also issues device->disconnectGATT() -> gatt->disconnect()
+            device->remove(); // implicit disconnect as well
         } // if( ok && nullptr != device )
     }
 

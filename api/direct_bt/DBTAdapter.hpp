@@ -69,22 +69,24 @@ namespace direct_bt {
             HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS);
 
             /**
-             * Add the new {@link DBTDevice} to the list of connected devices, if not already present.
+             * Add the new {@link DBTDevice} to the list of connected devices.
              * <p>
-             * Returns true if the given device is newly connected and has been added to the list of connected devices,
-             * otherwise false.
+             * Throws an InternalError if the given device was already added to the list of connected devices.
+             * Comparison is done by DBTDevice equality of address.
+             * This ensures runtime consistency regarding overall DBTDevice reference tracking.
              * </p>
              */
-            bool connected(std::shared_ptr<DBTDevice> & device);
+            void connected(const std::shared_ptr<DBTDevice> & device);
 
             /**
              * Remove the {@link DBTDevice} from the list of connected devices.
              * <p>
-             * Returns true if the given device is an element of the list of connected devices and has been removed,
-             * otherwise false.
+             * Throws an InternalError if the given device was not added to the list of connected devices.
+             * Comparison is done by DBTDevice's address.
+             * This ensures runtime consistency regarding overall DBTDevice reference tracking.
              * </p>
              */
-            bool disconnected(std::shared_ptr<DBTDevice> & device);
+            void disconnected(const DBTDevice & device);
 
             /**
              * Issues {@link #disconnectAllDevices()} and closes the underlying HCI session.
@@ -182,9 +184,10 @@ namespace direct_bt {
 
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
-            std::shared_ptr<DBTAdapterStatusListener> statusListener = nullptr;
+            std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<DBTAdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_discoveredDevices;
+            std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
 
             bool validateDevInfo();
@@ -193,9 +196,15 @@ namespace direct_bt {
             void sessionClosing();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
+            friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
+
+            bool addSharedDevice(std::shared_ptr<DBTDevice> const &device);
+            std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device);
+            void releaseSharedDevice(const DBTDevice & device);
+            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac) const;
 
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);

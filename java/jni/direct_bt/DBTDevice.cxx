@@ -70,6 +70,7 @@ void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        device->remove();
         delete device;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -82,6 +83,18 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         device->disconnect();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_TRUE;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_remove(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        device->remove();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

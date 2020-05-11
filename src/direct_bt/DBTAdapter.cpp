@@ -62,28 +62,27 @@ HCISession::HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutM
   name(name_counter.fetch_add(1))
 {}
 
-bool HCISession::connected(std::shared_ptr<DBTDevice> & device) {
+void HCISession::connected(const std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
         if ( *device == **it ) {
-            return false; // already connected
+            throw InternalError("Device already connected: "+device->toString(), E_FILE_LINE);
         }
     }
     connectedDevices.push_back(device);
-    return true;
 }
 
-bool HCISession::disconnected(std::shared_ptr<DBTDevice> & device) {
+void HCISession::disconnected(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
-        if ( **it == *device ) {
+        if ( &device == (*it).get() ) { // compare actual device address
             it = connectedDevices.erase(it);
-            return true;
+            return;
         } else {
             ++it;
         }
     }
-    return false;
+    throw InternalError("Device not connected: "+device.toString(), E_FILE_LINE);
 }
 
 int HCISession::disconnectAllDevices(const uint8_t reason) {
@@ -214,13 +213,14 @@ DBTAdapter::~DBTAdapter() {
     }
     statusListenerList.clear();
 
-    removeDiscoveredDevices();
-
     if( nullptr != session ) {
         stopDiscovery();
         session->shutdown(); // force shutdown, not only via dtor as adapter EOL has been reached!
         session = nullptr;
     }
+    removeDiscoveredDevices();
+    sharedDevices.clear();
+
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
@@ -379,6 +379,51 @@ std::vector<std::shared_ptr<DBTDevice>> DBTAdapter::getDiscoveredDevices() const
     return res;
 }
 
+bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ++it) {
+        if ( *device == **it ) {
+            // already shared
+            return false;
+        }
+    }
+    sharedDevices.push_back(device);
+    return true;
+}
+
+std::shared_ptr<DBTDevice> DBTAdapter::getSharedDevice(const DBTDevice & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ++it) {
+        if ( &device == (*it).get() ) { // compare actual device address
+            return *it; // done
+        }
+    }
+    return nullptr;
+}
+
+void DBTAdapter::releaseSharedDevice(const DBTDevice & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ++it) {
+        if ( &device == (*it).get() ) { // compare actual device address
+            sharedDevices.erase(it);
+            return; // unique set
+        }
+    }
+}
+
+std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac) const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
+    auto begin = sharedDevices.begin();
+    auto it = std::find_if(begin, sharedDevices.end(), [&](std::shared_ptr<DBTDevice> const& p) {
+        return p->address == mac;
+    });
+    if ( it == std::end(sharedDevices) ) {
+        return nullptr;
+    } else {
+        return *it;
+    }
+}
+
 std::string DBTAdapter::toString() const {
     std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
@@ -462,17 +507,24 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         ad_report.setAddress( event.getAddress() );
         ad_report.read_data(event.getData(), event.getDataSize());
     }
-    bool new_connect = false;
+    int new_connect = 0;
     std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
     if( nullptr == device ) {
         device = findDiscoveredDevice(event.getAddress());
-        new_connect = true;
+        new_connect = nullptr != device ? 1 : 0;
+    }
+    if( nullptr == device ) {
+        device = findSharedDevice(event.getAddress());
+        if( nullptr != device ) {
+            addDiscoveredDevice(device);
+            new_connect = 2;
+        }
     }
     if( nullptr != device ) {
         EIRDataType updateMask = device->update(ad_report);
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
             dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
-        if( new_connect ) {
+        if( 0 < new_connect ) {
             session->connected(device); // track it
         }
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
@@ -521,21 +573,40 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
     ad_report.read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
 
     std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
-    if( nullptr == dev ) {
-        // new device
-        dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
-        addDiscoveredDevice(dev);
-
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-            l->deviceFound(*this, dev, ad_report.getTimestamp());
-        });
-
-    } else {
+    if( nullptr != dev ) {
+        //
         // existing device
+        //
         EIRDataType updateMask = dev->update(ad_report);
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated(dev, ad_report.getTimestamp(), updateMask);
         }
+        return true;
     }
+
+    dev = findSharedDevice(ad_report.getAddress());
+    if( nullptr != dev ) {
+        //
+        // active shared device, but flushed from discovered devices
+        //
+        addDiscoveredDevice(dev); // re-add to discovered devices!
+        EIRDataType updateMask = dev->update(ad_report);
+        if( EIRDataType::NONE != updateMask ) {
+            sendDeviceUpdated(dev, ad_report.getTimestamp(), updateMask);
+        }
+        return true;
+    }
+
+    //
+    // new device
+    //
+    dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
+    addDiscoveredDevice(dev);
+    addSharedDevice(dev);
+
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+        l->deviceFound(*this, dev, ad_report.getTimestamp());
+    });
+
     return true;
 }

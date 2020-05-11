@@ -74,6 +74,9 @@ namespace direct_bt {
 
             EIRDataType update(EInfoReport const & data);
 
+            std::shared_ptr<DBTDevice> getSharedInstance() const;
+            void releaseSharedInstance() const;
+
         public:
             const uint64_t ts_creation;
             /** Device mac address */
@@ -81,7 +84,7 @@ namespace direct_bt {
             const BDAddressType addressType;
 
             /**
-             * Releases this instance after {@link #le_disconnect()}.
+             * Releases this instance after calling {@link #remove()}.
              */
             ~DBTDevice();
 
@@ -94,9 +97,6 @@ namespace direct_bt {
 
             /** Returns the managing adapter */
             DBTAdapter const & getAdapter() const { return adapter; }
-
-            /** Returns the shares reference of this instance, managed by the adapter */
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             uint64_t getCreationTimestamp() const { return ts_creation; }
             uint64_t getUpdateTimestamp() const { return ts_update; }
@@ -200,6 +200,20 @@ namespace direct_bt {
              * </p>
              */
             void disconnect(const uint8_t reason=0);
+
+            /**
+             * Disconnects this device via disconnect(..) and
+             * removes its shared reference from the Adapter, not the discovered devices.
+             * <p>
+             * This method shall be issued to ensure no device reference will
+             * be leaked in a long lived adapter, as only the discovered devices
+             * are being flushed with a new discovery.
+             * </p>
+             * <p>
+             * After calling this method, the device shall no more being used.
+             * </p>
+             */
+            void remove();
 
             /**
              * Returns a newly established GATT connection or an already open GATT connection.
