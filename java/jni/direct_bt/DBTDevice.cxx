@@ -66,12 +66,29 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_addStatusListener(JNIEnv *env, jobject 
     return JNI_FALSE;
 }
 
+jboolean Java_direct_1bt_tinyb_DBTDevice_removeStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        DBTAdapter * adapter = const_cast<DBTAdapter *>( &device->getAdapter() );
+        std::shared_ptr<JavaAnonObj> adapterObjRef = adapter->getJavaObject();
+        JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
+        jobject jadapter = JavaGlobalObj::GetObject(adapterObjRef);
+
+        return Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(env, jadapter, statusListener);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         device->remove();
-        delete device;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

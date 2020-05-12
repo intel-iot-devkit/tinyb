@@ -56,9 +56,8 @@ void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTManager *manager = getInstance<DBTManager>(env, obj); // special: static singleton
-        manager->setJavaObject(nullptr);
         manager->close();
-        // delete manager;
+        manager->setJavaObject(nullptr);
         (void) manager;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -96,7 +95,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobj
         std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
         JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
 
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: New Adapter %s", adapter->toString().c_str());
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
         return JavaGlobalObj::GetObject(jAdapterRef);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -138,7 +137,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
                     std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
                     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
 
-                    DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %s", adapter->toString().c_str());
+                    DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
                     return JavaGlobalObj::GetObject(jAdapterRef);
                 };
         return convert_vector_to_jobject<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), ctor_adapter);

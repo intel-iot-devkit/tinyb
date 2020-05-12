@@ -25,7 +25,10 @@
 
 package direct_bt.tinyb;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.tinyb.BluetoothAdapter;
@@ -38,6 +41,87 @@ import org.tinyb.BluetoothType;
 
 public class DBTManager implements BluetoothManager
 {
+    protected static final boolean DEBUG = true;
+
+    private static volatile boolean isJVMShuttingDown = false;
+    private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
+
+    static {
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                Runtime.getRuntime().addShutdownHook(
+                    new Thread(null, new Runnable() {
+                                @Override
+                                public void run() {
+                                    DBTManager.shutdownImpl(true);
+                                } }, "DBTManager_ShutdownHook" ) ) ;
+                return null;
+            } } ) ;
+    }
+
+    private static synchronized void shutdownImpl(final boolean _isJVMShuttingDown) {
+        isJVMShuttingDown = _isJVMShuttingDown;
+        if(DEBUG) {
+            System.err.println("DBTManager.shutdown() START: JVM Shutdown "+isJVMShuttingDown+", on thread "+Thread.currentThread().getName());
+        }
+        synchronized(userShutdownHooks) {
+            final int cshCount = userShutdownHooks.size();
+            for(int i=0; i < cshCount; i++) {
+                try {
+                    if( DEBUG ) {
+                        System.err.println("DBTManager.shutdown - userShutdownHook #"+(i+1)+"/"+cshCount);
+                    }
+                    userShutdownHooks.get(i).run();
+                } catch(final Throwable t) {
+                    System.err.println("DBTManager.shutdown: Caught "+t.getClass().getName()+" during userShutdownHook #"+(i+1)+"/"+cshCount);
+                    if( DEBUG ) {
+                        t.printStackTrace();
+                    }
+                }
+            }
+            userShutdownHooks.clear();
+        }
+        if(DEBUG) {
+            System.err.println("DBTManager.shutdown(): Post userShutdownHook");
+        }
+
+        try {
+            final BluetoothManager mgmt = getBluetoothManager();
+            mgmt.shutdown();
+        } catch(final Throwable t) {
+            System.err.println("DBTManager.shutdown: Caught "+t.getClass().getName()+" during DBTManager.shutdown()");
+            if( DEBUG ) {
+                t.printStackTrace();
+            }
+        }
+
+        if(DEBUG) {
+            System.err.println(Thread.currentThread().getName()+" - DBTManager.shutdown() END JVM Shutdown "+isJVMShuttingDown);
+        }
+    }
+
+    /** Returns true if the JVM is shutting down, otherwise false. */
+    public static final boolean isJVMShuttingDown() { return isJVMShuttingDown; }
+
+    /**
+     * Add a shutdown hook to be performed at JVM shutdown before shutting down DBTManager instance.
+     *
+     * @param head if true add runnable at the start, otherwise at the end
+     * @param runnable runnable to be added.
+     */
+    public static void addShutdownHook(final boolean head, final Runnable runnable) {
+        synchronized( userShutdownHooks ) {
+            if( !userShutdownHooks.contains( runnable ) ) {
+                if( head ) {
+                    userShutdownHooks.add(0, runnable);
+                } else {
+                    userShutdownHooks.add( runnable );
+                }
+            }
+        }
+    }
+
     private long nativeInstance;
     private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
@@ -147,6 +231,10 @@ public class DBTManager implements BluetoothManager
 
     @Override
     public void shutdown() {
+        for(final Iterator<BluetoothAdapter> ia= adapters.iterator(); ia.hasNext(); ) {
+            final BluetoothAdapter a = ia.next();
+            a.close();
+        }
         adapters.clear();
         deleteImpl();
     }

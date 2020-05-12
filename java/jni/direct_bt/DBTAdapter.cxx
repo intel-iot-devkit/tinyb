@@ -216,20 +216,27 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
                 fprintf(stderr, "%s\n", a.toString().c_str());
             #endif
             (void)a;
-
-            // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
-            const jstring addr = from_string_to_jstring(env, device->getAddressString());
-            const jstring name = from_string_to_jstring(env, device->getName());
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
-                    (jlong)device.get(), adapterObjRef, addr, name, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            JNIGlobalRef::check(jDevice, E_FILE_LINE);
+            jobject jdevice;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-
+            if( JavaGlobalObj::isValid(jDeviceRef) ) {
+                // Reuse Java instance
+                jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            } else {
+                // New Java instance
+                // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
+                const jstring addr = from_string_to_jstring(env, device->getAddressString());
+                const jstring name = from_string_to_jstring(env, device->getName());
+                if( java_exception_check(env, E_FILE_LINE) ) { return; }
+                jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
+                        (jlong)device.get(), adapterObjRef, addr, name, (jlong)timestamp);
+                if( java_exception_check(env, E_FILE_LINE) ) { return; }
+                JNIGlobalRef::check(jDevice, E_FILE_LINE);
+                std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+                JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+                jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            }
             env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound,
-                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
+                    JavaGlobalObj::GetObject(adapterObjRef), jdevice, (jlong)timestamp);
             if( java_exception_check(env, E_FILE_LINE) ) { return; }
         } catch(...) {
             rethrow_and_raise_java_exception(env);

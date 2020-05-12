@@ -45,10 +45,11 @@ public class ScannerTinyB01 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
     }
-    /** 60,000 milliseconds */
-    static long TO_DISCOVER = 60000;
+    /** 10,000 milliseconds */
+    static long TO_DISCOVER = 10000;
 
     public static void main(final String[] args) throws InterruptedException {
+        long t0_discovery = TO_DISCOVER;
         int factory = 0;
         int dev_id = 0; // default
         int mode = 0;
@@ -67,6 +68,8 @@ public class ScannerTinyB01 {
                     mode = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     factory = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-t0_discovery") && args.length > (i+1) ) {
+                    t0_discovery = Long.valueOf(args[++i]).longValue();
                 } else if( arg.equals("-forever") ) {
                     forever = true;
                 }
@@ -201,14 +204,17 @@ public class ScannerTinyB01 {
 
                 if( 0 == mode ) {
                     synchronized(matchingDiscoveredDeviceBucket) {
-                        while( null == matchingDiscoveredDeviceBucket[0] ) {
-                            matchingDiscoveredDeviceBucket.wait(TO_DISCOVER);
+                        boolean timeout = false;
+                        while( !timeout && null == matchingDiscoveredDeviceBucket[0] ) {
+                            matchingDiscoveredDeviceBucket.wait(t0_discovery);
+                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            timeout = ( tn - t0 ) > t0_discovery;
                         }
                         sensor = matchingDiscoveredDeviceBucket[0];
                         matchingDiscoveredDeviceBucket[0] = null;
                     }
                 } else if( 1 == mode ) {
-                    sensor = adapter.find(null, mac, TO_DISCOVER);
+                    sensor = adapter.find(null, mac, t0_discovery);
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
@@ -220,7 +226,7 @@ public class ScannerTinyB01 {
                                 break;
                             }
                             final long tn = BluetoothUtils.getCurrentMilliseconds();
-                            timeout = ( tn - t0 ) > TO_DISCOVER;
+                            timeout = ( tn - t0 ) > t0_discovery;
                         }
                     }
                 }

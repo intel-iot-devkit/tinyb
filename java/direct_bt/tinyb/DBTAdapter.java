@@ -65,7 +65,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private boolean isPairable = false;
 
     private boolean isOpen = false;
-    private List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
+    private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
     /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name)
     {
@@ -78,11 +78,21 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public synchronized void close() {
         stopDiscovery();
+
+        for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
+            final BluetoothDevice d = id.next();
+            d.close();
+        }
+
         removeStatusListener(this.statusListener);
         disableDiscoverableNotifications();
         disableDiscoveringNotifications();
         disablePairableNotifications();
         disablePoweredNotifications();
+
+        removeDevicesImpl();
+        discoveredDevices.clear();
+
         isOpen = false;
         super.close();
     }
@@ -285,7 +295,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private int removeDiscoveredDevices() {
         synchronized(discoveredDevicesLock) {
             final int n = discoveredDevices.size();
-            discoveredDevices = new ArrayList<BluetoothDevice>();
+            discoveredDevices.clear();
             return n;
         }
     }

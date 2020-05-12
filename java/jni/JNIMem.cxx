@@ -154,6 +154,11 @@ JNIGlobalRef::~JNIGlobalRef() {
     }
 }
 
+void JNIGlobalRef::clear() {
+    DBG_PRINT("JNIGlobalRef::clear %p (nulled) -> null", object);
+    object = nullptr;
+}
+
 bool JNIGlobalRef::operator==(const JNIGlobalRef& rhs) const {
     if( &rhs == this ) {
         DBG_PRINT("JNIGlobalRef::== true: %p == %p (ptr)", object, rhs.object);

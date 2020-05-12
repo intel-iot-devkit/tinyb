@@ -93,6 +93,9 @@ public:
     /* Deletes the stored GlobalRef */
     ~JNIGlobalRef();
 
+    /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
+    void clear();
+
     /* Provides access to the stored GlobalRef as an jobject. */
     jobject operator*() { return object; }
 

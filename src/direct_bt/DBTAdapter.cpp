@@ -205,7 +205,7 @@ DBTAdapter::DBTAdapter(const int dev_id)
 }
 
 DBTAdapter::~DBTAdapter() {
-    DBG_PRINT("DBTAdapter::dtor: ... %s", toString().c_str());
+    DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     keepDiscoveringAlive = false;
     {
         int count;
@@ -590,9 +590,15 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
     if( nullptr != dev ) {
         //
         // active shared device, but flushed from discovered devices
+        // - update device
+        // - issue deviceFound, allowing receivers to recognize the re-discovered device
+        // - issue deviceUpdate if data has changed, allowing receivers to act upon
         //
-        addDiscoveredDevice(dev); // re-add to discovered devices!
         EIRDataType updateMask = dev->update(ad_report);
+        addDiscoveredDevice(dev); // re-add to discovered devices!
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+            l->deviceFound(*this, dev, ad_report.getTimestamp());
+        });
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated(dev, ad_report.getTimestamp(), updateMask);
         }

@@ -37,6 +37,9 @@ namespace direct_bt {
         public:
             virtual ~JavaAnonObj() { }
             virtual std::string toString() const { return "JavaAnonObj[???]"; }
+
+            /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
+            virtual void clear() { }
     };
 
     class JavaUplink {
@@ -50,7 +53,16 @@ namespace direct_bt {
             std::string javaObjectToString() const { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }
 
             std::shared_ptr<JavaAnonObj> getJavaObject() { return javaObjectRef; }
+
+            /** Assigns a new shared JavaAnonObj reference, replaced item might be deleted via JNI from dtor */
             void setJavaObject(std::shared_ptr<JavaAnonObj> objRef) { javaObjectRef = objRef; }
+
+            /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
+            void clearJavaObject() {
+                if( nullptr != javaObjectRef ) {
+                    javaObjectRef->clear();
+                }
+            }
 
             virtual ~JavaUplink() {
                 javaObjectRef = nullptr;

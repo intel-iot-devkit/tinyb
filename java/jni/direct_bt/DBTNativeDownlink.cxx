@@ -43,7 +43,7 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
         std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj) );
         javaUplink->setJavaObject( jobjRef );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %s", javaUplink->toString().c_str());
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -54,7 +54,7 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject(JNIEnv *env, 
     (void)obj;
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject %s", javaUplink->toString().c_str());
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
         javaUplink->setJavaObject(nullptr);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

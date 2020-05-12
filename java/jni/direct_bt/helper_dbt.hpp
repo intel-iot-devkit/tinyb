@@ -49,6 +49,16 @@ namespace direct_bt {
                     throw direct_bt::RuntimeException("JavaGlobalObj::check: Null object", file, line);
                 }
             }
+            static bool isValid(const std::shared_ptr<JavaAnonObj> & shref) {
+                if( nullptr == shref ) {
+                    return false;
+                }
+                const jobject obj = static_cast<const JavaGlobalObj*>(shref.get())->getObject();
+                if( nullptr == obj ) {
+                    return false;
+                }
+                return true;
+            }
             JavaGlobalObj(jobject obj) : javaObjectRef(obj) { }
             ~JavaGlobalObj() override { }
 
@@ -56,6 +66,9 @@ namespace direct_bt {
                 const uint64_t ref = (uint64_t)(void*)javaObjectRef.getObject();
                 return "JavaGlobalObj["+uint64HexString(ref, true)+"]";
             }
+
+            /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
+            void clear() override { javaObjectRef.clear(); }
 
             JNIGlobalRef & getJavaObject() { return javaObjectRef; }
 

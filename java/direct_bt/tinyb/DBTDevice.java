@@ -124,6 +124,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      * </p>
      */
     private native boolean addStatusListener(final AdapterStatusListener l);
+    private native boolean removeStatusListener(final AdapterStatusListener l);
 
     @Override
     public synchronized void close() {
@@ -139,7 +140,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         disableServiceDataNotifications();
         disableTrustedNotifications();
 
-        this.adapter.removeStatusListener(statusListener);
+        // this.adapter.removeStatusListener(statusListener);
+        removeStatusListener(statusListener);
         super.close();
     }
 

@@ -32,7 +32,7 @@
 
 #include  <algorithm>
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
@@ -55,6 +55,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 }
 
 DBTDevice::~DBTDevice() {
+    DBG_PRINT("DBTDevice::dtor: ... %p %s", this, toString().c_str());
     remove();
     services.clear();
     msd = nullptr;
@@ -321,7 +322,7 @@ void DBTDevice::disconnect(const uint8_t reason) {
         const uint16_t _connHandle = connHandle;
         connHandle = 0;
         if( !session->hciComm.disconnect(_connHandle, reason) ) {
-            DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _leConnHandle, errno, strerror(errno));
+            DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _connHandle, errno, strerror(errno));
         }
     }
 
