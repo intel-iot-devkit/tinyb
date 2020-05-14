@@ -140,7 +140,7 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
                     DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
                     return JavaGlobalObj::GetObject(jAdapterRef);
                 };
-        return convert_vector_to_jobject<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), ctor_adapter);
+        return convert_vector_uniqueptr_to_jarraylist<DBTAdapter>(env, adapters, _adapterClazzCtorArgs.c_str(), ctor_adapter);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

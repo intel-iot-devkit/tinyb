@@ -421,7 +421,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, j
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         std::vector<std::shared_ptr<DBTDevice>> array = adapter->getDiscoveredDevices();
-        return convert_vector_to_jobject(env, array);
+        return convert_vector_sharedptr_to_jarraylist(env, array);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

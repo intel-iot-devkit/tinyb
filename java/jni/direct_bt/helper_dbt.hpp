@@ -91,14 +91,8 @@ namespace direct_bt {
 
     jclass search_class(JNIEnv *env, JavaUplink &object);
 
-#if 0
-
-    jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::shared_ptr<JavaUplink>>& array);
-
-#else
-
     template <typename T>
-    jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::shared_ptr<T>>& array)
+    jobject convert_vector_sharedptr_to_jarraylist(JNIEnv *env, std::vector<std::shared_ptr<T>>& array)
     {
         unsigned int array_size = array.size();
 
@@ -110,7 +104,7 @@ namespace direct_bt {
         }
 
         for (unsigned int i = 0; i < array_size; ++i) {
-            std::shared_ptr<T> elem = array.at(i);
+            std::shared_ptr<T> elem = array[i];
             std::shared_ptr<JavaAnonObj> objref = elem->getJavaObject();
             if ( nullptr == objref ) {
                 throw InternalError("JavaUplink element of array has no valid java-object: "+elem->toString(), E_FILE_LINE);
@@ -119,8 +113,6 @@ namespace direct_bt {
         }
         return result;
     }
-
-#endif
 
     BDAddressType fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType);
     jstring fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType);

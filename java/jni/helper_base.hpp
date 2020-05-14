@@ -144,7 +144,7 @@ jobject generic_clone(JNIEnv *env, jobject obj)
 }
 
 template <typename T>
-jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
+jobject convert_vector_uniqueptr_to_jarraylist(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
         const char *ctor_prototype)
 {
     unsigned int array_size = array.size();
@@ -162,7 +162,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 
     for (unsigned int i = 0; i < array_size; ++i)
     {
-        T *elem = array.at(i).release();
+        T *elem = array[i].release();
         jobject object = env->NewObject(clazz, clazz_ctor, (jlong)elem);
         if (!object)
         {
@@ -174,7 +174,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 }
 
 template <typename T>
-jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
+jobject convert_vector_uniqueptr_to_jarraylist(JNIEnv *env, std::vector<std::unique_ptr<T>>& array,
         const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, T*)> ctor)
 {
     unsigned int array_size = array.size();
@@ -192,7 +192,7 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 
     for (unsigned int i = 0; i < array_size; ++i)
     {
-        T *elem = array.at(i).release();
+        T *elem = array[i].release();
         jobject object = ctor(env, clazz, clazz_ctor, elem);
         if (!object)
         {
@@ -204,8 +204,8 @@ jobject convert_vector_to_jobject(JNIEnv *env, std::vector<std::unique_ptr<T>>& 
 }
 
 template <typename T>
-jobject convert_vector_to_shared_jobject(JNIEnv *env, std::vector<std::shared_ptr<T>>& array,
-                                         const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, std::shared_ptr<T>)> ctor)
+jobject convert_vector_sharedptr_to_jarraylist(JNIEnv *env, std::vector<std::shared_ptr<T>>& array,
+        const char *ctor_prototype, std::function<jobject(JNIEnv*, jclass, jmethodID, T*)> ctor)
 {
     unsigned int array_size = array.size();
 
@@ -222,7 +222,7 @@ jobject convert_vector_to_shared_jobject(JNIEnv *env, std::vector<std::shared_pt
 
     for (unsigned int i = 0; i < array_size; ++i)
     {
-        std::shared_ptr<T> elem = array.at(i);
+        T *elem = array[i].get();
         jobject object = ctor(env, clazz, clazz_ctor, elem);
         if (!object)
         {

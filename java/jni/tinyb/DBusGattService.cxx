@@ -148,7 +148,7 @@ jobject Java_tinyb_dbus_DBusGattService_getCharacteristics(JNIEnv *env, jobject 
         BluetoothGattService *obj_gatt_serv = getInstance<BluetoothGattService>(env, obj);
         std::vector<std::unique_ptr<BluetoothGattCharacteristic>> array =
                                                     obj_gatt_serv->get_characteristics();
-        jobject result = convert_vector_to_jobject<BluetoothGattCharacteristic>(env, array,
+        jobject result = convert_vector_uniqueptr_to_jarraylist<BluetoothGattCharacteristic>(env, array,
                                                                         "(J)V");
         return result;
     } catch (std::bad_alloc &e) {
