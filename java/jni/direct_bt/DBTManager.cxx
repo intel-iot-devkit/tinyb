@@ -66,43 +66,6 @@ void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
 
 static const std::string _adapterClazzCtorArgs("(JLjava/lang/String;Ljava/lang/String;)V");
 
-jobject Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl(JNIEnv *env, jobject obj)
-{
-    try {
-        DBTManager *manager = getInstance<DBTManager>(env, obj);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: Manager %s", manager->toString().c_str());
-        (void) manager;
-        const int defAdapterIdx = 0;
-        DBTAdapter * adapter = new DBTAdapter(defAdapterIdx);
-        if( !adapter->isValid() ) {
-            delete adapter;
-            throw BluetoothException("Invalid default adapter "+std::to_string(defAdapterIdx), E_FILE_LINE);
-        }
-        if( !adapter->hasDevId() ) {
-            delete adapter;
-            throw BluetoothException("Invalid default adapter dev-id "+std::to_string(defAdapterIdx), E_FILE_LINE);
-        }
-
-        // prepare adapter ctor
-        const jstring addr = from_string_to_jstring(env, adapter->getAddressString());
-        const jstring name = from_string_to_jstring(env, adapter->getName());
-        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
-        const jclass clazz = search_class(env, *adapter);
-        const jmethodID clazz_ctor = search_method(env, clazz, "<init>", _adapterClazzCtorArgs.c_str(), false);
-        jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
-        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
-        JNIGlobalRef::check(jAdapter, E_FILE_LINE);
-        std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
-        JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);
-
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_getDefaultAdapterImpl: New Adapter %p %s", adapter, adapter->toString().c_str());
-        return JavaGlobalObj::GetObject(jAdapterRef);
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return nullptr;
-}
-
 jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject obj)
 {
     try {

@@ -125,6 +125,7 @@ public class DBTManager implements BluetoothManager
     private long nativeInstance;
     private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
+    private int defaultAdapterIndex = 0;
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
@@ -179,10 +180,18 @@ public class DBTManager implements BluetoothManager
     public List<BluetoothGattService> getServices() { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public boolean setDefaultAdapter(final BluetoothAdapter adapter) { throw new UnsupportedOperationException(); } // FIXME
+    public boolean setDefaultAdapter(final BluetoothAdapter adapter) {
+        final int idx = adapters.indexOf(adapter);
+        if( 0 <= idx ) {
+            defaultAdapterIndex = idx;
+            return true;
+        }
+        return false;
+    }
+
 
     @Override
-    public BluetoothAdapter getDefaultAdapter() { return adapters.get(0); }
+    public BluetoothAdapter getDefaultAdapter() { return adapters.get(defaultAdapterIndex); }
 
     @Override
     public boolean startDiscovery() throws BluetoothException { return getDefaultAdapter().startDiscovery(); }
@@ -193,11 +202,6 @@ public class DBTManager implements BluetoothManager
     @Override
     public boolean getDiscovering() throws BluetoothException { return getDefaultAdapter().getDiscovering(); }
 
-    /**
-     * Returns an opened default adapter instance!
-     * @throws BluetoothException in case adapter is invalid or could not have been opened.
-     */
-    private native DBTAdapter getDefaultAdapterImpl() throws BluetoothException;
     private native List<BluetoothAdapter> getAdapterListImpl();
 
     private native void initImpl() throws BluetoothException;
