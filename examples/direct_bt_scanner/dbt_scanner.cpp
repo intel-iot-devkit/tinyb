@@ -83,7 +83,7 @@ static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATU
 
 class MyGATTNotificationListener : public direct_bt::GATTNotificationListener {
     void notificationReceived(std::shared_ptr<DBTDevice> dev,
-                              GATTCharacterisicsDeclRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue) override {
+                              GATTCharacteristicRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue) override {
         const int64_t tR = direct_bt::getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-charValue->ts_creation), (tR-dev->ts_creation), dev->toString().c_str());
@@ -95,7 +95,7 @@ class MyGATTNotificationListener : public direct_bt::GATTNotificationListener {
 };
 class MyGATTIndicationListener : public direct_bt::GATTIndicationListener {
     void indicationReceived(std::shared_ptr<DBTDevice> dev,
-                            GATTCharacterisicsDeclRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue,
+                            GATTCharacteristicRef charDecl, std::shared_ptr<const AttHandleValueRcv> charValue,
                             const bool confirmationSent) override
     {
         const int64_t tR = direct_bt::getCurrentMilliseconds();
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                         
                 std::vector<std::vector<GATTUUIDHandle>> servicesCharacteristicDescriptors;
 #endif                        
-                std::vector<GATTServiceDeclRef> & primServices = gatt->discoverCompletePrimaryServices();
+                std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
                 const uint64_t t5 = direct_bt::getCurrentMilliseconds();
 #ifdef SCAN_CHARACTERISTIC_DESCRIPTORS                        
                 for(size_t i=0; i<primServices.size(); i++) {
@@ -281,24 +281,25 @@ int main(int argc, char *argv[])
                 }
 
                 for(size_t i=0; i<primServices.size() && gatt->isOpen(); i++) {
-                    GATTServiceDecl & primService = *primServices.at(i);
+                    GATTService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                    std::vector<GATTCharacterisicsDeclRef> & serviceCharacteristics = primService.characteristicDeclList;
+                    std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicDeclList;
                     for(size_t j=0; j<serviceCharacteristics.size() && gatt->isOpen(); j++) {
-                        GATTCharacterisicsDecl & serviceChar = *serviceCharacteristics.at(j);
+                        GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
-                        if( serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Read) ) {
+                        if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
                             POctets value(GATTHandler::ClientMaxMTU, 0);
                             if( gatt->readCharacteristicValue(serviceChar, value) ) {
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
                             }
                         }
-                        if( nullptr != serviceChar.config ) {
-                            const bool enableNotification = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Notify);
-                            const bool enableIndication = serviceChar.hasProperties(GATTCharacterisicsDecl::PropertyBitVal::Indicate);
+                        GATTDescriptorRef cccd = serviceChar.getClientCharacteristicConfig();
+                        if( nullptr != cccd ) {
+                            const bool enableNotification = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
+                            const bool enableIndication = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
                             if( enableNotification || enableIndication ) {
-                                bool res = gatt->configIndicationNotification(*serviceChar.config, enableNotification, enableIndication);
+                                bool res = gatt->configIndicationNotification(*cccd, enableNotification, enableIndication);
                                 fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
                                         (int)i, (int)j, enableNotification, enableIndication, res);
                             }

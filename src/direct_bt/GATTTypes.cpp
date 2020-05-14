@@ -38,84 +38,78 @@
 
 using namespace direct_bt;
 
+const uuid16_t GATTDescriptor::TYPE_EXT_PROP(Type::CHARACTERISTIC_EXTENDED_PROPERTIES);
+const uuid16_t GATTDescriptor::TYPE_USER_DESC(Type::CHARACTERISTIC_USER_DESCRIPTION);
+const uuid16_t GATTDescriptor::TYPE_CCC_DESC(Type::CLIENT_CHARACTERISTIC_CONFIGURATION);
+
 #define CHAR_DECL_PROPS_ENUM(X) \
-        X(Broadcast) \
-        X(Read) \
-        X(WriteNoAck) \
-        X(WriteWithAck) \
-        X(Notify) \
-        X(Indicate) \
-        X(AuthSignedWrite) \
-        X(ExtProps)
+        X(Broadcast,broadcast) \
+        X(Read,read) \
+        X(WriteNoAck,write-without-response) \
+        X(WriteWithAck,write) \
+        X(Notify,notify) \
+        X(Indicate,indicate) \
+        X(AuthSignedWrite,authenticated-signed-writes) \
+        X(ExtProps,extended-properties)
 
-#define CASE_TO_STRING(V) case V: return #V;
+/**
+        "reliable-write"
+        "writable-auxiliaries"
+        "encrypt-read"
+        "encrypt-write"
+        "encrypt-authenticated-read"
+        "encrypt-authenticated-write"
+        "secure-read" (Server only)
+        "secure-write" (Server only)
+        "authorize"
+ */
 
-std::string GATTCharacterisicsDecl::getPropertyString(const PropertyBitVal prop) {
+#define CASE_TO_STRING2(V,S) case V: return #S;
+
+std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) {
     switch(prop) {
-        CHAR_DECL_PROPS_ENUM(CASE_TO_STRING)
+        CHAR_DECL_PROPS_ENUM(CASE_TO_STRING2)
         default: ; // fall through intended
     }
     return "Unknown property";
 }
 
-std::string GATTCharacterisicsDecl::getPropertiesString(const PropertyBitVal properties) {
-    std::string res = "[";
-    int i = 0;
-    if( 0 != ( properties & Broadcast ) ) {
-        i++;
-        res += getPropertyString(Broadcast);
-    }
-    if( 0 != ( properties & Read ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
+std::string GATTCharacteristic::getPropertiesString(const PropertyBitVal properties) {
+    const PropertyBitVal none = static_cast<PropertyBitVal>(0);
+    const uint8_t one = 1;
+    bool has_pre = false;
+    std::string out("[");
+    for(int i=0; i<8; i++) {
+        const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
+        if( none != ( properties & propertyBit ) ) {
+            if( has_pre ) { out.append(", "); }
+            out.append(getPropertyString(propertyBit));
+            has_pre = true;
         }
-        res += getPropertyString(Read);
     }
-    if( 0 != ( properties & WriteNoAck ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(WriteNoAck);
-    }
-    if( 0 != ( properties & WriteWithAck ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(WriteWithAck);
-    }
-    if( 0 != ( properties & Notify ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(Notify);
-    }
-    if( 0 != ( properties & Indicate ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(Indicate);
-    }
-    if( 0 != ( properties & AuthSignedWrite ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(AuthSignedWrite);
-    }
-    if( 0 != ( properties & ExtProps ) ) {
-        if( 0 < i++ ) {
-            res += ", ";
-        }
-        res += getPropertyString(ExtProps);
-    }
-    return res+"]";
+    out.append("]");
+    return out;
 }
 
-std::string GATTCharacterisicsDecl::toString() const {
+std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStringList(const PropertyBitVal properties) {
+    std::vector<std::unique_ptr<std::string>> out;
+    const PropertyBitVal none = static_cast<PropertyBitVal>(0);
+    const uint8_t one = 1;
+    for(int i=0; i<8; i++) {
+        const PropertyBitVal propertyBit = static_cast<PropertyBitVal>( one << i );
+        if( none != ( properties & propertyBit ) ) {
+            out.push_back( std::unique_ptr<std::string>( new std::string( getPropertyString(propertyBit) ) ) );
+        }
+    }
+    return out;
+}
+
+std::string GATTCharacteristic::toString() const {
     const std::shared_ptr<const uuid_t> & service_uuid = service->declaration.uuid;
     const uint16_t service_handle_end = service->declaration.endHandle;
     std::string service_name = "";
     std::string char_name = "";
-    std::string config_str = "";
+    std::string config_str = ", config[";
     if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
         service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
@@ -124,9 +118,11 @@ std::string GATTCharacterisicsDecl::toString() const {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(uuid.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
-    if( nullptr != config ) {
-        config_str = ", config[ "+config->toString()+" ]";
+    for(size_t i=0; i<characteristicDescList.size(); i++) {
+        const GATTDescriptorRef cd = characteristicDescList[i];
+        config_str += cd->toString() + ", ";
     }
+    config_str += "]";
     return "props "+uint8HexString(properties, true)+" "+getPropertiesString()+", handle "+uint16HexString(handle, true)+
            ", uuid "+uuid->toString()+char_name+config_str+
            ", service[ "+service_uuid->toString()+
@@ -134,7 +130,7 @@ std::string GATTCharacterisicsDecl::toString() const {
            service_name+" ]";
 }
 
-std::string GATTServiceDecl::toString() const {
+std::string GATTService::toString() const {
     std::string res = declaration.toString()+"[ ";
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         if( 0 < i ) {

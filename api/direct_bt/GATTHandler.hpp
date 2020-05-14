@@ -56,13 +56,13 @@ namespace direct_bt {
 
     class GATTNotificationListener {
         public:
-            virtual void notificationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacterisicsDeclRef charDecl,
+            virtual void notificationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacteristicRef charDecl,
                                               std::shared_ptr<const AttHandleValueRcv> charValue) = 0;
             virtual ~GATTNotificationListener() {}
     };
     class GATTIndicationListener {
         public:
-            virtual void indicationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacterisicsDeclRef charDecl,
+            virtual void indicationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacteristicRef charDecl,
                                             std::shared_ptr<const AttHandleValueRcv> charValue, const bool confirmationSent) = 0;
             virtual ~GATTIndicationListener() {}
     };
@@ -121,7 +121,7 @@ namespace direct_bt {
 
             uint16_t serverMTU;
             uint16_t usedMTU;
-            std::vector<GATTServiceDeclRef> services;
+            std::vector<GATTServiceRef> services;
 
             State validateState();
 
@@ -179,7 +179,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle);
+            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle);
 
             /**
              * Find and return the GATTCharacterisicsDecl within given list of primary services
@@ -188,7 +188,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceDeclRef> &services);
+            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceRef> &services);
 
             /**
              * Find and return the GATTCharacterisicsDecl within given primary service
@@ -197,7 +197,7 @@ namespace direct_bt {
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacterisicsDeclRef findCharacterisics(const uint16_t charHandle, GATTServiceDeclRef service);
+            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle, GATTServiceRef service);
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -207,7 +207,12 @@ namespace direct_bt {
              * </p>
              * Method returns reference to GATTHandler internal data.
              */
-            std::vector<GATTServiceDeclRef> & discoverCompletePrimaryServices();
+            std::vector<GATTServiceRef> & discoverCompletePrimaryServices();
+
+            /**
+             * Returns previously discovered services via {@link #discoverCompletePrimaryServices()}.
+             */
+            std::vector<GATTServiceRef> & getServices() { return services; }
 
             /**
              * Discover all primary services _only_.
@@ -215,7 +220,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services
              * </p>
              */
-            bool discoverPrimaryServices(std::vector<GATTServiceDeclRef> & result);
+            bool discoverPrimaryServices(std::vector<GATTServiceRef> & result);
 
             /**
              * Discover all characteristics of a service and declaration attributes _only_.
@@ -226,23 +231,28 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characterisic Declaration Attribute Value
              * </p>
              */
-            bool discoverCharacteristics(GATTServiceDeclRef & service);
-
-            /**
-             * Discover all client characteristics config declaration _only_.
-             * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
-             * </p>
-             */
-            bool discoverClientCharacteristicConfig(GATTServiceDeclRef & service);
+            bool discoverCharacteristics(GATTServiceRef & service);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
+             */
+            bool discoverDescriptors(GATTServiceRef & service);
+
+            /**
+             * Generic read GATT value and long value
              * <p>
-             * This is of little use, prefer discoverCharacteristics(..) and more elaborate GATTCharacterisicsDecl type!
+             * If expectedLength = 0, then only one ATT_READ_REQ/RSP will be used.
+             * </p>
+             * <p>
+             * If expectedLength < 0, then long values using multiple ATT_READ_BLOB_REQ/RSP will be used until
+             * the response returns zero. This is the default parameter.
+             * </p>
+             * <p>
+             * If expectedLength > 0, then long values using multiple ATT_READ_BLOB_REQ/RSP will be used
+             * if required until the response returns zero.
              * </p>
              */
-            bool discoverCharacteristicDescriptors(const GATTUUIDHandleRange & service, std::vector<GATTUUIDHandle> & result);
+            bool readValue(const uint16_t handle, POctets & res, int expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -261,12 +271,12 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const GATTCharacterisicsDecl & decl, POctets & res, int expectedLength=-1);
+            bool readCharacteristicValue(const GATTCharacteristic & decl, POctets & res, int expectedLength=-1);
 
             /**
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.2 Read Value Using Characteristic UUID
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
              * <p>
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.2 Read Long Characteristic Descriptor
              * </p>
              * <p>
              * If expectedLength = 0, then only one ATT_READ_REQ/RSP will be used.
@@ -280,45 +290,48 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const GATTUUIDHandleRange & charUUIDHandleRange, POctets & res, int expectedLength=-1);
+            bool readCharacteristicDescValue(GATTDescriptor & characteristicDescriptor, int expectedLength=-1);
 
             /**
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+             * Generic write GATT value and long value
+             */
+            bool writeValue(const uint16_t handle, const TROOctets & value, const bool expResponse);
+
+            /**
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
+             * <p>
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
+             * </p>
              * <p>
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool writeClientCharacteristicConfigReq(const GATTClientCharacteristicConfigDecl & cccd, const TROOctets & value);
-
-            /**
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
-             */
-            bool writeClientCharacteristicConfigCmd(const GATTClientCharacteristicConfigDecl & cccd, const TROOctets & value);
+            bool writeCharacteristicDescValue(const GATTDescriptor & cd, const TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
              */
-            bool writeCharacteristicValueReq(const GATTCharacterisicsDecl & decl, const TROOctets & value);
+            bool writeCharacteristicValue(const GATTCharacteristic & decl, const TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
              */
-            bool writeCharacteristicValueCmd(const GATTCharacterisicsDecl & decl, const TROOctets & value);
+            bool writeCharacteristicValueNoResp(const GATTCharacteristic & decl, const TROOctets & value);
 
             /*****************************************************/
             /** Higher level semantic functionality **/
             /*****************************************************/
 
-            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTServiceDeclRef> & primServices);
-            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTCharacterisicsDeclRef> & genericAccessCharDeclList);
+            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTServiceRef> & primServices);
+            std::shared_ptr<GenericAccess> getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList);
 
-            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTServiceDeclRef> & primServices);
-            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTCharacterisicsDeclRef> & deviceInfoCharDeclList);
+            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTServiceRef> & primServices);
+            std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTCharacteristicRef> & deviceInfoCharDeclList);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              */
-            bool configIndicationNotification(const GATTClientCharacteristicConfigDecl & decl, const bool enableNotification, const bool enableIndication);
+            bool configIndicationNotification(const GATTDescriptor & desc, const bool enableNotification, const bool enableIndication);
     };
 
 } // namespace direct_bt

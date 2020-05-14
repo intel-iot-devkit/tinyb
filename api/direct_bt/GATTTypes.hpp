@@ -61,34 +61,22 @@ namespace direct_bt {
     enum GattAttributeType : uint16_t {
         /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.4.1 Discover All Primary Services */
         PRIMARY_SERVICE                             = 0x2800,
+        SECONDARY_SERVICE                           = 0x2801,
+        INCLUDE_DECLARATION                         = 0x2802,
         /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service */
         CHARACTERISTIC                              = 0x2803,
-        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
-        CLIENT_CHARACTERISTIC_CONFIGURATION         = 0x2902
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
+        CHARACTERISTIC_EXTENDED_PROPERTIES          = 0x2900,
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description (Characteristic Descriptor, optional, single, string) */
+        CHARACTERISTIC_USER_DESCRIPTION             = 0x2901,
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, bitfield) */
+        CLIENT_CHARACTERISTIC_CONFIGURATION         = 0x2902,
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.4 Server Characteristic Configuration (Characteristic Descriptor, optional, single, bitfield) */
+        SERVER_CHARACTERISTIC_CONFIGURATION         = 0x2903,
+        /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.5 Characteristic Presentation Format (Characteristic Descriptor, optional, single, complex) */
+        CHARACTERISTIC_PRESENTATION_FORMAT          = 0x2904,
+        CHARACTERISTIC_AGGREGATE_FORMAT             = 0x2905
     };
-
-    /**
-     * handle -> uuid
-     * <p>
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
-     *
-     * Here the handle references the characteristic-descriptor-declaration.
-     * The is the Characteristic Descriptor UUID.
-     * </p>
-     */
-    class GATTUUIDHandle {
-        public:
-            const uint16_t handle;
-            std::shared_ptr<const uuid_t> uuid;
-
-            GATTUUIDHandle(const uint16_t handle, std::shared_ptr<const uuid_t> uuid)
-            : handle(handle), uuid(uuid) {}
-
-            std::string toString() const {
-                return "handle "+uint16HexString(handle, true)+"-> uuid "+uuid->toString();
-            }
-    };
-
 
     /**
      * uuid -> handle-range[ startHandle .. endHandle ]
@@ -127,49 +115,95 @@ namespace direct_bt {
             }
     };
 
+
     /**
-     * handle -> value
-     * <p>
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
      *
-     * Here the handle is a service's characteristics-declaration
-     * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
-     * </p>
+     * JavaUplink Semantic Types
+     *
      */
-    class GATTHandleValuePair {
-        public:
-            const uint16_t handle;
-            const POctets value;
 
-            GATTHandleValuePair(const uint16_t handle, const POctets & value)
-            : handle(handle), value(value) {}
 
-            std::string toString() const {
-                return "handle "+uint16HexString(handle, true)+", value "+value.toString();
-            }
-    };
+    class GATTCharacteristic; // forward
+    typedef std::shared_ptr<GATTCharacteristic> GATTCharacteristicRef;
 
     /**
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      */
-    class GATTClientCharacteristicConfigDecl {
+    class GATTDescriptor : public JavaUplink {
         public:
-            /* Client Characteristics's Config Handle  */
+            static const uuid16_t TYPE_EXT_PROP;
+            static const uuid16_t TYPE_USER_DESC;
+            static const uuid16_t TYPE_CCC_DESC;
+            static std::shared_ptr<const uuid_t> getStaticType(const uuid16_t & type) {
+                return std::shared_ptr<const uuid_t>(&type, [](const uuid_t *){});
+            }
+
+            /**
+             * Following UUID16 GATT profile attribute types are listed under:
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
+             */
+            enum Type : uint16_t {
+                /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.1 Characteristic Extended Properties */
+                CHARACTERISTIC_EXTENDED_PROPERTIES          = 0x2900,
+                /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.2 Characteristic User Description (Characteristic Descriptor, optional, single, string) */
+                CHARACTERISTIC_USER_DESCRIPTION             = 0x2901,
+                /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
+                CLIENT_CHARACTERISTIC_CONFIGURATION         = 0x2902,
+                /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.4 Server Characteristic Configuration (Characteristic Descriptor, optional, single, bitfield) */
+                SERVER_CHARACTERISTIC_CONFIGURATION         = 0x2903,
+                /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.5 Characteristic Presentation Format (Characteristic Descriptor, optional, single, complex) */
+                CHARACTERISTIC_PRESENTATION_FORMAT          = 0x2904,
+                CHARACTERISTIC_AGGREGATE_FORMAT             = 0x2905,
+
+                /** Our identifier to mark a custom vendor Characteristic Descriptor */
+                CUSTOM_CHARACTERISTIC_DESCRIPTION           = 0x8888
+            };
+
+            /* Characteristic Descriptor's Characteristic back-reference */
+            GATTCharacteristicRef characteristic;
+
+            /** Actual type of descriptor */
+            std::shared_ptr<const uuid_t> type;
+
+            /* Characteristics Descriptor's Handle  */
             const uint16_t handle;
 
-            /* Client Characteristics's Config Value */
-            uint16_t value;
+            /* Characteristics Descriptor's Value */
+            POctets value;
 
-            GATTClientCharacteristicConfigDecl(const uint16_t handle, const uint16_t value)
-            : handle(handle), value(value) {}
+            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
+                           const uint16_t handle)
+            : characteristic(characteristic), type(type), handle(handle), value(0) {}
 
-            std::string toString() const {
-                return "handle "+uint16HexString(handle, true)+", value "+uint16HexString(value, true);
+            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
+                           const uint16_t handle, const int valueSize)
+            : characteristic(characteristic), type(type), handle(handle), value(valueSize) {}
+
+            GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
+                           const uint16_t handle, const uint8_t *valueSource, const int valueSize)
+            : characteristic(characteristic), type(type), handle(handle), value(valueSource, valueSize) {}
+
+            std::string get_java_class() const override {
+                return java_class();
             }
-    };
+            static std::string java_class() {
+                return std::string(JAVA_DBT_PACKAGE "DBTGattDescriptor");
+            }
 
-    class GATTServiceDecl; // forward
-    typedef std::shared_ptr<GATTServiceDecl> GATTServiceDeclRef;
+            virtual std::string toString() const {
+                return "Descriptor[type "+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
+            }
+
+            /** Value is uint16_t bitfield */
+            bool isExtendedProperties() { return TYPE_EXT_PROP == *type; }
+
+            /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration (Characteristic Descriptor, optional, single, uint16_t bitfield) */
+            bool isClientCharacteristicConfiguration() { return TYPE_CCC_DESC == *type; }
+    };
+    typedef std::shared_ptr<GATTDescriptor> GATTDescriptorRef;
+
+    class GATTService; // forward
+    typedef std::shared_ptr<GATTService> GATTServiceRef;
 
     /**
      * <p>
@@ -183,7 +217,7 @@ namespace direct_bt {
      * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
      * </p>
      */
-    class GATTCharacterisicsDecl : public JavaUplink {
+    class GATTCharacteristic : public JavaUplink {
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
             enum PropertyBitVal : uint8_t {
@@ -196,12 +230,19 @@ namespace direct_bt {
                 AuthSignedWrite = 0x40,
                 ExtProps = 0x80
             };
+            /**
+             * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
+             * <pre>
+             * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
+             * </pre>
+             */
             static std::string getPropertyString(const PropertyBitVal prop);
 
             static std::string getPropertiesString(const PropertyBitVal properties);
+            static std::vector<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties);
 
-            /* Characteristics's Service */
-            GATTServiceDeclRef service;
+            /* Characteristics's Service back-reference */
+            GATTServiceRef service;
 
             /* Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data */
             const uint16_t service_handle;
@@ -213,13 +254,16 @@ namespace direct_bt {
             /* Characteristics UUID */
             std::shared_ptr<const uuid_t> uuid;
 
-            /* Optional Client Characteristic Configuration declaration */
-            std::shared_ptr<GATTClientCharacteristicConfigDecl> config;
+            /** List of Characteristic Descriptions as shared reference */
+            std::vector<GATTDescriptorRef> characteristicDescList;
 
-            GATTCharacterisicsDecl(GATTServiceDeclRef service, const uint16_t service_handle,
+            /* Optional Client Characteristic Configuration index within characteristicDescList */
+            int clientCharacteristicsConfigIndex = -1;
+
+            GATTCharacteristic(const GATTServiceRef & service, const uint16_t service_handle,
                                    const PropertyBitVal properties, const uint16_t handle, std::shared_ptr<const uuid_t> uuid)
             : service(service), service_handle(service_handle),
-              properties(properties), handle(handle), uuid(uuid), config(nullptr) {}
+              properties(properties), handle(handle), uuid(uuid) {}
 
             std::string get_java_class() const override {
                 return java_class();
@@ -234,8 +278,14 @@ namespace direct_bt {
                 return getPropertiesString(properties);
             }
             std::string toString() const;
+
+            GATTDescriptorRef getClientCharacteristicConfig() {
+                if( 0 > clientCharacteristicsConfigIndex ) {
+                    return nullptr;
+                }
+                return characteristicDescList.at(clientCharacteristicsConfigIndex);
+            }
     };
-    typedef std::shared_ptr<GATTCharacterisicsDecl> GATTCharacterisicsDeclRef;
 
     class DBTDevice; // forward
 
@@ -244,17 +294,20 @@ namespace direct_bt {
      * including its list of Characteristic Declarations,
      * which also may include its client config if available.
      */
-    class GATTServiceDecl : public JavaUplink {
+    class GATTService : public JavaUplink {
         public:
+            /* Service's Device back-reference */
             std::shared_ptr<DBTDevice> device;
+
             const bool isPrimary;
 
             /** The primary service declaration itself */
             const GATTUUIDHandleRange declaration;
-            /** List of Characteristic Declarations as shared reference */
-            std::vector<GATTCharacterisicsDeclRef> characteristicDeclList;
 
-            GATTServiceDecl(const std::shared_ptr<DBTDevice> &device, const bool isPrimary, const GATTUUIDHandleRange serviceDecl)
+            /** List of Characteristic Declarations as shared reference */
+            std::vector<GATTCharacteristicRef> characteristicDeclList;
+
+            GATTService(const std::shared_ptr<DBTDevice> &device, const bool isPrimary, const GATTUUIDHandleRange serviceDecl)
             : device(device), isPrimary(isPrimary), declaration(serviceDecl), characteristicDeclList() {
                 characteristicDeclList.reserve(10);
             }
