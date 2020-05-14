@@ -27,7 +27,6 @@ package direct_bt.tinyb;
 
 import java.util.List;
 
-import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
@@ -38,11 +37,15 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCharacteristic
 {
+    private final BluetoothGattService service;
+    private final String[] properties;
     private final String uuid;
 
-   /* pp */ DBTGattCharacteristic(final long nativeInstance, final String uuid)
+   /* pp */ DBTGattCharacteristic(final long nativeInstance, final BluetoothGattService service, final String[] properties, final String uuid)
     {
         super(nativeInstance, uuid.hashCode());
+        this.service = service;
+        this.properties = properties;
         this.uuid = uuid;
     }
 
@@ -80,6 +83,24 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         return find(UUID, 0);
     }
 
+    @Override
+    public final BluetoothGattService getService() { return service; }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Actually the BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
+     * </p>
+     * <p>
+     * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
+     * <pre>
+     * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
+     * </pre>
+     * </p>
+     */
+    @Override
+    public final String[] getFlags() { return properties; }
+
     /* D-Bus method calls: */
 
     @Override
@@ -94,10 +115,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     @Override
     public native boolean writeValue(byte[] argValue) throws BluetoothException;
 
-    /* D-Bus property accessors: */
-
-    @Override
-    public native BluetoothGattService getService();
+    /* Native accessors: */
 
     @Override
     public native byte[] getValue();
@@ -106,12 +124,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     public native boolean getNotifying();
 
     @Override
-    public native String[] getFlags();
-
-    @Override
     public native List<BluetoothGattDescriptor> getDescriptors();
-
-    private native void init(DBTGattCharacteristic obj);
 
     @Override
     protected native void deleteImpl();

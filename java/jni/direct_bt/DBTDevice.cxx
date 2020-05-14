@@ -132,7 +132,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
         std::shared_ptr<GATTHandler> gatt = device->connectGATT();
         if( nullptr != gatt ) {
             // FIXME: Split up - may offload to other thread
-            std::vector<GATTServiceDeclRef> & primServices = gatt->discoverCompletePrimaryServices();
+            std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
 
             std::shared_ptr<GenericAccess> ga = gatt->getGenericAccess(primServices);
             if( nullptr != ga ) {
@@ -158,11 +158,37 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
 // getter
 //
 
+static const std::string _serviceClazzCtorArgs("(JLorg/tinyb/BluetoothDevice;ZLjava/lang/String;)V");
+
 jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        return nullptr;
+
+        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        if( nullptr != gatt ) {
+            std::vector<std::shared_ptr<GATTService>> & services = gatt->getServices();
+            // DBTGattService(final long nativeInstance, final BluetoothDevice device, final boolean isPrimary, final String uuid)
+
+            std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
+                    [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
+                        // prepare adapter ctor
+                        JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
+                        jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
+                        const jboolean isPrimary = service->isPrimary;
+                        const jstring uuid = from_string_to_jstring(env, service->declaration.uuid->toString());
+                        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+
+                        jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary, uuid);
+                        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+                        JNIGlobalRef::check(jservice, E_FILE_LINE);
+                        std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject();
+                        JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
+
+                        return JavaGlobalObj::GetObject(jServiceRef);
+                    };
+            return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
+        }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

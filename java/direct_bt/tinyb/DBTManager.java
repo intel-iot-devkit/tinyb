@@ -176,8 +176,47 @@ public class DBTManager implements BluetoothManager
     @Override
     public List<BluetoothDevice> getDevices() { return getDefaultAdapter().getDevices(); }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * This call is a quite expensive service query, see below.
+     * </p>
+     * <p>
+     * This implementation only fetches all {@link BluetoothGattService} from all {@link BluetoothDevice}s
+     * from the {@link #getDefaultAdapter()}.
+     * </p>
+     * <p>
+     * This implementation does not {@link BluetoothAdapter#startDiscovery() start} an explicit discovery,
+     * but previous {@link BluetoothAdapter#getDevices() discovered devices} are being queried.
+     * </p>
+     * <p>
+     * In case a {@link BluetoothDevice} hasn't detected any service yet,
+     * i.e. {@link BluetoothDevice#getServicesResolved()} and {@link BluetoothDevice#getConnected()} is false,
+     * a new {@link BluetoothDevice#connect() connect/disconnect} cycle is performed.
+     * </p>
+     */
     @Override
-    public List<BluetoothGattService> getServices() { throw new UnsupportedOperationException(); } // FIXME
+    public List<BluetoothGattService> getServices() {
+        final List<BluetoothGattService> res = new ArrayList<BluetoothGattService>();
+        for(final Iterator<BluetoothAdapter> iterA=adapters.iterator(); iterA.hasNext(); ) {
+            final BluetoothAdapter adapter = iterA.next();
+            final List<BluetoothDevice> devices = adapter.getDevices();
+            for(final Iterator<BluetoothDevice> iterD=devices.iterator(); iterD.hasNext(); ) {
+                final BluetoothDevice device = iterD.next();
+                if( !device.getServicesResolved() && !device.getConnected() ) {
+                    if( device.connect() ) {
+                        if( !device.getServicesResolved() ) {
+                            throw new InternalError("Device connected but services not resolved");
+                        }
+                        device.disconnect();
+                    }
+                }
+                final List<BluetoothGattService> devServices = device.getServices();
+                res.addAll(devServices);
+            }
+        }
+        return res;
+    }
 
     @Override
     public boolean setDefaultAdapter(final BluetoothAdapter adapter) {

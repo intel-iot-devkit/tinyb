@@ -27,6 +27,7 @@ package direct_bt.tinyb;
 
 import java.util.List;
 
+import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
@@ -34,11 +35,15 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattService extends DBTObject implements BluetoothGattService
 {
+    private final BluetoothDevice device;
+    private final boolean isPrimary;
     private final String uuid;
 
-   /* pp */ DBTGattService(final long nativeInstance, final String uuid)
+   /* pp */ DBTGattService(final long nativeInstance, final BluetoothDevice device, final boolean isPrimary, final String uuid)
     {
         super(nativeInstance, uuid.hashCode());
+        this.device = device;
+        this.isPrimary = isPrimary;
         this.uuid = uuid;
     }
 
@@ -76,13 +81,13 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
             return find(UUID, 0);
     }
 
-    /* D-Bus property accessors: */
+    @Override
+    public final BluetoothDevice getDevice() { return device; }
 
     @Override
-    public native DBTDevice getDevice();
+    public final boolean getPrimary() { return isPrimary; }
 
-    @Override
-    public native boolean getPrimary();
+    /* Native accessors: */
 
     @Override
     public native List<BluetoothGattCharacteristic> getCharacteristics();

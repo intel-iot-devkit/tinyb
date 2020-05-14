@@ -233,7 +233,7 @@ public class ScannerTinyB01 {
                 final long t1 = BluetoothUtils.getCurrentMilliseconds();
                 if (sensor == null) {
                     System.err.println("No sensor found within "+(t1-t0)+" ms");
-                    System.exit(-1);
+                    continue; // forever loop
                 }
                 System.err.println("Found device in "+(t1-t0)+" ms: ");
                 printDevice(sensor);
@@ -253,7 +253,7 @@ public class ScannerTinyB01 {
                 } else {
                     t3 = BluetoothUtils.getCurrentMilliseconds();
                     System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                    System.exit(-1);
+                    continue; // forever loop
                 }
 
                 synchronized( servicesResolvedNotification ) {
@@ -283,7 +283,7 @@ public class ScannerTinyB01 {
                 }
 
                 sensor.disconnect();
-                sensor.remove();
+                // sensor.remove();
                 System.err.println("ScannerTinyB01 04 ...: "+adapter);
             } while( forever );
         } catch (final Throwable t) {
