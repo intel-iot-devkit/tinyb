@@ -88,7 +88,9 @@ void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         device->remove();
+        // No delete: DBTDevice instance owned by DBTAdapter
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
