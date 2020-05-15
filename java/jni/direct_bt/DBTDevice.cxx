@@ -176,7 +176,7 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
                         JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
                         jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
                         const jboolean isPrimary = service->isPrimary;
-                        const jstring uuid = from_string_to_jstring(env, service->declaration.uuid->toString());
+                        const jstring uuid = from_string_to_jstring(env, service->type->toString());
                         if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
 
                         jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary, uuid);

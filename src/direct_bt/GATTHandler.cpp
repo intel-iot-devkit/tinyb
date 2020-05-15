@@ -39,9 +39,20 @@ extern "C" {
     #include <signal.h>
 }
 
-// #define PERF_PRINT_ON 1
+#define PERF_PRINT_ON 1
+// #define PERF2_PRINT_ON 1
 // #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
+
+// PERF2_PRINT_ON for read/write single values
+#ifdef PERF2_PRINT_ON
+    #define PERF2_TS_T0() PERF_TS_T0()
+    #define PERF2_TS_TD(m) PERF_TS_TD(m)
+#else
+    #define PERF2_TS_T0()
+    #define PERF2_TS_TD(m)
+#endif
+
 
 #include "L2CAPIoctl.hpp"
 #include "GATTNumbers.hpp"
@@ -126,7 +137,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
                 DBG_PRINT("GATTHandler: NTF: %s", a->toString().c_str());
                 if( nullptr != gattNotificationListener ) {
-                    GATTCharacteristicRef decl = findCharacterisics(a->getHandle());
+                    GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                     gattNotificationListener->notificationReceived(this->l2cap->getDevice(), decl, std::shared_ptr<const AttHandleValueRcv>(a));
                     attPDU = nullptr;
                 }
@@ -140,7 +151,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                     DBG_PRINT("GATTHandler: CFM send: %s, confirmationSent %d", cfm.toString().c_str(), cfmSent);
                 }
                 if( nullptr != gattIndicationListener ) {
-                    GATTCharacteristicRef decl = findCharacterisics(a->getHandle());
+                    GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                     gattIndicationListener->indicationReceived(this->l2cap->getDevice(), decl, std::shared_ptr<const AttHandleValueRcv>(a), cfmSent);
                     attPDU = nullptr;
                 }
@@ -313,13 +324,13 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     return mtu;
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisics(const uint16_t charHandle) {
-    return findCharacterisics(charHandle, services);
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle) {
+    return findCharacterisicsByValueHandle(charValueHandle, services);
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceRef> &services) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services) {
     for(auto it = services.begin(); it != services.end(); it++) {
-        GATTCharacteristicRef decl = findCharacterisics(charHandle, *it);
+        GATTCharacteristicRef decl = findCharacterisicsByValueHandle(charValueHandle, *it);
         if( nullptr != decl ) {
             return decl;
         }
@@ -327,10 +338,10 @@ GATTCharacteristicRef GATTHandler::findCharacterisics(const uint16_t charHandle,
     return nullptr;
 }
 
-GATTCharacteristicRef GATTHandler::findCharacterisics(const uint16_t charHandle, GATTServiceRef service) {
-    for(auto it = service->characteristicDeclList.begin(); it != service->characteristicDeclList.end(); it++) {
+GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service) {
+    for(auto it = service->characteristicList.begin(); it != service->characteristicList.end(); it++) {
         GATTCharacteristicRef decl = *it;
-        if( charHandle == decl->handle ) {
+        if( charValueHandle == decl->value_handle ) {
             return decl;
         }
     }
@@ -380,12 +391,10 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
                     const int ePDUOffset = p->getElementPDUOffset(i);
                     const int esz = p->getElementTotalSize();
                     result.push_back( GATTServiceRef( new GATTService( device, true,
-                        GATTUUIDHandleRange(
-                            GATTUUIDHandleRange::Type::Service,
                             p->pdu.get_uint16(ePDUOffset), // start-handle
                             p->pdu.get_uint16(ePDUOffset + 2), // end-handle
                             p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
-                        ) ) ) );
+                        ) ) );
                     DBG_PRINT("GATT PRIM SRV discovered[%d/%d]: %s", i, count, result.at(result.size()-1)->toString().c_str());
                 }
                 startHandle = p->getElementEndHandle(count-1);
@@ -421,38 +430,40 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
      * </p>
      */
     const uuid16_t characteristicTypeReq = uuid16_t(GattAttributeType::CHARACTERISTIC);
+    DBG_PRINT("GATT discoverCharacteristics Service: %s", service->toString().c_str());
 
     PERF_TS_T0();
 
     bool done=false;
-    uint16_t handle=service->declaration.startHandle;
-    service->characteristicDeclList.clear();
+    uint16_t handle=service->startHandle;
+    service->characteristicList.clear();
     while(!done) {
-        const AttReadByNTypeReq req(false /* group */, handle, service->declaration.endHandle, characteristicTypeReq);
-        DBG_PRINT("GATT CCD discover send: %s", req.toString().c_str());
+        const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
+        DBG_PRINT("GATT C discover send: %s", req.toString().c_str());
 
         std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
         if( nullptr != pdu ) {
-            DBG_PRINT("GATT CCD discover recv: %s", pdu->toString().c_str());
+            DBG_PRINT("GATT C discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
                 const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
-                const int count = p->getElementCount();
+                const int e_count = p->getElementCount();
 
-                for(int i=0; i<count; i++) {
+                for(int e_iter=0; e_iter<e_count; e_iter++) {
                     // handle: handle for the Characteristics declaration
                     // value: Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID
-                    const int ePDUOffset = p->getElementPDUOffset(i);
+                    const int ePDUOffset = p->getElementPDUOffset(e_iter);
                     const int esz = p->getElementTotalSize();
-                    service->characteristicDeclList.push_back( GATTCharacteristicRef( new GATTCharacteristic(
+                    service->characteristicList.push_back( GATTCharacteristicRef( new GATTCharacteristic(
                         service,
-                        p->pdu.get_uint16(ePDUOffset), // service-handle
-                        static_cast<GATTCharacteristic::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // properties
-                        p->pdu.get_uint16(ePDUOffset + 2 + 1), // handle
-                        p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // uuid
-                    DBG_PRINT("GATT CCD discovered[%d/%d]: %s", i, count, service->characteristicDeclList.at(service->characteristicDeclList.size()-1)->toString().c_str());
+                        p->pdu.get_uint16(ePDUOffset), // Characteristics's Service Handle
+                        p->getElementHandle(e_iter), // Characteristic Handle
+                        static_cast<GATTCharacteristic::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
+                        p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
+                        p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
+                    DBG_PRINT("GATT C discovered[%d/%d]: %s", e_iter, e_count, service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str());
                 }
-                handle = p->getElementHandle(count-1);
-                if( handle < service->declaration.endHandle ) {
+                handle = p->getElementHandle(e_count-1); // Last Characteristic Handle
+                if( handle < service->endHandle ) {
                     handle++;
                 } else {
                     done = true; // OK by spec: End of communication
@@ -471,107 +482,116 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
 
     PERF_TS_TD("GATT discoverCharacteristics");
 
-    return service->characteristicDeclList.size() > 0;
+    return service->characteristicList.size() > 0;
 }
 
 bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
     /***
-     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.6.1 Discover All Characteristics of a Service
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.7.1 Discover All Characteristic Descriptors
      * <p>
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
      * </p>
      */
+    DBG_PRINT("GATT discoverDescriptors Service: %s", service->toString().c_str());
     PERF_TS_T0();
 
     bool done=false;
-    uint16_t handle=service->declaration.startHandle;
-    // list.clear();
-    while(!done) {
-        const AttFindInfoReq req(handle, service->declaration.endHandle);
-        DBG_PRINT("GATT CD discover send: %s", req.toString().c_str());
+    const int charCount = service->characteristicList.size();
+    for(int charIter=0; !done && charIter < charCount; charIter++ ) {
+        GATTCharacteristicRef charDecl = service->characteristicList[charIter];
+        charDecl->clearDescriptors();
+        DBG_PRINT("GATT discoverDescriptors Characteristic[%d/%d]: %s", charIter, charCount, charDecl->toString().c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
-        if( nullptr != pdu ) {
+        uint16_t cd_handle_iter = charDecl->value_handle + 1; // Start @ Characteristic Value Handle + 1
+        uint16_t cd_handle_end;
+        if( charIter+1 < charCount ) {
+            cd_handle_end = service->characteristicList.at(charIter+1)->value_handle;
+        } else {
+            cd_handle_end = service->endHandle;
+        }
+
+        while( !done && cd_handle_iter <= cd_handle_end ) {
+            const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
+            DBG_PRINT("GATT CD discover send: %s", req.toString().c_str());
+
+            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
+            if( nullptr == pdu ) {
+                ERR_PRINT("GATT discoverDescriptors send failed: %s", req.toString().c_str());
+                done = true;
+                break;
+            }
             DBG_PRINT("GATT CD discover recv: %s", pdu->toString().c_str());
+
             if( pdu->getOpcode() == AttPDUMsg::ATT_FIND_INFORMATION_RSP ) {
                 const AttFindInfoRsp * p = static_cast<const AttFindInfoRsp*>(pdu.get());
-                const int count = p->getElementCount();
+                const int e_count = p->getElementCount();
 
-                for(int i=0; i<count; i++) {
-                    // handle: handle of Characteristic Descriptor Declaration.
+                for(int e_iter=0; e_iter<e_count; e_iter++) {
+                    // handle: handle of Characteristic Descriptor.
                     // value: Characteristic Descriptor UUID.
-                    const uint16_t cd_handle = p->getElementHandle(i);
-                    const std::shared_ptr<const uuid_t> cd_uuid = p->getElementValue(i);
-                    // locate the matching GATTClientCharacteristicConfigDesc and attach it
-                    bool attached = false;
-                    for(size_t j=0; !attached && j<service->characteristicDeclList.size(); j++) {
-                        GATTCharacteristicRef decl = service->characteristicDeclList[j];
-                        uint16_t decl_handle_end;
-                        if( j+1 < service->characteristicDeclList.size() ) {
-                            decl_handle_end = service->characteristicDeclList.at(j+1)->handle;
-                        } else {
-                            decl_handle_end = service->declaration.endHandle;
-                        }
-                        if( cd_handle > decl->handle && cd_handle <= decl_handle_end ) {
-                            std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(decl, cd_uuid, cd_handle) );
-                            if( !readCharacteristicDescValue(*cd, 0) ) {
-                                break; // oops
-                            }
-                            if( cd->isClientCharacteristicConfiguration() ) {
-                                decl->clientCharacteristicsConfigIndex = decl->characteristicDescList.size();
-                            }
-                            decl->characteristicDescList.push_back(cd);
-                            attached = true;
-                            DBG_PRINT("GATT CD discovered[%d/%d]: %s", i, count, cd->toString().c_str());
-                        }
+                    const uint16_t cd_handle = p->getElementHandle(e_iter);
+                    const std::shared_ptr<const uuid_t> cd_uuid = p->getElementValue(e_iter);
+
+                    std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, cd_uuid, cd_handle) );
+                    if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
+                        ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: %s",
+                                uint16HexString(cd_handle).c_str(),
+                                uint16HexString(charDecl->value_handle).c_str(), uint16HexString(cd_handle_end).c_str(),
+                                cd->toString().c_str());
+                        done = true;
+                        break;
+
                     }
-                    if( !attached ) {
-                        WARN_PRINT("GATT discoverCharacteristicDescriptors couldn't attach CharacteristicDescriptor uuid %s, handle %s",
-                                cd_uuid->toString().c_str(), uint16HexString(cd_handle).c_str());
+                    if( !readDescriptorValue(*cd, 0) ) {
+                        ERR_PRINT("GATT discoverDescriptors readDescriptorValue failed: %s . %s",
+                                req.toString().c_str(), cd->toString().c_str());
+                        done = true;
+                        break;
                     }
+                    if( cd->isClientCharacteristicConfiguration() ) {
+                        charDecl->clientCharacteristicsConfigIndex = charDecl->descriptorList.size();
+                    }
+                    charDecl->descriptorList.push_back(cd);
+                    DBG_PRINT("GATT CD discovered[%d/%d]: %s", e_iter, e_count, cd->toString().c_str());
                 }
-                handle = p->getElementHandle(count-1);
-                if( handle < service->declaration.endHandle ) {
-                    handle++;
+                cd_handle_iter = p->getElementHandle(e_count-1); // Last Descriptor Handle
+                if( cd_handle_iter < cd_handle_end ) {
+                    cd_handle_iter++;
                 } else {
                     done = true; // OK by spec: End of communication
                 }
             } else if( pdu->getOpcode() == AttPDUMsg::ATT_ERROR_RSP ) {
                 done = true; // OK by spec: End of communication
             } else {
-                WARN_PRINT("GATT discoverCharacteristicDescriptors unexpected opcode reply %s", pdu->toString().c_str());
+                WARN_PRINT("GATT discoverDescriptors unexpected opcode reply %s", pdu->toString().c_str());
                 done = true;
             }
-        } else {
-            ERR_PRINT("GATT discoverCharacteristicDescriptors send failed");
-            done = true;
         }
     }
+    PERF_TS_TD("GATT discoverDescriptors");
 
-    PERF_TS_TD("GATT discoverCharacteristicDescriptors");
-
-    return service->characteristicDeclList.size() > 0;
+    return service->characteristicList.size() > 0;
 }
 
-bool GATTHandler::readCharacteristicDescValue(GATTDescriptor & desc, int expectedLength) {
-    DBG_PRINT("GATTHandler::readCharacteristicDescValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
+bool GATTHandler::readDescriptorValue(GATTDescriptor & desc, int expectedLength) {
+    DBG_PRINT("GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
     return readValue(desc.handle, desc.value, expectedLength);
 }
 
 bool GATTHandler::readCharacteristicValue(const GATTCharacteristic & decl, POctets & res, int expectedLength) {
     DBG_PRINT("GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
-    return readValue(decl.handle, res, expectedLength);
+    return readValue(decl.value_handle, res, expectedLength);
 }
 
 bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLength) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
-    PERF_TS_T0();
+    PERF2_TS_T0();
 
     bool done=false;
     int offset=0;
 
-    DBG_PRINT("GATTHandler::readValue expLen %d, handle %s", expectedLength, uint16HexString(handle));
+    DBG_PRINT("GATTHandler::readValue expLen %d, handle %s", expectedLength, uint16HexString(handle).c_str());
 
     while(!done) {
         if( 0 < expectedLength && expectedLength <= offset ) {
@@ -639,29 +659,29 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
             done = true;
         }
     }
-    PERF_TS_TD("GATT readValue");
+    PERF2_TS_TD("GATT readValue");
 
     return offset > 0;
 }
 
-bool GATTHandler::writeCharacteristicDescValue(const GATTDescriptor & cd, const TROOctets & value) {
+bool GATTHandler::writeDescriptorValue(const GATTDescriptor & cd, const TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
-    DBG_PRINT("GATTHandler::writeCharacteristicDescValue desc %s, value %s", desc.toString().c_str(), value.toString().c_str());
+    DBG_PRINT("GATTHandler::writeDesccriptorValue desc %s, value %s", cd.toString().c_str(), value.toString().c_str());
     return writeValue(cd.handle, value, true);
 }
 
-bool GATTHandler::writeCharacteristicValue(const GATTCharacteristic & decl, const TROOctets & value) {
+bool GATTHandler::writeCharacteristicValue(const GATTCharacteristic & c, const TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
-    DBG_PRINT("GATTHandler::writeCharacteristicValue desc %s, value %s", desc.toString().c_str(), value.toString().c_str());
-    return writeValue(decl.handle, value, true);
+    DBG_PRINT("GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString().c_str(), value.toString().c_str());
+    return writeValue(c.value_handle, value, true);
 }
 
-bool GATTHandler::writeCharacteristicValueNoResp(const GATTCharacteristic & decl, const TROOctets & value) {
-    DBG_PRINT("GATT writeCharacteristicValueNoResp decl %s, value %s", decl.toString().c_str(), value.toString().c_str());
-    return writeValue(decl.handle, value, false);
+bool GATTHandler::writeCharacteristicValueNoResp(const GATTCharacteristic & c, const TROOctets & value) {
+    DBG_PRINT("GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString().c_str(), value.toString().c_str());
+    return writeValue(c.value_handle, value, false);
 }
 
 bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, const bool expResponse) {
@@ -671,6 +691,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
 
     // TODO: Long Value!
+    PERF2_TS_T0();
 
     AttWriteReq req(handle, value);
     DBG_PRINT("GATT WV send(resp %d): %s", expResponse, req.toString().c_str());
@@ -695,6 +716,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     } else {
         ERR_PRINT("GATT writeValue send failed");
     }
+    PERF2_TS_TD("GATT writeValue");
     return res;
 }
 
@@ -705,7 +727,7 @@ bool GATTHandler::configIndicationNotification(const GATTDescriptor & cccd, cons
             cccd.toString().c_str(), enableNotification, enableIndication);
     POctets ccc(2);
     ccc.put_uint16(0, ccc_value);
-    return writeCharacteristicDescValue(cccd, ccc);
+    return writeDescriptorValue(cccd, ccc);
 }
 
 /*********************************************************************************************************************/
@@ -737,18 +759,18 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
 
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
-        if( _GENERIC_ACCESS != *charDecl.service->declaration.uuid ) {
+        if( _GENERIC_ACCESS != *charDecl.service->type ) {
         	continue;
         }
-        if( _DEVICE_NAME == *charDecl.uuid ) {
+        if( _DEVICE_NAME == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
             	deviceName = GattNameToString(value);
             }
-        } else if( _APPEARANCE == *charDecl.uuid ) {
+        } else if( _APPEARANCE == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
             	category = static_cast<GenericAccess::AppearanceCat>(value.get_uint16(0));
             }
-        } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.uuid ) {
+        } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
             	prefConnParam = new PeriphalPreferredConnectionParameters(value);
             }
@@ -766,7 +788,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
 std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTServiceRef> & primServices) {
 	std::shared_ptr<GenericAccess> res = nullptr;
 	for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
-		res = getGenericAccess(primServices.at(i)->characteristicDeclList);
+		res = getGenericAccess(primServices.at(i)->characteristicList);
 	}
 	return res;
 }
@@ -788,43 +810,43 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
 
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *characteristicDeclList.at(i);
-        if( _DEVICE_INFORMATION != *charDecl.service->declaration.uuid ) {
+        if( _DEVICE_INFORMATION != *charDecl.service->type ) {
             continue;
         }
         found = true;
-        if( _SYSTEM_ID == *charDecl.uuid ) {
+        if( _SYSTEM_ID == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, systemID.resize(0)) ) {
                 // nop
             }
-        } else if( _REGULATORY_CERT_DATA_LIST == *charDecl.uuid ) {
+        } else if( _REGULATORY_CERT_DATA_LIST == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, regulatoryCertDataList.resize(0)) ) {
                 // nop
             }
-        } else if( _PNP_ID == *charDecl.uuid ) {
+        } else if( _PNP_ID == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 pnpID = new PnP_ID(value);
             }
-        } else if( _MODEL_NUMBER_STRING == *charDecl.uuid ) {
+        } else if( _MODEL_NUMBER_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 modelNumber = GattNameToString(value);
             }
-        } else if( _SERIAL_NUMBER_STRING == *charDecl.uuid ) {
+        } else if( _SERIAL_NUMBER_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 serialNumber = GattNameToString(value);
             }
-        } else if( _FIRMWARE_REVISION_STRING == *charDecl.uuid ) {
+        } else if( _FIRMWARE_REVISION_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 firmwareRevision = GattNameToString(value);
             }
-        } else if( _HARDWARE_REVISION_STRING == *charDecl.uuid ) {
+        } else if( _HARDWARE_REVISION_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 hardwareRevision = GattNameToString(value);
             }
-        } else if( _SOFTWARE_REVISION_STRING == *charDecl.uuid ) {
+        } else if( _SOFTWARE_REVISION_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 softwareRevision = GattNameToString(value);
             }
-        } else if( _MANUFACTURER_NAME_STRING == *charDecl.uuid ) {
+        } else if( _MANUFACTURER_NAME_STRING == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
                 manufacturer = GattNameToString(value);
             }
@@ -845,7 +867,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
 std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTServiceRef> & primServices) {
     std::shared_ptr<DeviceInformation> res = nullptr;
     for(size_t i=0; i<primServices.size() && nullptr == res; i++) {
-        res = getDeviceInformation(primServices.at(i)->characteristicDeclList);
+        res = getDeviceInformation(primServices.at(i)->characteristicList);
     }
     return res;
 }

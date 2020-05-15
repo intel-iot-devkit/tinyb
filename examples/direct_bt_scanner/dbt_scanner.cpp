@@ -103,7 +103,7 @@ class MyGATTIndicationListener : public direct_bt::GATTIndicationListener {
                 confirmationSent, (tR-charValue->ts_creation), (tR-dev->ts_creation), dev->toString().c_str());
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
-            if( _TEMPERATURE_MEASUREMENT == *charDecl->uuid ) {
+            if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
                 std::shared_ptr<TemperatureMeasurementCharateristic> temp = TemperatureMeasurementCharateristic::get(charValue->getValue());
                 if( nullptr != temp ) {
                     fprintf(stderr, "****** valu %s\n", temp->toString().c_str());
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
                     GATTService & primService = *primServices.at(i);
                     fprintf(stderr, "  [%2.2d] Service %s\n", (int)i, primService.toString().c_str());
                     fprintf(stderr, "  [%2.2d] Service Characteristics\n", (int)i);
-                    std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicDeclList;
+                    std::vector<GATTCharacteristicRef> & serviceCharacteristics = primService.characteristicList;
                     for(size_t j=0; j<serviceCharacteristics.size() && gatt->isOpen(); j++) {
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());

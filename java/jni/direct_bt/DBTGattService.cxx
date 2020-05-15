@@ -55,7 +55,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristics(JNIEnv *env, job
         GATTService *service = getInstance<GATTService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
 
-        std::vector<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicDeclList;
+        std::vector<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
 
         // DBTGattCharacteristic(final long nativeInstance, final BluetoothGattService service, final String[] properties, final String uuid)
 
@@ -78,7 +78,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristics(JNIEnv *env, job
                     }
                     if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
 
-                    const jstring uuid = from_string_to_jstring(env, characteristic->uuid->toString());
+                    const jstring uuid = from_string_to_jstring(env, characteristic->value_type->toString());
                     if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
 
                     jobject jchar = env->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice, jproperties, uuid);

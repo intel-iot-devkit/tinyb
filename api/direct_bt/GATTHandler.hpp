@@ -174,30 +174,30 @@ namespace direct_bt {
 
             /**
              * Find and return the GATTCharacterisicsDecl within internal primary services
-             * via given characteristic handle.
+             * via given characteristic value handle.
              * <p>
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle);
 
             /**
              * Find and return the GATTCharacterisicsDecl within given list of primary services
-             * via given characteristic handle.
+             * via given characteristic value handle.
              * <p>
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle, std::vector<GATTServiceRef> &services);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, std::vector<GATTServiceRef> &services);
 
             /**
              * Find and return the GATTCharacterisicsDecl within given primary service
-             * via given characteristic handle.
+             * via given characteristic value handle.
              * <p>
              * Returns nullptr if not found.
              * </p>
              */
-            GATTCharacteristicRef findCharacterisics(const uint16_t charHandle, GATTServiceRef service);
+            GATTCharacteristicRef findCharacterisicsByValueHandle(const uint16_t charValueHandle, GATTServiceRef service);
 
             /**
              * Discover all primary services _and_ all its characteristics declarations
@@ -271,7 +271,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicValue(const GATTCharacteristic & decl, POctets & res, int expectedLength=-1);
+            bool readCharacteristicValue(const GATTCharacteristic & c, POctets & res, int expectedLength=-1);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.1 Read Characteristic Descriptor
@@ -290,7 +290,7 @@ namespace direct_bt {
              * if required until the response returns zero.
              * </p>
              */
-            bool readCharacteristicDescValue(GATTDescriptor & characteristicDescriptor, int expectedLength=-1);
+            bool readDescriptorValue(GATTDescriptor & cd, int expectedLength=-1);
 
             /**
              * Generic write GATT value and long value
@@ -306,17 +306,17 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool writeCharacteristicDescValue(const GATTDescriptor & cd, const TROOctets & value);
+            bool writeDescriptorValue(const GATTDescriptor & cd, const TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
              */
-            bool writeCharacteristicValue(const GATTCharacteristic & decl, const TROOctets & value);
+            bool writeCharacteristicValue(const GATTCharacteristic & c, const TROOctets & value);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
              */
-            bool writeCharacteristicValueNoResp(const GATTCharacteristic & decl, const TROOctets & value);
+            bool writeCharacteristicValueNoResp(const GATTCharacteristic & c, const TROOctets & value);
 
             /*****************************************************/
             /** Higher level semantic functionality **/
@@ -331,7 +331,7 @@ namespace direct_bt {
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              */
-            bool configIndicationNotification(const GATTDescriptor & desc, const bool enableNotification, const bool enableIndication);
+            bool configIndicationNotification(const GATTDescriptor & cd, const bool enableNotification, const bool enableIndication);
     };
 
 } // namespace direct_bt

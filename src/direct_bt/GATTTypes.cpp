@@ -105,38 +105,45 @@ std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStrin
 }
 
 std::string GATTCharacteristic::toString() const {
-    const std::shared_ptr<const uuid_t> & service_uuid = service->declaration.uuid;
-    const uint16_t service_handle_end = service->declaration.endHandle;
+    const std::shared_ptr<const uuid_t> & service_uuid = service->type;
+    const uint16_t service_handle_end = service->endHandle;
     std::string service_name = "";
     std::string char_name = "";
-    std::string config_str = ", config[";
+    std::string desc_str = ", descr[ ";
     if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
         service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    if( uuid_t::UUID16_SZ == uuid->getTypeSize() ) {
-        const uint16_t uuid16 = (static_cast<const uuid16_t*>(uuid.get()))->value;
+    if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
+        const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
     }
-    for(size_t i=0; i<characteristicDescList.size(); i++) {
-        const GATTDescriptorRef cd = characteristicDescList[i];
-        config_str += cd->toString() + ", ";
+    for(size_t i=0; i<descriptorList.size(); i++) {
+        const GATTDescriptorRef cd = descriptorList[i];
+        desc_str += cd->toString() + ", ";
     }
-    config_str += "]";
-    return "props "+uint8HexString(properties, true)+" "+getPropertiesString()+", handle "+uint16HexString(handle, true)+
-           ", uuid "+uuid->toString()+char_name+config_str+
-           ", service[ "+service_uuid->toString()+
-           ", handle[ "+uint16HexString(service_handle, true)+".."+uint16HexString(service_handle_end, true)+" ]"+
+    desc_str += " ]";
+    return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
+           ", value[type 0x"+value_type->toString()+", handle "+uint16HexString(value_handle)+char_name+desc_str+
+           "], service[type 0x"+service_uuid->toString()+
+           ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
            service_name+" ]";
 }
 
 std::string GATTService::toString() const {
-    std::string res = declaration.toString()+"[ ";
-    for(size_t i=0; i<characteristicDeclList.size(); i++) {
+    std::string name = "";
+    if( uuid_t::UUID16_SZ == type->getTypeSize() ) {
+        const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
+        name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+    }
+    std::string res = "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                      name+"[ ";
+
+    for(size_t i=0; i<characteristicList.size(); i++) {
         if( 0 < i ) {
             res += ", ";
         }
-        res += std::to_string(i)+"[ "+characteristicDeclList[i]->toString()+" ]";
+        res += std::to_string(i)+"[ "+characteristicList[i]->toString()+" ]";
     }
     res += " ]";
     return res;
