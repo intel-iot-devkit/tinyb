@@ -32,9 +32,21 @@ package org.tinyb;
  * A listener instance may be attached to a {@link BluetoothAdapter} via
  * {@link BluetoothAdapter#addStatusListener(BluetoothDeviceDiscoveryListener, BluetoothDevice)}.
  * </p>
+ * <p>
+ * You can only attach one {@link AdapterStatusListener} instance at a time,
+ * i.e. you cannot attach the same instance more than once to a {@link BluetoothAdapter}.
+ * <br>
+ * To attach multiple instances, you need to create one instance per attachment.
+ * <br>
+ * This restriction is due to implementation semantics of strictly associating
+ * one Java {@link AdapterStatusListener} instance to one C++ {@code AdapterStatusListener} instance.
+ * The latter will be added to the native list of listeners.
+ * This class's {@code nativeInstance} field links the Java instance to mentioned C++ listener.
+ * </p>
  */
 public abstract class AdapterStatusListener {
-    long nativeInstance;
+    @SuppressWarnings("unused")
+    private long nativeInstance;
 
     /** A {@link BluetoothAdapter} setting has been changed. */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
