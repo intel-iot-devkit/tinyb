@@ -31,4 +31,44 @@ public class BluetoothUtils {
      */
     public static native long getCurrentMilliseconds();
 
+    /**
+     * Returns a hex string representation
+     *
+     * @param bytes the byte array to represent
+     * @param lsbFirst if true, orders LSB left -> MSB right, usual for byte streams.
+     *                 Otherwise orders MSB left -> LSB right, usual for readable integer values.
+     * @param leading0X if true, prepends the value identifier '0x'
+     */
+    public static String bytesHexString(final byte[] bytes, final boolean lsbFirst, final boolean leading0X) {
+        final char[] hexChars;
+        final int offset;
+        if( leading0X ) {
+            offset = 2;
+            hexChars = new char[2 + bytes.length * 2];
+            hexChars[0] = '0';
+            hexChars[1] = 'x';
+        } else {
+            offset = 0;
+            hexChars = new char[bytes.length * 2];
+        }
+
+        if( lsbFirst ) {
+            // LSB left -> MSB right
+            for (int j = 0; j < bytes.length; j++) {
+                final int v = bytes[j] & 0xFF;
+                hexChars[offset + j * 2] = HEX_ARRAY[v >>> 4];
+                hexChars[offset + j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            }
+        } else {
+            // MSB left -> LSB right
+            for (int j = bytes.length-1; j >= 0; j--) {
+                final int v = bytes[j] & 0xFF;
+                hexChars[offset + j * 2] = HEX_ARRAY[v >>> 4];
+                hexChars[offset + j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            }
+        }
+        return new String(hexChars);
+    }
+    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+
 }

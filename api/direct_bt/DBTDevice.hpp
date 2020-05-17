@@ -61,7 +61,7 @@ namespace direct_bt {
             int8_t rssi = 0;
             int8_t tx_power = 0;
             uint16_t appearance = 0;
-            uint16_t connHandle = 0;
+            uint16_t hciConnHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
@@ -74,7 +74,6 @@ namespace direct_bt {
 
             EIRDataType update(EInfoReport const & data);
 
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
             void releaseSharedInstance() const;
 
         public:
@@ -94,6 +93,9 @@ namespace direct_bt {
             static std::string java_class() {
                 return std::string(JAVA_DBT_PACKAGE "DBTDevice");
             }
+
+            /** Returns the shared pointer of this instance managed by the adapter. */
+            std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             /** Returns the managing adapter */
             DBTAdapter const & getAdapter() const { return adapter; }
@@ -148,13 +150,13 @@ namespace direct_bt {
              * and usual connection latency, interval etc.
              * </p>
              */
-            uint16_t le_connect(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                                const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                                const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                                const uint8_t initiator_filter=0);
+            uint16_t le_connectHCI(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                   const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                   const uint16_t interval=0x0004, const uint16_t window=0x0004,
+                                   const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                                   const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
+                                   const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
+                                   const uint8_t initiator_filter=0);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
@@ -168,11 +170,11 @@ namespace direct_bt {
              * The device is tracked by the managing adapter's HCISession instance.
              * </p>
              */
-            uint16_t connect(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                             const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+            uint16_t connectHCI(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                                const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
             /**
-             * Establish a connection to this device, using certain default parameter.
+             * Establish a default HCI connection to this device, using certain default parameter.
              * <p>
              * Depending on this device's addressType,
              * either a BDADDR_BREDR or BDADDR_LE_PUBLIC connection is attempted.
@@ -184,14 +186,14 @@ namespace direct_bt {
              * The device is tracked by the managing adapter's HCISession instance.
              * </p>
              */
-            uint16_t defaultConnect();
+            uint16_t connectHCIDefault();
 
 
-            /** Return the connection handle to the LE or BREDR peer, 0 if not connected. */
-            uint16_t getConnectionHandle() const { return connHandle; }
+            /** Return the HCI connection handle to the LE or BREDR peer, 0 if not connected. */
+            uint16_t getHCIConnectionHandle() const { return hciConnHandle; }
 
             /**
-             * Disconnect the LE or BREDR peer.
+             * Disconnect the LE or BREDR peer's GATT and HCI connection.
              * <p>
              * The device will be removed from the managing adapter's HCISession instance.
              * </p>
@@ -231,6 +233,18 @@ namespace direct_bt {
 
             /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
             std::shared_ptr<GATTHandler> getGATTHandler();
+
+            /**
+             * Returns a list of shared GATTServices available on this device if successful,
+             * otherwise returns an empty list.
+             * <p>
+             * In case no HCI connection has been established yet, connectHCIDefault() will be performed.
+             * </p>
+             * <p>
+             * In case no GATT connection has been established yet, connectGATT(..) will be performed.
+             * </p>
+             */
+            std::vector<std::shared_ptr<GATTService>> getServices();
 
             /**
              * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()

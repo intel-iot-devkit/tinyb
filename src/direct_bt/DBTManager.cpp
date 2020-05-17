@@ -33,7 +33,7 @@
 #include <algorithm>
 
 #define PERF_PRINT_ON 1
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -516,6 +516,7 @@ uint16_t DBTManager::create_connection(const int dev_id,
     // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
     DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
     (void)dev_id;
+    (void)peer_bdaddr;
     (void)peer_mac_type;
     (void)own_mac_type;
     (void)interval;
@@ -656,6 +657,7 @@ void DBTManager::clearAllMgmtEventCallbacks() {
 
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
+    (void)e;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {

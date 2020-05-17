@@ -37,6 +37,11 @@ public abstract class DBTObject extends DBTNativeDownlink implements BluetoothOb
         final int hash = 31 + a.hashCode();
         return ((hash << 5) - hash) + b.hashCode();
     }
+    /* pp */ static int compHash(final int a, final int b) {
+        // 31 * x == (x << 5) - x
+        final int hash = 31 + a;
+        return ((hash << 5) - hash) + b;
+    }
 
     protected DBTObject(final long nativeInstance, final int hashValue)
     {

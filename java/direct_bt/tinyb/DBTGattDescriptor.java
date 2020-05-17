@@ -25,6 +25,8 @@
 
 package direct_bt.tinyb;
 
+import java.util.Arrays;
+
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothNotification;
@@ -32,12 +34,53 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescriptor
 {
-    private final String uuid;
+    /** pp */ final DBTGattCharacteristic characteristic;
 
-   /* pp */ DBTGattDescriptor(final long nativeInstance, final String uuid)
+    /** Type of Descriptor */
+    private final String type_uuid;
+
+    /**
+     * Characteristic Descriptor Handle
+     * <p>
+     * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
+     * </p>
+     */
+    private final short handle;
+
+    private byte[] cachedValue;
+    private BluetoothNotification<byte[]> valueNotificationCB = null;
+
+    private boolean updateCachedValue(final byte[] value, final boolean notify) {
+        boolean valueChanged = false;
+        if( null == cachedValue || cachedValue.length != value.length ) {
+            cachedValue = new byte[value.length];
+            valueChanged = true;
+        } else if( !Arrays.equals(value, cachedValue) ) {
+            valueChanged = true;
+        }
+        if( valueChanged ) {
+            System.arraycopy(value, 0, cachedValue, 0, value.length);
+            if( notify && null != valueNotificationCB ) {
+                valueNotificationCB.run(cachedValue);
+            }
+        }
+        return valueChanged;
+    }
+
+   /* pp */ DBTGattDescriptor(final long nativeInstance, final DBTGattCharacteristic characteristic,
+                              final String type_uuid, final short handle, final byte[] value)
     {
-        super(nativeInstance, uuid.hashCode());
-        this.uuid = uuid;
+        super(nativeInstance, handle /* hash */);
+        this.characteristic = characteristic;
+        this.type_uuid = type_uuid;
+        this.handle = handle;
+        this.cachedValue = value;
+    }
+
+    @Override
+    public synchronized void close() {
+        disableValueNotifications();
+        super.close();
     }
 
     @Override
@@ -47,11 +90,11 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
             return false;
         }
         final DBTGattDescriptor other = (DBTGattDescriptor)obj;
-        return uuid.equals(other.uuid);
+        return handle == other.handle; /** unique attribute handles */
     }
 
     @Override
-    public String getUUID() { return uuid; }
+    public String getUUID() { return type_uuid; }
 
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
@@ -62,27 +105,56 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
     public final BluetoothGattDescriptor clone()
     { throw new UnsupportedOperationException(); } // FIXME
 
-    /* D-Bus method calls: */
+    @Override
+    public final DBTGattCharacteristic getCharacteristic() { return characteristic; }
 
     @Override
-    public native byte[] readValue();
+    public final byte[] getValue() { return cachedValue; }
 
     @Override
-    public native boolean writeValue(byte[] argValue) throws BluetoothException;
+    public final byte[] readValue() {
+        final byte[] value = readValueImpl();
+        updateCachedValue(value, true);
+        return cachedValue;
+    }
 
     @Override
-    public native void enableValueNotifications(BluetoothNotification<byte[]> callback);
+    public final boolean writeValue(final byte[] value) throws BluetoothException {
+        final boolean res = writeValueImpl(value);
+        if( res ) {
+            updateCachedValue(value, false);
+        }
+        return res;
+    }
 
     @Override
-    public native void disableValueNotifications();
-
-    /* D-Bus property accessors: */
-
-    @Override
-    public native DBTGattCharacteristic getCharacteristic();
+    public final synchronized void enableValueNotifications(final BluetoothNotification<byte[]> callback) {
+        valueNotificationCB = callback;
+    }
 
     @Override
-    public native byte[] getValue();
+    public final synchronized void disableValueNotifications() {
+        valueNotificationCB = null;
+    }
+
+    /**
+     * Characteristic Descriptor Handle
+     * <p>
+     * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
+     * </p>
+     */
+    public final short getHandle() { return handle; }
+
+    @Override
+    public final String toString() { return toStringImpl(); }
+
+    /* Native method calls: */
+
+    private native String toStringImpl();
+
+    private native byte[] readValueImpl();
+
+    private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
 
     @Override
     protected native void deleteImpl();

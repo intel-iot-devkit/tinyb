@@ -35,16 +35,23 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattService extends DBTObject implements BluetoothGattService
 {
-    private final BluetoothDevice device;
+    /* pp */ final DBTDevice device;
     private final boolean isPrimary;
-    private final String uuid;
+    private final String type_uuid;
+    private final short handleStart;
+    private final short handleEnd;
+    private final List<BluetoothGattCharacteristic> characteristicList;
 
-   /* pp */ DBTGattService(final long nativeInstance, final BluetoothDevice device, final boolean isPrimary, final String uuid)
+   /* pp */ DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
+                           final String type_uuid, final short handleStart, final short handleEnd)
     {
-        super(nativeInstance, uuid.hashCode());
+        super(nativeInstance, compHash(handleStart, handleEnd));
         this.device = device;
         this.isPrimary = isPrimary;
-        this.uuid = uuid;
+        this.type_uuid = type_uuid;
+        this.handleStart = handleStart;
+        this.handleEnd = handleEnd;
+        this.characteristicList = getCharacteristicsImpl();
     }
 
     @Override
@@ -54,11 +61,11 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
             return false;
         }
         final DBTGattService other = (DBTGattService)obj;
-        return uuid.equals(other.uuid);
+        return handleStart == other.handleStart && handleEnd == other.handleEnd; /** unique attribute handles */
     }
 
     @Override
-    public String getUUID() { return uuid; }
+    public String getUUID() { return type_uuid; }
 
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }
@@ -87,10 +94,33 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
     @Override
     public final boolean getPrimary() { return isPrimary; }
 
-    /* Native accessors: */
+    @Override
+    public final List<BluetoothGattCharacteristic> getCharacteristics() { return characteristicList; }
+
+    /**
+     * Returns the service start handle.
+     * <p>
+     * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
+     * </p>
+     */
+    public final short getHandleStart() { return handleStart; }
+
+    /**
+     * Returns the service end handle.
+     * <p>
+     * Attribute handles are unique for each device (server) (BT Core Spec v5.2: Vol 3, Part F Protocol..: 3.2.2 Attribute Handle).
+     * </p>
+     */
+    public final short getHandleEnd() { return handleEnd; }
 
     @Override
-    public native List<BluetoothGattCharacteristic> getCharacteristics();
+    public final String toString() { return toStringImpl(); }
+
+    /* Native method calls: */
+
+    private native String toStringImpl();
+
+    private native List<BluetoothGattCharacteristic> getCharacteristicsImpl();
 
     @Override
     protected native void deleteImpl();

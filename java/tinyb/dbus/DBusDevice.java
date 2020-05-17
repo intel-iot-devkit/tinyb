@@ -33,10 +33,12 @@ import java.util.Map;
 
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
+import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.GATTCharacteristicListener;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
@@ -201,6 +203,21 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
 
     @Override
     public native void disableServicesResolvedNotifications();
+
+    @Override
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch) {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
+        return false; // FIXME
+    }
+
+    @Override
+    public int removeAllCharacteristicListener() {
+        return 0; // FIXME
+    }
 
     private native void delete();
 

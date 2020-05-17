@@ -23,41 +23,36 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "direct_bt_tinyb_DBTNativeDownlink.h"
-
-// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
+#include <cstring>
+#include <string>
+#include <memory>
+#include <cstdint>
+#include <vector>
+#include <cstdio>
 
-#include "JNIMem.hpp"
-#include "helper_base.hpp"
-#include "helper_dbt.hpp"
+#include  <algorithm>
 
-#include "direct_bt/DBTTypes.hpp"
+#include "GATTService.hpp"
+#include "GATTNumbers.hpp"
 
 using namespace direct_bt;
 
-void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
-{
-    try {
-        JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj) );
-        javaUplink->setJavaObject( jobjRef );
-        JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
+std::string GATTService::toString() const {
+    std::string name = "";
+    if( uuid_t::UUID16_SZ == type->getTypeSize() ) {
+        const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
+        name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-}
+    std::string res = "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                      name+"[ ";
 
-void Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
-{
-    (void)obj;
-    try {
-        JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
-        javaUplink->setJavaObject(nullptr);
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
+    for(size_t i=0; i<characteristicList.size(); i++) {
+        if( 0 < i ) {
+            res += ", ";
+        }
+        res += std::to_string(i)+"[ "+characteristicList[i]->toString()+" ]";
     }
+    res += " ]";
+    return res;
 }
-

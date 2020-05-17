@@ -138,15 +138,36 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
-    class DBTAdapterStatusListener {
+    class AdapterStatusListener {
         public:
+            /**
+             * Custom filter for all 'device*' notification methods,
+             * which will not be called if this method returns false.
+             * <p>
+             * User may override this method to test whether the 'device*' methods shall be called
+             * for the given device.
+             * </p>
+             * <p>
+             * Defaults to true;
+             * </p>
+             */
+            virtual bool matchDevice(const DBTDevice & device) {
+                (void)device;
+                return true;
+            }
+
             virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                                 const AdapterSetting changedmask, const uint64_t timestamp) = 0;
-            virtual void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
-            virtual void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-            virtual ~DBTAdapterStatusListener() {}
+
+            virtual void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+
+            virtual void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
+
+            virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+
+            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+
+            virtual ~AdapterStatusListener() {}
 
             /**
              * Default comparison operator, merely testing for same memory reference.
@@ -154,10 +175,10 @@ namespace direct_bt {
              * Specializations may override.
              * </p>
              */
-            virtual bool operator==(const DBTAdapterStatusListener& rhs) const
+            virtual bool operator==(const AdapterStatusListener& rhs) const
             { return this == &rhs; }
 
-            bool operator!=(const DBTAdapterStatusListener& rhs) const
+            bool operator!=(const AdapterStatusListener& rhs) const
             { return !(*this == rhs); }
     };
 
@@ -180,7 +201,7 @@ namespace direct_bt {
             std::shared_ptr<HCISession> session;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
-            std::vector<std::shared_ptr<DBTAdapterStatusListener>> statusListenerList;
+            std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
@@ -315,7 +336,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
+            bool addStatusListener(std::shared_ptr<AdapterStatusListener> l);
 
             /**
              * Remove the given listener from the list.
@@ -324,7 +345,7 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> l);
+            bool removeStatusListener(std::shared_ptr<AdapterStatusListener> l);
 
             /**
              * Remove the given listener from the list.
@@ -333,7 +354,15 @@ namespace direct_bt {
              * otherwise false.
              * </p>
              */
-            bool removeStatusListener(const DBTAdapterStatusListener * l);
+            bool removeStatusListener(const AdapterStatusListener * l);
+
+            /**
+             * Remove all status listener from the list.
+             * <p>
+             * Returns the number of removed event listener.
+             * </p>
+             */
+            int removeAllStatusListener();
 
             /**
              * Starts a new discovery session.

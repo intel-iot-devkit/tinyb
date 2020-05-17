@@ -36,6 +36,7 @@ import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothUtils;
 
 public class ScannerTinyB00 {
     static {
@@ -226,22 +227,12 @@ public class ScannerTinyB00 {
 
                     if (c.getUUID().contains("2a23-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    System ID: " + bytesToHex(tempRaw));
+                        System.err.println("    System ID: " + BluetoothUtils.bytesHexString(tempRaw, true, true));
                     }
                 }
             }
         } catch (final RuntimeException e) {
         }
-    }
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-    public static String bytesToHex(final byte[] bytes) {
-        final char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            final int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
     }
     static class BooleanNotification implements BluetoothNotification<Boolean> {
         private final long t0;

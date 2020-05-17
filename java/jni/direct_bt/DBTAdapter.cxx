@@ -25,7 +25,7 @@
 
 #include "direct_bt_tinyb_DBTAdapter.h"
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "JNIMem.hpp"
@@ -42,10 +42,10 @@ static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;Ljava/lang/String;J)V");
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
-static const std::string _deviceStatusMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;J)V");
-static const std::string _deviceStatusUpdateMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/BluetoothDevice;JLorg/tinyb/EIRDataTypeSet;)V");
+static const std::string _deviceStatusMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
+static const std::string _deviceStatusUpdateMethodArgs("(Lorg/tinyb/BluetoothDevice;JLorg/tinyb/EIRDataTypeSet;)V");
 
-class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
+class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
     /**
         package org.tinyb;
@@ -54,12 +54,13 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
             public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                                final AdapterSetting oldmask, final AdapterSetting newmask,
                                                final AdapterSetting changedmask, final long timestamp);
-            public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
-            public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataType updateMask);
-            public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
-            public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp);
+            public void deviceFound(final BluetoothDevice device, final long timestamp);
+            public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataType updateMask);
+            public void deviceConnected(final BluetoothDevice device, final long timestamp);
+            public void deviceDisconnected(final BluetoothDevice device, final long timestamp);
         };
     */
+    const DBTDevice * deviceMatchRef;
     std::shared_ptr<JavaAnonObj> adapterObjRef;
     std::unique_ptr<JNIGlobalRef> adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
@@ -69,7 +70,6 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
     jmethodID deviceClazzCtor;
     jfieldID deviceClazzTSUpdateField;
     std::unique_ptr<JNIGlobalRef> listenerObjRef;
-    std::unique_ptr<JNIGlobalRef> listenerClazzRef;
     jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDeviceFound = nullptr;
     jmethodID  mDeviceUpdated = nullptr;
@@ -78,9 +78,18 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
 
   public:
 
-    AdapterStatusCallbackListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener) {
+    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener, const DBTDevice * deviceMatchRef) {
         adapterObjRef = adapter->getJavaObject();
         JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
+
+        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(statusListener));
+        jclass listenerClazz = search_class(env, listenerObjRef->getObject());
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == listenerClazz ) {
+            throw InternalError("AdapterStatusListener not found", E_FILE_LINE);
+        }
+
+        this->deviceMatchRef = deviceMatchRef;
 
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
@@ -135,43 +144,38 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
             throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_update", E_FILE_LINE);
         }
 
-        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(statusListener));
-        {
-            jclass listenerClazz = search_class(env, listenerObjRef->getObject());
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            if( nullptr == listenerClazz ) {
-                throw InternalError("AdapterStatusListener not found", E_FILE_LINE);
-            }
-            listenerClazzRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listenerClazz));
-            env->DeleteLocalRef(listenerClazz);
-        }
-
-
-        mAdapterSettingsChanged = search_method(env, listenerClazzRef->getClass(), "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
+        mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mAdapterSettingsChanged ) {
             throw InternalError("AdapterStatusListener has no adapterSettingsChanged"+_adapterSettingsChangedMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceFound = search_method(env, listenerClazzRef->getClass(), "deviceFound", _deviceStatusMethodArgs.c_str(), false);
+        mDeviceFound = search_method(env, listenerClazz, "deviceFound", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceFound ) {
             throw InternalError("AdapterStatusListener has no deviceFound"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceUpdated = search_method(env, listenerClazzRef->getClass(), "deviceUpdated", _deviceStatusUpdateMethodArgs.c_str(), false);
+        mDeviceUpdated = search_method(env, listenerClazz, "deviceUpdated", _deviceStatusUpdateMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceUpdated ) {
             throw InternalError("AdapterStatusListener has no deviceUpdated"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceConnected = search_method(env, listenerClazzRef->getClass(), "deviceConnected", _deviceStatusMethodArgs.c_str(), false);
+        mDeviceConnected = search_method(env, listenerClazz, "deviceConnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceConnected ) {
             throw InternalError("AdapterStatusListener has no deviceConnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
-        mDeviceDisconnected = search_method(env, listenerClazzRef->getClass(), "deviceDisconnected", _deviceStatusMethodArgs.c_str(), false);
+        mDeviceDisconnected = search_method(env, listenerClazz, "deviceDisconnected", _deviceStatusMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == mDeviceDisconnected ) {
             throw InternalError("AdapterStatusListener has no deviceDisconnected"+_deviceStatusMethodArgs+" method, for "+adapter->toString(), E_FILE_LINE);
         }
+    }
+
+    bool matchDevice(const DBTDevice & device) override {
+        if( nullptr == deviceMatchRef ) {
+            return true;
+        }
+        return device == *deviceMatchRef;
     }
 
     void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
@@ -188,34 +192,33 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
             #endif
             (void)a;
             jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(adapterSettingOld, E_FILE_LINE);
 
             jobject adapterSettingNew = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)newmask);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(adapterSettingNew, E_FILE_LINE);
 
             jobject adapterSettingChanged = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)changedmask);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(adapterSettingChanged, E_FILE_LINE);
 
             env->CallVoidMethod(listenerObjRef->getObject(), mAdapterSettingsChanged,
                     JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
 
-    void deviceFound(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
                 fprintf(stderr, "****** Native Adapter Device FOUND__: %s\n", device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", a.toString().c_str());
+                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
-            (void)a;
             jobject jdevice;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             if( JavaGlobalObj::isValid(jDeviceRef) ) {
@@ -226,98 +229,91 @@ class AdapterStatusCallbackListener : public DBTAdapterStatusListener {
                 // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
                 const jstring addr = from_string_to_jstring(env, device->getAddressString());
                 const jstring name = from_string_to_jstring(env, device->getName());
-                if( java_exception_check(env, E_FILE_LINE) ) { return; }
+                java_exception_check_and_throw(env, E_FILE_LINE);
                 jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
-                        (jlong)device.get(), adapterObjRef, addr, name, (jlong)timestamp);
-                if( java_exception_check(env, E_FILE_LINE) ) { return; }
+                        (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, name, (jlong)timestamp);
+                java_exception_check_and_throw(env, E_FILE_LINE);
                 JNIGlobalRef::check(jDevice, E_FILE_LINE);
                 std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
                 JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
                 jdevice = JavaGlobalObj::GetObject(jDeviceRef);
             }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound,
-                    JavaGlobalObj::GetObject(adapterObjRef), jdevice, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound, jdevice, (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
-    void deviceUpdated(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
+    void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
                 fprintf(stderr, "****** Native Adapter Device UPDATED: %s of %s\n", direct_bt::eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", a.toString().c_str());
+                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
-            (void)a;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
 
             jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef->getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(eirDataTypeSet, E_FILE_LINE);
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated,
-                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataTypeSet);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated, JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataTypeSet);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
-    void deviceConnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
                 fprintf(stderr, "****** DBTAdapter Device CONNECTED: %s\n", device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", a.toString().c_str());
+                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
-            (void)a;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnected,
-                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnected, JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
-    void deviceDisconnected(DBTAdapter const &a, std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
                 fprintf(stderr, "****** DBTAdapter Device DISCONNECTED: %s\n", device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", a.toString().c_str());
+                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
-            (void)a;
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceDisconnected,
-                    JavaGlobalObj::GetObject(adapterObjRef), JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
-            if( java_exception_check(env, E_FILE_LINE) ) { return; }
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceDisconnected, JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
         } catch(...) {
             rethrow_and_raise_java_exception(env);
         }
     }
 };
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener, jobject jdeviceMatch)
 {
     try {
         if( nullptr == statusListener ) {
             throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
         }
         {
-            AdapterStatusCallbackListener * pre =
-                    getObjectRef<AdapterStatusCallbackListener>(env, statusListener, "nativeInstance");
+            JNIAdapterStatusListener * pre =
+                    getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
             if( nullptr != pre ) {
                 WARN_PRINT("statusListener's nativeInstance not null, already in use");
                 return false;
@@ -326,8 +322,14 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        std::shared_ptr<DBTAdapterStatusListener> l =
-                std::shared_ptr<DBTAdapterStatusListener>( new AdapterStatusCallbackListener(env, adapter, statusListener) );
+        DBTDevice * deviceMatchRef = nullptr;
+        if( nullptr != jdeviceMatch ) {
+            deviceMatchRef = getInstance<DBTDevice>(env, jdeviceMatch);
+            JavaGlobalObj::check(deviceMatchRef->getJavaObject(), E_FILE_LINE);
+        }
+
+        std::shared_ptr<AdapterStatusListener> l =
+                std::shared_ptr<AdapterStatusListener>( new JNIAdapterStatusListener(env, adapter, statusListener, deviceMatchRef) );
 
         if( adapter->addStatusListener( l ) ) {
             setInstance(env, statusListener, l.get());
@@ -345,26 +347,49 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobj
         if( nullptr == statusListener ) {
             throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
         }
-        const AdapterStatusCallbackListener * pre =
-                getObjectRef<AdapterStatusCallbackListener>(env, statusListener, "nativeInstance");
+        const JNIAdapterStatusListener * pre =
+                getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
         if( nullptr == pre ) {
             WARN_PRINT("statusListener's nativeInstance is null, not in use");
             return false;
         }
-        setObjectRef<AdapterStatusCallbackListener>(env, statusListener, nullptr, "nativeInstance");
+        setObjectRef<JNIAdapterStatusListener>(env, statusListener, nullptr, "nativeInstance");
 
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
-        // set our callback discovery listener.
         if( ! adapter->removeStatusListener( pre ) ) {
-            throw InternalError("Failed to remove statusListener with nativeInstance", E_FILE_LINE);
+            WARN_PRINT("Failed to remove statusListener with nativeInstance: %p at %s", pre, adapter->toString().c_str());
+            return false;
         }
         return true;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
+}
+
+jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        return adapter->removeAllStatusListener();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
+}
+
+jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTAdapter *nativePtr = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
+        return from_string_to_jstring(env, nativePtr->toString());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
 }
 
 jboolean Java_direct_1bt_tinyb_DBTAdapter_openImpl(JNIEnv *env, jobject obj) {
@@ -572,7 +597,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
 
-            device->defaultConnect();
+            device->connectHCIDefault();
             return JavaGlobalObj::GetObject(jDeviceRef);
         }
     } catch(...) {

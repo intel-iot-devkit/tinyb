@@ -242,18 +242,29 @@ public interface BluetoothAdapter extends BluetoothObject
     public boolean getDiscovering();
 
     /**
-     * Add the given listener to the list if not already present.
+     * Add the given {@link AdapterStatusListener} to the list if not already present.
      * @param listener A {@link AdapterStatusListener} instance
+     * @param deviceMatch Optional {@link BluetoothDevice} to be matched before calling any
+     *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @since 2.0.0
      */
-    public boolean addStatusListener(final AdapterStatusListener listener);
+    public boolean addStatusListener(final AdapterStatusListener listener, final BluetoothDevice deviceMatch);
 
     /**
-     * Remove the given listener from the list.
+     * Remove the given {@link AdapterStatusListener} from the list.
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
+     * @since 2.0.0
      */
     public boolean removeStatusListener(final AdapterStatusListener l);
+
+    /**
+     * Remove all {@link AdapterStatusListener} from the list.
+     * @return number of removed listener.
+     * @since 2.0.0
+     */
+    public int removeAllStatusListener();
 
     /**
      * Enables notifications for the discovering property and calls run function of the

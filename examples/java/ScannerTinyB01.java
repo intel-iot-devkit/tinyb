@@ -40,6 +40,7 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.GATTCharacteristicListener;
 
 public class ScannerTinyB01 {
     static {
@@ -122,11 +123,11 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceFound(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            public void deviceFound(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
+                System.err.println(device.getAdapter().toString());
 
                 if( matches ) {
                     synchronized(matchingDiscoveredDeviceBucket) {
@@ -137,30 +138,30 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+            public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
                 System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
+                System.err.println(device.getAdapter().toString());
             }
 
             @Override
-            public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            public void deviceConnected(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** CONNECTED: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
+                System.err.println(device.getAdapter().toString());
             }
 
             @Override
-            public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
+            public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(mac);
                 System.err.println("****** DISCONNECTED: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
+                System.err.println(device.getAdapter().toString());
             }
         };
-        adapter.addStatusListener(statusListener);
+        adapter.addStatusListener(statusListener, null);
         adapter.enableDiscoverableNotifications(new BluetoothNotification<Boolean>() {
             @Override
             public void run(final Boolean value) {
@@ -185,6 +186,22 @@ public class ScannerTinyB01 {
                 System.err.println("****** Powered: "+value);
             }
         });
+
+        final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener() {
+            @Override
+            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                             final byte[] value, final long timestamp) {
+                System.err.println("****** GATT notificationReceived: "+charDecl+
+                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
+            }
+
+            @Override
+            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                           final byte[] value, final long timestamp, final boolean confirmationSent) {
+                System.err.println("****** GATT indicationReceived: "+charDecl+
+                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
+            }
+        };
 
         int loop = 0;
         try {
@@ -279,9 +296,17 @@ public class ScannerTinyB01 {
                 if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
                 } else {
+                    final boolean addedCharacteristicListenerRes =
+                      BluetoothGattService.addCharacteristicListenerToAll(sensor, allBluetoothServices, myCharacteristicListener);
+                    System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+                    // DBTGattService dbtService
                     printAllServiceInfo(allBluetoothServices);
-                }
 
+                    Thread.sleep(1000); // FIXME: Wait for notifications
+
+                    final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, allBluetoothServices, myCharacteristicListener);
+                    System.err.println("Removed GATTCharacteristicListener: "+remRes);
+                }
                 sensor.disconnect();
                 // sensor.remove();
                 System.err.println("ScannerTinyB01 04 ...: "+adapter);
@@ -313,64 +338,65 @@ public class ScannerTinyB01 {
     private static void printAllServiceInfo(final List<BluetoothGattService> allBluetoothServices) {
         try {
             for (final BluetoothGattService service : allBluetoothServices) {
-                System.err.println("Service UUID: " + service.getUUID());
+                System.err.println("Service: " + service.getUUID());
                 final List<BluetoothGattCharacteristic> v = service.getCharacteristics();
                 for (final BluetoothGattCharacteristic c : v) {
-                    System.err.println("    Characteristic UUID: " + c.getUUID());
+                    System.err.println("    Characteristic: " + c);
 
                     final List<BluetoothGattDescriptor> descriptors = c.getDescriptors();
 
                     for (final BluetoothGattDescriptor d : descriptors) {
-                        System.err.println("        Descriptor UUID: " + d.getUUID());
+                        System.err.println("        Descriptor: " + d);
                     }
-                    if (c.getUUID().contains("2a29-")) {
+                    final String uuid;
+                    {
+                        final String _uuid = c.getUUID().toLowerCase();
+                        if( 4 == _uuid.length() ) {
+                            uuid = _uuid + "-"; // FIXME: uuid16_t -> uuid128_t string??
+                        } else {
+                            uuid = _uuid;
+                        }
+                    }
+                    System.err.println("**** Quering: " + uuid);
+
+                    if (uuid.contains("2a29-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Manufacturer: " + new String(tempRaw));
+                        System.err.println("**** Manufacturer: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a28-")) {
+                    if (uuid.contains("2a28-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Software: " + new String(tempRaw));
+                        System.err.println("**** Software: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a27-")) {
+                    if (uuid.contains("2a27-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Hardware: " + new String(tempRaw));
+                        System.err.println("**** Hardware: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a26-")) {
+                    if (uuid.contains("2a26-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Firmware: " + new String(tempRaw));
+                        System.err.println("**** Firmware: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a25-")) {
+                    if (uuid.contains("2a25-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Serial: " + new String(tempRaw));
+                        System.err.println("**** Serial: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a24-")) {
+                    if (uuid.contains("2a24-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    Model: " + new String(tempRaw));
+                        System.err.println("**** Model: " + new String(tempRaw));
                     }
 
-                    if (c.getUUID().contains("2a23-")) {
+                    if (uuid.contains("2a23-")) {
                         final byte[] tempRaw = c.readValue();
-                        System.err.println("    System ID: " + bytesToHex(tempRaw));
+                        System.err.println("**** System ID: " + BluetoothUtils.bytesHexString(tempRaw, true, true));
                     }
                 }
             }
         } catch (final RuntimeException e) {
         }
-    }
-    private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-    public static String bytesToHex(final byte[] bytes) {
-        final char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            final int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
     }
     static class BooleanNotification implements BluetoothNotification<Boolean> {
         private final long t0;

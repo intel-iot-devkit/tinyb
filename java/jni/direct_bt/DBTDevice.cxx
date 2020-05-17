@@ -24,9 +24,8 @@
  */
 
 #include "direct_bt_tinyb_DBTDevice.h"
-#include "direct_bt_tinyb_DBTAdapter.h"
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "JNIMem.hpp"
@@ -38,6 +37,113 @@
 
 using namespace direct_bt;
 
+static const std::string _notificationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJ)V");
+static const std::string _indicationReceivedMethodArgs("(Lorg/tinyb/BluetoothGattCharacteristic;[BJZ)V");
+
+class JNICharacteristicListener : public GATTCharacteristicListener {
+  private:
+    /**
+        package org.tinyb;
+
+        public abstract class GATTCharacteristicListener {
+            long nativeInstance;
+
+            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                             final byte[] value, final long timestamp) {
+            }
+
+            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                           final byte[] value, final long timestamp,
+                                           final boolean confirmationSent) {
+            }
+
+        };
+    */
+    const GATTCharacteristic * characteristicMatchRef;
+    std::shared_ptr<JavaAnonObj> deviceObjRef;
+    std::unique_ptr<JNIGlobalRef> listenerObjRef;
+    jmethodID  mNotificationReceived = nullptr;
+    jmethodID  mIndicationReceived = nullptr;
+
+  public:
+
+    JNICharacteristicListener(JNIEnv *env, DBTDevice *device, jobject listener, const GATTCharacteristic * characteristicMatchRef) {
+        deviceObjRef = device->getJavaObject();
+        JavaGlobalObj::check(deviceObjRef, E_FILE_LINE);
+
+        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listener));
+        jclass listenerClazz = search_class(env, listenerObjRef->getObject());
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == listenerClazz ) {
+            throw InternalError("CharacteristicListener not found", E_FILE_LINE);
+        }
+
+        this->characteristicMatchRef = characteristicMatchRef;
+
+        mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mNotificationReceived ) {
+            throw InternalError("GATTCharacteristicListener has no notificationReceived"+_notificationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
+        }
+        mIndicationReceived = search_method(env, listenerClazz, "indicationReceived", _indicationReceivedMethodArgs.c_str(), false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mNotificationReceived ) {
+            throw InternalError("GATTCharacteristicListener has no indicationReceived"+_indicationReceivedMethodArgs+" method, for "+device->toString(), E_FILE_LINE);
+        }
+    }
+
+    bool match(const GATTCharacteristic & characteristic) override {
+        if( nullptr == characteristicMatchRef ) {
+            return true;
+        }
+        return characteristic == *characteristicMatchRef;
+    }
+
+    void notificationReceived(GATTCharacteristicRef charDecl,
+                              std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
+        JNIEnv *env = *jni_env;
+        try {
+            JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
+            jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
+
+            const size_t value_size = charValue->getSize();
+            jbyteArray jvalue = env->NewByteArray((jsize)value_size);
+            env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+            java_exception_check_and_throw(env, E_FILE_LINE);
+
+
+            env->CallVoidMethod(listenerObjRef->getObject(), mNotificationReceived,
+                                jCharDecl, jvalue, (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
+        } catch(...) {
+            rethrow_and_raise_java_exception(env);
+        }
+    }
+
+    void indicationReceived(GATTCharacteristicRef charDecl,
+                            std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
+                            const bool confirmationSent) override {
+        JNIEnv *env = *jni_env;
+        try {
+            JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
+            jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
+
+            const size_t value_size = charValue->getSize();
+            jbyteArray jvalue = env->NewByteArray((jsize)value_size);
+            env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+            java_exception_check_and_throw(env, E_FILE_LINE);
+
+
+            env->CallVoidMethod(listenerObjRef->getObject(), mIndicationReceived,
+                                jCharDecl, jvalue, (jlong)timestamp, (jboolean)confirmationSent);
+            java_exception_check_and_throw(env, E_FILE_LINE);
+        } catch(...) {
+            rethrow_and_raise_java_exception(env);
+        }
+    }
+};
+
+
 void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
 {
     try {
@@ -48,47 +154,107 @@ void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
     }
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
-{
+jstring Java_direct_1bt_tinyb_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     try {
+        DBTDevice *nativePtr = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
+        return from_string_to_jstring(env, nativePtr->toString());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
+jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, jobject obj, jobject listener, jobject jcharacteristicMatch) {
+    try {
+        if( nullptr == listener ) {
+            throw IllegalArgumentException("characteristicListener is null", E_FILE_LINE);
+        }
+        {
+            JNICharacteristicListener * pre =
+                    getObjectRef<JNICharacteristicListener>(env, listener, "nativeInstance");
+            if( nullptr != pre ) {
+                WARN_PRINT("characteristicListener's nativeInstance not null, already in use");
+                return false;
+            }
+        }
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        if( nullptr == gatt ) {
+            throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+        }
 
-        DBTAdapter * adapter = const_cast<DBTAdapter *>( &device->getAdapter() );
-        std::shared_ptr<JavaAnonObj> adapterObjRef = adapter->getJavaObject();
-        JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
-        jobject jadapter = JavaGlobalObj::GetObject(adapterObjRef);
+        GATTCharacteristic * characteristicMatchRef = nullptr;
+        if( nullptr != jcharacteristicMatch ) {
+            characteristicMatchRef = getInstance<GATTCharacteristic>(env, jcharacteristicMatch);
+            JavaGlobalObj::check(characteristicMatchRef->getJavaObject(), E_FILE_LINE);
+        }
 
-        return Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(env, jadapter, statusListener);
+        std::shared_ptr<GATTCharacteristicListener> l =
+                std::shared_ptr<GATTCharacteristicListener>( new JNICharacteristicListener(env, device, listener, characteristicMatchRef) );
+
+        if( gatt->addCharacteristicListener(l) ) {
+            setInstance(env, listener, l.get());
+            return JNI_TRUE;
+        }
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_removeStatusListener(JNIEnv *env, jobject obj, jobject statusListener)
-{
+jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *env, jobject obj, jobject statusListener) {
     try {
+        if( nullptr == statusListener ) {
+            throw IllegalArgumentException("characteristicListener is null", E_FILE_LINE);
+        }
+        JNICharacteristicListener * pre =
+                getObjectRef<JNICharacteristicListener>(env, statusListener, "nativeInstance");
+        if( nullptr == pre ) {
+            WARN_PRINT("characteristicListener's nativeInstance is null, not in use");
+            return false;
+        }
+        setObjectRef<JNICharacteristicListener>(env, statusListener, nullptr, "nativeInstance");
+
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        if( nullptr == gatt ) {
+            throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+        }
 
-        DBTAdapter * adapter = const_cast<DBTAdapter *>( &device->getAdapter() );
-        std::shared_ptr<JavaAnonObj> adapterObjRef = adapter->getJavaObject();
-        JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
-        jobject jadapter = JavaGlobalObj::GetObject(adapterObjRef);
-
-        return Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(env, jadapter, statusListener);
+        if( ! gatt->removeCharacteristicListener(pre) ) {
+            WARN_PRINT("Failed to remove characteristicListener with nativeInstance: %p at %s", pre, device->toString().c_str());
+            return false;
+        }
+        return true;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
+}
+
+jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        if( nullptr == gatt ) {
+            throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+        }
+
+        return gatt->removeAllCharacteristicListener();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
 }
 
 void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
-        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         device->remove();
         // No delete: DBTDevice instance owned by DBTAdapter
     } catch(...) {
@@ -125,8 +291,8 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        uint16_t chandle = device->defaultConnect();
-        if( 0 == chandle ) {
+        uint16_t hciHandle = device->connectHCIDefault();
+        if( 0 == hciHandle ) {
             return JNI_FALSE;
         }
         std::shared_ptr<GATTHandler> gatt = device->connectGATT();
@@ -158,7 +324,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
 // getter
 //
 
-static const std::string _serviceClazzCtorArgs("(JLorg/tinyb/BluetoothDevice;ZLjava/lang/String;)V");
+static const std::string _serviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTDevice;ZLjava/lang/String;SS)V");
 
 jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
     try {
@@ -168,7 +334,8 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr != gatt ) {
             std::vector<std::shared_ptr<GATTService>> & services = gatt->getServices();
-            // DBTGattService(final long nativeInstance, final BluetoothDevice device, final boolean isPrimary, final String uuid)
+            // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
+            //                final String type_uuid, final short handleStart, final short handleEnd)
 
             std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
                     [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
@@ -177,10 +344,11 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
                         jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
                         const jboolean isPrimary = service->isPrimary;
                         const jstring uuid = from_string_to_jstring(env, service->type->toString());
-                        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+                        java_exception_check_and_throw(env, E_FILE_LINE);
 
-                        jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary, uuid);
-                        if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+                        jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,
+                                uuid, service->startHandle, service->endHandle);
+                        java_exception_check_and_throw(env, E_FILE_LINE);
                         JNIGlobalRef::check(jservice, E_FILE_LINE);
                         std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject();
                         JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
@@ -188,6 +356,8 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
                         return JavaGlobalObj::GetObject(jServiceRef);
                     };
             return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
+        } else {
+            WARN_PRINT("Device GATTHandle not connected: %s", device->toString().c_str());
         }
     } catch(...) {
         rethrow_and_raise_java_exception(env);

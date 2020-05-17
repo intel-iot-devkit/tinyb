@@ -201,7 +201,7 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
     return connInfo;
 }
 
-uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
+uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,
         uint16_t latency, uint16_t supervision_timeout,
@@ -213,7 +213,12 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         ERR_PRINT("DBTDevice::le_connect: Device unknown to adapter and not tracked: %s", toString().c_str());
         return 0;
     }
-    if( 0 < connHandle ) {
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        ERR_PRINT("DBTDevice::le_connect: Adapter session not opened");
+        return 0;
+    }
+    if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::le_connect: Already connected");
         return 0;
     }
@@ -222,52 +227,44 @@ uint16_t DBTDevice::le_connect(HCIAddressType peer_mac_type, HCIAddressType own_
         return 0;
     }
 
-    std::shared_ptr<HCISession> session = adapter.getOpenSession();
-    if( nullptr == session || !session->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter session not opened");
-        return 0;
-    }
-
     {
         // Currently doing nothing, but notifying
         DBTManager & mngr = adapter.getManager();
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
-    connHandle = session->hciComm.le_create_conn(
+    hciConnHandle = session->hciComm.le_create_conn(
                         address, peer_mac_type, own_mac_type,
                         interval, window, min_interval, max_interval, latency, supervision_timeout,
                         min_ce_length, max_ce_length, initiator_filter);
 
-    if ( 0 == connHandle ) {
+    if ( 0 == hciConnHandle ) {
         ERR_PRINT("DBTDevice::le_connect: Could not create connection");
         return 0;
     }
     session->connected(sharedInstance);
 
-    return connHandle;
+    return hciConnHandle;
 }
 
-uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
+uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
         ERR_PRINT("DBTDevice::connect: Device unknown to adapter and not tracked: %s", toString().c_str());
         return 0;
     }
-    if( 0 < connHandle ) {
-        ERR_PRINT("DBTDevice::connect: Already connected");
-        return 0;
-    }
-
-    if( !isBREDRAddressType() ) {
-        ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
-        return 0;
-    }
-
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         ERR_PRINT("DBTDevice::connect: Adapter session Not opened");
+        return 0;
+    }
+    if( 0 < hciConnHandle ) {
+        ERR_PRINT("DBTDevice::connect: Already connected");
+        return 0;
+    }
+    if( !isBREDRAddressType() ) {
+        ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
         return 0;
     }
 
@@ -277,26 +274,26 @@ uint16_t DBTDevice::connect(const uint16_t pkt_type, const uint16_t clock_offset
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
-    connHandle = session->hciComm.create_conn(address, pkt_type, clock_offset, role_switch);
+    hciConnHandle = session->hciComm.create_conn(address, pkt_type, clock_offset, role_switch);
 
-    if ( 0 == connHandle ) {
+    if ( 0 == hciConnHandle ) {
         ERR_PRINT("DBTDevice::connect: Could not create connection (yet)");
         return 0;
     }
     session->connected(sharedInstance);
 
-    return connHandle;
+    return hciConnHandle;
 }
 
-uint16_t DBTDevice::defaultConnect()
+uint16_t DBTDevice::connectHCIDefault()
 {
     switch( addressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return le_connect(HCIAddressType::HCIADDR_LE_PUBLIC);
+            return le_connectHCI(HCIAddressType::HCIADDR_LE_PUBLIC);
         case BDAddressType::BDADDR_LE_RANDOM:
-            return le_connect(HCIAddressType::HCIADDR_LE_RANDOM);
+            return le_connectHCI(HCIAddressType::HCIADDR_LE_RANDOM);
         case BDAddressType::BDADDR_BREDR:
-            return connect();
+            return connectHCI();
         default:
             ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
             return 0;
@@ -308,7 +305,7 @@ void DBTDevice::disconnect(const uint8_t reason) {
 
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
 
-    if( 0 == connHandle ) {
+    if( 0 == hciConnHandle ) {
         DBG_PRINT("DBTDevice::disconnect: Not connected");
         goto errout;
     }
@@ -319,8 +316,8 @@ void DBTDevice::disconnect(const uint8_t reason) {
     }
 
     {
-        const uint16_t _connHandle = connHandle;
-        connHandle = 0;
+        const uint16_t _connHandle = hciConnHandle;
+        hciConnHandle = 0;
         if( !session->hciComm.disconnect(_connHandle, reason) ) {
             DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _connHandle, errno, strerror(errno));
         }
@@ -346,18 +343,18 @@ void DBTDevice::remove() {
 }
 
 std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
+    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+    if( nullptr == sharedInstance ) {
+        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+    }
     std::shared_ptr<HCISession> session = adapter.getOpenSession();
     if( nullptr == session || !session->isOpen() ) {
         DBG_PRINT("DBTDevice::connectGATT: Adapter session not opened");
         return nullptr;
     }
-    if( 0 == connHandle ) {
+    if( 0 == hciConnHandle ) {
         DBG_PRINT("DBTDevice::connectGATT: Device not connected");
         return nullptr;
-    }
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
@@ -377,6 +374,35 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
 std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     return gattHandler;
+}
+
+std::vector<std::shared_ptr<GATTService>> DBTDevice::getServices() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+    if( nullptr == sharedInstance ) {
+        ERR_PRINT("DBTDevice::getServices: Device unknown to adapter and not tracked: %s", toString().c_str());
+        return std::vector<std::shared_ptr<GATTService>>();
+    }
+    std::shared_ptr<HCISession> session = adapter.getOpenSession();
+    if( nullptr == session || !session->isOpen() ) {
+        DBG_PRINT("DBTDevice::getServices: Adapter session not opened");
+        return std::vector<std::shared_ptr<GATTService>>();
+    }
+    if( 0 == hciConnHandle ) {
+        connectHCIDefault();
+        if( 0 == hciConnHandle ) {
+            ERR_PRINT("DBTDevice::getServices: defaultConnect failed");
+            return std::vector<std::shared_ptr<GATTService>>();
+        }
+    }
+    if( nullptr == gattHandler ) {
+        connectGATT();
+        if( nullptr == gattHandler ) {
+            ERR_PRINT("DBTDevice::getServices: connectGATT failed");
+            return std::vector<std::shared_ptr<GATTService>>();
+        }
+    }
+    return gattHandler->discoverCompletePrimaryServices();
 }
 
 void DBTDevice::disconnectGATT() {

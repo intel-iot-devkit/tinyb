@@ -28,17 +28,18 @@ package direct_bt.tinyb;
 import java.util.List;
 import java.util.Map;
 
-import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
+import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.GATTCharacteristicListener;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -60,10 +61,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
-        public void deviceUpdated(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-            if( device != DBTDevice.this ) {
-                return;
-            }
+        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
             synchronized(userCallbackLock) {
                 if( updateMask.isSet( EIRDataTypeSet.DataType.RSSI ) && null != userRSSINotificationsCB ) {
                     userRSSINotificationsCB.run(getRSSI());
@@ -74,10 +72,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceConnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
-            if( device != DBTDevice.this ) {
-                return;
-            }
+        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
             connected = true;
             synchronized(userCallbackLock) {
                 if( null != userConnectedNotificationsCB ) {
@@ -86,10 +81,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceDisconnected(final BluetoothAdapter adapter, final BluetoothDevice device, final long timestamp) {
-            if( device != DBTDevice.this ) {
-                return;
-            }
+        public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
             connected = false;
             synchronized(userCallbackLock) {
                 if( null != userConnectedNotificationsCB ) {
@@ -110,21 +102,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         ts_update = ts_creation;
         appearance = 0;
         initImpl();
-        // this.adapter.addStatusListener(statusListener);
-        this.addStatusListener(statusListener);
+        this.adapter.addStatusListener(statusListener, this); // only for this device
     }
-
-    /**
-     * Special proxy of {@link DBTAdapter#addStatusListener(AdapterStatusListener)}
-     * to be used from the constructor called via native
-     * {@link AdapterStatusListener#deviceFound(BluetoothAdapter, BluetoothDevice, long)} callback.
-     * <p>
-     * FIXME: Without this proxy hook, we end up in a crash within the addStatusListener(..).
-     * FIXME: Analyze reason! Triage!
-     * </p>
-     */
-    private native boolean addStatusListener(final AdapterStatusListener l);
-    private native boolean removeStatusListener(final AdapterStatusListener l);
 
     @Override
     public synchronized void close() {
@@ -140,8 +119,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         disableServiceDataNotifications();
         disableTrustedNotifications();
 
-        // this.adapter.removeStatusListener(statusListener);
-        removeStatusListener(statusListener);
+        adapter.removeStatusListener(statusListener);
         super.close();
     }
 
@@ -181,30 +159,6 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public BluetoothGattService find(final String UUID) {
         return find(UUID, 0);
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder out = new StringBuilder();
-        final long t0 = BluetoothUtils.getCurrentMilliseconds();
-        // std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-        final String msdstr = "MSD[null]";
-        out.append("Device[").append(getAddress()).append(", '").append(getName())
-                .append("', age ").append(t0-ts_creation).append(" ms, lup ").append(t0-ts_update).append(" ms, connected ").append(connected)
-                .append(", rssi ").append(getRSSI()).append(", tx-power ").append(getTxPower()).append(", ").append(msdstr).append("]");
-        /**
-        if(services.size() > 0 ) {
-            out.append("\n");
-            final int i=0;
-            for(final auto it = services.begin(); it != services.end(); it++, i++) {
-                if( 0 < i ) {
-                    out.append("\n");
-                }
-                std::shared_ptr<uuid_t> p = *it;
-                out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes");
-            }
-        } */
-        return out.toString();
     }
 
     /* Unsupported */
@@ -339,7 +293,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public short getAppearance() { return appearance; }
 
+    @Override
+    public final String toString() { return toStringImpl(); }
+
     /* DBT native callbacks */
+
+    private native String toStringImpl();
 
     @Override
     public native void enableBlockedNotifications(BluetoothNotification<Boolean> callback);
@@ -423,4 +382,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     protected native void deleteImpl();
+
+    @Override
+    public native boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);
+
+    @Override
+    public native boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+
+    @Override
+    public native int removeAllCharacteristicListener();
 }

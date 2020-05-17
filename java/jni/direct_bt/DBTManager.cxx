@@ -25,7 +25,7 @@
 
 #include "direct_bt_tinyb_DBTManager.h"
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "JNIMem.hpp"
@@ -43,7 +43,7 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
     try {
         DBTManager *manager = &DBTManager::get(BTMode::BT_MODE_LE); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
-        if( java_exception_check(env, E_FILE_LINE) ) { return; }
+        java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
@@ -93,9 +93,9 @@ jobject Java_direct_1bt_tinyb_DBTManager_getAdapterListImpl(JNIEnv *env, jobject
                     // prepare adapter ctor
                     const jstring addr = from_string_to_jstring(env, adapter->getAddressString());
                     const jstring name = from_string_to_jstring(env, adapter->getName());
-                    if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+                    java_exception_check_and_throw(env, E_FILE_LINE);
                     jobject jAdapter = env->NewObject(clazz, clazz_ctor, (jlong)adapter, addr, name);
-                    if( java_exception_check(env, E_FILE_LINE) ) { return nullptr; }
+                    java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jAdapter, E_FILE_LINE);
                     std::shared_ptr<JavaAnonObj> jAdapterRef = adapter->getJavaObject();
                     JavaGlobalObj::check(jAdapterRef, E_FILE_LINE);

@@ -54,21 +54,8 @@ namespace direct_bt {
 
     class DBTDevice; // forward
 
-    class GATTNotificationListener {
-        public:
-            virtual void notificationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacteristicRef charDecl,
-                                              std::shared_ptr<const AttHandleValueRcv> charValue) = 0;
-            virtual ~GATTNotificationListener() {}
-    };
-    class GATTIndicationListener {
-        public:
-            virtual void indicationReceived(std::shared_ptr<DBTDevice> dev, GATTCharacteristicRef charDecl,
-                                            std::shared_ptr<const AttHandleValueRcv> charValue, const bool confirmationSent) = 0;
-            virtual ~GATTIndicationListener() {}
-    };
-
     /**
-     * A thread safe GATT handler.
+     * A thread safe GATT handler associated to one device via one L2CAP connection.
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
@@ -107,7 +94,7 @@ namespace direct_bt {
             POctets rbuffer;
 
             State state;
-            std::shared_ptr<L2CAPComm> l2cap;
+            L2CAPComm l2cap;
             const int timeoutMS;
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
@@ -115,9 +102,10 @@ namespace direct_bt {
             volatile bool l2capReaderRunning;
             volatile bool l2capReaderShallStop;
 
-            std::shared_ptr<GATTNotificationListener> gattNotificationListener = nullptr;
-            std::shared_ptr<GATTIndicationListener> gattIndicationListener = nullptr;
-            bool sendIndicationConfirmation = false;
+            /** send immediate confirmation of indication events from device, defaults to true. */
+            bool sendIndicationConfirmation = true;
+            std::vector<std::shared_ptr<GATTCharacteristicListener>> eventListenerList;
+            std::recursive_mutex mtx_eventListenerList;
 
             uint16_t serverMTU;
             uint16_t usedMTU;
@@ -145,26 +133,12 @@ namespace direct_bt {
             std::string getStateString() const { return getStateString(state); }
 
             /**
-             * Replaces the GATTNotificationListener with the given instance, returning the replaced one.
-             */
-            std::shared_ptr<GATTNotificationListener> setGATTNotificationListener(std::shared_ptr<GATTNotificationListener> l);
-
-            /**
-             * Replaces the GATTNotificationListener with the given instance, returning the replaced one.
-             * <p>
-             * If {@code sendIndicationConfirmation} is {@code true}, a {@code ATT_HANDLE_VALUE_CFM}
-             * will be sent automatically right after receiving the event.
-             * </p>
-             */
-            std::shared_ptr<GATTIndicationListener> setGATTIndicationListener(std::shared_ptr<GATTIndicationListener> l, bool sendConfirmation);
-
-            /**
              * After successful l2cap connection, the MTU will be exchanged.
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              */
             bool connect();
             bool disconnect();
-            bool isOpen() const { return Disconnected < state && l2cap->isOpen(); }
+            bool isOpen() const { return Disconnected < state && l2cap.isOpen(); }
 
             bool send(const AttPDUMsg & msg);
             std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
@@ -306,7 +280,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * </p>
              */
-            bool writeDescriptorValue(const GATTDescriptor & cd, const TROOctets & value);
+            bool writeDescriptorValue(const GATTDescriptor & cd);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
@@ -318,6 +292,71 @@ namespace direct_bt {
              */
             bool writeCharacteristicValueNoResp(const GATTCharacteristic & c, const TROOctets & value);
 
+            /**
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+             * <p>
+             * Throws an IllegalArgumentException if the given GATTDescriptor is not a ClientCharacteristicConfiguration.
+             * </p>
+             */
+            bool configIndicationNotification(GATTDescriptor & cd, const bool enableNotification, const bool enableIndication);
+
+            /**
+             * Add the given listener to the list if not already present.
+             * <p>
+             * Returns true if the given listener is not element of the list and has been newly added,
+             * otherwise false.
+             * </p>
+             */
+            bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+
+            /**
+             * Remove the given listener from the list.
+             * <p>
+             * Returns true if the given listener is an element of the list and has been removed,
+             * otherwise false.
+             * </p>
+             */
+            bool removeCharacteristicListener(const GATTCharacteristicListener * l);
+            
+            /**
+             * Remove all event listener from the list.
+             * <p>
+             * Returns the number of removed event listener.
+             * </p>
+             */
+            int removeAllCharacteristicListener();
+
+            /**
+             * Enable or disable sending an immediate confirmation for received indication events from the device.
+             * <p>
+             * Default value is true.
+             * </p>
+             * <p>
+             * This setting is per GATTHandler and hence per DBTDevice.
+             * </p>
+             */
+            void setSendIndicationConfirmation(const bool v);
+
+            /**
+             * Returns whether sending an immediate confirmation for received indication events from the device is enabled.
+             * <p>
+             * Default value is true.
+             * </p>
+             * <p>
+             * This setting is per GATTHandler and hence per DBTDevice.
+             * </p>
+             */
+            bool getSendIndicationConfirmation();
+
             /*****************************************************/
             /** Higher level semantic functionality **/
             /*****************************************************/
@@ -327,11 +366,6 @@ namespace direct_bt {
 
             std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTServiceRef> & primServices);
             std::shared_ptr<DeviceInformation> getDeviceInformation(std::vector<GATTCharacteristicRef> & deviceInfoCharDeclList);
-
-            /**
-             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
-             */
-            bool configIndicationNotification(const GATTDescriptor & cd, const bool enableNotification, const bool enableIndication);
     };
 
 } // namespace direct_bt

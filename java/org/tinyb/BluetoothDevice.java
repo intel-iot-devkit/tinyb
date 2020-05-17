@@ -345,4 +345,29 @@ public interface BluetoothDevice extends BluetoothObject
      * object passed through the corresponding enable method.
      */
     void disableServicesResolvedNotifications();
+
+    /**
+     * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
+     * @param listener A {@link GATTCharacteristicListener} instance, listening to all {@link BluetoothGattCharacteristic} events of this device
+     * @param characteristicMatch Optional {@link BluetoothGattCharacteristic} to be matched before calling any
+     *        {@link GATTCharacteristicListener} methods. Pass {@code null} for no filtering.
+     * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @since 2.0.0
+     */
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);
+
+    /**
+     * Remove the given {@link GATTCharacteristicListener} from the listener list.
+     * @param listener A {@link GATTCharacteristicListener} instance
+     * @return true if the given listener is an element of the list and has been removed, otherwise false.
+     * @since 2.0.0
+     */
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+
+    /**
+     * Remove all {@link GATTCharacteristicListener} from the list.
+     * @return number of removed listener.
+     * @since 2.0.0
+     */
+    public int removeAllCharacteristicListener();
 }

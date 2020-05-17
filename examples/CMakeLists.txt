@@ -44,7 +44,12 @@ set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
 
-add_executable (dbt_scanner direct_bt_scanner/dbt_scanner.cpp)
+add_executable (dbt_scanner00 direct_bt_scanner00/dbt_scanner00.cpp)
+set_target_properties(list_mfg
+    PROPERTIES
+    CXX_STANDARD 11)
+
+add_executable (dbt_scanner01 direct_bt_scanner01/dbt_scanner01.cpp)
 set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
@@ -56,7 +61,8 @@ target_link_libraries (esstinyb tinyb)
 target_link_libraries (notifications tinyb)
 target_link_libraries (uuid tinyb)
 target_link_libraries (list_mfg tinyb)
-target_link_libraries (dbt_scanner direct_bt)
+target_link_libraries (dbt_scanner00 direct_bt)
+target_link_libraries (dbt_scanner01 direct_bt)
 
-install(TARGETS dbt_scanner RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS dbt_scanner00 dbt_scanner01 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

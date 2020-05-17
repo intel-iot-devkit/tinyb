@@ -41,7 +41,7 @@ import org.tinyb.BluetoothType;
 
 public class DBTManager implements BluetoothManager
 {
-    protected static final boolean DEBUG = true;
+    protected static final boolean DEBUG = false;
 
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();

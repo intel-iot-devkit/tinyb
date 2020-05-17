@@ -257,7 +257,7 @@ std::shared_ptr<HCISession> DBTAdapter::open()
     return session;
 }
 
-bool DBTAdapter::addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l) {
+bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -273,7 +273,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<DBTAdapterStatusListener> l) 
     return true;
 }
 
-bool DBTAdapter::removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> l) {
+bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -289,7 +289,7 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<DBTAdapterStatusListener> 
     return false;
 }
 
-bool DBTAdapter::removeStatusListener(const DBTAdapterStatusListener * l) {
+bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -303,6 +303,13 @@ bool DBTAdapter::removeStatusListener(const DBTAdapterStatusListener * l) {
         }
     }
     return false;
+}
+
+int DBTAdapter::removeAllStatusListener() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
+    int count = statusListenerList.size();
+    statusListenerList.clear();
+    return count;
 }
 
 bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
@@ -462,7 +469,7 @@ bool DBTAdapter::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
             adapterSettingsToString(adapterInfo->getCurrentSetting()).c_str(),
             adapterSettingsToString(changes).c_str() );
 
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         l->adapterSettingsChanged(*this, old_setting, adapterInfo->getCurrentSetting(), changes, event.getTimestamp());
     });
 
@@ -491,8 +498,10 @@ bool DBTAdapter::mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e) {
 }
 
 void DBTAdapter::sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask) {
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-        l->deviceUpdated(*this, device, timestamp, updateMask);
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        if( l->matchDevice(*device) ) {
+            l->deviceUpdated(device, timestamp, updateMask);
+        }
     });
 }
 
@@ -529,11 +538,13 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         if( 0 < new_connect ) {
             session->connected(device); // track it
         }
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-            if( EIRDataType::NONE != updateMask ) {
-                l->deviceUpdated(*this, device, ad_report.getTimestamp(), updateMask);
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            if( l->matchDevice(*device) ) {
+                if( EIRDataType::NONE != updateMask ) {
+                    l->deviceUpdated(device, ad_report.getTimestamp(), updateMask);
+                }
+                l->deviceConnected(device, event.getTimestamp());
             }
-            l->deviceConnected(*this, device, event.getTimestamp());
         });
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s,\n    %s\n    -> Device not tracked nor discovered",
@@ -551,8 +562,10 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
 
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-            l->deviceDisconnected(*this, device, event.getTimestamp());
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            if( l->matchDevice(*device) ) {
+                l->deviceDisconnected(device, event.getTimestamp());
+            }
         });
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
@@ -596,8 +609,10 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
         //
         EIRDataType updateMask = dev->update(ad_report);
         addDiscoveredDevice(dev); // re-add to discovered devices!
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-            l->deviceFound(*this, dev, ad_report.getTimestamp());
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            if( l->matchDevice(*dev) ) {
+                l->deviceFound(dev, ad_report.getTimestamp());
+            }
         });
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated(dev, ad_report.getTimestamp(), updateMask);
@@ -612,8 +627,10 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
 
-    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<DBTAdapterStatusListener> &l) {
-        l->deviceFound(*this, dev, ad_report.getTimestamp());
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        if( l->matchDevice(*dev) ) {
+            l->deviceFound(dev, ad_report.getTimestamp());
+        }
     });
 
     return true;

@@ -283,14 +283,14 @@ namespace direct_bt {
             : POctets(size, size)
             { }
 
-            /** Makes a transient TOctets persistent by taking ownership (malloc and copy, free) ..*/
-            POctets(const TOctets & _source)
+            /** Makes a persistent POctets by taking ownership (malloc and copy, free) ..*/
+            POctets(const TROOctets & _source)
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getSize() )
             {
                 std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
             }
-            /** Makes a transient TOctetSlice persistent by taking ownership (malloc and copy, free) ..*/
+            /** Makes a persistent POctets by taking ownership (malloc and copy, free) ..*/
             POctets(const TOctetSlice & _source)
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getSize() )
@@ -306,13 +306,23 @@ namespace direct_bt {
                 std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
             }
 
-            POctets& operator=(const POctets &_source) {
+            POctets& operator=(const TROOctets &_source) {
                 if( this == &_source ) {
                     return *this;
                 }
                 release();
                 setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
                 capacity = _source.getSize();
+                return *this;
+            }
+
+            POctets& operator=(const POctets &_source) {
+                if( this == &_source ) {
+                    return *this;
+                }
+                release();
+                setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
+                capacity = _source.getCapacity();
                 return *this;
             }
 
@@ -370,7 +380,7 @@ namespace direct_bt {
 
             int getCapacity() const { return capacity; }
 
-            POctets & operator+=(const TOctets &b) {
+            POctets & operator+=(const TROOctets &b) {
                 if( 0 < b.getSize() ) {
                     const int newSize = getSize() + b.getSize();
                     if( capacity < newSize ) {

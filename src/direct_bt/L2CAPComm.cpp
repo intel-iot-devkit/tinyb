@@ -116,12 +116,12 @@ std::string L2CAPComm::getStateString(const State state) {
 L2CAPComm::State L2CAPComm::connect() {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
 
-    sockaddr_l2 req;
-    int err, res;
-
     if( 0 <= _dd ) {
         return state; // already open
     }
+
+    sockaddr_l2 req;
+    int err, res;
 
     _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */, blocking);
     if( 0 > _dd ) {

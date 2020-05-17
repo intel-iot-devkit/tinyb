@@ -149,13 +149,18 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     public native boolean getDiscovering();
 
     @Override
-    public boolean addStatusListener(final AdapterStatusListener l) {
-        throw new UnsupportedOperationException(); // FIXME
+    public boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch) {
+        return false; // FIXME
     }
 
     @Override
     public boolean removeStatusListener(final AdapterStatusListener l) {
         return false; // FIXME
+    }
+
+    @Override
+    public int removeAllStatusListener() {
+        return 0; // FIXME
     }
 
     @Override
@@ -179,6 +184,7 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
         setDiscoveryFilter(uuidsFmt, rssi, pathloss, transportType.ordinal());
     }
 
+    @SuppressWarnings("unchecked")
     public void setRssiDiscoveryFilter(final int rssi) {
         setDiscoveryFilter(Collections.EMPTY_LIST, rssi, 0, TransportType.AUTO);
     }

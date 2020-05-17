@@ -45,6 +45,8 @@ import org.tinyb.TransportType;
 
 public class DBTAdapter extends DBTObject implements BluetoothAdapter
 {
+    private static final boolean DEBUG = DBTManager.DEBUG;
+
     private static AtomicInteger globThreadID = new AtomicInteger(0);
     private static int discoverTimeoutMS = 100;
 
@@ -72,28 +74,30 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         super(nativeInstance, compHash(address, name));
         this.address = address;
         this.name = name;
-        addStatusListener(this.statusListener);
+        addStatusListener(this.statusListener, null);
     }
 
     @Override
     public synchronized void close() {
-        stopDiscovery();
+        if( isOpen ) {
+            stopDiscovery();
 
-        for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
-            final BluetoothDevice d = id.next();
-            d.close();
+            for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
+                final BluetoothDevice d = id.next();
+                d.close();
+            }
+
+            removeAllStatusListener();
+            disableDiscoverableNotifications();
+            disableDiscoveringNotifications();
+            disablePairableNotifications();
+            disablePoweredNotifications();
+
+            removeDevicesImpl();
+            discoveredDevices.clear();
+
+            isOpen = false;
         }
-
-        removeStatusListener(this.statusListener);
-        disableDiscoverableNotifications();
-        disableDiscoveringNotifications();
-        disablePairableNotifications();
-        disablePoweredNotifications();
-
-        removeDevicesImpl();
-        discoveredDevices.clear();
-
-        isOpen = false;
         super.close();
     }
 
@@ -127,23 +131,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public BluetoothDevice find(final String name, final String address) {
         return find(name, address, 0);
-    }
-
-    @Override
-    public String toString() {
-        final StringBuilder out = new StringBuilder();
-        out.append("Adapter[").append(getAddress()).append(", '").append(getName()).append("', id=").append("]");
-        synchronized(discoveredDevicesLock) {
-            final int count = discoveredDevices.size();
-            if( count > 0 ) {
-                out.append("\n");
-                for(final Iterator<BluetoothDevice> iter=discoveredDevices.iterator(); iter.hasNext(); ) {
-                    final BluetoothDevice device = iter.next();
-                    out.append("  ").append(device.toString()).append("\n");
-                }
-            }
-        }
-        return out.toString();
     }
 
     /* Unsupported */
@@ -217,9 +204,14 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         pairableNotification = null;
     }
 
+    @Override
+    public String toString() { return toStringImpl(); }
+
     /* Native callbacks */
 
     /* Native functionality / properties */
+
+    private native String toStringImpl();
 
     @Override
     public native void setPowered(boolean value);
@@ -265,10 +257,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized boolean stopDiscovery() throws BluetoothException {
-        open();
-        isDiscovering = false;
-        final boolean res = stopDiscoveryImpl();
-        return res;
+        if( isDiscovering ) {
+            isDiscovering = false;
+            if( isOpen ) {
+                return stopDiscoveryImpl();
+            }
+        }
+        return false;
     }
     private native boolean stopDiscoveryImpl() throws BluetoothException;
 
@@ -304,10 +299,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public boolean getDiscovering() { return isDiscovering; }
 
     @Override
-    public native boolean addStatusListener(final AdapterStatusListener l);
+    public native boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch);
 
     @Override
     public native boolean removeStatusListener(final AdapterStatusListener l);
+
+    @Override
+    public native int removeAllStatusListener();
 
     @Override
     public native void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback);
@@ -324,6 +322,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         setDiscoveryFilter(uuidsFmt, rssi, pathloss, transportType.ordinal());
     }
 
+    @SuppressWarnings("unchecked")
     public void setRssiDiscoveryFilter(final int rssi) {
         setDiscoveryFilter(Collections.EMPTY_LIST, rssi, 0, TransportType.AUTO);
     }
@@ -336,7 +335,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         @Override
         public void adapterSettingsChanged(final BluetoothAdapter a, final AdapterSettings oldmask, final AdapterSettings newmask,
                                            final AdapterSettings changedmask, final long timestamp) {
-            System.err.println("Adapter.StatusListener.settings: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.SETTINGS_CHANGED: "+oldmask+" -> "+newmask+", changed "+changedmask+" on "+a);
+            }
             {
                 if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
                     isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
@@ -366,26 +367,34 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
-        public void deviceFound(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            System.err.println("Adapter.StatusListener.found: "+device+" on "+a);
+        public void deviceFound(final BluetoothDevice device, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.FOUND: "+device+" on "+device.getAdapter());
+            }
             synchronized(discoveredDevicesLock) {
                 discoveredDevices.add(device);
             }
         }
 
         @Override
-        public void deviceUpdated(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-            System.err.println("Adapter.StatusListener.updated: "+updateMask+" of "+device+" on "+a);
+        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
+            }
             // nop on discoveredDevices
         }
 
         @Override
-        public void deviceConnected(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            System.err.println("Adapter.StatusListener.connected: "+device+" on "+a);
+        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.CONNECTED: "+device+" on "+device.getAdapter());
+            }
         }
         @Override
-        public void deviceDisconnected(final BluetoothAdapter a, final BluetoothDevice device, final long timestamp) {
-            System.err.println("Adapter.StatusListener.disconnected: "+device+" on "+a);
+        public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.DISCONNECTED: "+device+" on "+device.getAdapter());
+            }
         }
     };
 }

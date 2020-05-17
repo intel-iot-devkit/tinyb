@@ -71,6 +71,29 @@ public interface BluetoothGattCharacteristic extends BluetoothObject
     public byte[] readValue() throws BluetoothException;
 
     /**
+     * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
+     * @param listener A {@link GATTCharacteristicListener} instance, listening to this {@link BluetoothGattCharacteristic}'s events
+     * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @since 2.0.0
+     */
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener);
+
+    /**
+     * Remove the given {@link GATTCharacteristicListener} from the listener list.
+     * @param listener A {@link GATTCharacteristicListener} instance
+     * @return true if the given listener is an element of the list and has been removed, otherwise false.
+     * @since 2.0.0
+     */
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+
+    /**
+     * Remove all {@link GATTCharacteristicListener} from the list.
+     * @return number of removed listener.
+     * @since 2.0.0
+     */
+    public int removeAllCharacteristicListener();
+
+    /**
      * Enables notifications for the value and calls run function of the BluetoothNotification
      * object. It enables notifications for this characteristic at BLE level.
      * @param callback A BluetoothNotification<byte[]> object. Its run function will be called

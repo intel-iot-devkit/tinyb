@@ -37,6 +37,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.GATTCharacteristicListener;
 
 public class DBusGattCharacteristic extends DBusObject implements BluetoothGattCharacteristic
 {
@@ -100,5 +101,17 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     private DBusGattCharacteristic(final long instance)
     {
         super(instance);
+    }
+    @Override
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
+        return false; // FIXME
+    }
+    @Override
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
+        return false; // FIXME
+    }
+    @Override
+    public int removeAllCharacteristicListener() {
+        return 0; // FIXME
     }
 }
