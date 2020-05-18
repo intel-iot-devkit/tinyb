@@ -13,9 +13,29 @@ TinyB Version 2
 Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
 
 The TinyB project consist out of two implementations
-- *TinyB* using BlueZ over DBus, exposed as *libtinyb.so* and *libjavatinyb.so*
-- *Direct-BT* providing direct Bluetooth programming, exposed as *libdirect_bt.so* and *libjavadirect_bt.so*
 
+TinyB
+-----
+*TinyB* exposes the BLE GATT API for C++, Java and other languages, using BlueZ over DBus.
+
+*TinyB* is exposed via the following native libraries
+- *libtinyb.so* for the core C++ implementation.
+- *libjavatinyb.so* for the Java binding.
+
+Direct-BT
+----------
+*Direct-BT* provides direct Bluetooth programming without intermediate layers 
+targeting high-performance reliable Bluetooth support.
+
+*TinyB* is exposed via the following native libraries
+- *libdirect_bt.so* for the core C++ implementation.
+- *libjavadirect_bt.so* for the Java binding.
+
+You will find a detailed overview of *Direct-BT* in the doxygen generated 
+[C++ API doc of its *direct_bt* namespace](../../cpp/html/namespacedirect__bt.html#details).
+
+TinyB and Direct-BT
+-------------------
 Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
 of package *tinyb* has been moved to *tinyb.dbus*.
 The *tinyb.jar* jar file has been renamed to *tinyb2.jar*, avoiding conflicts.
