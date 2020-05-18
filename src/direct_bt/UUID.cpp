@@ -81,7 +81,7 @@ std::string uuid16_t::toString() const {
     str.reserve(length+1); // including EOS for snprintf
     str.resize(length);
 
-    const int count = snprintf(&str[0], str.capacity(), "%.4X", value);
+    const int count = snprintf(&str[0], str.capacity(), "%.4x", value);
     if( length != count ) {
         throw InternalError("UUID16 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
     }
@@ -100,7 +100,7 @@ std::string uuid32_t::toString() const {
     str.reserve(length+1); // including EOS for snprintf
     str.resize(length);
 
-    const int count = snprintf(&str[0], str.capacity(), "%.8X", value);
+    const int count = snprintf(&str[0], str.capacity(), "%.8x", value);
     if( length != count ) {
         throw InternalError("UUID32 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);
     }
@@ -148,7 +148,7 @@ std::string uuid128_t::toString() const {
 #else
 #error "Unexpected __BYTE_ORDER"
 #endif
-    const int count = snprintf(&str[0], str.capacity(), "%.8X-%.4X-%.4X-%.4X-%.8X%.4X",
+    const int count = snprintf(&str[0], str.capacity(), "%.8x-%.4x-%.4x-%.4x-%.8x%.4x",
                                 part0, part1, part2, part3, part4, part5);
     if( length != count ) {
         throw InternalError("UUID128 string not of length "+std::to_string(length)+" but "+std::to_string(count), E_FILE_LINE);

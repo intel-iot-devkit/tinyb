@@ -35,6 +35,23 @@
 
 namespace direct_bt {
 
+    class DirectBTJNISettings {
+        private:
+            bool unifyUUID128Bit = true;
+
+        public:
+            /**
+             * Enables or disables uuid128_t consolidation
+             * for native uuid16_t and uuid32_t values before string conversion.
+             * <p>
+             * Default is {@code true}, as this represent compatibility with original TinyB D-Bus behavior.
+             * </p>
+             */
+            bool getUnifyUUID128Bit() { return unifyUUID128Bit; }
+            void setUnifyUUID128Bit(bool v) { unifyUUID128Bit = v; }
+    };
+    extern DirectBTJNISettings directBTJNISettings;
+
     class JavaGlobalObj : public JavaAnonObj {
         private:
             JNIGlobalRef javaObjectRef;

@@ -343,7 +343,9 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
                         JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
                         jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
                         const jboolean isPrimary = service->isPrimary;
-                        const jstring uuid = from_string_to_jstring(env, service->type->toString());
+                        const jstring uuid = from_string_to_jstring(env,
+                                directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :
+                                                                           service->type->toString());
                         java_exception_check_and_throw(env, E_FILE_LINE);
 
                         jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,

@@ -49,22 +49,23 @@ public class ScannerTinyB01 {
     /** 10,000 milliseconds */
     static long TO_DISCOVER = 10000;
 
+    static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
+    static String waitForDevice = EUI48_ANY_DEVICE;
+
     public static void main(final String[] args) throws InterruptedException {
         long t0_discovery = TO_DISCOVER;
         int factory = 0;
         int dev_id = 0; // default
         int mode = 0;
         boolean forever = false;
-        final String mac;
         {
-            String _mac = null;
             for(int i=0; i< args.length; i++) {
                 final String arg = args[i];
 
                 if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    _mac = args[++i];
+                    waitForDevice = args[++i];
                 } else if( arg.equals("-mode") && args.length > (i+1) ) {
                     mode = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
@@ -76,12 +77,14 @@ public class ScannerTinyB01 {
                 }
             }
 
-            if ( null == _mac ) {
+            if ( EUI48_ANY_DEVICE.equals(waitForDevice) ) {
                 System.err.println("Run with '-mac <device_address> [-dev_id <adapter-index>] [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
                 System.exit(-1);
             }
-            mac = _mac;
         }
+
+        System.err.println("dev_id "+dev_id);
+        System.err.println("waitForDevice: "+waitForDevice);
 
         final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
         final BluetoothManager manager;
@@ -124,7 +127,7 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceFound(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = device.getAddress().equals(mac);
+                final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -139,7 +142,7 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-                final boolean matches = device.getAddress().equals(mac);
+                final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -147,7 +150,7 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceConnected(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = device.getAddress().equals(mac);
+                final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** CONNECTED: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -155,7 +158,7 @@ public class ScannerTinyB01 {
 
             @Override
             public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = device.getAddress().equals(mac);
+                final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** DISCONNECTED: "+device.toString()+" - match "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
@@ -213,7 +216,7 @@ public class ScannerTinyB01 {
 
                 final boolean discoveryStarted = adapter.startDiscovery();
 
-                System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode);
+                System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+waitForDevice+", mode "+mode);
                 if( !discoveryStarted ) {
                     break;
                 }
@@ -231,14 +234,14 @@ public class ScannerTinyB01 {
                         matchingDiscoveredDeviceBucket[0] = null;
                     }
                 } else if( 1 == mode ) {
-                    sensor = adapter.find(null, mac, t0_discovery);
+                    sensor = adapter.find(null, waitForDevice, t0_discovery);
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
                         final List<BluetoothDevice> devices = adapter.getDevices();
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();
-                            if(d.getAddress().equals(mac)) {
+                            if(d.getAddress().equals(waitForDevice)) {
                                 sensor = d;
                                 break;
                             }
@@ -348,15 +351,7 @@ public class ScannerTinyB01 {
                     for (final BluetoothGattDescriptor d : descriptors) {
                         System.err.println("        Descriptor: " + d);
                     }
-                    final String uuid;
-                    {
-                        final String _uuid = c.getUUID().toLowerCase();
-                        if( 4 == _uuid.length() ) {
-                            uuid = _uuid + "-"; // FIXME: uuid16_t -> uuid128_t string??
-                        } else {
-                            uuid = _uuid;
-                        }
-                    }
+                    final String uuid = c.getUUID();
                     System.err.println("**** Quering: " + uuid);
 
                     if (uuid.contains("2a29-")) {

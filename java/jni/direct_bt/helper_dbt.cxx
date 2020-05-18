@@ -32,6 +32,8 @@
 
 using namespace direct_bt;
 
+DirectBTJNISettings direct_bt::directBTJNISettings;
+
 jclass direct_bt::search_class(JNIEnv *env, JavaUplink &object)
 {
     return search_class(env, object.get_java_class().c_str());

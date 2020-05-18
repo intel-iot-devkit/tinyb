@@ -38,8 +38,9 @@
 
 using namespace direct_bt;
 
-void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit)
 {
+    directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
         DBTManager *manager = &DBTManager::get(BTMode::BT_MODE_LE); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);

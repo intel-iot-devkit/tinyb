@@ -92,7 +92,9 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                     }
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
-                    const jstring uuid = from_string_to_jstring(env, characteristic->value_type->toString());
+                    const jstring uuid = from_string_to_jstring(env,
+                            directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
+                                                                       characteristic->value_type->toString());
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
                     jobject jchar = env->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,

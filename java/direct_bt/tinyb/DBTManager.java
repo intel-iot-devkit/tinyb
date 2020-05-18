@@ -45,6 +45,7 @@ public class DBTManager implements BluetoothManager
 
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
+    private static boolean unifyUUID128Bit = true;
 
     static {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -121,6 +122,26 @@ public class DBTManager implements BluetoothManager
             }
         }
     }
+
+    /**
+     * Returns whether uuid128_t consolidation is enabled
+     * for native uuid16_t and uuid32_t values before string conversion.
+     * @see #setUnifyUUID128Bit(boolean)
+     */
+    public static boolean getUnifyUUID128Bit() { return unifyUUID128Bit; }
+
+    /**
+     * Enables or disables uuid128_t consolidation
+     * for native uuid16_t and uuid32_t values before string conversion.
+     * <p>
+     * Default is {@code true}, as this represent compatibility with original TinyB D-Bus behavior.
+     * </p>
+     * <p>
+     * If desired, this value should be set once before the first call of {@link #getBluetoothManager()}!
+     * </p>
+     * @see #getUnifyUUID128Bit()
+     */
+    public static void setUnifyUUID128Bit(final boolean v) { unifyUUID128Bit=v; }
 
     private long nativeInstance;
     private static DBTManager inst;
@@ -243,11 +264,11 @@ public class DBTManager implements BluetoothManager
 
     private native List<BluetoothAdapter> getAdapterListImpl();
 
-    private native void initImpl() throws BluetoothException;
+    private native void initImpl(final boolean unifyUUID128Bit) throws BluetoothException;
     private native void deleteImpl();
     private DBTManager()
     {
-        initImpl();
+        initImpl(unifyUUID128Bit);
         try {
             adapters.addAll(getAdapterListImpl());
         } catch (final BluetoothException be) {
