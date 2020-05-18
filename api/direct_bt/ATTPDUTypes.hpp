@@ -26,85 +26,6 @@
 #ifndef ATT_PDU_TYPES_HPP_
 #define ATT_PDU_TYPES_HPP_
 
-/**
- * Handles the Attribute Protocol (ATT) using Protocol Data Unit (PDU)
- * encoded messages over L2CAP channel.
- * <p>
- * Implementation uses persistent memory w/ ownership
- * copying PDU data to allow intermediate pipe processing.
- * </p>
- * <p>
- * Vol 3, Part F 2 - Protocol Overview pp
- *
- * One attribute := { UUID type; uint16_t handle; permissions for higher layer; },
- * where
- *
- * UUID is an official assigned number,
- *
- * handle uniquely references an attribute on a server for client R/W access
- * - see Vol 3, Part F 3.4.4 - 3.4.6, also 3.4.7 (notified/indicated),
- * 3.4.3 (discovery) and 3.2.5 (permissions).
- *
- * Client sends ATT requests to a server, which shall respond to all.
- *
- * A device can take client and server roles concurrently.
- *
- * One server per device, ATT handle is unique for all supported bearers.
- * For each client, server has one set of ATTs.
- * The server (and hence device) can support multiple clients.
- *
- * Services are distinguished by range of handles for each service.
- * Discovery is of these handle ranges is defined by a higher layer spec.
- *
- * ATT Protocol has notification and indication capabilities for efficient
- * ATT value promotion to client w/o reading them (Vol 3, Part F 3.3).
- *
- * All ATT Protocol requests sent over an ATT bearer.
- * Multiple ATT bearers can be established between two devices.
- * Each ATT bearer uses a separate L2CAP channel an can have different configurations.
- *
- * For LE a single ATT bearer using a fixed L2CAP channel is available ASAP after
- * ACL connection is established.
- * Additional ATT bearers can be established using L2CAP (Vol 3, Part F 3.2.11).
- * </p>
- * <p>
- * Vol 3, Part F 3 - Basics and Types
- *
- * ATT handle is uint16_t and valid if > 0x0000, max is 0xffff.
- * ATT handle is unique per server.
- *
- * ATT value (Vol 3, Part F 3.2.4)
- *
- * - ATT value is uint8_t array of fixed or variable length.
- *
- * - ATT values might be too large for a single PDU,
- *   hence it must be sent using multiple PDUs.
- *
- * - ATT value encoding is defined by the ATT type (UUID).
- *
- * - ATT value transmission done via request, response,
- *   notification or indication
- *
- * - ATT value variable length is implicit by PDU carrying packet (PDU parent),
- *   implying:
- *   - One ATT value per ATT request... unless ATT values have fixed length.
- *   - Only one ATT value with variable length in a request...
- *   - L2CAP preserves DGRAM boundaries
- *
- *   Some PDUs include the ATT value length, for which above limitations don't apply.
- *
- *   Maximum length of an attribute value shall be 512 bytes (Vol 3, Part F 3.2.8),
- *   spread across multiple PDUs.
- * </p>
- *
- * BT Core Spec v5.2: Vol 3, Part A: BT Logical Link Control and Adaption Protocol (L2CAP)
- *
- * BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
- * BT Core Spec v5.2: Vol 3, Part F 3 ATT PDUs (Protocol Data Unit)
- * BT Core Spec v5.2: Vol 3, Part F 3.3 ATT PDUs
- * BT Core Spec v5.2: Vol 3, Part F 4 Security Considerations
- */
-
 #include <cstring>
 #include <string>
 #include <memory>
@@ -119,6 +40,42 @@
 
 #include "OctetTypes.hpp"
 
+/**
+ * Direct-BT provides direct Bluetooth programming without intermediate layers
+ * targeting high-performance reliable Bluetooth support.
+ *
+ * By having least system and userspace dependencies and no communication overhead,
+ * Direct-BT shall be suitable for embedded device configurations besides others.
+ *
+ * Direct-BT implements the following layers
+ * - *Basic HCI* via HCIComm for basic connection
+ * - *BlueZ Kernel Manager Control Channel* via DBTManager for efficient adapter management
+ * - *ATT PDU* AttPDUMsg via L2CAP for low level GATT communication
+ * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
+ *   -  GATTService
+ *   -  GATTCharacteristic
+ *   -  GATTDescriptor
+ *
+ * Since HCI (HCIComm) didn't seem to be well supported with the BlueZ Kernel implementation,
+ * we had to utilize the *BlueZ Kernel Manager Control Channel* via DBTManager.
+ * However, it is well possible to replace this functionality with HCI or different means
+ * on other platforms.
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * Form a user perspective the following hierarchy is provided
+ * - DBTAdapter has multiple or no
+ *   - DBTDevice has multiple or no
+ *     -  GATTService has multiple or no
+ *       -  GATTService has multiple or no
+ *         -  GATTCharacteristic has multiple or no
+ *           -  GATTDescriptor
+ *
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
+ */
 namespace direct_bt {
 
     class AttException : public RuntimeException {
@@ -144,6 +101,94 @@ namespace direct_bt {
     };
 
     /**
+     * ATT PDU Overview
+     * ================
+     * Handles the Attribute Protocol (ATT) using Protocol Data Unit (PDU)
+     * encoded messages over L2CAP channel.
+     * <p>
+     * Implementation uses persistent memory w/ ownership
+     * copying PDU data to allow intermediate pipe processing.
+     * </p>
+     * <p>
+     *
+     * Vol 3, Part F 2 - Protocol Overview pp
+     * ---------------------------------------
+     * One attribute := { UUID type; uint16_t handle; permissions for higher layer; },
+     * where
+     *
+     * UUID is an official assigned number,
+     *
+     * handle uniquely references an attribute on a server for client R/W access,
+     * see Vol 3, Part F 3.4.4 - 3.4.6, also 3.4.7 (notified/indicated),
+     * 3.4.3 (discovery) and 3.2.5 (permissions).
+     *
+     * Client sends ATT requests to a server, which shall respond to all.
+     *
+     * A device can take client and server roles concurrently.
+     *
+     * One server per device, ATT handle is unique for all supported bearers.
+     * For each client, server has one set of ATTs.
+     * The server (and hence device) can support multiple clients.
+     *
+     * Services are distinguished by range of handles for each service.
+     * Discovery is of these handle ranges is defined by a higher layer spec.
+     *
+     * ATT Protocol has notification and indication capabilities for efficient
+     * ATT value promotion to client w/o reading them (Vol 3, Part F 3.3).
+     *
+     * All ATT Protocol requests sent over an ATT bearer.
+     * Multiple ATT bearers can be established between two devices.
+     * Each ATT bearer uses a separate L2CAP channel an can have different configurations.
+     *
+     * For LE a single ATT bearer using a fixed L2CAP channel is available ASAP after
+     * ACL connection is established.
+     * Additional ATT bearers can be established using L2CAP (Vol 3, Part F 3.2.11).
+     * </p>
+     *
+     * <p>
+     * Vol 3, Part F 3 - Basics and Types
+     * ------------------------------------
+     * ATT handle is uint16_t and valid if > 0x0000, max is 0xffff.
+     * ATT handle is unique per server.
+     *
+     * ATT value (Vol 3, Part F 3.2.4)
+     *
+     * - ATT value is uint8_t array of fixed or variable length.
+     *
+     * - ATT values might be too large for a single PDU,
+     *   hence it must be sent using multiple PDUs.
+     *
+     * - ATT value encoding is defined by the ATT type (UUID).
+     *
+     * - ATT value transmission done via request, response,
+     *   notification or indication
+     *
+     * - ATT value variable length is implicit by PDU carrying packet (PDU parent),
+     *   implying:
+     *   - One ATT value per ATT request... unless ATT values have fixed length.
+     *   - Only one ATT value with variable length in a request...
+     *   - L2CAP preserves DGRAM boundaries
+     *
+     *   Some PDUs include the ATT value length, for which above limitations don't apply.
+     *
+     *   Maximum length of an attribute value shall be 512 bytes (Vol 3, Part F 3.2.8),
+     *   spread across multiple PDUs.
+     * </p>
+     *
+     * - BT Core Spec v5.2: Vol 3, Part A: BT Logical Link Control and Adaption Protocol (L2CAP)
+     *
+     * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
+     *
+     * - BT Core Spec v5.2: Vol 3, Part F 3 ATT PDUs (Protocol Data Unit)
+     *
+     * - BT Core Spec v5.2: Vol 3, Part F 3.3 ATT PDUs
+     *
+     * - BT Core Spec v5.2: Vol 3, Part F 4 Security Considerations
+     *
+     * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     *
+     * AttPDUMsg Base Class
+     * =====================
      * Attribute Protocol (ATT)'s Protocol Data Unit (PDU) message
      * Vol 3, Part F 3.3 and Vol 3, Part F 3.4
      * <p>
@@ -159,10 +204,19 @@ namespace direct_bt {
      * </p>
      * <p>
      * ATT PDU Format Vol 3, Part F 3.3.1
-     * { uint8_t opcode, uint8_t param[0..ATT_MTU-X], uint8_t auth_sig[0||12] }, with
-     * opcode bits{ 0-5 method, 6 command-flag, 7 auth-sig-flag } and
-     * X =  1 if auth-sig flag of ATT-opcode is 0, or
-     * X = 13 if auth-sig flag of ATT-opcode is 1.
+     * -----------------------------------
+     * ```
+     *   { uint8_t opcode, uint8_t param[0..ATT_MTU-X], uint8_t auth_sig[0||12] }
+     * ```
+     * with
+     * ```
+     *   opcode bits{ 0-5 method, 6 command-flag, 7 auth-sig-flag }
+     * ```
+     * and
+     * ```
+     *   X =  1 if auth-sig flag of ATT-opcode is 0, or
+     *   X = 13 if auth-sig flag of ATT-opcode is 1.
+     * ```
      * </p>
      */
     class AttPDUMsg

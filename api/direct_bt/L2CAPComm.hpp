@@ -38,6 +38,9 @@
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 
+/**
+ * - BT Core Spec v5.2: Vol 3, Part A: BT Logical Link Control and Adaption Protocol (L2CAP)
+ */
 namespace direct_bt {
 
     class DBTDevice; // forward

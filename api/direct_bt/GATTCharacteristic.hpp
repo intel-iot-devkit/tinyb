@@ -45,12 +45,9 @@
 #include "JavaUplink.hpp"
 
 /**
- * BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
- * BT Core Spec v5.2: Vol 3, Part G Generic Attribute Protocol (GATT)
- *
- * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4 Summary of GATT Profile Attribute Types
+ * - BT Core Spec v5.2: Vol 3, Part G Generic Attribute Protocol (GATT)
+ * - BT Core Spec v5.2: Vol 3, Part G GATT: 2.6 GATT Profile Hierarchy
  */
-
 namespace direct_bt {
 
     class GATTCharacteristicListener; // forward

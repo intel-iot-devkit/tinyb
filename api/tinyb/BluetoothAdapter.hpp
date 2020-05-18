@@ -35,16 +35,24 @@ struct _Adapter1;
 typedef struct _Adapter1 Adapter1;
 
 /**
+ * TinyB exposes the BLE GATT API for C++, Java and other languages, using BlueZ
+ * over DBus and alternative implementations.
+ *
+ * TinyB aims to create clean, modern and easy to use Bluetooth LE API.
+ */
+namespace tinyb {
+
+/**
   * Provides access to Bluetooth adapters. Follows the BlueZ adapter API
   * available at: http://git.kernel.org/cgit/bluetooth/bluez.git/tree/doc/adapter-api.txt
   */
-class tinyb::BluetoothAdapter: public BluetoothObject
+class BluetoothAdapter: public BluetoothObject
 {
 
-friend class tinyb::BluetoothManager;
-friend class tinyb::BluetoothEventManager;
-friend class tinyb::BluetoothDevice;
-friend class tinyb::BluetoothNotificationHandler;
+friend class BluetoothManager;
+friend class BluetoothEventManager;
+friend class BluetoothDevice;
+friend class BluetoothNotificationHandler;
 
 private:
     Adapter1 *object;
@@ -325,3 +333,6 @@ public:
         const std::string &arg_address, const std::string &arg_address_type);
 
 };
+
+} /* namespace tinyb */
+

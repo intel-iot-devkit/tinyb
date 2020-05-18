@@ -36,6 +36,9 @@
 #include "BTIoctl.hpp"
 #include "HCIIoctl.hpp"
 
+/**
+ * - BT Core Spec v5.2: Vol 4, Part E Host Controller Interface (HCI)
+ */
 namespace direct_bt {
 
     enum HCIDefaults : int {

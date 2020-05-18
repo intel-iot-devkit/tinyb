@@ -1,17 +1,20 @@
-Tiny Bluetooth LE Library
-=============
+Tiny Bluetooth LE Library / Direct-BT
+=====================================
 
 Goals
 ============
 
 This project aims to create clean, modern and easy to use Bluetooth LE API.
-TinyB exposes the BLE GATT API for C++, Java and other languages, using BlueZ
-over DBus and alternative implementations.
+TinyB exposes the BLE GATT API for C++, Java and other languages.
 
 TinyB Version 2
-============
+================
 
-Starting with version 2.0.0, the specification has slightly changed and hence its implementation.
+Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
+
+TinyB consist out of two implementations
+- TinyB using BlueZ over DBus
+- Direct-BT providing direct Bluetooth programming
 
 Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
 of package *tinyb* has been moved to *tinyb.dbus*.
