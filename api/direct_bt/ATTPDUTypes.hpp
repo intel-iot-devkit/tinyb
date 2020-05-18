@@ -74,6 +74,17 @@
  *
  * - - - - - - - - - - - - - - -
  *
+ * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 7.9 PRIORITIZING DATA OVER HCI
+ *
+ * > In order for guaranteed channels to meet their guarantees,
+ * > L2CAP should prioritize traffic over the HCI transport in devices that support HCI.
+ * > Packets for Guaranteed channels should receive higher priority than packets for Best Effort channels.
+ *
+ * *As we have experience slower GATT communication w/o HCI connection,
+ * Direct-BT enforces the HCI connection.*
+ *
+ * - - - - - - - - - - - - - - -
+ *
  * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
  */
 namespace direct_bt {

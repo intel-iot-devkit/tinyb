@@ -111,14 +111,6 @@ namespace direct_bt {
     };
 
     /**
-     * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 7.9 PRIORITIZING DATA OVER HCI
-     *
-     * In order for guaranteed channels to meet their guarantees,
-     * L2CAP should prioritize traffic over the HCI transport in devices that support HCI.
-     * Packets for Guaranteed channels should receive higher priority than packets for Best Effort channels.
-     */
-
-    /**
      * ​​Assigned numbers are used in Generic Access Profile (GAP) for inquiry response,
      * EIR data type values, manufacturer-specific data, advertising data,
      * low energy UUIDs and appearance characteristics, and class of device.
