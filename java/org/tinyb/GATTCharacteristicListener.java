@@ -37,16 +37,19 @@ package org.tinyb;
  * to listen to all events of the device or the matching filtered events.
  * </p>
  * <p>
- * You can only attach one {@link GATTCharacteristicListener} instance at a time,
+ * One {@link GATTCharacteristicListener} instance can only be attached to a listener receiver once at a time,
  * i.e. you cannot attach the same instance more than once to a {@link BluetoothDevice}
  * or {@link BluetoothGattCharacteristic}.
  * <br>
- * To attach multiple instances, you need to create one instance per attachment.
+ * To attach multiple listener, one instance per attachment must be created.
  * <br>
  * This restriction is due to implementation semantics of strictly associating
  * one Java {@link GATTCharacteristicListener} instance to one C++ {@code GATTCharacteristicListener} instance.
  * The latter will be added to the native list of listeners.
  * This class's {@code nativeInstance} field links the Java instance to mentioned C++ listener.
+ * <br>
+ * Since the listener receiver maintains a unique set of listener instances without duplicates,
+ * this restriction is more esoteric.
  * </p>
  */
 public abstract class GATTCharacteristicListener {

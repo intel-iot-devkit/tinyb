@@ -48,9 +48,9 @@
  * Direct-BT shall be suitable for embedded device configurations besides others.
  *
  * Direct-BT implements the following layers
- * - *Basic HCI* via HCIComm for basic connection
- * - *BlueZ Kernel Manager Control Channel* via DBTManager for efficient adapter management
- * - *ATT PDU* AttPDUMsg via L2CAP for low level GATT communication
+ * - *BlueZ Kernel Manager Control Channel* via DBTManager for efficient adapter management and device discovery
+ * - *Basic HCI* via HCIComm for connection
+ * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
  * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
  *   -  GATTService
  *   -  GATTCharacteristic
@@ -63,14 +63,39 @@
  *
  * - - - - - - - - - - - - - - -
  *
- * Form a user perspective the following hierarchy is provided
- * - DBTAdapter has multiple or no
- *   - DBTDevice has multiple or no
- *     -  GATTService has multiple or no
- *       -  GATTService has multiple or no
- *         -  GATTCharacteristic has multiple or no
- *           -  GATTDescriptor
+ * From a user perspective the following hierarchy is provided
+ * - DBTAdapter has no or more
+ *   - DBTDevice has no or more
+ *     - GATTService has no or more
+ *       - GATTCharacteristic has no or more
+ *         - GATTDescriptor
  *
+ * - - - - - - - - - - - - - - -
+ *
+ * Object lifecycle with all instances having a back-references to their owner
+ * - DBTManager singleton instance for all
+ * - DBTAdapter ownership by user
+ *   - DBTDevice ownership by DBTAdapter
+ *     - GATTHandler optional ownership by DBTDevice
+ *
+ * - GATTHandler with DBTDevice reference
+ *   - GATTService ownership by GATTHandler
+ *     - GATTCharacteristic ownership by GATTService
+ *       - GATTDescriptor ownership by GATTCharacteristic
+ *
+ * - - - - - - - - - - - - - - -
+ *
+ * Main event listener can be attached to these objects
+ * which maintain a set of unique listener instances without duplicates.
+ *
+ * - DBTAdapter
+ *   - AdapterStatusListener
+ *
+ * - GATTHandler
+ *   - GATTCharacteristicListener
+ *
+ * Other API attachment method exists for GATTCharacteristicListener,
+ * however, they only exists for convenience and end up to be attached to GATTHandler.
  *
  * - - - - - - - - - - - - - - -
  *

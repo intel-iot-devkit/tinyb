@@ -304,6 +304,22 @@ namespace direct_bt {
     inline bool operator!=(const GATTCharacteristic& lhs, const GATTCharacteristic& rhs)
     { return !(lhs == rhs); }
 
+    /**
+     * {@link GATTCharacteristic} event listener for notification and indication events.
+     * <p>
+     * A listener instance may be attached to a {@link BluetoothGattCharacteristic} via
+     * {@link GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener>)} to listen to events,
+     * see method's API doc for {@link GATTCharacteristic} filtering.
+     * </p>
+     * <p>
+     * A listener instance may be attached to a {@link GATTHandler} via
+     * {@link GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener>)}
+     * to listen to all events of the device or the matching filtered events.
+     * </p>
+     * <p>
+     * The listener receiver maintains a unique set of listener instances without duplicates.
+     * </p>
+     */
     class GATTCharacteristicListener {
         public:
             /**

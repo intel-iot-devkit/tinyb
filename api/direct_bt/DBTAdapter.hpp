@@ -138,6 +138,17 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    /**
+     * {@link DBTAdapter} status listener for {@link DBTDevice} discovery events: Added, updated and removed;
+     * as well as for certain {@link DBTAdapter} events.
+     * <p>
+     * A listener instance may be attached to a {@link DBTAdapter} via
+     * {@link DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener>)}.
+     * </p>
+     * <p>
+     * The listener receiver maintains a unique set of listener instances without duplicates.
+     * </p>
+     */
     class AdapterStatusListener {
         public:
             /**
