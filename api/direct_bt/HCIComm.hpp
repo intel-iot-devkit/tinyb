@@ -37,6 +37,10 @@
 #include "HCIIoctl.hpp"
 
 /**
+ * - - - - - - - - - - - - - - -
+ *
+ * Module HCIComm:
+ *
  * - BT Core Spec v5.2: Vol 4, Part E Host Controller Interface (HCI)
  */
 namespace direct_bt {

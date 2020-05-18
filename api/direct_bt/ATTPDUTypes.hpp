@@ -110,6 +110,8 @@
  *
  * - - - - - - - - - - - - - - -
  *
+ * Module ATTPDUTypes:
+ *
  * - BT Core Spec v5.2: Vol 3, Part F Attribute Protocol (ATT)
  */
 namespace direct_bt {

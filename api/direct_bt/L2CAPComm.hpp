@@ -39,6 +39,10 @@
 #include "BTTypes.hpp"
 
 /**
+ * - - - - - - - - - - - - - - -
+ *
+ * Module L2CAPComm:
+ *
  * - BT Core Spec v5.2: Vol 3, Part A: BT Logical Link Control and Adaption Protocol (L2CAP)
  */
 namespace direct_bt {
