@@ -27,7 +27,9 @@ Direct-BT
 *Direct-BT* provides direct Bluetooth programming without intermediate layers 
 targeting high-performance reliable Bluetooth support.
 
-*TinyB* is exposed via the following native libraries
+By having least system and userspace dependencies and no communication overhead, Direct-BT shall be suitable for embedded device configurations besides others.
+
+*Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
