@@ -12,9 +12,9 @@ TinyB Version 2
 
 Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
 
-TinyB consist out of two implementations
-- TinyB using BlueZ over DBus
-- Direct-BT providing direct Bluetooth programming
+The TinyB project consist out of two implementations
+- *TinyB* using BlueZ over DBus, exposed as *libtinyb.so* and *libjavatinyb.so*
+- *Direct-BT* providing direct Bluetooth programming, exposed as *libdirect_bt.so* and *libjavadirect_bt.so*
 
 Pre version 2.0.0 D-Bus implementation details of the Java[tm] classes
 of package *tinyb* has been moved to *tinyb.dbus*.
@@ -25,8 +25,8 @@ and following [BlueZ API](http://git.kernel.org/cgit/bluetooth/bluez.git/tree/do
 were created in package *org.tinyb*.
 
 *org.tinyb.BluetoothFactory* provides a factory to instantiate the initial root
-*org.tinyb.BluetoothManager*, either using the original D-Bus implementation 
-or an alternative implementation.
+*org.tinyb.BluetoothManager*, either using *Tiny-B*, the original D-Bus implementation,
+or *Direct-BT*, the direct implementation.
 
 C++ namespace and implementation kept unchanged.
 
