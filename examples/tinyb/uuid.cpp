@@ -11,7 +11,9 @@ using namespace tinyb;
 
 int main(int argc, char **argv) {
 
-
+    if( argc <= 2 ) {
+        exit(1);
+    }
     std::string uuid_string(argv[1]);
 
     std::cout << uuid_string << std::endl;

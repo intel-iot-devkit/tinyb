@@ -29,8 +29,11 @@ using namespace tinyb;
 
 int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
     try {
         BluetoothManager *manager = BluetoothManager::get_bluetooth_manager();
+        (void)manager;
     } catch(const std::runtime_error& e) {
         std::cout << "Expected error: " << e.what() << std::endl;
         return 1;

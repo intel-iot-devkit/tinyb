@@ -82,6 +82,8 @@ static void wait_ctrl_c()
 
 void data_callback(BluetoothGattCharacteristic &c, std::vector<unsigned char> &data, void *userdata)
 {
+    (void)c;
+    (void)userdata;
     // unsigned char *data_c;
     unsigned int size = data.size();
     if (size == 2) {
@@ -97,6 +99,8 @@ void data_callback(BluetoothGattCharacteristic &c, std::vector<unsigned char> &d
  */
 int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
     BluetoothManager *manager = nullptr;
     try {
         manager = BluetoothManager::get_bluetooth_manager();
@@ -115,7 +119,7 @@ int main(int argc, char **argv)
         return 1;
     }
     std::cout << "Discovering BLE devices";
-    int num_devices = 0;
+    size_t num_devices = 0;
     bool no_new_devices = false;
     std::vector<std::unique_ptr<BluetoothDevice>> list_devices;
     while (ess_device == NULL && !no_new_devices) {

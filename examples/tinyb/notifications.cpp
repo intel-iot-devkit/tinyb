@@ -46,6 +46,8 @@ static float celsius_temp(uint16_t raw_temp)
 
 void data_callback(BluetoothGattCharacteristic &c, std::vector<unsigned char> &data, void *userdata)
 {
+    (void)c;
+    (void)userdata;
       /* Read temperature data and display it */
      unsigned char *data_c;
      unsigned int size = data.size();
@@ -105,8 +107,8 @@ int main(int argc, char **argv)
         std::cout << "Device not found" << std::endl;
         return 1;
     }
-    sensor_tag->enable_connected_notifications([] (BluetoothDevice &d, bool connected, void *usedata)
-        { if (connected) std::cout << "Connected " << d.get_name() << std::endl;  }, NULL);
+    sensor_tag->enable_connected_notifications([] (BluetoothDevice &d, bool connected, void *userdata)
+        { (void)userdata; if (connected) std::cout << "Connected " << d.get_name() << std::endl;  }, NULL);
 
     if (sensor_tag != nullptr) {
         /* Connect to the device and get the list of services exposed by it */
