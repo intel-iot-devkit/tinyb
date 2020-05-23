@@ -504,6 +504,42 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     }
 }
 
+bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+    MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, 0x01);
+    DBG_PRINT("DBTManager::addDeviceToWhitelist: %s", req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::addDeviceToWhitelist res: NULL");
+        return false;
+    }
+    DBG_PRINT("DBTManager::addDeviceToWhitelist res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+    MgmtRemoveDeviceFromWhitelistCmd req(dev_id, address, address_type);
+    DBG_PRINT("DBTManager::removeDeviceFromWhitelist: %s", req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::removeDeviceFromWhitelist res: NULL");
+        return false;
+    }
+    DBG_PRINT("DBTManager::removeDeviceFromWhitelist res: %s", res->toString().c_str());
+    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            return true;
+        }
+    }
+    return false;
+}
+
 uint16_t DBTManager::create_connection(const int dev_id,
                         const EUI48 &peer_bdaddr,
                         const BDAddressType peer_mac_type,
@@ -709,13 +745,13 @@ bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceAdded: %s", e->toString().c_str());
+    DBG_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceRemoved: %s", e->toString().c_str());
+    DBG_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
     (void)event;
     return true;

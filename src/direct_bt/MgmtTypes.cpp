@@ -143,8 +143,8 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
     X(LOAD_IRKS) \
     X(GET_CONN_INFO) \
     X(GET_CLOCK_INFO) \
-    X(ADD_DEVICE) \
-    X(REMOVE_DEVICE) \
+    X(ADD_DEVICE_WHITELIST) \
+    X(REMOVE_DEVICE_WHITELIST) \
     X(LOAD_CONN_PARAM) \
     X(READ_UNCONF_INDEX_LIST) \
     X(READ_CONFIG_INFO) \

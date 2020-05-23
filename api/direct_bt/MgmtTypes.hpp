@@ -146,8 +146,8 @@ namespace direct_bt {
         LOAD_IRKS               = 0x0030,
         GET_CONN_INFO           = 0x0031,
         GET_CLOCK_INFO          = 0x0032,
-        ADD_DEVICE              = 0x0033,
-        REMOVE_DEVICE           = 0x0034,
+        ADD_DEVICE_WHITELIST    = 0x0033,
+        REMOVE_DEVICE_WHITELIST = 0x0034,
         LOAD_CONN_PARAM         = 0x0035,
         READ_UNCONF_INDEX_LIST  = 0x0036,
         READ_CONFIG_INFO        = 0x0037,
@@ -306,6 +306,36 @@ namespace direct_bt {
         public:
             MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::PIN_CODE_NEG_REPLY, dev_id, 6+1)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+            }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     * uint8_t action
+     */
+    class MgmtAddDeviceToWhitelistCmd : public MgmtCommand
+    {
+        public:
+            MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint8_t action)
+            : MgmtCommand(MgmtOpcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, action);
+            }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtRemoveDeviceFromWhitelistCmd : public MgmtCommand
+    {
+        public:
+            MgmtRemoveDeviceFromWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            : MgmtCommand(MgmtOpcode::REMOVE_DEVICE_WHITELIST, dev_id, 6+1)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);

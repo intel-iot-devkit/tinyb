@@ -264,6 +264,12 @@ namespace direct_bt {
              */
             bool closeHCI();
 
+            /** Add the given device to the adapter's autoconnect whitelist. */
+            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type);
+
+            /** Remove the given device from the adapter's autoconnect whitelist. */
+            bool removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type);
+
             // device discovery aka device scanning
 
             /**
@@ -317,7 +323,7 @@ namespace direct_bt {
              * Also clears previous discovered devices via removeDiscoveredDevices().
              * </p>
              */
-            bool startDiscovery(HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+            bool startDiscovery(bool keepAlive=true, HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**

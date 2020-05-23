@@ -40,6 +40,10 @@ using namespace direct_bt;
 
 static int64_t timestamp_t0;
 
+static bool USE_WHITELIST = false;
+
+static bool BLOCK_DISCOVERY = true;
+
 static EUI48 waitForDevice = EUI48_ANY_DEVICE;
 
 static void deviceConnectTask(std::shared_ptr<DBTDevice> device);
@@ -229,21 +233,24 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
     }
 };
 
-// #define BLOCK_DISCOVERY 1
-
 static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Device Connector: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
-    bool res = device->connectHCIDefault();
-    fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
-#ifndef BLOCK_DISCOVERY
-    device->getAdapter().startDiscovery();
-#else
-    if( !res && 0 == getDeviceTaskCount() ) {
-        fprintf(stderr, "****** Device Connector: startDiscovery()\n");
-        device->getAdapter().startDiscovery();
+    bool res = false;
+    if( !USE_WHITELIST ) {
+        res = device->connectHCIDefault();
     }
-#endif
+    fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
+    if( !USE_WHITELIST ) {
+        if( BLOCK_DISCOVERY ) {
+            if( !res && 0 == getDeviceTaskCount() ) {
+                fprintf(stderr, "****** Device Connector: startDiscovery()\n");
+                device->getAdapter().startDiscovery(true);
+            }
+        } else {
+            device->getAdapter().startDiscovery(false);
+        }
+    }
 }
 
 static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
@@ -300,22 +307,22 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
         // FIXME sleep 1s for potential callbacks ..
         sleep(1);
     }
-#ifdef BLOCK_DISCOVERY
-    device->disconnect();
-#else
-    device->getAdapter().stopDiscovery();
-    device->disconnect();
-    device->getAdapter().startDiscovery();
-#endif
+    if( BLOCK_DISCOVERY ) {
+        device->disconnect();
+    } else {
+        device->getAdapter().stopDiscovery();
+        device->disconnect();
+        device->getAdapter().startDiscovery(false);
+    }
 
 out:
     addDevicesProcessed(device->getAddress());
-#ifdef BLOCK_DISCOVERY
-    if( 1 >= getDeviceTaskCount() ) {
-        fprintf(stderr, "****** Device Process: startDiscovery()\n");
-        device->getAdapter().startDiscovery();
+    if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
+        if( 1 >= getDeviceTaskCount() ) {
+            fprintf(stderr, "****** Device Process: startDiscovery()\n");
+            device->getAdapter().startDiscovery(true);
+        }
     }
-#endif
     removeDeviceTask(device);
     fprintf(stderr, "****** Device Process: End\n");
 }
@@ -326,17 +333,29 @@ int main(int argc, char *argv[])
     int dev_id = 0; // default
     bool waitForEnter=false;
     bool done = false;
+    std::vector<std::shared_ptr<EUI48>> whitelist;
 
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
+        } else if( !strcmp("-keepDiscovery", argv[i]) ) {
+            BLOCK_DISCOVERY = false;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevice = EUI48(macstr);
+        } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
+            std::string macstr = std::string(argv[++i]);
+            std::shared_ptr<EUI48> wlmac( new EUI48(macstr) );
+            fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
+            whitelist.push_back( wlmac );
+            BLOCK_DISCOVERY = true;
+            USE_WHITELIST = true;
         }
     }
+    fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
+    fprintf(stderr, "BLOCK_DISCOVERY %d\n", BLOCK_DISCOVERY);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
@@ -361,23 +380,37 @@ int main(int argc, char *argv[])
 
     adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
-    std::shared_ptr<HCIComm> hci = adapter.openHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-        exit(1);
+    if( USE_WHITELIST ) {
+        for (auto it = whitelist.begin(); it != whitelist.end(); ++it) {
+            std::shared_ptr<EUI48> wlmac = *it;
+            bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC);
+            fprintf(stderr, "Added to whitelist: res %d, address %s\n", res, wlmac->toString().c_str());
+        }
+    } else {
+        std::shared_ptr<HCIComm> hci = adapter.openHCI();
+        if( nullptr == hci || !hci->isOpen() ) {
+            fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
+            exit(1);
+        }
     }
 
-    if( !adapter.startDiscovery() ) {
-        perror("Adapter start discovery failed");
-        goto out;
-    }
+    // if( !USE_WHITELIST ) {
+        if( !adapter.startDiscovery(BLOCK_DISCOVERY) ) {
+            perror("Adapter start discovery failed");
+            goto out;
+        }
+    // }
 
     do {
         if( waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) ) {
             fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
             done = true;
+        } else {
+            if( !BLOCK_DISCOVERY && 0 >= getDeviceTaskCount() ) {
+                adapter.startDiscovery(false);
+            }
         }
-        sleep(3);
+        sleep(5);
     } while( !done );
 
 out:

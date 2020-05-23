@@ -403,11 +403,11 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
     }
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj)
+jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        return adapter->startDiscovery();
+        return adapter->startDiscovery(keepAlive);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

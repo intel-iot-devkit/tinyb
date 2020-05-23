@@ -218,6 +218,14 @@ bool DBTAdapter::closeHCI()
     return true;
 }
 
+bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type) {
+    return mgmt.addDeviceToWhitelist(dev_id, address, address_type);
+}
+
+bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
+    return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
+}
+
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
@@ -273,15 +281,16 @@ int DBTAdapter::removeAllStatusListener() {
     return count;
 }
 
-bool DBTAdapter::startDiscovery(HCIAddressType own_mac_type,
+bool DBTAdapter::startDiscovery(bool keepAlive, HCIAddressType own_mac_type,
                                 uint16_t interval, uint16_t window)
 {
     (void)own_mac_type;
     (void)interval;
     (void)window;
 
+    DBG_PRINT("DBTAdapter::startDiscovery: keepAlive %d ...", keepAlive);
     removeDiscoveredDevices();
-    keepDiscoveringAlive = true;
+    keepDiscoveringAlive = keepAlive;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
 }

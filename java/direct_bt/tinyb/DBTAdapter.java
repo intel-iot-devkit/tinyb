@@ -240,12 +240,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized boolean startDiscovery() throws BluetoothException {
+        return startDiscovery(true);
+    }
+    public synchronized boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
         removeDevices();
-        final boolean res = startDiscoveryImpl();
+        final boolean res = startDiscoveryImpl(keepAlive);
         isDiscovering = res;
         return res;
     }
-    private native boolean startDiscoveryImpl() throws BluetoothException;
+    private native boolean startDiscoveryImpl(boolean keepAlive) throws BluetoothException;
 
     @Override
     public synchronized boolean stopDiscovery() throws BluetoothException {

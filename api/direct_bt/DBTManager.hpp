@@ -233,6 +233,11 @@ namespace direct_bt {
             /** Stop discovery on given adapter dev_id. */
             bool stopDiscovery(const int dev_id, const ScanType type);
 
+            /** Add the given device to the adapter's autoconnect whitelist. */
+            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+            /** Remove the given device from the adapter's autoconnect whitelist. */
+            bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+
             uint16_t create_connection(const int dev_id,
                                        const EUI48 &peer_bdaddr,
                                        const BDAddressType peer_mac_type,
