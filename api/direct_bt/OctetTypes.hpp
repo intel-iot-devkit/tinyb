@@ -40,6 +40,13 @@
 #include "UUID.hpp"
 #include "BTAddress.hpp"
 
+// #define TRACE_MEM 1
+#ifdef TRACE_MEM
+    #define TRACE_PRINT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+#else
+    #define TRACE_PRINT(...)
+#endif
+
 namespace direct_bt {
 
     /**
@@ -56,7 +63,10 @@ namespace direct_bt {
 
         protected:
             inline uint8_t * data() { return _data; }
-            inline void setData(uint8_t *d, int s) { _data = d; _size = s; }
+            inline void setData(uint8_t *d, int s) {
+                TRACE_PRINT("POctets setData: %p -> %p", _data, d);
+                _data = d; _size = s;
+            }
             inline void setSize(int s) { _size = s; }
 
         public:
@@ -259,6 +269,17 @@ namespace direct_bt {
         private:
             int capacity;
 
+            void release() {
+                uint8_t * ptr = get_wptr();
+                if( nullptr == ptr ) {
+                    throw InternalError("POctets::release: Null memory", E_FILE_LINE);
+                }
+                TRACE_PRINT("POctets release: %p", ptr);
+                free(ptr);
+                setData(nullptr, 0);
+                capacity=0;
+            }
+
         public:
             /** Takes ownership (malloc and copy, free) ..*/
             POctets(const uint8_t *_source, const int _size)
@@ -266,9 +287,10 @@ namespace direct_bt {
               capacity( _size )
             {
                 std::memcpy(get_wptr(), _source, _size);
+                TRACE_PRINT("POctets ctor0: %p", get_wptr());
             }
 
-            /** Blank zeroed buffer (calloc, free) */
+            /** New buffer (malloc, free) */
             POctets(const int _capacity, const int _size)
             : TOctets( static_cast<uint8_t*>( std::malloc(_capacity) ), _size),
               capacity( _capacity )
@@ -276,44 +298,33 @@ namespace direct_bt {
                 if( capacity < getSize() ) {
                     throw IllegalArgumentException("capacity "+std::to_string(capacity)+" < size "+std::to_string(getSize()), E_FILE_LINE);
                 }
+                TRACE_PRINT("POctets ctor1: %p", get_wptr());
             }
 
-            /** Blank zeroed buffer (calloc, free) */
+            /** New buffer (malloc, free) */
             POctets(const int size)
             : POctets(size, size)
-            { }
-
-            /** Makes a persistent POctets by taking ownership (malloc and copy, free) ..*/
-            POctets(const TROOctets & _source)
-            : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
-              capacity( _source.getSize() )
             {
-                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets ctor2: %p", get_wptr());
             }
-            /** Makes a persistent POctets by taking ownership (malloc and copy, free) ..*/
-            POctets(const TOctetSlice & _source)
-            : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
-              capacity( _source.getSize() )
-            {
-                std::memcpy(get_wptr(), _source.getParent().get_ptr() + _source.getOffset(), _source.getSize());
-            }
-            ~POctets() { release(); }
 
             POctets(const POctets &_source) noexcept
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
               capacity( _source.getCapacity() )
             {
                 std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy0: %p", get_wptr());
             }
 
-            POctets& operator=(const TROOctets &_source) {
-                if( this == &_source ) {
-                    return *this;
-                }
-                release();
-                setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
-                capacity = _source.getSize();
-                return *this;
+            POctets(POctets &&o) noexcept
+            : TOctets( o.get_wptr(), o.getSize()),
+              capacity( o.getCapacity() )
+            {
+                // moved origin data references
+                // purge origin
+                o.setData(nullptr, 0);
+                o.capacity = 0;
+                TRACE_PRINT("POctets ctor-move0: %p", get_wptr());
             }
 
             POctets& operator=(const POctets &_source) {
@@ -323,16 +334,61 @@ namespace direct_bt {
                 release();
                 setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
                 capacity = _source.getCapacity();
+                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets assign0: %p", get_wptr());
                 return *this;
             }
 
-            POctets(POctets &&o) noexcept = default;
-            POctets& operator=(POctets &&o) noexcept = default;
+            POctets& operator=(POctets &&o) noexcept {
+                // move origin data references
+                setData(o.get_wptr(), o.getSize());
+                capacity = o.capacity;
+                // purge origin
+                o.setData(nullptr, 0);
+                o.capacity = 0;
+                TRACE_PRINT("POctets assign-move0: %p", get_wptr());
+                return *this;
+            }
 
-            void release() {
-                free(get_wptr());
-                setData(nullptr, 0);
-                capacity=0;
+            ~POctets() { release(); }
+
+            /** Makes a persistent POctets by copying the data from TROOctets. */
+            POctets(const TROOctets & _source)
+            : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
+              capacity( _source.getSize() )
+            {
+                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy1: %p", get_wptr());
+            }
+
+            POctets& operator=(const TROOctets &_source) {
+                if( static_cast<TROOctets *>(this) == &_source ) {
+                    return *this;
+                }
+                release();
+                setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
+                capacity = _source.getSize();
+                std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
+                TRACE_PRINT("POctets assign1: %p", get_wptr());
+                return *this;
+            }
+
+            /** Makes a persistent POctets by copying the data from TOctetSlice. */
+            POctets(const TOctetSlice & _source)
+            : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
+              capacity( _source.getSize() )
+            {
+                std::memcpy(get_wptr(), _source.getParent().get_ptr() + _source.getOffset(), _source.getSize());
+                TRACE_PRINT("POctets ctor-cpy2: %p", get_wptr());
+            }
+
+            POctets& operator=(const TOctetSlice &_source) {
+                release();
+                setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
+                capacity = _source.getSize();
+                std::memcpy(get_wptr(), _source.get_ptr(0), _source.getSize());
+                TRACE_PRINT("POctets assign2: %p", get_wptr());
+                return *this;
             }
 
             POctets & resize(const int newSize, const int newCapacity) {
@@ -372,6 +428,7 @@ namespace direct_bt {
                 if( getSize() > 0 ) {
                     memcpy(data2, get_ptr(), getSize());
                 }
+                TRACE_PRINT("POctets recapacity: %p -> %p", get_wptr(), data2);
                 free(get_wptr());
                 setData(data2, getSize());
                 capacity = newCapacity;
