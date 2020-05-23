@@ -396,8 +396,8 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_openImpl(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        std::shared_ptr<direct_bt::HCISession> session = adapter->open();
-        if( nullptr == session ) {
+        std::shared_ptr<direct_bt::HCIComm> hciSession = adapter->openHCI();
+        if( nullptr == hciSession ) {
             throw BluetoothException("Couldn't open adapter "+adapter->toString(), E_FILE_LINE);
         }
         return JNI_TRUE;

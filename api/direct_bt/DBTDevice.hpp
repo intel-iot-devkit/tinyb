@@ -74,6 +74,9 @@ namespace direct_bt {
 
             EIRDataType update(EInfoReport const & data);
 
+            /** Returns the shared pointer of this instance managed by the adapter. */
+            std::shared_ptr<DBTDevice> getSharedInstance() const;
+
             void releaseSharedInstance() const;
 
         public:
@@ -94,11 +97,8 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTDevice");
             }
 
-            /** Returns the shared pointer of this instance managed by the adapter. */
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
-
             /** Returns the managing adapter */
-            DBTAdapter const & getAdapter() const { return adapter; }
+            DBTAdapter & getAdapter() const { return adapter; }
 
             uint64_t getCreationTimestamp() const { return ts_creation; }
             uint64_t getUpdateTimestamp() const { return ts_update; }

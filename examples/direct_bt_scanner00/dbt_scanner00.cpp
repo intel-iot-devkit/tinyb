@@ -185,9 +185,13 @@ int main(int argc, char *argv[])
 
     const int64_t t0 = getCurrentMilliseconds();
 
-    std::shared_ptr<HCISession> session = adapter.open();
+    std::shared_ptr<HCIComm> hci = adapter.openHCI();
+    if( nullptr == hci || !hci->isOpen() ) {
+        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
+        exit(1);
+    }
 
-    while( ok && ( forever || !foundDevice ) && nullptr != session ) {
+    while( ok && ( forever || !foundDevice ) ) {
         ok = adapter.startDiscovery();
         if( !ok) {
             perror("Adapter start discovery failed");
@@ -261,9 +265,7 @@ int main(int argc, char *argv[])
     }
 
 out:
-    if( nullptr != session ) {
-        session->close();
-    }
+    adapter.closeHCI();
     return 0;
 }
 

@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
@@ -121,7 +121,17 @@ int HCIComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
         int n;
 
         p.fd = _dd; p.events = POLLIN;
+#if 0
+        sigset_t sigmask;
+        sigemptyset(&sigmask);
+        // sigaddset(&sigmask, SIGINT);
+        struct timespec timeout_ts;
+        timeout_ts.tv_sec=0;
+        timeout_ts.tv_nsec=(long)timeoutMS*1000000L;
+        while ((n = ppoll(&p, 1, &timeout_ts, &sigmask)) < 0) {
+#else
         while ((n = poll(&p, 1, timeoutMS)) < 0) {
+#endif
             if (errno == EAGAIN || errno == EINTR ) {
                 // cont temp unavail or interruption
                 continue;
@@ -270,8 +280,18 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
 			struct pollfd p;
 			int n;
 
-			p.fd = _dd; p.events = POLLIN;
-			while ((n = poll(&p, 1, _timeoutMS)) < 0) {
+            p.fd = _dd; p.events = POLLIN;
+#if 0
+			sigset_t sigmask;
+			sigemptyset(&sigmask);
+			sigaddset(&sigmask, SIGINT);
+			struct timespec timeout_ts;
+			timeout_ts.tv_sec=0;
+			timeout_ts.tv_nsec=(long)_timeoutMS*1000000L;
+			while ((n = ppoll(&p, 1, &timeout_ts, &sigmask)) < 0) {
+#else
+            while ((n = poll(&p, 1, _timeoutMS)) < 0) {
+#endif
 			    ERR_PRINT("hci_send_req: poll");
 				if (errno == EAGAIN || errno == EINTR) {
 					continue;

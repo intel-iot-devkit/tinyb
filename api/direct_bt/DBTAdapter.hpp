@@ -47,98 +47,6 @@ namespace direct_bt {
     class DBTAdapter; // forward
 
     /**
-     * A HCI session, using an underlying {@link HCIComm} instance,
-     * tracking all open connections.
-     * <p>
-     * At destruction, all remaining connections will be closed.
-     * </p>
-     */
-    class HCISession
-    {
-        friend class DBTAdapter; // top manager: adapter open/close
-        friend class DBTDevice;  // local device manager: device connect/disconnect
-
-        private:
-            static std::atomic_int name_counter;
-            DBTAdapter * adapter;
-            HCIComm hciComm;
-            std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
-            std::recursive_mutex mtx_connectedDevices;
-
-            /** Opens a new HCI session on the given BT dev_id and HCI channel. */
-            HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS=HCI_TO_SEND_REQ_POLL_MS);
-
-            /**
-             * Add the new {@link DBTDevice} to the list of connected devices.
-             * <p>
-             * Throws an InternalError if the given device was already added to the list of connected devices.
-             * Comparison is done by DBTDevice equality of address.
-             * This ensures runtime consistency regarding overall DBTDevice reference tracking.
-             * </p>
-             */
-            void connected(const std::shared_ptr<DBTDevice> & device);
-
-            /**
-             * Remove the {@link DBTDevice} from the list of connected devices.
-             */
-            void disconnected(const DBTDevice & device);
-
-            /**
-             * Issues {@link #disconnectAllDevices()} and closes the underlying HCI session.
-             * <p>
-             * This shutdown hook is solely intended for adapter's destructor.
-             * </p>
-             */
-            void shutdown();
-
-        public:
-            const int name;
-
-            /**
-             * Releases this instance after {@link #close()}.
-             */
-            ~HCISession();
-
-            /** Return connected {@link DBTDevice}s. */
-            std::vector<std::shared_ptr<DBTDevice>> getConnectedDevices() { return connectedDevices; }
-
-            /** Disconnect all connected devices. Returns number of removed discovered devices. */
-            int disconnectAllDevices(const uint8_t reason=0);
-
-            /** Returns connected DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
-
-            /**
-             * Closes this instance by {@link #disconnectAllLEDevices()}
-             * and closing the underlying HCI session.
-             */
-            bool close();
-
-            bool isOpen() const { return hciComm.isOpen(); }
-
-            /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
-            int dd() const { return hciComm.dd(); }
-            /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
-            std::recursive_mutex & mutex() { return hciComm.mutex(); }
-
-            std::string toString() const;
-    };
-
-    inline bool operator<(const HCISession& lhs, const HCISession& rhs)
-    { return lhs.name < rhs.name; }
-
-    inline bool operator==(const HCISession& lhs, const HCISession& rhs)
-    { return lhs.name == rhs.name; }
-
-    inline bool operator!=(const HCISession& lhs, const HCISession& rhs)
-    { return !(lhs == rhs); }
-
-
-    // *************************************************
-    // *************************************************
-    // *************************************************
-
-    /**
      * {@link DBTAdapter} status listener for {@link DBTDevice} discovery events: Added, updated and removed;
      * as well as for certain {@link DBTAdapter} events.
      * <p>
@@ -207,24 +115,37 @@ namespace direct_bt {
             std::shared_ptr<AdapterInfo> adapterInfo;
             NameAndShortName localName;
             ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
-            volatile bool keepDiscoveringAlive = false;
 
-            std::shared_ptr<HCISession> session;
+            std::shared_ptr<HCIComm> hciComm;
+            std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
+            std::recursive_mutex mtx_connectedDevices;
+
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
+            volatile bool keepDiscoveringAlive = false;
 
             bool validateDevInfo();
-
-            friend bool HCISession::close();
-            void sessionClosing();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
+            friend void DBTDevice::disconnect(const uint8_t reason);
+            friend uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
+                    uint16_t interval, uint16_t window,
+                    uint16_t min_interval, uint16_t max_interval,
+                    uint16_t latency, uint16_t supervision_timeout,
+                    uint16_t min_ce_length, uint16_t max_ce_length,
+                    uint8_t initiator_filter );
+            friend uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+
+            void addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
+            void removeConnectedDevice(const DBTDevice & device);
+            int disconnectAllDevices(const uint8_t reason=0);
+            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
 
@@ -328,15 +249,20 @@ namespace direct_bt {
             DBTManager& getManager() const { return mgmt; }
 
             /**
-             * Returns a reference to the newly opened HCI session
+             * Returns a reference to the newly opened HCIComm instance
              * if successful, otherwise nullptr is returned.
              */
-            std::shared_ptr<HCISession> open();
+            std::shared_ptr<HCIComm> openHCI();
 
             /**
-             * Returns the {@link #open()} session or {@code nullptr} if closed.
+             * Returns the {@link #openHCI()} session or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCISession> getOpenSession() const { return session; }
+            std::shared_ptr<HCIComm> getOpenHCIComm() const { return hciComm; }
+
+            /**
+             * Closes the HCIComm instance
+             */
+            bool closeHCI();
 
             // device discovery aka device scanning
 

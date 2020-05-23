@@ -54,6 +54,11 @@ set_target_properties(list_mfg
     PROPERTIES
     CXX_STANDARD 11)
 
+add_executable (dbt_scanner10 direct_bt_scanner10/dbt_scanner10.cpp)
+set_target_properties(list_mfg
+    PROPERTIES
+    CXX_STANDARD 11)
+
 target_link_libraries (hellotinyb tinyb)
 target_link_libraries (checkinit tinyb)
 target_link_libraries (asynctinyb tinyb)
@@ -63,6 +68,7 @@ target_link_libraries (uuid tinyb)
 target_link_libraries (list_mfg tinyb)
 target_link_libraries (dbt_scanner00 direct_bt)
 target_link_libraries (dbt_scanner01 direct_bt)
+target_link_libraries (dbt_scanner10 direct_bt)
 
-install(TARGETS dbt_scanner00 dbt_scanner01 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS dbt_scanner00 dbt_scanner01 dbt_scanner10 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

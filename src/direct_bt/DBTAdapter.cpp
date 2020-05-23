@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BasicAlgos.hpp"
@@ -51,53 +51,42 @@ extern "C" {
 
 using namespace direct_bt;
 
-// *************************************************
-// *************************************************
-// *************************************************
-
-std::atomic_int HCISession::name_counter(0);
-
-HCISession::HCISession(DBTAdapter &a, const uint16_t channel, const int timeoutMS)
-: adapter(&a), hciComm(a.dev_id, channel, timeoutMS),
-  name(name_counter.fetch_add(1))
-{}
-
-void HCISession::connected(const std::shared_ptr<DBTDevice> & device) {
+void DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
         if ( *device == **it ) {
-            throw InternalError("Device already connected: "+device->toString(), E_FILE_LINE);
+            ERR_PRINT("DBTAdapter::addConnectedDevice: Device already connected: %s", device->toString().c_str());
+            return;
         }
     }
     connectedDevices.push_back(device);
-    DBG_PRINT("HCISession::connected: Device connected: %s", device->toString().c_str());
+    DBG_PRINT("DBTAdapter::addConnectedDevice: Device connected: %s", device->toString().c_str());
 }
 
-void HCISession::disconnected(const DBTDevice & device) {
+void DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( &device == (*it).get() ) { // compare actual device address
             it = connectedDevices.erase(it);
-            DBG_PRINT("HCISession::disconnected: Device disconnected: %s", device.toString().c_str());
+            DBG_PRINT("DBTAdapter::removeConnectedDevice: Device disconnected: %s", device.toString().c_str());
             return;
         } else {
             ++it;
         }
     }
-    DBG_PRINT("HCISession::disconnected: Device not connected: %s", device.toString().c_str());
+    DBG_PRINT("DBTAdapter::removeConnectedDevice: Device not connected: %s", device.toString().c_str());
 }
 
-int HCISession::disconnectAllDevices(const uint8_t reason) {
-    int count = 0;
+int DBTAdapter::disconnectAllDevices(const uint8_t reason) {
     std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
+    const int count = devices.size();
     for (auto it = devices.begin(); it != devices.end(); ++it) {
-        (*it)->disconnect(reason); // will erase device from list via disconnected above
-        ++count;
+        (*it)->disconnect(reason); // will erase device from list via removeConnectedDevice(..) above
     }
     return count;
 }
 
-std::shared_ptr<DBTDevice> HCISession::findConnectedDevice (EUI48 const & mac) const {
+std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac) const {
     std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
     for (auto it = devices.begin(); it != devices.end(); ) {
         if ( mac == (*it)->getAddress() ) {
@@ -109,52 +98,6 @@ std::shared_ptr<DBTDevice> HCISession::findConnectedDevice (EUI48 const & mac) c
     return nullptr;
 }
 
-bool HCISession::close() 
-{
-    DBG_PRINT("HCISession::close: ...");
-    if( nullptr == adapter ) {
-        throw InternalError("HCISession::close(): Adapter reference is null: "+toString(), E_FILE_LINE);
-    }
-    if( !hciComm.isOpen() ) {
-        DBG_PRINT("HCISession::close: Not open");
-        return false;
-    }
-    disconnectAllDevices();
-    adapter->sessionClosing();
-    hciComm.close();
-    DBG_PRINT("HCISession::close: XXX");
-    return true;
-}
-
-void HCISession::shutdown() {
-    DBG_PRINT("HCISession::shutdown(has-adapter %d): ...", nullptr!=adapter);
-
-    // close()
-    if( !hciComm.isOpen() ) {
-        DBG_PRINT("HCISession::shutdown: Not open");
-    } else {
-        disconnectAllDevices();
-        hciComm.close();
-    }
-
-    DBG_PRINT("HCISession::shutdown(has-adapter %d): XXX", nullptr!=adapter);
-    adapter=nullptr;
-}
-
-HCISession::~HCISession() {
-    DBG_PRINT("HCISession::dtor ...");
-    if( nullptr != adapter ) {
-        close();
-        adapter = nullptr;
-    }
-    DBG_PRINT("HCISession::dtor XXX");
-}
-
-std::string HCISession::toString() const {
-    return "HCISession[name "+std::to_string(name)+
-            ", open "+std::to_string(isOpen())+
-            ", "+std::to_string(this->connectedDevices.size())+" connected LE devices]";
-}
 
 // *************************************************
 // *************************************************
@@ -174,16 +117,6 @@ bool DBTAdapter::validateDevInfo() {
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundCB));
 
     return true;
-}
-
-void DBTAdapter::sessionClosing()
-{
-    DBG_PRINT("DBTAdapter::sessionClosing(own-session %d): ...", nullptr!=session);
-    if( nullptr != session ) {
-        // FIXME: stopDiscovery();
-        session = nullptr;
-    }
-    DBG_PRINT("DBTAdapter::sessionClosing(own-session %d): XXX", nullptr!=session);
 }
 
 DBTAdapter::DBTAdapter()
@@ -215,11 +148,9 @@ DBTAdapter::~DBTAdapter() {
     }
     statusListenerList.clear();
 
-    if( nullptr != session ) {
-        stopDiscovery();
-        session->shutdown(); // force shutdown, not only via dtor as adapter EOL has been reached!
-        session = nullptr;
-    }
+    stopDiscovery();
+    disconnectAllDevices();
+    closeHCI();
     removeDiscoveredDevices();
     sharedDevices.clear();
 
@@ -242,19 +173,33 @@ void DBTAdapter::setBondable(bool value) {
     mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
 }
 
-std::shared_ptr<HCISession> DBTAdapter::open() 
+std::shared_ptr<HCIComm> DBTAdapter::openHCI()
 {
     if( !valid ) {
         return nullptr;
     }
-    HCISession * s = new HCISession( *this, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
+    HCIComm *s = new HCIComm(dev_id, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
     if( !s->isOpen() ) {
         delete s;
-        ERR_PRINT("Could not open device");
+        ERR_PRINT("Could not open HCIComm");
         return nullptr;
     }
-    session = std::shared_ptr<HCISession>( s );
-    return session;
+    hciComm = std::shared_ptr<HCIComm>( s );
+    return hciComm;
+}
+
+bool DBTAdapter::closeHCI()
+{
+    DBG_PRINT("DBTAdapter::closeHCI: ...");
+    if( nullptr == hciComm || !hciComm->isOpen() ) {
+        DBG_PRINT("DBTAdapter::closeHCI: Not open");
+        return false;
+    }
+    disconnectAllDevices(); // FIXME ????
+    hciComm->close();
+    hciComm = nullptr;
+    DBG_PRINT("DBTAdapter::closeHCI: XXX");
+    return true;
 }
 
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
@@ -507,9 +452,6 @@ void DBTAdapter::sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t t
 
 bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
-    if( nullptr == session ) {
-        throw InternalError("NULL session @ receiving "+event.toString(), E_FILE_LINE);
-    }
     EInfoReport ad_report;
     {
         ad_report.setSource(EInfoReport::Source::EIR);
@@ -519,7 +461,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         ad_report.read_data(event.getData(), event.getDataSize());
     }
     int new_connect = 0;
-    std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());
     if( nullptr == device ) {
         device = findDiscoveredDevice(event.getAddress());
         new_connect = nullptr != device ? 1 : 0;
@@ -536,7 +478,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
             dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
         if( 0 < new_connect ) {
-            session->connected(device); // track it
+            addConnectedDevice(device); // track it
         }
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             if( l->matchDevice(*device) ) {
@@ -554,10 +496,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
 }
 bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
-    if( nullptr == session ) {
-        throw InternalError("NULL session @ receiving "+event.toString(), E_FILE_LINE);
-    }
-    std::shared_ptr<DBTDevice> device = session->findConnectedDevice(event.getAddress());
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());
     if( nullptr != device ) {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
