@@ -336,8 +336,8 @@ namespace direct_bt {
         uint8_t flags = 0;
         std::string name;
         std::string name_short;
-        int8_t rssi = 0;
-        int8_t tx_power = 0;
+        int8_t rssi = 127; // The core spec defines 127 as the "not available" value
+        int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
         std::shared_ptr<ManufactureSpecificData> msd = nullptr;
         std::vector<std::shared_ptr<uuid_t>> services;
         uint32_t device_class = 0;

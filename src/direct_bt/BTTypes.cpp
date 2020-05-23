@@ -290,8 +290,6 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
     uint8_t elem_len, elem_type;
     uint8_t const *elem_data;
 
-    setTxPower(127); /* magic default ?? */
-
     while( 0 < ( offset = next_data_elem( &elem_len, &elem_type, &elem_data, data, offset, data_length ) ) )
     {
         DBG_PRINT("%s-Element[%d] @ [%d/%d]: type 0x%.2X with %d bytes net",

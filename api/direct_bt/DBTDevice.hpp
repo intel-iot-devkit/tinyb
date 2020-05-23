@@ -58,8 +58,8 @@ namespace direct_bt {
             DBTAdapter & adapter;
             uint64_t ts_update;
             std::string name;
-            int8_t rssi = 0;
-            int8_t tx_power = 0;
+            int8_t rssi = 127; // The core spec defines 127 as the "not available" value
+            int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             uint16_t appearance = 0;
             uint16_t hciConnHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
