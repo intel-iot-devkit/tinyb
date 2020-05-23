@@ -147,6 +147,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
+        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
+            BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
+            fprintf(stderr, "****** FOUND__-2: Skip non LE %s\n", device->toString().c_str());
+            return;
+        }
         if( waitForDevice == EUI48_ANY_DEVICE ||
             ( waitForDevice == device->address && !isDeviceProcessed(waitForDevice) ) )
         {
@@ -164,6 +169,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
+        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
+            BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
+            fprintf(stderr, "****** CONNECTED-2: Skip non LE %s\n", device->toString().c_str());
+            return;
+        }
         if( waitForDevice == EUI48_ANY_DEVICE ||
             ( waitForDevice == device->address && !isDeviceProcessed(waitForDevice) ) )
         {
@@ -219,15 +229,21 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
     }
 };
 
+// #define BLOCK_DISCOVERY 1
+
 static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Device Connector: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
     bool res = device->connectHCIDefault();
     fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
+#ifndef BLOCK_DISCOVERY
+    device->getAdapter().startDiscovery();
+#else
     if( !res && 0 == getDeviceTaskCount() ) {
         fprintf(stderr, "****** Device Connector: startDiscovery()\n");
         device->getAdapter().startDiscovery();
     }
+#endif
 }
 
 static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
@@ -284,14 +300,22 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
         // FIXME sleep 1s for potential callbacks ..
         sleep(1);
     }
+#ifdef BLOCK_DISCOVERY
     device->disconnect();
+#else
+    device->getAdapter().stopDiscovery();
+    device->disconnect();
+    device->getAdapter().startDiscovery();
+#endif
 
 out:
     addDevicesProcessed(device->getAddress());
+#ifdef BLOCK_DISCOVERY
     if( 1 >= getDeviceTaskCount() ) {
         fprintf(stderr, "****** Device Process: startDiscovery()\n");
         device->getAdapter().startDiscovery();
     }
+#endif
     removeDeviceTask(device);
     fprintf(stderr, "****** Device Process: End\n");
 }
