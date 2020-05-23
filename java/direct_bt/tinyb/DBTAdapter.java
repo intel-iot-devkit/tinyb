@@ -233,13 +233,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     /* internal */
 
-    private synchronized void open() {
-        if( !isOpen ) {
-            isOpen = openImpl();
-        }
-    }
-    private native boolean openImpl();
-
     @Override
     protected native void deleteImpl();
 
@@ -247,7 +240,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized boolean startDiscovery() throws BluetoothException {
-        open();
         removeDevices();
         final boolean res = startDiscoveryImpl();
         isDiscovering = res;
@@ -278,7 +270,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public int removeDevices() throws BluetoothException {
-        open();
         final int cj = removeDiscoveredDevices();
         final int cn = removeDevicesImpl();
         if( cj != cn ) {

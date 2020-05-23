@@ -118,11 +118,11 @@ namespace direct_bt {
 
             std::shared_ptr<HCIComm> hciComm;
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
-            std::recursive_mutex mtx_connectedDevices;
-
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
+            std::recursive_mutex mtx_hci;
+            std::recursive_mutex mtx_connectedDevices;
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
@@ -249,15 +249,15 @@ namespace direct_bt {
             DBTManager& getManager() const { return mgmt; }
 
             /**
-             * Returns a reference to the newly opened HCIComm instance
-             * if successful, otherwise nullptr is returned.
+             * Returns a reference to the already opened HCIComm
+             * or the newly opened HCIComm instance, otherwise nullptr if no success.
              */
             std::shared_ptr<HCIComm> openHCI();
 
             /**
-             * Returns the {@link #openHCI()} session or {@code nullptr} if closed.
+             * Returns the {@link #openHCI()} HCIComm or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCIComm> getOpenHCIComm() const { return hciComm; }
+            std::shared_ptr<HCIComm> getHCI() const;
 
             /**
              * Closes the HCIComm instance

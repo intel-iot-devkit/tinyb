@@ -65,6 +65,7 @@ namespace direct_bt {
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
+            std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
 
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
@@ -78,6 +79,7 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             void releaseSharedInstance() const;
+            void notifyDisconnected();
 
         public:
             const uint64_t ts_creation;
@@ -110,14 +112,12 @@ namespace direct_bt {
             bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
             bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
 
-            std::string const & getName() const { return name; }
-            bool hasName() const { return name.length()>0; }
             int8_t getRSSI() const { return rssi; }
             int8_t getTxPower() const { return tx_power; }
             uint16_t getAppearance() const { return appearance; }
-            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const { return msd; }
-
-            std::vector<std::shared_ptr<uuid_t>> getServices() const { return services; }
+            std::string const getName() const;
+            std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const;
+            std::vector<std::shared_ptr<uuid_t>> getServices() const;
 
             /** Returns index >= 0 if found, otherwise -1 */
             int findService(std::shared_ptr<uuid_t> const &uuid) const;
@@ -143,7 +143,7 @@ namespace direct_bt {
              * Returns the new connection handle or 0 if not successful.
              * </p>
              * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
+             * The device is tracked by the managing adapter.
              * </p>
              * <p>
              * Default parameter values are chosen for using public address resolution
@@ -167,7 +167,7 @@ namespace direct_bt {
              * Returns the new connection handle or 0 if not successful.
              * </p>
              * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
+             * The device is tracked by the managing adapter.
              * </p>
              */
             uint16_t connectHCI(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
@@ -183,7 +183,7 @@ namespace direct_bt {
              * Returns the new connection handle or 0 if not successful.
              * </p>
              * <p>
-             * The device is tracked by the managing adapter's HCISession instance.
+             * The device is tracked by the managing adapter.
              * </p>
              */
             uint16_t connectHCIDefault();
@@ -195,7 +195,7 @@ namespace direct_bt {
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
              * <p>
-             * The device will be removed from the managing adapter's HCISession instance.
+             * The device will be removed from the managing adapter's connected devices.
              * </p>
              * <p>
              * An open GATTHandler will also be closed via disconnectGATT()
@@ -220,8 +220,8 @@ namespace direct_bt {
             /**
              * Returns a newly established GATT connection or an already open GATT connection.
              * <p>
-             * The HCI le_connect or HCI connect (defaultConnect) must be performed first,
-             * to produce orderly behavior and best performance.
+             * The HCI le_connect or HCI connect shall be performed first,
+             * to produce best performance. See {@link #connectHCIDefault()}.
              * </p>
              * <p>
              * The returned GATTHandler is managed by this device instance
@@ -238,13 +238,10 @@ namespace direct_bt {
              * Returns a list of shared GATTServices available on this device if successful,
              * otherwise returns an empty list.
              * <p>
-             * In case no HCI connection has been established yet, connectHCIDefault() will be performed.
-             * </p>
-             * <p>
              * In case no GATT connection has been established yet, connectGATT(..) will be performed.
              * </p>
              */
-            std::vector<std::shared_ptr<GATTService>> getServices();
+            std::vector<std::shared_ptr<GATTService>> getGATTServices();
 
             /**
              * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()

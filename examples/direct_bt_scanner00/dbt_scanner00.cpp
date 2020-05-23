@@ -185,10 +185,12 @@ int main(int argc, char *argv[])
 
     const int64_t t0 = getCurrentMilliseconds();
 
-    std::shared_ptr<HCIComm> hci = adapter.openHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-        exit(1);
+    if( doHCI_Connect ) {
+        std::shared_ptr<HCIComm> hci = adapter.openHCI();
+        if( nullptr == hci || !hci->isOpen() ) {
+            fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
+            exit(1);
+        }
     }
 
     while( ok && ( forever || !foundDevice ) ) {
@@ -218,9 +220,23 @@ int main(int argc, char *argv[])
             const uint64_t t1 = getCurrentMilliseconds();
 
             //
+            // HCI LE-Connect
+            // (Without: Overall communication takes ~twice as long!!!)
+            //
+            if( doHCI_Connect ) {
+                if( 0 == device->connectHCIDefault() ) {
+                    fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
+                } else {
+                    fprintf(stderr, "Connect: Success\n");
+                }
+            } else {
+                fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
+            }
+
+            //
             // GATT Service Processing
             //
-            std::vector<GATTServiceRef> primServices = device->getServices(); // implicit HCI and GATT connect...
+            std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
             if( primServices.size() > 0 ) {
                 const uint64_t t5 = getCurrentMilliseconds();
                 {

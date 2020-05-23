@@ -392,21 +392,6 @@ jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) 
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTAdapter_openImpl(JNIEnv *env, jobject obj) {
-    try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
-        std::shared_ptr<direct_bt::HCIComm> hciSession = adapter->openHCI();
-        if( nullptr == hciSession ) {
-            throw BluetoothException("Couldn't open adapter "+adapter->toString(), E_FILE_LINE);
-        }
-        return JNI_TRUE;
-    } catch(...) {
-        rethrow_and_raise_java_exception(env);
-    }
-    return JNI_FALSE;
-}
-
 void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
 {
     try {
@@ -593,6 +578,11 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
                 WARN_PRINT("DBTAdapter::connectDevice: AddressType mismatch, ignoring request: Requested %s, Device %s %s",
                         getBDAddressTypeString(addressType).c_str(), getBDAddressTypeString(addressTypeDevice).c_str(),
                         device->toString().c_str());
+            }
+
+            std::shared_ptr<direct_bt::HCIComm> hci = adapter->openHCI();
+            if( nullptr == hci ) {
+                throw BluetoothException("Couldn't get or open adapter's HCIComm "+adapter->toString(), E_FILE_LINE);
             }
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);

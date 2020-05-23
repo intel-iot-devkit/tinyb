@@ -183,10 +183,12 @@ int main(int argc, char *argv[])
 
     const int64_t t0 = getCurrentMilliseconds();
 
-    std::shared_ptr<HCIComm> hci = adapter.openHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-        exit(1);
+    if( doHCI_Connect ) {
+        std::shared_ptr<HCIComm> hci = adapter.openHCI();
+        if( nullptr == hci || !hci->isOpen() ) {
+            fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
+            exit(1);
+        }
     }
 
     while( ok && ( forever || !foundDevice ) ) {
@@ -219,17 +221,14 @@ int main(int argc, char *argv[])
             // HCI LE-Connect
             // (Without: Overall communication takes ~twice as long!!!)
             //
-            uint16_t hciConnHandle;
             if( doHCI_Connect ) {
-                hciConnHandle = device->connectHCIDefault();
-                if( 0 == hciConnHandle ) {
+                if( 0 == device->connectHCIDefault() ) {
                     fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
                 } else {
                     fprintf(stderr, "Connect: Success\n");
                 }
             } else {
                 fprintf(stderr, "Connect: Skipped %s\n", device->toString().c_str());
-                hciConnHandle = 0;
             }
             const uint64_t t3 = getCurrentMilliseconds();
             const uint64_t td03 = t3 - t0;
@@ -238,9 +237,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "  discovery-only %" PRIu64 " ms,\n"
                             "  connect-only %" PRIu64 " ms,\n"
                             "  discovered to hci-connected %" PRIu64 " ms,\n"
-                            "  total %" PRIu64 " ms,\n"
-                            "  handle 0x%X\n",
-                            td01, td13, (t3 - device->getCreationTimestamp()), td03, hciConnHandle);
+                            "  total %" PRIu64 " ms,\n",
+                            td01, td13, (t3 - device->getCreationTimestamp()), td03);
 
             //
             // GATT Processing

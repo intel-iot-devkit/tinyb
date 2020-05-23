@@ -55,7 +55,7 @@ void DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
         if ( *device == **it ) {
-            ERR_PRINT("DBTAdapter::addConnectedDevice: Device already connected: %s", device->toString().c_str());
+            DBG_PRINT("DBTAdapter::addConnectedDevice: Device already connected: %s", device->toString().c_str());
             return;
         }
     }
@@ -175,8 +175,17 @@ void DBTAdapter::setBondable(bool value) {
 
 std::shared_ptr<HCIComm> DBTAdapter::openHCI()
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
+
     if( !valid ) {
         return nullptr;
+    }
+    if( nullptr != hciComm ) {
+        if( hciComm->isOpen() ) {
+            DBG_PRINT("DBTAdapter::openHCI: Already open");
+            return hciComm;
+        }
+        hciComm = nullptr;
     }
     HCIComm *s = new HCIComm(dev_id, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
     if( !s->isOpen() ) {
@@ -188,8 +197,15 @@ std::shared_ptr<HCIComm> DBTAdapter::openHCI()
     return hciComm;
 }
 
+std::shared_ptr<HCIComm> DBTAdapter::getHCI() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_hci); // RAII-style acquire and relinquish via destructor
+    return hciComm;
+}
+
 bool DBTAdapter::closeHCI()
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
+
     DBG_PRINT("DBTAdapter::closeHCI: ...");
     if( nullptr == hciComm || !hciComm->isOpen() ) {
         DBG_PRINT("DBTAdapter::closeHCI: Not open");
@@ -500,6 +516,8 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     if( nullptr != device ) {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
+        device->notifyDisconnected();
+        removeConnectedDevice(*device);
 
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             if( l->matchDevice(*device) ) {

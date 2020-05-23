@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "HCIComm.hpp"
@@ -64,7 +64,7 @@ int HCIComm::hci_open_dev(const uint16_t dev_id, const uint16_t channel)
 	} */
 
 	// Create a loose HCI socket
-	dd = socket(AF_BLUETOOTH, SOCK_RAW | SOCK_CLOEXEC, BTPROTO_HCI);
+	dd = socket(AF_BLUETOOTH, SOCK_RAW, BTPROTO_HCI);
 	if (0 > dd ) {
         ERR_PRINT("HCIComm::hci_open_dev: socket failed");
 		return dd;
@@ -341,6 +341,7 @@ bool HCIComm::send_req(const uint16_t opcode, const void *command, const uint8_t
                 if (exp_event != HCI_EV_CMD_STATUS) {
                     if (cs->status) {
                         errno = EIO;
+                        ERR_PRINT("hci_send_req: event exp 0x%X != has 0x%X, error status 0x%2.2X", exp_event, hdr->evt, cs->status);
                         goto failed;
                     }
                     break;

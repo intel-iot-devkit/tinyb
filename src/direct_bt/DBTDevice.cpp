@@ -99,10 +99,26 @@ int DBTDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
     }
 }
 
+std::string const DBTDevice::getName() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    return name;
+}
+
+std::shared_ptr<ManufactureSpecificData> const DBTDevice::getManufactureSpecificData() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    return msd;
+}
+
+std::vector<std::shared_ptr<uuid_t>> DBTDevice::getServices() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
+    return services;
+}
+
 std::string DBTDevice::toString() const {
+    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+getName()+
+    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+
             "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+", appearance "+uint16HexString(appearance)+", "+msdstr+", "+javaObjectToString()+"]");
     if(services.size() > 0 ) {
@@ -120,6 +136,8 @@ std::string DBTDevice::toString() const {
 }
 
 EIRDataType DBTDevice::update(EInfoReport const & data) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+
     EIRDataType res = EIRDataType::NONE;
     ts_update = data.getTimestamp();
     if( data.isSet(EIRDataType::BDADDR) ) {
@@ -212,13 +230,15 @@ uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType o
         ERR_PRINT("DBTDevice::le_connect: Already connected");
         return 0;
     }
+
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
         throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
-    std::shared_ptr<HCIComm> hciComm = adapter.getOpenHCIComm();
+    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter session not opened");
+        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened");
         return 0;
     }
     if( !isLEAddressType() ) {
@@ -256,9 +276,10 @@ uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_off
     if( nullptr == sharedInstance ) {
         throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
-    std::shared_ptr<HCIComm> hciComm = adapter.getOpenHCIComm();
+    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter session not opened");
+        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened");
         return 0;
     }
     if( !isBREDRAddressType() ) {
@@ -298,10 +319,15 @@ uint16_t DBTDevice::connectHCIDefault()
     }
 }
 
+void DBTDevice::notifyDisconnected() {
+    hciConnHandle = 0;
+}
+
 void DBTDevice::disconnect(const uint8_t reason) {
     disconnectGATT();
 
-    std::shared_ptr<HCIComm> hciComm = adapter.getOpenHCIComm();
+    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
 
     if( 0 == hciConnHandle ) {
         DBG_PRINT("DBTDevice::disconnect: Not connected");
@@ -309,7 +335,7 @@ void DBTDevice::disconnect(const uint8_t reason) {
     }
 
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Session not opened");
+        DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not opened");
         goto errout;
     }
 
@@ -361,13 +387,8 @@ std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
     return gattHandler;
 }
 
-std::vector<std::shared_ptr<GATTService>> DBTDevice::getServices() {
+std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        ERR_PRINT("DBTDevice::getServices: Device unknown to adapter and not tracked: %s", toString().c_str());
-        return std::vector<std::shared_ptr<GATTService>>();
-    }
     if( nullptr == gattHandler ) {
         connectGATT();
         if( nullptr == gattHandler ) {
