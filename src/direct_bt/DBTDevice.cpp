@@ -155,13 +155,13 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
         }
     }
     if( data.isSet(EIRDataType::NAME) ) {
-        if( !name.length() || data.getName().length() > name.length() ) {
+        if( 0 == name.length() || data.getName().length() > name.length() ) {
             name = data.getName();
             setEIRDataTypeSet(res, EIRDataType::NAME);
         }
     }
     if( data.isSet(EIRDataType::NAME_SHORT) ) {
-        if( !name.length() ) {
+        if( 0 == name.length() ) {
             name = data.getShortName();
             setEIRDataTypeSet(res, EIRDataType::NAME_SHORT);
         }
@@ -192,6 +192,22 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
     }
     if( addServices( data.getServices() ) ) {
         setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
+    }
+    return res;
+}
+
+EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestamp) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
+
+    EIRDataType res = EIRDataType::NONE;
+    ts_update = timestamp;
+    if( 0 == name.length() || data.deviceName.length() > name.length() ) {
+        name = data.deviceName;
+        setEIRDataTypeSet(res, EIRDataType::NAME);
+    }
+    if( appearance != data.appearance ) {
+        appearance = data.appearance;
+        setEIRDataTypeSet(res, EIRDataType::APPEARANCE);
     }
     return res;
 }
@@ -398,7 +414,36 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
             return std::vector<std::shared_ptr<GATTService>>();
         }
     }
-    return gattHandler->discoverCompletePrimaryServices();
+    std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
+    if( gattServices.size() > 0 ) { // reuse previous discovery result
+        return gattServices;
+    }
+    gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
+    if( gattServices.size() == 0 ) { // nothing discovered
+        return gattServices;
+    }
+    // discovery success, retrieve and parse GenericAccess
+    gattGenericAccess = gattHandler->getGenericAccess(gattServices);
+    if( nullptr != gattGenericAccess ) {
+        const uint64_t ts = getCurrentMilliseconds();
+        EIRDataType updateMask = update(*gattGenericAccess, ts);
+        DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
+            eirDataMaskToString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+        if( EIRDataType::NONE != updateMask ) {
+            std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+            if( nullptr == sharedInstance ) {
+                ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
+            } else {
+                adapter.sendDeviceUpdated(sharedInstance, ts, updateMask);
+            }
+        }
+    }
+    return gattServices;
+}
+
+std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    return gattGenericAccess;
 }
 
 void DBTDevice::disconnectGATT() {

@@ -186,7 +186,10 @@ namespace direct_bt {
             std::vector<GATTServiceRef> & discoverCompletePrimaryServices();
 
             /**
-             * Returns previously discovered services via {@link #discoverCompletePrimaryServices()}.
+             * Returns a reference of the internal kept GATTService list.
+             * <p>
+             * The internal list will be populated via {@link #discoverCompletePrimaryServices()}.
+             * </p>
              */
             std::vector<GATTServiceRef> & getServices() { return services; }
 

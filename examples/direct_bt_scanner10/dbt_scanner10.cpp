@@ -243,7 +243,6 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
 
 static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Device Connector: Start %s\n", device->toString().c_str());
-    fprintf(stderr, "****** Device Connector: stopDiscovery()\n");
     device->getAdapter().stopDiscovery();
     bool res = false;
     if( !USE_WHITELIST ) {
@@ -251,7 +250,6 @@ static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     }
     fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
     if( !USE_WHITELIST && !BLOCK_DISCOVERY ) {
-        fprintf(stderr, "****** Device Connector: startDiscovery()\n");
         device->getAdapter().startDiscovery(false);
     }
 }
@@ -283,6 +281,19 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
                             "  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
                             td15, tdc5, (tdc5 - td15), td05);
         }
+        std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+        if( nullptr != ga ) {
+            fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
+        }
+        {
+            std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+            if( nullptr != gatt && gatt->isOpen() ) {
+                std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
+                if( nullptr != di ) {
+                    fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
+                }
+            }
+        }
 
         for(size_t i=0; i<primServices.size(); i++) {
             GATTService & primService = *primServices.at(i);
@@ -313,19 +324,16 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
     if( USE_WHITELIST || BLOCK_DISCOVERY ) {
         device->disconnect();
     } else {
-        fprintf(stderr, "****** Device Process: stopDiscovery()\n");
         device->getAdapter().stopDiscovery();
         device->disconnect();
-        fprintf(stderr, "****** Device Process: startDiscovery()\n");
         device->getAdapter().startDiscovery(false);
     }
 
 out:
     addDevicesProcessed(device->getAddress());
-    if( BLOCK_DISCOVERY ) {
+    if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
         if( 1 >= getDeviceTaskCount() ) {
-            fprintf(stderr, "****** Device Process: startDiscovery()\n");
-            device->getAdapter().startDiscovery( !USE_WHITELIST && BLOCK_DISCOVERY );
+            device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
         }
     }
     removeDeviceTask(device);
@@ -399,20 +407,20 @@ int main(int argc, char *argv[])
         }
     }
 
-    // if( !USE_WHITELIST ) {
-    fprintf(stderr, "****** Main: startDiscovery()\n");
-    if( !adapter.startDiscovery( !USE_WHITELIST && BLOCK_DISCOVERY ) ) {
-        perror("Adapter start discovery failed");
-        goto out;
+    if( !USE_WHITELIST ) {
+        fprintf(stderr, "****** Main: startDiscovery()\n");
+        if( !adapter.startDiscovery( BLOCK_DISCOVERY ) ) {
+            perror("Adapter start discovery failed");
+            goto out;
+        }
     }
-    // }
 
     do {
         if( waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) ) {
             fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
             done = true;
         } else {
-            if( !BLOCK_DISCOVERY && 0 >= getDeviceTaskCount() ) {
+            if( !!USE_WHITELIST && !BLOCK_DISCOVERY && 0 >= getDeviceTaskCount() ) {
                 adapter.startDiscovery(false);
             }
         }

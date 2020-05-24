@@ -141,6 +141,7 @@ namespace direct_bt {
                     uint16_t min_ce_length, uint16_t max_ce_length,
                     uint8_t initiator_filter );
             friend uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+            friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
 
             void addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             void removeConnectedDevice(const DBTDevice & device);

@@ -248,6 +248,19 @@ int main(int argc, char *argv[])
                                     "  total %" PRIu64 " ms\n\n",
                                     td15, (t5 - device->getCreationTimestamp()), td05);
                 }
+                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+                if( nullptr != ga ) {
+                    fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
+                }
+                {
+                    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+                    if( nullptr != gatt && gatt->isOpen() ) {
+                        std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
+                        if( nullptr != di ) {
+                            fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
+                        }
+                    }
+                }
 
                 for(size_t i=0; i<primServices.size(); i++) {
                     GATTService & primService = *primServices.at(i);

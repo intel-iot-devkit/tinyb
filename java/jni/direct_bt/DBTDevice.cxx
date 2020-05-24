@@ -298,20 +298,15 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
         std::shared_ptr<GATTHandler> gatt = device->connectGATT();
         if( nullptr != gatt ) {
             // FIXME: Split up - may offload to other thread
-            std::vector<GATTServiceRef> & primServices = gatt->discoverCompletePrimaryServices();
-
-            std::shared_ptr<GenericAccess> ga = gatt->getGenericAccess(primServices);
-            if( nullptr != ga ) {
-                env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->category));
-                java_exception_check_and_throw(env, E_FILE_LINE);
-                DBG_PRINT("GATT connected to GenericAccess: %s", ga->toString().c_str());
+            std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
+            if( services.size() > 0 ) {
+                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+                if( nullptr != ga ) {
+                    env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
+                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    DBG_PRINT("GATT connected to GenericAccess: %s", ga->toString().c_str());
+                }
             }
-#if 0
-            std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
-            if( nullptr != di ) {
-                DBG_PRINT("GATT connected to DeviceInformation: %s", di->toString().c_str());
-            }
-#endif
             return JNI_TRUE;
         }
     } catch(...) {
@@ -331,36 +326,32 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-        if( nullptr != gatt ) {
-            std::vector<std::shared_ptr<GATTService>> & services = gatt->getServices();
-            // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
-            //                final String type_uuid, final short handleStart, final short handleEnd)
+        std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
 
-            std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
-                    [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
-                        // prepare adapter ctor
-                        JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
-                        jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
-                        const jboolean isPrimary = service->isPrimary;
-                        const jstring uuid = from_string_to_jstring(env,
-                                directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :
-                                                                           service->type->toString());
-                        java_exception_check_and_throw(env, E_FILE_LINE);
+        // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
+        //                final String type_uuid, final short handleStart, final short handleEnd)
 
-                        jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,
-                                uuid, service->startHandle, service->endHandle);
-                        java_exception_check_and_throw(env, E_FILE_LINE);
-                        JNIGlobalRef::check(jservice, E_FILE_LINE);
-                        std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject();
-                        JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
+        std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
+                [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
+                    // prepare adapter ctor
+                    JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
+                    jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
+                    const jboolean isPrimary = service->isPrimary;
+                    const jstring uuid = from_string_to_jstring(env,
+                            directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :
+                                                                       service->type->toString());
+                    java_exception_check_and_throw(env, E_FILE_LINE);
 
-                        return JavaGlobalObj::GetObject(jServiceRef);
-                    };
-            return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
-        } else {
-            WARN_PRINT("Device GATTHandle not connected: %s", device->toString().c_str());
-        }
+                    jobject jservice = env->NewObject(clazz, clazz_ctor, (jlong)service, jdevice, isPrimary,
+                            uuid, service->startHandle, service->endHandle);
+                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    JNIGlobalRef::check(jservice, E_FILE_LINE);
+                    std::shared_ptr<JavaAnonObj> jServiceRef = service->getJavaObject();
+                    JavaGlobalObj::check(jServiceRef, E_FILE_LINE);
+
+                    return JavaGlobalObj::GetObject(jServiceRef);
+                };
+        return convert_vector_sharedptr_to_jarraylist<GATTService>(env, services, _serviceClazzCtorArgs.c_str(), ctor_service);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }

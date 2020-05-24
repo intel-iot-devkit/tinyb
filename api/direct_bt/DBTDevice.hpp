@@ -65,6 +65,7 @@ namespace direct_bt {
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
+            std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
 
@@ -74,6 +75,7 @@ namespace direct_bt {
             bool addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
 
             EIRDataType update(EInfoReport const & data);
+            EIRDataType update(GenericAccess const &data, const uint64_t timestamp);
 
             /** Returns the shared pointer of this instance managed by the adapter. */
             std::shared_ptr<DBTDevice> getSharedInstance() const;
@@ -235,13 +237,20 @@ namespace direct_bt {
             std::shared_ptr<GATTHandler> getGATTHandler();
 
             /**
-             * Returns a list of shared GATTServices available on this device if successful,
+             * Returns a list of shared GATTService available on this device if successful,
              * otherwise returns an empty list.
              * <p>
-             * In case no GATT connection has been established yet, connectGATT(..) will be performed.
+             * If this method has been called for the first time or no services has been detected yet,
+             * a list of GATTService will be discovered.
+             * <br>
+             * In case no GATT connection has been established yet or disconnectGATT() has been called thereafter,
+             * connectGATT(..) will be performed.
              * </p>
              */
             std::vector<std::shared_ptr<GATTService>> getGATTServices();
+
+            /** Returns the shared GenericAccess instance, retrieved by {@link #getGATTServices()} or nullptr if not available. */
+            std::shared_ptr<GenericAccess> getGATTGenericAccess();
 
             /**
              * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()

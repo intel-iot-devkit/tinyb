@@ -262,13 +262,11 @@ int main(int argc, char *argv[])
                                     "  total %" PRIu64 " ms\n\n",
                                     td45, (t5 - device->getCreationTimestamp()), td05);
                 }
-                if( gatt->isOpen() ) {
-                    std::shared_ptr<GenericAccess> ga = gatt->getGenericAccess(primServices);
-                    if( nullptr != ga ) {
-                        fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
-                    }
+                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+                if( nullptr != ga ) {
+                    fprintf(stderr, "  GenericAccess: %s\n\n", ga->toString().c_str());
                 }
-                if( gatt->isOpen() ) {
+                if( nullptr != gatt && gatt->isOpen() ) {
                     std::shared_ptr<DeviceInformation> di = gatt->getDeviceInformation(primServices);
                     if( nullptr != di ) {
                         fprintf(stderr, "  DeviceInformation: %s\n\n", di->toString().c_str());
