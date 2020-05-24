@@ -319,12 +319,12 @@ namespace direct_bt {
     class MgmtAddDeviceToWhitelistCmd : public MgmtCommand
     {
         public:
-            MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint8_t action)
+            MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIWhitelistConnectType ctype)
             : MgmtCommand(MgmtOpcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, action);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, ctype);
             }
     };
 

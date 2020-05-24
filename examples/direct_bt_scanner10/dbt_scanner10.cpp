@@ -235,21 +235,16 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
 
 static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Device Connector: Start %s\n", device->toString().c_str());
+    fprintf(stderr, "****** Device Connector: stopDiscovery()\n");
     device->getAdapter().stopDiscovery();
     bool res = false;
     if( !USE_WHITELIST ) {
         res = device->connectHCIDefault();
     }
     fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
-    if( !USE_WHITELIST ) {
-        if( BLOCK_DISCOVERY ) {
-            if( !res && 0 == getDeviceTaskCount() ) {
-                fprintf(stderr, "****** Device Connector: startDiscovery()\n");
-                device->getAdapter().startDiscovery(true);
-            }
-        } else {
-            device->getAdapter().startDiscovery(false);
-        }
+    if( !USE_WHITELIST && !BLOCK_DISCOVERY ) {
+        fprintf(stderr, "****** Device Connector: startDiscovery()\n");
+        device->getAdapter().startDiscovery(false);
     }
 }
 
@@ -307,20 +302,22 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
         // FIXME sleep 1s for potential callbacks ..
         sleep(1);
     }
-    if( BLOCK_DISCOVERY ) {
+    if( USE_WHITELIST || BLOCK_DISCOVERY ) {
         device->disconnect();
     } else {
+        fprintf(stderr, "****** Device Process: stopDiscovery()\n");
         device->getAdapter().stopDiscovery();
         device->disconnect();
+        fprintf(stderr, "****** Device Process: startDiscovery()\n");
         device->getAdapter().startDiscovery(false);
     }
 
 out:
     addDevicesProcessed(device->getAddress());
-    if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
+    if( BLOCK_DISCOVERY ) {
         if( 1 >= getDeviceTaskCount() ) {
             fprintf(stderr, "****** Device Process: startDiscovery()\n");
-            device->getAdapter().startDiscovery(true);
+            device->getAdapter().startDiscovery( !USE_WHITELIST && BLOCK_DISCOVERY );
         }
     }
     removeDeviceTask(device);
@@ -380,25 +377,26 @@ int main(int argc, char *argv[])
 
     adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
+    std::shared_ptr<HCIComm> hci = adapter.openHCI();
+    if( nullptr == hci || !hci->isOpen() ) {
+        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
+        exit(1);
+    }
+
     if( USE_WHITELIST ) {
         for (auto it = whitelist.begin(); it != whitelist.end(); ++it) {
             std::shared_ptr<EUI48> wlmac = *it;
-            bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC);
+            bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
             fprintf(stderr, "Added to whitelist: res %d, address %s\n", res, wlmac->toString().c_str());
-        }
-    } else {
-        std::shared_ptr<HCIComm> hci = adapter.openHCI();
-        if( nullptr == hci || !hci->isOpen() ) {
-            fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-            exit(1);
         }
     }
 
     // if( !USE_WHITELIST ) {
-        if( !adapter.startDiscovery(BLOCK_DISCOVERY) ) {
-            perror("Adapter start discovery failed");
-            goto out;
-        }
+    fprintf(stderr, "****** Main: startDiscovery()\n");
+    if( !adapter.startDiscovery( !USE_WHITELIST && BLOCK_DISCOVERY ) ) {
+        perror("Adapter start discovery failed");
+        goto out;
+    }
     // }
 
     do {

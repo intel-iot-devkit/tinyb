@@ -265,7 +265,7 @@ namespace direct_bt {
             bool closeHCI();
 
             /** Add the given device to the adapter's autoconnect whitelist. */
-            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type);
+            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type);

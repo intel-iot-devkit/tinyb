@@ -218,8 +218,8 @@ bool DBTAdapter::closeHCI()
     return true;
 }
 
-bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type) {
-    return mgmt.addDeviceToWhitelist(dev_id, address, address_type);
+bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) {
+    return mgmt.addDeviceToWhitelist(dev_id, address, address_type, ctype);
 }
 
 bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
@@ -497,6 +497,13 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
             addDiscoveredDevice(device);
             new_connect = 2;
         }
+    }
+    if( nullptr == device ) {
+        // a whitelist auto-connect w/o previous discovery
+        device = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
+        addDiscoveredDevice(device);
+        addSharedDevice(device);
+        new_connect = 3;
     }
     if( nullptr != device ) {
         EIRDataType updateMask = device->update(ad_report);

@@ -44,6 +44,18 @@ namespace direct_bt {
         BT_MODE_LE          = 3
     };
 
+    /**
+     * HCI Whitelist connection type.
+     */
+    enum HCIWhitelistConnectType : uint8_t {
+        /** Report Connection: Only supported for LE on Linux .. */
+        HCI_AUTO_CONN_REPORT = 0x00,
+        /** Incoming Connections: Only supported type for BDADDR_BREDR (!LE) on Linux .. */
+        HCI_AUTO_CONN_DIRECT = 0x01,
+        /** Auto Connect: Only supported for LE on Linux .. */
+        HCI_AUTO_CONN_ALWAYS = 0x02
+    };
+
     enum AD_Type_Const : uint8_t {
         AD_FLAGS_LIMITED_MODE_BIT = 0x01,
         AD_FLAGS_GENERAL_MODE_BIT = 0x02

@@ -504,8 +504,8 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     }
 }
 
-bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
-    MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, 0x01);
+bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) {
+    MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
     DBG_PRINT("DBTManager::addDeviceToWhitelist: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr == res ) {

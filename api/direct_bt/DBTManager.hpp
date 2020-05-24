@@ -234,7 +234,7 @@ namespace direct_bt {
             bool stopDiscovery(const int dev_id, const ScanType type);
 
             /** Add the given device to the adapter's autoconnect whitelist. */
-            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+            bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
 
