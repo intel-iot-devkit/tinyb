@@ -264,8 +264,20 @@ namespace direct_bt {
              */
             bool closeHCI();
 
-            /** Add the given device to the adapter's autoconnect whitelist. */
-            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
+            /**
+             * Add the given device to the adapter's autoconnect whitelist.
+             * <p>
+             * The given connection parameter will be uploaded to the kernel for the given device first.
+             * </p>
+             * <p>
+             * Method will reject duplicate devices, in which case it should be removed first.
+             * </p>
+             */
+            bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
+                                      const HCIWhitelistConnectType ctype,
+                                      const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                                      const uint16_t latency=0x0000, const uint16_t timeout=0x0C80);
+
 
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type);

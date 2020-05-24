@@ -418,6 +418,88 @@ namespace direct_bt {
             const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
     };
 
+    struct MgmtConnParam {
+        EUI48 address;
+        uint8_t address_type;
+        uint16_t min_interval;
+        uint16_t max_interval;
+        uint16_t latency;
+        uint16_t timeout;
+    } __packed;
+
+    /**
+     * uint16_t param_count                       2
+     * MgmtConnParam param[]                     15 = 1x
+     *
+     * MgmtConnParam {
+     *   mgmt_addr_info { EUI48, uint8_t type },  7
+     *   uint16_t min_interval;                   2
+     *   uint16_t max_interval;                   2
+     *   uint16_t latency;                        2
+     *   uint16_t timeout;                        2
+     * }
+     * uint8_t name[MGMT_MAX_NAME_LENGTH];
+     * uint8_t short_name[MGMT_MAX_SHORT_NAME_LENGTH];
+     */
+    class MgmtLoadConnParamCmd : public MgmtCommand
+    {
+        protected:
+            std::string valueString() const override {
+                const int paramCount = getParamCount();
+                std::string ps = "count "+std::to_string(paramCount)+": ";
+                for(int i=0; i<paramCount; i++) {
+                    if( 0 < i ) {
+                        ps.append(", ");
+                    }
+                    ps.append( "[address "+getAddress(i).toString()+", addressType "+getBDAddressTypeString(getAddressType(i))+
+                                ", interval["+std::to_string(getMinInterval(i))+".."+std::to_string(getMaxInterval(i))
+                                +"], latency "+std::to_string(getLatency(i))+", timeout "+std::to_string(getTimeout(i))+"]");
+                }
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
+        public:
+            MgmtLoadConnParamCmd(const uint16_t dev_id, const MgmtConnParam & connParam)
+            : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + 15)
+            {
+                int offset = MGMT_HEADER_SIZE;
+                pdu.put_uint16(offset, 1); offset+= 2;
+
+                pdu.put_eui48(offset, connParam.address); offset+=6;
+                pdu.put_uint8(offset, connParam.address_type); offset+=1;
+                pdu.put_uint16(offset, connParam.min_interval); offset+=2;
+                pdu.put_uint16(offset, connParam.max_interval); offset+=2;
+                pdu.put_uint16(offset, connParam.latency); offset+=2;
+                pdu.put_uint16(offset, connParam.timeout); offset+=2;
+            }
+
+            MgmtLoadConnParamCmd(const uint16_t dev_id, std::vector<std::shared_ptr<MgmtConnParam>> connParams)
+            : MgmtCommand(MgmtOpcode::LOAD_CONN_PARAM, dev_id, 2 + connParams.size() * 15)
+            {
+                int offset = MGMT_HEADER_SIZE;
+                pdu.put_uint16(offset, connParams.size()); offset+= 2;
+
+                for(auto it = connParams.begin(); it != connParams.end(); ++it) {
+                    std::shared_ptr<MgmtConnParam> connParam = *it;
+
+                    pdu.put_eui48(offset, connParam->address); offset+=6;
+                    pdu.put_uint8(offset, connParam->address_type); offset+=1;
+                    pdu.put_uint16(offset, connParam->min_interval); offset+=2;
+                    pdu.put_uint16(offset, connParam->max_interval); offset+=2;
+                    pdu.put_uint16(offset, connParam->latency); offset+=2;
+                    pdu.put_uint16(offset, connParam->timeout); offset+=2;
+                }
+            }
+            uint16_t getParamCount() const { return pdu.get_uint16(MGMT_HEADER_SIZE); }
+
+            const EUI48 getAddress(int idx) const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE + 2 + 15*idx)); } // mgmt_addr_info
+            BDAddressType getAddressType(int idx) const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE + 2 + 15*idx + 6)); } // mgmt_addr_info
+            uint16_t getMinInterval(int idx) const { return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1); }
+            uint16_t getMaxInterval(int idx) const { return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2); }
+            uint16_t getLatency(int idx) const { return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2); }
+            uint16_t getTimeout(int idx) const { return pdu.get_uint16(MGMT_HEADER_SIZE + 2 + 15*idx + 6 + 1 + 2 + 2 + 2); }
+    };
+
     /**
      * uint16_t opcode,
      * uint16_t dev-id,

@@ -506,6 +506,27 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     }
 }
 
+bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
+                                 const uint16_t min_interval, const uint16_t max_interval,
+                                 const uint16_t latency, const uint16_t timeout) {
+    MgmtConnParam connParam{ address, address_type, min_interval, max_interval, latency, timeout };
+    MgmtLoadConnParamCmd req(dev_id, connParam);
+    DBG_PRINT("DBTManager::uploadConnParam: %s", req.toString().c_str());
+    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+    if( nullptr == res ) {
+        DBG_PRINT("DBTManager::uploadConnParam res: NULL");
+    } else {
+        DBG_PRINT("DBTManager::uploadConnParam res: %s", res->toString().c_str());
+        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) {
     for(auto it = whitelist.begin(); it != whitelist.end(); ) {
         std::shared_ptr<WhitelistElem> wle = *it;

@@ -243,6 +243,13 @@ namespace direct_bt {
             bool stopDiscovery(const int dev_id, const ScanType type);
 
             /**
+             * Uploads given connection parameter for given device to the kernel.
+             */
+            bool uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
+                                 const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                                 const uint16_t latency=0x0000, const uint16_t timeout=0x0C80);
+
+            /**
              * Returns true, if the adapter's device is already whitelisted.
              */
             bool isDeviceWhitelisted(const int dev_id, const EUI48 &address);
@@ -257,8 +264,10 @@ namespace direct_bt {
              * </p>
              */
             bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
+
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+
             /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
             int removeAllDevicesFromWhitelist();
 
