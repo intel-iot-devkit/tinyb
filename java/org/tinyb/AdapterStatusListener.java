@@ -54,18 +54,23 @@ public abstract class AdapterStatusListener {
     /** A {@link BluetoothAdapter} setting has been changed. */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                        final AdapterSettings oldmask, final AdapterSettings newmask,
-                                       final AdapterSettings changedmask, final long timestamp) {
-    }
+                                       final AdapterSettings changedmask, final long timestamp) { }
+
+    /**
+     * {@link BluetoothAdapter}'s discovery state has changed, i.e. enabled or disabled.
+     * @param adapter the adapter which state has changed.
+     * @param enabled the new discovery state
+     * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
+     * @param timestamp the time in monotonic milliseconds when this event occured.
+     */
+    public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) { }
+
     /** A {@link BluetoothDevice} has been newly discovered. */
-    public void deviceFound(final BluetoothDevice device, final long timestamp) {
-    }
+    public void deviceFound(final BluetoothDevice device, final long timestamp) { }
+
     /** An already discovered {@link BluetoothDevice} has been updated. */
-    public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-    }
-    /** {@link BluetoothDevice} has been connected. */
-    public void deviceConnected(final BluetoothDevice device, final long timestamp) {
-    }
-    /** {@link BluetoothDevice} has been disconnected. */
-    public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
-    }
+    public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) { }
+
+    /** {@link BluetoothDevice}'s connection status has changed. */
+    public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) { }
 };

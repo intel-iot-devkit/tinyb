@@ -126,6 +126,13 @@ public class ScannerTinyB10 {
             }
 
             @Override
+            public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
+                System.err.println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+                System.err.println("Status Adapter:");
+                System.err.println(adapter.toString());
+            }
+
+            @Override
             public void deviceFound(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
@@ -149,17 +156,9 @@ public class ScannerTinyB10 {
             }
 
             @Override
-            public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+            public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
                 final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** CONNECTED: "+device.toString()+" - match "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
-            }
-
-            @Override
-            public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** DISCONNECTED: "+device.toString()+" - match "+matches);
+                System.err.println("****** CONNECTION: connected "+connected+": "+device+" - matches "+matches);
                 System.err.println("Status Adapter:");
                 System.err.println(device.getAdapter().toString());
             }
@@ -214,7 +213,7 @@ public class ScannerTinyB10 {
 
                 final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-                final boolean discoveryStarted = adapter.startDiscovery();
+                final boolean discoveryStarted = adapter.startDiscovery(true);
 
                 System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+waitForDevice+", mode "+mode);
                 if( !discoveryStarted ) {

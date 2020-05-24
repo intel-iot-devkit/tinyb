@@ -96,7 +96,7 @@ public class ScannerTinyB00 {
             if( useAdapter ) {
                 adapter.removeDevices();
             }
-            final boolean discoveryStarted = useAdapter ? adapter.startDiscovery() : manager.startDiscovery();
+            final boolean discoveryStarted = useAdapter ? adapter.startDiscovery(true) : manager.startDiscovery();
 
             System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+mac+", mode "+mode+", useAdapter "+useAdapter);
             BluetoothDevice sensor = null;
@@ -129,6 +129,8 @@ public class ScannerTinyB00 {
             }
             System.err.println("Found device in "+(t1-t0)+" ms: ");
             printDevice(sensor);
+
+            adapter.stopDiscovery();
 
             final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
             final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);

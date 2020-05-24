@@ -148,6 +148,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
+    void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
+        fprintf(stderr, "****** DISCOVERING: enable %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
+        (void)timestamp;
+    }
+
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
@@ -166,12 +171,19 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString().c_str());
         }
     }
+
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
         fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
         (void)timestamp;
     }
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+
+    void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
         (void)timestamp;
+
+        if( !connected ) {
+            fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
+            return;
+        }
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
             BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
@@ -186,10 +198,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         } else {
             fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString().c_str());
         }
-    }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
-        (void)timestamp;
     }
 };
 

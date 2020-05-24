@@ -56,15 +56,15 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final Object stateLock = new Object();
     private final Object discoveredDevicesLock = new Object();
 
-    private volatile boolean isDiscovering = false;
-    private final long discoveringNotificationRef = 0;
-
     private BluetoothNotification<Boolean> discoverableNotification = null;
-    private boolean isDiscoverable = false;
+    private volatile boolean isDiscoverable = false;
+    private BluetoothNotification<Boolean> discoveringNotification = null;
+    private volatile boolean isDiscovering = false;
+
     private BluetoothNotification<Boolean> poweredNotification = null;
-    private boolean isPowered = false;
+    private volatile boolean isPowered = false;
     private BluetoothNotification<Boolean> pairableNotification = null;
-    private boolean isPairable = false;
+    private volatile boolean isPairable = false;
 
     private boolean isOpen = false;
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
@@ -192,6 +192,19 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
+    public boolean getDiscovering() { return isDiscovering; }
+
+    @Override
+    public synchronized void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
+        discoveringNotification = callback;
+    }
+
+    @Override
+    public synchronized void disableDiscoveringNotifications() {
+        discoveringNotification = null;
+    }
+
+    @Override
     public boolean getPairable() { return isPairable; }
 
     @Override
@@ -240,8 +253,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized boolean startDiscovery() throws BluetoothException {
-        return startDiscovery(true);
+        return startDiscovery(false);
     }
+
+    @Override
     public synchronized boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
         removeDevices();
         final boolean res = startDiscoveryImpl(keepAlive);
@@ -290,9 +305,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public boolean getDiscovering() { return isDiscovering; }
-
-    @Override
     public native boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch);
 
     @Override
@@ -300,12 +312,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public native int removeAllStatusListener();
-
-    @Override
-    public native void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback);
-
-    @Override
-    public native void disableDiscoveringNotifications();
 
     @Override
     public void setDiscoveryFilter(final List<UUID> uuids, final int rssi, final int pathloss, final TransportType transportType) {
@@ -361,6 +367,19 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
         }
         @Override
+        public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+            }
+            if( isDiscovering != enabled ) {
+                isDiscovering = enabled;
+                if( null != discoveringNotification ) {
+                    discoveringNotification.run(enabled);
+                }
+            }
+
+        }
+        @Override
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.FOUND: "+device+" on "+device.getAdapter());
@@ -379,15 +398,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+        public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.CONNECTED: "+device+" on "+device.getAdapter());
-            }
-        }
-        @Override
-        public void deviceDisconnected(final BluetoothDevice device, final long timestamp) {
-            if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.DISCONNECTED: "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.StatusListener.CONNECTION: connected "+connected+": "+device+" on "+device.getAdapter());
             }
         }
     };

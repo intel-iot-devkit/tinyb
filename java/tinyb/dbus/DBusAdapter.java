@@ -66,7 +66,13 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     /* D-Bus method calls: */
 
     @Override
+    @Deprecated
     public native boolean startDiscovery() throws BluetoothException;
+
+    @Override
+    public synchronized boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
+        return startDiscovery(); // FIXME keepAlive
+    }
 
     @Override
     public native boolean stopDiscovery() throws BluetoothException;

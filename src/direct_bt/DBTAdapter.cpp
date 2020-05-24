@@ -433,7 +433,11 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(dev_id %d, keepDiscoveringAlive %d): %s",
         dev_id, keepDiscoveringAlive, e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
-    if( keepDiscoveringAlive && !event.getEnabled() ) {
+    const bool enabled = event.getEnabled();
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        l->discoveringChanged(*this, enabled, keepDiscoveringAlive, event.getTimestamp());
+    });
+    if( keepDiscoveringAlive && !enabled ) {
         std::thread bg(&DBTAdapter::startDiscoveryBackground, this);
         bg.detach();
     }
@@ -528,7 +532,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
                 if( EIRDataType::NONE != updateMask ) {
                     l->deviceUpdated(device, ad_report.getTimestamp(), updateMask);
                 }
-                l->deviceConnected(device, event.getTimestamp());
+                l->deviceConnectionChanged(device, true, event.getTimestamp());
             }
         });
     } else {
@@ -548,7 +552,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
 
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             if( l->matchDevice(*device) ) {
-                l->deviceDisconnected(device, event.getTimestamp());
+                l->deviceConnectionChanged(device, false, event.getTimestamp());
             }
         });
     } else {

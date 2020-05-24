@@ -71,8 +71,20 @@ public interface BluetoothAdapter extends BluetoothObject
 
     /** Turns on device discovery if it is disabled.
       * @return TRUE if discovery was successfully enabled
+      * @deprecated since 2.0.0, use {@link #startDiscovery(boolean)}.
       */
+    @Deprecated
     public boolean startDiscovery() throws BluetoothException;
+
+    /**
+     * Turns on device discovery if it is disabled.
+     * @param keepAlive if {@code true}, indicates that discovery shall be restarted
+     *        if stopped by the underlying Bluetooth implementation (BlueZ, ..).
+     * @return TRUE if discovery was successfully enabled
+     * @throws BluetoothException
+     * @since 2.0.0
+     */
+    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
 
     /** Turns off device discovery if it is enabled.
       * @return TRUE if discovery was successfully disabled

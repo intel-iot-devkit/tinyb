@@ -78,13 +78,13 @@ namespace direct_bt {
             virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                                 const AdapterSetting changedmask, const uint64_t timestamp) = 0;
 
+            virtual void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) = 0;
+
             virtual void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
 
             virtual void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
 
-            virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
-
-            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) = 0;
 
             virtual ~AdapterStatusListener() {}
 
@@ -325,6 +325,11 @@ namespace direct_bt {
              * Returns true if successful, otherwise false;
              * </p>
              * <p>
+             * if {@code keepAlive} is {@code  true}, discovery state will be re-enabled
+             * in case the underlying Bluetooth implementation (BlueZ, ..) disabled it.
+             * Default is {@code false}.
+             * </p>
+             * <p>
              * Default parameter values are chosen for using public address resolution
              * and usual discovery intervals etc.
              * </p>
@@ -335,7 +340,7 @@ namespace direct_bt {
              * Also clears previous discovered devices via removeDiscoveredDevices().
              * </p>
              */
-            bool startDiscovery(bool keepAlive=true, HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+            bool startDiscovery(bool keepAlive=false, HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                 uint16_t interval=0x0004, uint16_t window=0x0004);
 
             /**

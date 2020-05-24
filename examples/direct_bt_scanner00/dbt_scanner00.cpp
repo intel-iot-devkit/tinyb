@@ -56,6 +56,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
 
+    void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
+        fprintf(stderr, "****** DISCOVERING: enable %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
+        (void)timestamp;
+    }
+
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         fprintf(stderr, "****** FOUND__: %s\n", device->toString().c_str());
         fprintf(stderr, "Status Adapter:\n");
@@ -73,14 +78,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         (void)timestamp;
     }
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** CONNECTED: %s\n", device->toString().c_str());
-        fprintf(stderr, "Status Adapter:\n");
-        fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
-        (void)timestamp;
-    }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
+    void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
+        fprintf(stderr, "****** CONNECTION: %d: %s\n", connected, device->toString().c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         (void)timestamp;
@@ -194,7 +193,7 @@ int main(int argc, char *argv[])
     }
 
     while( ok && ( forever || !foundDevice ) ) {
-        ok = adapter.startDiscovery();
+        ok = adapter.startDiscovery(true /* keepAlive */);
         if( !ok) {
             perror("Adapter start discovery failed");
             goto out;
