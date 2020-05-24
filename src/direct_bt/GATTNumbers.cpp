@@ -367,76 +367,8 @@ std::string PeriphalPreferredConnectionParameters::toString() const {
 		  ", csTimeoutMul "+std::to_string(connectionSupervisionTimeoutMultiplier)+"]";
 }
 
-#define GENERIC_ACCESS_APPEARANCECAT_ENUM(X) \
-    X(UNKNOWN) \
-    X(GENERIC_PHONE) \
-    X(GENERIC_COMPUTER) \
-    X(GENERIC_WATCH) \
-    X(SPORTS_WATCH) \
-    X(GENERIC_CLOCK) \
-    X(GENERIC_DISPLAY) \
-    X(GENERIC_REMOTE_CLOCK) \
-    X(GENERIC_EYE_GLASSES) \
-    X(GENERIC_TAG) \
-    X(GENERIC_KEYRING) \
-    X(GENERIC_MEDIA_PLAYER) \
-    X(GENERIC_BARCODE_SCANNER) \
-    X(GENERIC_THERMOMETER) \
-    X(GENERIC_THERMOMETER_EAR) \
-    X(GENERIC_HEART_RATE_SENSOR) \
-    X(HEART_RATE_SENSOR_BELT) \
-    X(GENERIC_BLOD_PRESSURE) \
-    X(BLOD_PRESSURE_ARM) \
-    X(BLOD_PRESSURE_WRIST) \
-    X(HID) \
-    X(HID_KEYBOARD) \
-    X(HID_MOUSE) \
-    X(HID_JOYSTICK) \
-    X(HID_GAMEPAD) \
-    X(HID_DIGITIZER_TABLET) \
-    X(HID_CARD_READER) \
-    X(HID_DIGITAL_PEN) \
-    X(HID_BARCODE_SCANNER) \
-    X(GENERIC_GLUCOSE_METER) \
-    X(GENERIC_RUNNING_WALKING_SENSOR) \
-    X(RUNNING_WALKING_SENSOR_IN_SHOE) \
-    X(RUNNING_WALKING_SENSOR_ON_SHOE) \
-    X(RUNNING_WALKING_SENSOR_HIP) \
-    X(GENERIC_CYCLING) \
-    X(CYCLING_COMPUTER) \
-    X(CYCLING_SPEED_SENSOR) \
-    X(CYCLING_CADENCE_SENSOR) \
-    X(CYCLING_POWER_SENSOR) \
-    X(CYCLING_SPEED_AND_CADENCE_SENSOR) \
-    X(GENERIC_PULSE_OXIMETER) \
-    X(PULSE_OXIMETER_FINGERTIP) \
-    X(PULSE_OXIMETER_WRIST) \
-    X(GENERIC_WEIGHT_SCALE) \
-    X(GENERIC_PERSONAL_MOBILITY_DEVICE) \
-    X(PERSONAL_MOBILITY_DEVICE_WHEELCHAIR) \
-    X(PERSONAL_MOBILITY_DEVICE_SCOOTER) \
-    X(GENERIC_CONTINUOUS_GLUCOSE_MONITOR) \
-    X(GENERIC_INSULIN_PUMP) \
-    X(INSULIN_PUMP_DURABLE) \
-    X(INSULIN_PUMP_PATCH) \
-    X(INSULIN_PUMP_PEN) \
-    X(GENERIC_MEDICATION_DELIVERY) \
-    X(GENERIC_OUTDOOR_SPORTS_ACTIVITY) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_DISPLAY_DEVICE) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_DISPLAY_DEVICE) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD) \
-    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD) \
-
-std::string GenericAccess::AppearanceCatToString(const AppearanceCat v) {
-    switch(v) {
-        GENERIC_ACCESS_APPEARANCECAT_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown";
-}
-
 std::string GenericAccess::toString() const {
-    return "'"+deviceName+"'[cat "+AppearanceCatToString(category)+", "+prefConnParam.toString()+"]";
+    return "'"+deviceName+"'[appearance "+uint16HexString(appearance)+" ("+AppearanceCatToString(appearance)+"), "+prefConnParam.toString()+"]";
 }
 
 PnP_ID::PnP_ID(const TROOctets &source)

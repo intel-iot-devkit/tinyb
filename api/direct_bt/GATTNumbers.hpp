@@ -30,6 +30,7 @@
 #include "UUID.hpp"
 #include "BasicTypes.hpp"
 #include "OctetTypes.hpp"
+#include "BTTypes.hpp"
 #include "ieee11073/DataTypes.hpp"
 
 namespace direct_bt {
@@ -224,74 +225,12 @@ struct PeriphalPreferredConnectionParameters {
 /** https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.generic_access.xml */
 class GenericAccess {
 	public:
-		enum AppearanceCat : uint16_t {
-			UNKNOWN = 0,
-			GENERIC_PHONE = 64,
-			GENERIC_COMPUTER = 128,
-			GENERIC_WATCH = 192,
-			SPORTS_WATCH = 193,
-			GENERIC_CLOCK = 256,
-			GENERIC_DISPLAY = 320,
-			GENERIC_REMOTE_CLOCK = 384,
-			GENERIC_EYE_GLASSES = 448,
-			GENERIC_TAG = 512,
-			GENERIC_KEYRING = 576,
-			GENERIC_MEDIA_PLAYER = 640,
-			GENERIC_BARCODE_SCANNER = 704,
-			GENERIC_THERMOMETER = 768,
-			GENERIC_THERMOMETER_EAR = 769,
-			GENERIC_HEART_RATE_SENSOR = 832,
-			HEART_RATE_SENSOR_BELT = 833,
-			GENERIC_BLOD_PRESSURE = 896,
-			BLOD_PRESSURE_ARM = 897,
-			BLOD_PRESSURE_WRIST = 898,
-			HID = 960,
-			HID_KEYBOARD = 961,
-			HID_MOUSE = 962,
-			HID_JOYSTICK = 963,
-			HID_GAMEPAD = 964,
-			HID_DIGITIZER_TABLET = 965,
-			HID_CARD_READER = 966,
-			HID_DIGITAL_PEN = 967,
-			HID_BARCODE_SCANNER = 968,
-			GENERIC_GLUCOSE_METER = 1024,
-			GENERIC_RUNNING_WALKING_SENSOR = 1088,
-			RUNNING_WALKING_SENSOR_IN_SHOE = 1089,
-			RUNNING_WALKING_SENSOR_ON_SHOE = 1090,
-			RUNNING_WALKING_SENSOR_HIP = 1091,
-			GENERIC_CYCLING = 1152,
-			CYCLING_COMPUTER = 1153,
-			CYCLING_SPEED_SENSOR = 1154,
-			CYCLING_CADENCE_SENSOR = 1155,
-			CYCLING_POWER_SENSOR = 1156,
-			CYCLING_SPEED_AND_CADENCE_SENSOR = 1157,
-			GENERIC_PULSE_OXIMETER = 3136,
-			PULSE_OXIMETER_FINGERTIP = 3137,
-			PULSE_OXIMETER_WRIST = 3138,
-			GENERIC_WEIGHT_SCALE = 3200,
-			GENERIC_PERSONAL_MOBILITY_DEVICE = 3264,
-			PERSONAL_MOBILITY_DEVICE_WHEELCHAIR = 3265,
-			PERSONAL_MOBILITY_DEVICE_SCOOTER = 3266,
-			GENERIC_CONTINUOUS_GLUCOSE_MONITOR = 3328,
-			GENERIC_INSULIN_PUMP = 3392,
-			INSULIN_PUMP_DURABLE = 3393,
-			INSULIN_PUMP_PATCH = 3396,
-			INSULIN_PUMP_PEN = 3400,
-			GENERIC_MEDICATION_DELIVERY = 3456,
-			GENERIC_OUTDOOR_SPORTS_ACTIVITY = 5184,
-			OUTDOOR_SPORTS_ACTIVITY_LOCATION_DISPLAY_DEVICE = 5185,
-			OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_DISPLAY_DEVICE = 5186,
-			OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
-			OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
-		};
-		static std::string AppearanceCatToString(const AppearanceCat v);
-
 		const std::string deviceName;
-		const AppearanceCat category;
+		const AppearanceCat appearance;
 		const PeriphalPreferredConnectionParameters prefConnParam;
 
-		GenericAccess(const std::string & deviceName, const AppearanceCat category, const PeriphalPreferredConnectionParameters & prefConnParam)
-		: deviceName(deviceName), category(category), prefConnParam(prefConnParam) {}
+		GenericAccess(const std::string & deviceName, const AppearanceCat appearance, const PeriphalPreferredConnectionParameters & prefConnParam)
+		: deviceName(deviceName), appearance(appearance), prefConnParam(prefConnParam) {}
 
 		std::string toString() const;
 };

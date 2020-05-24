@@ -106,6 +106,78 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
+#define GENERIC_ACCESS_APPEARANCECAT_ENUM(X) \
+    X(UNKNOWN) \
+    X(GENERIC_PHONE) \
+    X(GENERIC_COMPUTER) \
+    X(GENERIC_WATCH) \
+    X(SPORTS_WATCH) \
+    X(GENERIC_CLOCK) \
+    X(GENERIC_DISPLAY) \
+    X(GENERIC_REMOTE_CLOCK) \
+    X(GENERIC_EYE_GLASSES) \
+    X(GENERIC_TAG) \
+    X(GENERIC_KEYRING) \
+    X(GENERIC_MEDIA_PLAYER) \
+    X(GENERIC_BARCODE_SCANNER) \
+    X(GENERIC_THERMOMETER) \
+    X(GENERIC_THERMOMETER_EAR) \
+    X(GENERIC_HEART_RATE_SENSOR) \
+    X(HEART_RATE_SENSOR_BELT) \
+    X(GENERIC_BLOD_PRESSURE) \
+    X(BLOD_PRESSURE_ARM) \
+    X(BLOD_PRESSURE_WRIST) \
+    X(HID) \
+    X(HID_KEYBOARD) \
+    X(HID_MOUSE) \
+    X(HID_JOYSTICK) \
+    X(HID_GAMEPAD) \
+    X(HID_DIGITIZER_TABLET) \
+    X(HID_CARD_READER) \
+    X(HID_DIGITAL_PEN) \
+    X(HID_BARCODE_SCANNER) \
+    X(GENERIC_GLUCOSE_METER) \
+    X(GENERIC_RUNNING_WALKING_SENSOR) \
+    X(RUNNING_WALKING_SENSOR_IN_SHOE) \
+    X(RUNNING_WALKING_SENSOR_ON_SHOE) \
+    X(RUNNING_WALKING_SENSOR_HIP) \
+    X(GENERIC_CYCLING) \
+    X(CYCLING_COMPUTER) \
+    X(CYCLING_SPEED_SENSOR) \
+    X(CYCLING_CADENCE_SENSOR) \
+    X(CYCLING_POWER_SENSOR) \
+    X(CYCLING_SPEED_AND_CADENCE_SENSOR) \
+    X(GENERIC_PULSE_OXIMETER) \
+    X(PULSE_OXIMETER_FINGERTIP) \
+    X(PULSE_OXIMETER_WRIST) \
+    X(GENERIC_WEIGHT_SCALE) \
+    X(GENERIC_PERSONAL_MOBILITY_DEVICE) \
+    X(PERSONAL_MOBILITY_DEVICE_WHEELCHAIR) \
+    X(PERSONAL_MOBILITY_DEVICE_SCOOTER) \
+    X(GENERIC_CONTINUOUS_GLUCOSE_MONITOR) \
+    X(GENERIC_INSULIN_PUMP) \
+    X(INSULIN_PUMP_DURABLE) \
+    X(INSULIN_PUMP_PATCH) \
+    X(INSULIN_PUMP_PEN) \
+    X(GENERIC_MEDICATION_DELIVERY) \
+    X(GENERIC_OUTDOOR_SPORTS_ACTIVITY) \
+    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_DISPLAY_DEVICE) \
+    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_DISPLAY_DEVICE) \
+    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD) \
+    X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD) \
+
+std::string direct_bt::AppearanceCatToString(const AppearanceCat v) {
+    switch(v) {
+        GENERIC_ACCESS_APPEARANCECAT_ENUM(CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown";
+}
+
+// *************************************************
+// *************************************************
+// *************************************************
+
 static std::string bt_compidtostr(const uint16_t companyid) {
     return std::to_string(companyid);
 }
@@ -212,8 +284,8 @@ std::string EInfoReport::toString() const {
                     ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+
-                    ", appearance "+uint16HexString(appearance, true)+
-                    ", hash["+hash.toString()+
+                    ", appearance "+uint16HexString(appearance, true)+" ("+AppearanceCatToString(appearance)+
+                    "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
                     "], device-id[source "+uint16HexString(did_source, true)+
                     ", vendor "+uint16HexString(did_vendor, true)+
@@ -359,7 +431,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
             case GAP_T::RND_TRGT_ADDR:
             case GAP_T::GAP_APPEARANCE:
                 if( 2 <= elem_len ) {
-                    setAppearance(get_uint16(elem_data, 0, true /* littleEndian */));
+                    setAppearance(static_cast<AppearanceCat>( get_uint16(elem_data, 0, true /* littleEndian */) ));
                 }
                 break;
             case SSP_HASH_C192:

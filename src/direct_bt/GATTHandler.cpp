@@ -830,7 +830,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
     std::shared_ptr<GenericAccess> res = nullptr;
     POctets value(GATTHandler::ClientMaxMTU, 0);
     std::string deviceName = "";
-    GenericAccess::AppearanceCat category = GenericAccess::AppearanceCat::UNKNOWN;
+    AppearanceCat appearance = AppearanceCat::UNKNOWN;
     PeriphalPreferredConnectionParameters * prefConnParam = nullptr;
 
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
@@ -844,7 +844,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
             }
         } else if( _APPEARANCE == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
-            	category = static_cast<GenericAccess::AppearanceCat>(value.get_uint16(0));
+            	appearance = static_cast<AppearanceCat>(value.get_uint16(0));
             }
         } else if( _PERIPHERAL_PREFERRED_CONNECTION_PARAMETERS == *charDecl.value_type ) {
             if( readCharacteristicValue(charDecl, value.resize(0)) ) {
@@ -853,7 +853,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
         }
     }
     if( deviceName.size() > 0 && nullptr != prefConnParam ) {
-    	res = std::shared_ptr<GenericAccess>(new GenericAccess(deviceName, category, *prefConnParam));
+    	res = std::shared_ptr<GenericAccess>(new GenericAccess(deviceName, appearance, *prefConnParam));
     }
     if( nullptr != prefConnParam ) {
         delete prefConnParam;

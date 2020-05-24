@@ -60,7 +60,7 @@ namespace direct_bt {
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
-            uint16_t appearance = 0;
+            AppearanceCat appearance = AppearanceCat::UNKNOWN;
             uint16_t hciConnHandle = 0;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
@@ -114,7 +114,7 @@ namespace direct_bt {
 
             int8_t getRSSI() const { return rssi; }
             int8_t getTxPower() const { return tx_power; }
-            uint16_t getAppearance() const { return appearance; }
+            AppearanceCat getAppearance() const { return appearance; }
             std::string const getName() const;
             std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const;
             std::vector<std::shared_ptr<uuid_t>> getServices() const;
