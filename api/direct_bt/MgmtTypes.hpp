@@ -256,6 +256,12 @@ namespace direct_bt {
      */
     class MgmtDisconnectCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtDisconnectCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::DISCONNECT, dev_id, 6+1)
@@ -263,6 +269,8 @@ namespace direct_bt {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
     /**
@@ -270,13 +278,21 @@ namespace direct_bt {
      */
     class MgmtGetConnectionInfoCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
-        MgmtGetConnectionInfoCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
+            MgmtGetConnectionInfoCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::GET_CONN_INFO, dev_id, 6+1)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
     /**
@@ -286,6 +302,13 @@ namespace direct_bt {
      */
     class MgmtPinCodeReplyCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                                       ", pin "+getPinCode().toString();
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtPinCodeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
                                 const uint8_t pin_len, const TROOctets &pin_code)
@@ -296,6 +319,10 @@ namespace direct_bt {
                 pdu.put_uint8(MGMT_HEADER_SIZE+7, pin_len);
                 pdu.put_octets(MGMT_HEADER_SIZE+8, pin_code);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            uint8_t getPinLength() const { return pdu.get_uint8(MGMT_HEADER_SIZE+6+1); }
+            TROOctets getPinCode() const { return POctets(pdu.get_ptr(MGMT_HEADER_SIZE+6+1+1), getPinLength()); }
     };
 
     /**
@@ -303,6 +330,12 @@ namespace direct_bt {
      */
     class MgmtPinCodeNegativeReplyCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtPinCodeNegativeReplyCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::PIN_CODE_NEG_REPLY, dev_id, 6+1)
@@ -310,6 +343,8 @@ namespace direct_bt {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
     /**
@@ -318,6 +353,13 @@ namespace direct_bt {
      */
     class MgmtAddDeviceToWhitelistCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
+                                       ", connectionType "+std::to_string(getConnectionType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtAddDeviceToWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIWhitelistConnectType ctype)
             : MgmtCommand(MgmtOpcode::ADD_DEVICE_WHITELIST, dev_id, 6+1+1)
@@ -326,6 +368,9 @@ namespace direct_bt {
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6+1, ctype);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            HCIWhitelistConnectType getConnectionType() const { return static_cast<HCIWhitelistConnectType>(pdu.get_uint8(MGMT_HEADER_SIZE+6+1)); }
     };
 
     /**
@@ -333,6 +378,12 @@ namespace direct_bt {
      */
     class MgmtRemoveDeviceFromWhitelistCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType());
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtRemoveDeviceFromWhitelistCmd(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType)
             : MgmtCommand(MgmtOpcode::REMOVE_DEVICE_WHITELIST, dev_id, 6+1)
@@ -340,6 +391,8 @@ namespace direct_bt {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
             }
+            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
+            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
     };
 
     /**
@@ -348,6 +401,12 @@ namespace direct_bt {
      */
     class MgmtSetLocalNameCmd : public MgmtCommand
     {
+        protected:
+            std::string valueString() const override {
+                const std::string ps = "name '"+getName()+"', shortName '"+getShortName()+"'";
+                return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
+            }
+
         public:
             MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
             : MgmtCommand(MgmtOpcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
@@ -355,6 +414,8 @@ namespace direct_bt {
                 pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
                 pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);
             }
+            const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
+            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
     };
 
     /**
