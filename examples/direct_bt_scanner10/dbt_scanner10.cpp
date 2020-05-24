@@ -149,7 +149,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
-        fprintf(stderr, "****** DISCOVERING: enable %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
+        fprintf(stderr, "****** DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
         (void)timestamp;
     }
 

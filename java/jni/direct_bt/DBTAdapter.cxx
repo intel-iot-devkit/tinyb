@@ -220,7 +220,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
-                fprintf(stderr, "****** DBTAdapter Device DISCOVERING: enable %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
+                fprintf(stderr, "****** DBTAdapter Device DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
                 fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
@@ -295,7 +295,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         JNIEnv *env = *jni_env;
         try {
             #ifdef VERBOSE_ON
-                fprintf(stderr, "****** DBTAdapter Device CONNECTION: %d: %s\n", connected, device->toString().c_str());
+                fprintf(stderr, "****** DBTAdapter Device CONNECTION: connected %d: %s\n", connected, device->toString().c_str());
                 fprintf(stderr, "Status DBTAdapter:\n");
                 fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
             #endif
