@@ -374,6 +374,8 @@ fail:
 void DBTManager::close() {
     DBG_PRINT("DBTManager::close: Start");
 
+    removeAllDevicesFromWhitelist();
+
     clearAllMgmtEventCallbacks();
 
     for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
@@ -504,9 +506,27 @@ bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     }
 }
 
+bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) {
+    for(auto it = whitelist.begin(); it != whitelist.end(); ) {
+        std::shared_ptr<WhitelistElem> wle = *it;
+        if( wle->dev_id == dev_id && wle->address == address ) {
+            return true;
+        } else {
+            ++it;
+        }
+    }
+    return false;
+}
+
 bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) {
     MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
     DBG_PRINT("DBTManager::addDeviceToWhitelist: %s", req.toString().c_str());
+
+    // Check if already exist in our local whitelist first, reject if so ..
+    if( isDeviceWhitelisted(dev_id, address) ) {
+        ERR_PRINT("DBTManager::addDeviceToWhitelist: Already in local whitelist, remove first: %s", req.toString().c_str());
+        return false;
+    }
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr == res ) {
         DBG_PRINT("DBTManager::addDeviceToWhitelist res: NULL");
@@ -516,13 +536,43 @@ bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, co
     if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+            std::shared_ptr<WhitelistElem> wle( new WhitelistElem{dev_id, address, address_type, ctype} );
+            whitelist.push_back(wle);
             return true;
         }
     }
     return false;
 }
 
+int DBTManager::removeAllDevicesFromWhitelist() {
+    std::vector<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
+    int count = 0;
+    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: Start %zd elements", whitelist_copy.size());
+
+    for(auto it = whitelist_copy.begin(); it != whitelist_copy.end(); ++it) {
+        std::shared_ptr<WhitelistElem> wle = *it;
+        removeDeviceFromWhitelist(wle->dev_id, wle->address, wle->address_type);
+        count++;
+    }
+    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
+            count, whitelist.size());
+    return count;
+}
+
 bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
+    // Remove from our local whitelist first
+    {
+        for(auto it = whitelist.begin(); it != whitelist.end(); ) {
+            std::shared_ptr<WhitelistElem> wle = *it;
+            if( wle->dev_id == dev_id && wle->address == address ) {
+                it = whitelist.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    // Actual removal
     MgmtRemoveDeviceFromWhitelistCmd req(dev_id, address, address_type);
     DBG_PRINT("DBTManager::removeDeviceFromWhitelist: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);

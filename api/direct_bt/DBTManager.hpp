@@ -90,6 +90,15 @@ namespace direct_bt {
      * </p>
      */
     class DBTManager : public JavaUplink {
+        private:
+            struct WhitelistElem {
+                int dev_id;
+                EUI48 address;
+                BDAddressType address_type;
+                HCIWhitelistConnectType ctype;
+            };
+            std::vector<std::shared_ptr<WhitelistElem>> whitelist;
+
         public:
             enum Defaults : int {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
@@ -233,10 +242,25 @@ namespace direct_bt {
             /** Stop discovery on given adapter dev_id. */
             bool stopDiscovery(const int dev_id, const ScanType type);
 
-            /** Add the given device to the adapter's autoconnect whitelist. */
+            /**
+             * Returns true, if the adapter's device is already whitelisted.
+             */
+            bool isDeviceWhitelisted(const int dev_id, const EUI48 &address);
+
+            /**
+             * Add the given device to the adapter's autoconnect whitelist.
+             * <p>
+             * Make sure {@link uploadConnParam(..)} is invoked first, otherwise performance will lack.
+             * </p>
+             * <p>
+             * Method will reject duplicate devices, in which case it should be removed first.
+             * </p>
+             */
             bool addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype);
             /** Remove the given device from the adapter's autoconnect whitelist. */
             bool removeDeviceFromWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type);
+            /** Remove all previously added devices from the autoconnect whitelist. Returns number of removed devices. */
+            int removeAllDevicesFromWhitelist();
 
             uint16_t create_connection(const int dev_id,
                                        const EUI48 &peer_bdaddr,
