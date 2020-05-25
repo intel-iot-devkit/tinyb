@@ -74,8 +74,32 @@ public interface BluetoothDevice extends BluetoothObject
     /** A connection to this device is established, connecting each profile
       * flagged as auto-connectable.
       * @return TRUE if the device connected
+      * @see #connect(short, short, short, short, short, short)
       */
     boolean connect() throws BluetoothException;
+
+    /**
+     * A connection to this device is established, see {@link #connect()}.
+     * <p>
+     * The given LE connection parameter will be used instead of the Bluetooth implementation defaults,
+     * if this device is of type {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
+     * </p>
+     *
+     * @param interval default value 0x0004
+     * @param window default value 0x0004
+     * @param min_interval default value 0x000F
+     * @param max_interval default value 0x000F
+     * @param latency default value 0x0000
+     * @param timeout default value 0x0C80
+     * @return {@code true} if successful, otherwise {@code false}.
+     *
+     * @see #connect()
+     * @since 2.0.0
+     */
+    public boolean connect(final short interval, final short window,
+                           final short min_interval, final short max_interval,
+                           final short latency, final short timeout);
+
 
     /** Connects a specific profile available on the device, given by UUID
       * @param arg_UUID The UUID of the profile to be connected

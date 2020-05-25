@@ -28,7 +28,6 @@ package direct_bt.tinyb;
 import java.util.List;
 import java.util.Map;
 
-import org.tinyb.BluetoothAdapter;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -37,7 +36,6 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
-import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 
@@ -231,6 +229,29 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         return res;
     }
     private native boolean connectImpl() throws BluetoothException;
+
+    @Override
+    public boolean connect(final short interval, final short window,
+                           final short min_interval, final short max_interval,
+                           final short latency, final short timeout) {
+        boolean res = false;
+        if( !connected ) {
+            res = connectImpl(interval, window, min_interval, max_interval, latency, timeout);
+            if( res ) {
+                connected = true;
+                userConnectedNotificationsCB.run(Boolean.TRUE);
+
+                // FIXME: Split up - may offload to other thread
+                // Currently service resolution performed in connectImpl()!
+                servicesResolved = true;
+                userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+            }
+        }
+        return res;
+    }
+    private native boolean connectImpl(final short interval, final short window,
+                                       final short min_interval, final short max_interval,
+                                       final short latency, final short timeout);
 
     /* DBT Java callbacks */
 

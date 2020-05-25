@@ -70,6 +70,13 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean connect() throws BluetoothException;
 
     @Override
+    public boolean connect(final short interval, final short window,
+                           final short min_interval, final short max_interval,
+                           final short latency, final short timeout) {
+        return connect(); // FIXME connection params ...
+    }
+
+    @Override
     public native boolean connectProfile(String arg_UUID) throws BluetoothException;
 
     @Override

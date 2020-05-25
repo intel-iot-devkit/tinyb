@@ -315,6 +315,51 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
+jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj,
+                                                     jshort interval, jshort window,
+                                                     jshort min_interval, jshort max_interval,
+                                                     jshort latency, jshort timeout)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        uint16_t hciHandle;
+        switch( device->addressType ) {
+            case BDAddressType::BDADDR_LE_PUBLIC:
+                hciHandle = device->le_connectHCI(HCIAddressType::HCIADDR_LE_PUBLIC, HCIAddressType::HCIADDR_LE_PUBLIC,
+                                                  interval, window, min_interval, max_interval, latency, timeout);
+                break;
+            case BDAddressType::BDADDR_LE_RANDOM:
+                hciHandle = device->le_connectHCI(HCIAddressType::HCIADDR_LE_RANDOM, HCIAddressType::HCIADDR_LE_PUBLIC,
+                                                  interval, window, min_interval, max_interval, latency, timeout);
+                break;
+            default:
+                hciHandle = device->connectHCIDefault();
+                break;
+        }
+        if( 0 == hciHandle ) {
+            return JNI_FALSE;
+        }
+        std::shared_ptr<GATTHandler> gatt = device->connectGATT();
+        if( nullptr != gatt ) {
+            // FIXME: Split up - may offload to other thread
+            std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
+            if( services.size() > 0 ) {
+                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+                if( nullptr != ga ) {
+                    env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
+                    java_exception_check_and_throw(env, E_FILE_LINE);
+                    DBG_PRINT("GATT connected to GenericAccess: %s", ga->toString().c_str());
+                }
+            }
+            return JNI_TRUE;
+        }
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 //
 // getter
 //
