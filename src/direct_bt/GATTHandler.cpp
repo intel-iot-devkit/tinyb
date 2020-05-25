@@ -61,6 +61,7 @@ extern "C" {
 #include "GATTHandler.hpp"
 
 #include "DBTTypes.hpp"
+#include "DBTDevice.hpp"
 
 using namespace direct_bt;
 
@@ -94,8 +95,8 @@ GATTHandler::State GATTHandler::validateState() {
         if( a != b || a != c || b != c ) {
             // throw InvalidStateException("Inconsistent open state: GattHandler "+getStateString()+
             //        ", l2cap[open "+std::to_string(b)+", state "+l2cap->getStateString()+"]", E_FILE_LINE);
-            ERR_PRINT("Inconsistent open state: GattHandler[open %d, %s], l2cap[open [%d, %d], state %s]",
-                    a, getStateString().c_str(), b, c, l2cap.getStateString().c_str());
+            ERR_PRINT("Inconsistent open state: GattHandler[open %d, %s], l2cap[open [%d, %d], state %s]: %s",
+                    a, getStateString().c_str(), b, c, l2cap.getStateString().c_str(), device->toString().c_str());
             disconnect(); // state -> Disconnected
         }
     }
@@ -176,7 +177,7 @@ void GATTHandler::l2capReaderThreadImpl() {
         int len;
         if( Disconnected >= validateState() ) {
             // not open
-            ERR_PRINT("GATTHandler::l2capReaderThread: Not connected");
+            ERR_PRINT("GATTHandler::l2capReaderThread: Not connected -> Stop: %s", device->toString().c_str());
             l2capReaderShallStop = true;
             break;
         }
@@ -227,7 +228,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error");
+            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error: %s", device->toString().c_str());
         }
     }
 
@@ -318,7 +319,8 @@ bool GATTHandler::send(const AttPDUMsg & msg) {
         return false;
     }
     if( msg.pdu.getSize() > usedMTU ) {
-        throw IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU), E_FILE_LINE);
+        throw IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU)+
+                                       ": "+device->toString(), E_FILE_LINE);
     }
 
     // Thread safe write operation only for concurrent access
@@ -326,13 +328,14 @@ bool GATTHandler::send(const AttPDUMsg & msg) {
 
     const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
-        ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect");
+        ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s", device->toString().c_str());
         state = Error;
         disconnect(); // state -> Disconnected
         return false;
     }
     if( res != msg.pdu.getSize() ) {
-        ERR_PRINT("GATTHandler::send: l2cap write count error, %d < %d %s -> disconnect", res, msg.pdu.getSize(), msg.toString().c_str());
+        ERR_PRINT("GATTHandler::send: l2cap write count error, %d < %d %s -> disconnect: %s",
+                res, msg.pdu.getSize(), msg.toString().c_str(), device->toString().c_str());
         state = Error;
         disconnect(); // state -> Disconnected
         return false;
@@ -380,7 +383,7 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
             mtu = p->getMTUSize();
         }
     } else {
-        ERR_PRINT("GATT exchangeMTU send failed");
+        ERR_PRINT("GATT exchangeMTU send failed: %s - %s", req.toString().c_str(), device->toString().c_str());
     }
     PERF_TS_TD("GATT exchangeMTU");
 
@@ -473,7 +476,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
                 done = true;
             }
         } else {
-            ERR_PRINT("GATT discoverPrimary send failed");
+            ERR_PRINT("GATT discoverPrimary send failed: %s - %s", req.toString().c_str(), device->toString().c_str());
             done = true; // send failed
         }
     }
@@ -538,7 +541,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
                 done = true;
             }
         } else {
-            ERR_PRINT("GATT discoverCharacteristics send failed");
+            ERR_PRINT("GATT discoverCharacteristics send failed: %s - %s", req.toString().c_str(), device->toString().c_str());
             done = true;
         }
     }
@@ -579,7 +582,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 
             std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req);
             if( nullptr == pdu ) {
-                ERR_PRINT("GATT discoverDescriptors send failed: %s", req.toString().c_str());
+                ERR_PRINT("GATT discoverDescriptors send failed: %s - %s", req.toString().c_str(), device->toString().c_str());
                 done = true;
                 break;
             }
@@ -597,17 +600,17 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 
                     std::shared_ptr<GATTDescriptor> cd( new GATTDescriptor(charDecl, cd_uuid, cd_handle) );
                     if( cd_handle <= charDecl->value_handle || cd_handle > cd_handle_end ) { // should never happen!
-                        ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: %s",
+                        ERR_PRINT("GATT discoverDescriptors CD handle %s not in range ]%s..%s]: %s - %s",
                                 uint16HexString(cd_handle).c_str(),
                                 uint16HexString(charDecl->value_handle).c_str(), uint16HexString(cd_handle_end).c_str(),
-                                cd->toString().c_str());
+                                cd->toString().c_str(), device->toString().c_str());
                         done = true;
                         break;
 
                     }
                     if( !readDescriptorValue(*cd, 0) ) {
-                        ERR_PRINT("GATT discoverDescriptors readDescriptorValue failed: %s . %s",
-                                req.toString().c_str(), cd->toString().c_str());
+                        ERR_PRINT("GATT discoverDescriptors readDescriptorValue failed: %s . %s - %s",
+                                req.toString().c_str(), cd->toString().c_str(), device->toString().c_str());
                         done = true;
                         break;
                     }
@@ -723,7 +726,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
                 done = true;
             }
         } else {
-            ERR_PRINT("GATT readValue send failed");
+            ERR_PRINT("GATT readValue send failed: handle %u, offset %d: %s", handle, offset, device->toString().c_str());
             done = true;
         }
     }
@@ -787,7 +790,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
             WARN_PRINT("GATT writeValue unexpected reply %s", pdu->toString().c_str());
         }
     } else {
-        ERR_PRINT("GATT writeValue send failed");
+        ERR_PRINT("GATT writeValue send failed: handle %u: %s", handle, device->toString().c_str());
     }
     PERF2_TS_TD("GATT writeValue");
     return res;
