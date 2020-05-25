@@ -218,6 +218,10 @@ bool DBTAdapter::closeHCI()
     return true;
 }
 
+bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
+    return mgmt.isDeviceWhitelisted(dev_id, address);
+}
+
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t min_interval, const uint16_t max_interval,
                                       const uint16_t latency, const uint16_t timeout) {

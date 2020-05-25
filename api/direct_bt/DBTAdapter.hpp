@@ -266,6 +266,11 @@ namespace direct_bt {
             bool closeHCI();
 
             /**
+             * Returns true, if the adapter's device is already whitelisted.
+             */
+            bool isDeviceWhitelisted(const EUI48 &address);
+
+            /**
              * Add the given device to the adapter's autoconnect whitelist.
              * <p>
              * The given connection parameter will be uploaded to the kernel for the given device first.
