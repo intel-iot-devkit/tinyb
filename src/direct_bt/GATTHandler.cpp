@@ -266,15 +266,17 @@ bool GATTHandler::connect() {
      * as we only can install one handler.
      */
     l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
+    // Avoid 'terminate called without an active exception'
+    // as l2capReaderThread may end due to I/O errors.
+    l2capReaderThread.detach();
 
-    const uint16_t mtu = exchangeMTU(ClientMaxMTU);;
-    if( 0 < mtu ) {
-        serverMTU = mtu;
-    } else {
-        WARN_PRINT("Ignoring zero serverMTU.");
-    }
+    serverMTU = exchangeMTU(ClientMaxMTU);;
     usedMTU = std::min((int)ClientMaxMTU, (int)serverMTU);
-
+    if( 0 == serverMTU ) {
+        ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", device->toString().c_str());
+        disconnect();
+        return false;
+    }
     return true;
 }
 
@@ -287,8 +289,8 @@ bool GATTHandler::disconnect() {
     const pthread_t tid_self = pthread_self();
     const pthread_t tid_l2capReader = l2capReaderThread.native_handle();
     const bool is_l2capReader = tid_l2capReader == tid_self;
-    DBG_PRINT("GATTHandler.disconnect Start (is_l2capReader %d)", is_l2capReader);
-    if( l2capReaderRunning && l2capReaderThread.joinable() ) {
+    DBG_PRINT("GATTHandler.disconnect: Start (is_l2capReader %d)", is_l2capReader);
+    if( l2capReaderRunning ) {
         l2capReaderShallStop = true;
         if( !is_l2capReader ) {
             pthread_kill(tid_l2capReader, SIGINT);
@@ -299,14 +301,10 @@ bool GATTHandler::disconnect() {
     state = Disconnected;
 
     if( !is_l2capReader ) {
-        if( l2capReaderRunning && l2capReaderThread.joinable() ) {
+        if( l2capReaderRunning ) {
             // still running ..
-            DBG_PRINT("GATTHandler.disconnect join l2capReaderThread");
-            l2capReaderThread.join();
+            WARN_PRINT("GATTHandler.disconnect: l2capReaderThread still running!");
         }
-    } else {
-        DBG_PRINT("GATTHandler.disconnect l2capReaderThread detaching self");
-        l2capReaderThread.detach();
     }
     l2capReaderThread = std::thread(); // empty
     DBG_PRINT("GATTHandler.disconnect End");
