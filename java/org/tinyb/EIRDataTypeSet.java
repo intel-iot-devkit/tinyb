@@ -24,8 +24,19 @@
  */
 package org.tinyb;
 
+/**
+ * Bit mask of 'Extended Inquiry Response' (EIR) data fields,
+ * indicating a set of related data.
+ *
+ * @since 2.0.0
+ */
 public class EIRDataTypeSet {
 
+    /**
+     * Bits representing of 'Extended Inquiry Response' (EIR) data fields.
+     *
+     * @since 2.0.0
+     */
     public enum DataType {
         NONE         (     0),
         EVT_TYPE     (1 << 0),

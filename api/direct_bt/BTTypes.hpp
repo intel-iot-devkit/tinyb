@@ -346,6 +346,10 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    /**
+     * Bit mask of 'Extended Inquiry Response' (EIR) data fields,
+     * indicating a set of related data.
+     */
     enum class EIRDataType : uint32_t {
         NONE         = 0,
         EVT_TYPE     = (1 << 0),
