@@ -264,7 +264,7 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
     std::vector<GATTServiceRef> primServices;
     std::shared_ptr<GATTHandler> gatt = device->connectGATT();
     if( nullptr == gatt ) {
-        fprintf(stderr, "****** Device Process: GATT Connect failed\n");
+        fprintf(stderr, "****** Device Process: GATT Connect failed: %s\n", device->toString().c_str());
         goto out;
     }
     primServices = device->getGATTServices(); // implicit GATT connect...
@@ -337,7 +337,7 @@ out:
         }
     }
     removeDeviceTask(device);
-    fprintf(stderr, "****** Device Process: End\n");
+    fprintf(stderr, "****** Device Process: End: %s\n", device->toString().c_str());
 }
 
 
