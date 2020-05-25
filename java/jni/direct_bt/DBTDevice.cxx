@@ -291,7 +291,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
-        uint16_t hciHandle = device->connectHCIDefault();
+        uint16_t hciHandle = device->connectDefault();
         if( 0 == hciHandle ) {
             return JNI_FALSE;
         }
@@ -326,15 +326,15 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj,
         uint16_t hciHandle;
         switch( device->addressType ) {
             case BDAddressType::BDADDR_LE_PUBLIC:
-                hciHandle = device->le_connectHCI(HCIAddressType::HCIADDR_LE_PUBLIC, HCIAddressType::HCIADDR_LE_PUBLIC,
-                                                  interval, window, min_interval, max_interval, latency, timeout);
+                hciHandle = device->connectLE(HCIAddressType::HCIADDR_LE_PUBLIC, HCIAddressType::HCIADDR_LE_PUBLIC,
+                                                 interval, window, min_interval, max_interval, latency, timeout);
                 break;
             case BDAddressType::BDADDR_LE_RANDOM:
-                hciHandle = device->le_connectHCI(HCIAddressType::HCIADDR_LE_RANDOM, HCIAddressType::HCIADDR_LE_PUBLIC,
-                                                  interval, window, min_interval, max_interval, latency, timeout);
+                hciHandle = device->connectLE(HCIAddressType::HCIADDR_LE_RANDOM, HCIAddressType::HCIADDR_LE_PUBLIC,
+                                                 interval, window, min_interval, max_interval, latency, timeout);
                 break;
             default:
-                hciHandle = device->connectHCIDefault();
+                hciHandle = device->connectDefault();
                 break;
         }
         if( 0 == hciHandle ) {

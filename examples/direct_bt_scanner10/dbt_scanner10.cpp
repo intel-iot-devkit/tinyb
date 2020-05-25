@@ -246,10 +246,10 @@ static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     device->getAdapter().stopDiscovery();
     bool res = false;
     if( !USE_WHITELIST ) {
-        res = device->connectHCIDefault();
+        res = device->connectDefault();
     }
     fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
-    if( !USE_WHITELIST && !BLOCK_DISCOVERY ) {
+    if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
         device->getAdapter().startDiscovery(false);
     }
 }

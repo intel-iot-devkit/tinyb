@@ -84,6 +84,9 @@ public interface BluetoothDevice extends BluetoothObject
      * The given LE connection parameter will be used instead of the Bluetooth implementation defaults,
      * if this device is of type {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
      * </p>
+     * <p>
+     * Set window to the same value as the interval, enables continuous scanning.
+     * </p>
      *
      * @param interval default value 0x0004
      * @param window default value 0x0004

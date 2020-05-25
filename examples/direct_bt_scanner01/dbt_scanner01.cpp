@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
             // (Without: Overall communication takes ~twice as long!!!)
             //
             if( doHCI_Connect ) {
-                if( 0 == device->connectHCIDefault() ) {
+                if( 0 == device->connectDefault() ) {
                     fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
                 } else {
                     fprintf(stderr, "Connect: Success\n");

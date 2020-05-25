@@ -586,7 +586,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
 
-            device->connectHCIDefault();
+            device->connectDefault();
             return JavaGlobalObj::GetObject(jDeviceRef);
         }
     } catch(...) {

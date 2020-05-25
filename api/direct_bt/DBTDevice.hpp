@@ -151,14 +151,15 @@ namespace direct_bt {
              * Default parameter values are chosen for using public address resolution
              * and usual connection latency, interval etc.
              * </p>
+             * <p>
+             * Set window to the same value as the interval, enables continuous scanning.
+             * </p>
              */
-            uint16_t le_connectHCI(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                   const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                   const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                                   const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                   const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                                   const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                                   const uint8_t initiator_filter=0);
+            uint16_t connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                               const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                               const uint16_t interval=0x0004, const uint16_t window=0x0004,
+                               const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                               const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
@@ -172,14 +173,14 @@ namespace direct_bt {
              * The device is tracked by the managing adapter.
              * </p>
              */
-            uint16_t connectHCI(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                                const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+            uint16_t connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                                  const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
             /**
              * Establish a default HCI connection to this device, using certain default parameter.
              * <p>
              * Depending on this device's addressType,
-             * either a BDADDR_BREDR or BDADDR_LE_PUBLIC connection is attempted.
+             * either a BREDR (BDADDR_BREDR) or LE (BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM) connection is attempted.
              * </p>
              * <p>
              * Returns the new connection handle or 0 if not successful.
@@ -188,11 +189,11 @@ namespace direct_bt {
              * The device is tracked by the managing adapter.
              * </p>
              */
-            uint16_t connectHCIDefault();
+            uint16_t connectDefault();
 
 
             /** Return the HCI connection handle to the LE or BREDR peer, 0 if not connected. */
-            uint16_t getHCIConnectionHandle() const { return hciConnHandle; }
+            uint16_t getConnectionHandle() const { return hciConnHandle; }
 
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
@@ -222,8 +223,8 @@ namespace direct_bt {
             /**
              * Returns a newly established GATT connection or an already open GATT connection.
              * <p>
-             * The HCI le_connect or HCI connect shall be performed first,
-             * to produce best performance. See {@link #connectHCIDefault()}.
+             * The HCI connectLE(..) or connectBREDR(..) shall be performed first,
+             * to produce best performance. See {@link #connectDefault()}.
              * </p>
              * <p>
              * The returned GATTHandler is managed by this device instance

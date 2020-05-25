@@ -594,9 +594,7 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
                                  const HCIAddressType own_mac_type,
                                  const uint16_t interval, const uint16_t window,
                                  const uint16_t min_interval, const uint16_t max_interval,
-                                 const uint16_t latency, const uint16_t supervision_timeout,
-                                 const uint16_t min_ce_length, const uint16_t max_ce_length,
-                                 const uint8_t initiator_filter)
+                                 const uint16_t latency, const uint16_t supervision_timeout)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
@@ -605,6 +603,11 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
     }
 	hci_cp_le_create_conn cp;
 	hci_ev_le_conn_complete rp;
+
+    const uint16_t min_ce_length = 0x0000; // 0x0001 ??
+    const uint16_t max_ce_length = 0x0000; // 0x0001 ??
+    const uint8_t initiator_filter = 0x00;
+
 
 	bzero((void*)&cp, sizeof(cp));
 	cp.scan_interval = cpu_to_le(interval);

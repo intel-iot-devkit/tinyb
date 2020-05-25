@@ -127,15 +127,16 @@ namespace direct_bt {
              * Even if not utilizing a HCI channel, it has been observed that maintaining such
              * enhanced performance on subsequent communication, i.e. GATT over L2CAP.
              * </p>
+             * <p>
+             * Set window to the same value as the interval, enables continuous scanning.
+             * </p>
              */
             uint16_t le_create_conn(const EUI48 &peer_bdaddr,
                                     const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                     const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                     const uint16_t interval=0x0004, const uint16_t window=0x0004,
                                     const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                    const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                                    const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                                    const uint8_t initiator_filter=0);
+                                    const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80);
 
             /**
              * Establish a connection to the given BREDR (non LE).

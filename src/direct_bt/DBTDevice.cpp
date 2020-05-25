@@ -237,15 +237,13 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
     return connInfo;
 }
 
-uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
+uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
         uint16_t interval, uint16_t window,
         uint16_t min_interval, uint16_t max_interval,
-        uint16_t latency, uint16_t supervision_timeout,
-        uint16_t min_ce_length, uint16_t max_ce_length,
-        uint8_t initiator_filter )
+        uint16_t latency, uint16_t supervision_timeout)
 {
     if( 0 < hciConnHandle ) {
-        ERR_PRINT("DBTDevice::le_connect: Already connected");
+        ERR_PRINT("DBTDevice::le_connect: Already connected: %s", toString().c_str());
         return 0;
     }
 
@@ -256,7 +254,7 @@ uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType o
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened");
+        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened: %s", toString().c_str());
         return 0;
     }
     if( !isLEAddressType() ) {
@@ -272,11 +270,10 @@ uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType o
 
     hciConnHandle = hciComm->le_create_conn(
                         address, peer_mac_type, own_mac_type,
-                        interval, window, min_interval, max_interval, latency, supervision_timeout,
-                        min_ce_length, max_ce_length, initiator_filter);
+                        interval, window, min_interval, max_interval, latency, supervision_timeout);
 
     if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::le_connect: Could not create connection");
+        ERR_PRINT("DBTDevice::le_connect: Could not create connection: %s", toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);
@@ -284,10 +281,10 @@ uint16_t DBTDevice::le_connectHCI(HCIAddressType peer_mac_type, HCIAddressType o
     return hciConnHandle;
 }
 
-uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
+uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
     if( 0 < hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connect: Already connected");
+        ERR_PRINT("DBTDevice::connect: Already connected: %s", toString().c_str());
         return 0;
     }
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
@@ -297,7 +294,7 @@ uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_off
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened");
+        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened: %s", toString().c_str());
         return 0;
     }
     if( !isBREDRAddressType() ) {
@@ -314,7 +311,7 @@ uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_off
     hciConnHandle = hciComm->create_conn(address, pkt_type, clock_offset, role_switch);
 
     if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connect: Could not create connection (yet)");
+        ERR_PRINT("DBTDevice::connect: Could not create connection: %s", toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);
@@ -322,15 +319,15 @@ uint16_t DBTDevice::connectHCI(const uint16_t pkt_type, const uint16_t clock_off
     return hciConnHandle;
 }
 
-uint16_t DBTDevice::connectHCIDefault()
+uint16_t DBTDevice::connectDefault()
 {
     switch( addressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return le_connectHCI(HCIAddressType::HCIADDR_LE_PUBLIC);
+            return connectLE(HCIAddressType::HCIADDR_LE_PUBLIC);
         case BDAddressType::BDADDR_LE_RANDOM:
-            return le_connectHCI(HCIAddressType::HCIADDR_LE_RANDOM);
+            return connectLE(HCIAddressType::HCIADDR_LE_RANDOM);
         case BDAddressType::BDADDR_BREDR:
-            return connectHCI();
+            return connectBREDR();
         default:
             ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
             return 0;
