@@ -335,6 +335,7 @@ uint16_t DBTDevice::connectDefault()
 }
 
 void DBTDevice::notifyDisconnected() {
+
     hciConnHandle = 0;
 }
 
@@ -384,9 +385,10 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
     }
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    if( nullptr != gattHandler ) {
+    if( nullptr != gattHandler && gattHandler->isOpen() ) {
         return gattHandler;
     }
+    gattHandler = nullptr;
     std::shared_ptr<GATTHandler> _gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, timeoutMS));
     if( _gattHandler->connect() ) {
         gattHandler = _gattHandler;
