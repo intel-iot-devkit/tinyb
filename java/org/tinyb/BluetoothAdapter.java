@@ -78,7 +78,8 @@ public interface BluetoothAdapter extends BluetoothObject
     /**
      * Add the given device to the adapter's autoconnect whitelist.
      * <p>
-     * The given connection parameter will be uploaded to the kernel for the given device first.
+     * The given LE connection parameter will be uploaded to the kernel for the given device first,
+     * if the device is of type {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
      * </p>
      * <p>
      * Method will reject duplicate devices, in which case it should be removed first.
@@ -114,12 +115,9 @@ public interface BluetoothAdapter extends BluetoothObject
      * @param address
      * @param address_type
      * @param ctype
-     * @param min_interval default value 0x000F
-     * @param max_interval default value 0x000F
-     * @param latency default value 0x0000
-     * @param timeout default value 0x0C80
      * @return {@code true} if successful, otherwise {@code false}.
      *
+     * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
      */
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
