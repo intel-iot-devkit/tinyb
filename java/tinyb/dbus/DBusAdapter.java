@@ -34,12 +34,14 @@ import java.util.List;
 import java.util.UUID;
 
 import org.tinyb.BluetoothAdapter;
+import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.TransportType;
 
 public class DBusAdapter extends DBusObject implements BluetoothAdapter
@@ -61,6 +63,30 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     @Override
     public BluetoothDevice find(final String name, final String address) {
             return find(name, address, 0);
+    }
+
+    @Override
+    public boolean isDeviceWhitelisted(final String address) {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype,
+                                        final short min_interval, final short max_interval,
+                                        final short latency, final short timeout) {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype) {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type) {
+        return false; // FIXME
     }
 
     /* D-Bus method calls: */

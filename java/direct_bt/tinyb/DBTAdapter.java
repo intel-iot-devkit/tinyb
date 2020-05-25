@@ -34,12 +34,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
+import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.TransportType;
 
@@ -132,6 +134,34 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public BluetoothDevice find(final String name, final String address) {
         return find(name, address, 0);
     }
+
+    @Override
+    public native boolean isDeviceWhitelisted(final String address);
+
+    @Override
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype,
+                                        final short min_interval, final short max_interval,
+                                        final short latency, final short timeout) {
+        return addDeviceToWhitelist(address, address_type.value, ctype.value,
+                                    min_interval, max_interval, latency, timeout);
+    }
+    private native boolean addDeviceToWhitelist(final String address, final int address_type, final int ctype,
+                                        final short min_interval, final short max_interval,
+                                        final short latency, final short timeout);
+
+    @Override
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype) {
+        return addDeviceToWhitelist(address, address_type.value, ctype.value);
+    }
+    private native boolean addDeviceToWhitelist(final String address, final int address_type, final int ctype);
+
+    @Override
+    public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type) {
+        return removeDeviceFromWhitelist(address, address_type.value);
+    }
+    private native boolean removeDeviceFromWhitelist(final String address, final int address_type);
 
     /* Unsupported */
 

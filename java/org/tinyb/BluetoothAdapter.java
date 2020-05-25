@@ -67,7 +67,71 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public BluetoothDevice find(String name, String address);
 
-    /* D-Bus specified API */
+    /* Bluetooth specific API */
+
+    /**
+     * Returns true, if the adapter's device is already whitelisted.
+     * @since 2.0.0
+     */
+    public boolean isDeviceWhitelisted(final String address);
+
+    /**
+     * Add the given device to the adapter's autoconnect whitelist.
+     * <p>
+     * The given connection parameter will be uploaded to the kernel for the given device first.
+     * </p>
+     * <p>
+     * Method will reject duplicate devices, in which case it should be removed first.
+     * </p>
+     *
+     * @param address
+     * @param address_type
+     * @param ctype
+     * @param min_interval default value 0x000F
+     * @param max_interval default value 0x000F
+     * @param latency default value 0x0000
+     * @param timeout default value 0x0C80
+     * @return {@code true} if successful, otherwise {@code false}.
+     *
+     * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType)
+     * @since 2.0.0
+     */
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype,
+                                        final short min_interval, final short max_interval,
+                                        final short latency, final short timeout);
+
+    /**
+     * Add the given device to the adapter's autoconnect whitelist.
+     * <p>
+     * This variant of {@link #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType, short, short, short, short)}
+     * uses default connection parameter, which will be uploaded to the kernel for the given device first.
+     * </p>
+     * <p>
+     * Method will reject duplicate devices, in which case it should be removed first.
+     * </p>
+     *
+     * @param address
+     * @param address_type
+     * @param ctype
+     * @param min_interval default value 0x000F
+     * @param max_interval default value 0x000F
+     * @param latency default value 0x0000
+     * @param timeout default value 0x0C80
+     * @return {@code true} if successful, otherwise {@code false}.
+     *
+     * @since 2.0.0
+     */
+    public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
+                                        final HCIWhitelistConnectType ctype);
+
+
+    /**
+     * Remove the given device from the adapter's autoconnect whitelist.
+     * @since 2.0.0
+     */
+    public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type);
+
 
     /** Turns on device discovery if it is disabled.
       * @return TRUE if discovery was successfully enabled

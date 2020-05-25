@@ -388,6 +388,66 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobje
     return 0;
 }
 
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jstring jaddress) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        std::string saddress = from_jstring_to_string(env, jaddress);
+        EUI48 address(saddress);
+        return adapter->isDeviceWhitelisted(address);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType, int jctype,
+                                                               jshort min_interval, jshort max_interval,
+                                                               jshort latency, jshort timeout) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        std::string saddress = from_jstring_to_string(env, jaddress);
+        EUI48 address(saddress);
+        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
+        const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
+        return adapter->addDeviceToWhitelist(address, addressType, ctype, min_interval, max_interval, latency, timeout);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType, int jctype) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        std::string saddress = from_jstring_to_string(env, jaddress);
+        EUI48 address(saddress);
+        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
+        const HCIWhitelistConnectType ctype = static_cast<HCIWhitelistConnectType>( jctype );
+        return adapter->addDeviceToWhitelist(address, addressType, ctype);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType) {
+    try {
+        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
+
+        std::string saddress = from_jstring_to_string(env, jaddress);
+        EUI48 address(saddress);
+        const BDAddressType addressType = static_cast<BDAddressType>( jaddressType );
+        return adapter->removeDeviceFromWhitelist(address, addressType);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         DBTAdapter *nativePtr = getInstance<DBTAdapter>(env, obj);
