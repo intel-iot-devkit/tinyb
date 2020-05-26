@@ -250,7 +250,7 @@ static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
     }
     fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
     if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
-        device->getAdapter().startDiscovery(false);
+        device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
     }
 }
 
