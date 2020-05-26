@@ -335,7 +335,14 @@ uint16_t DBTDevice::connectDefault()
 }
 
 void DBTDevice::notifyDisconnected() {
-
+    std::shared_ptr<GATTHandler> _gattHandler = gattHandler; // avoid race condition, writing to field is mutex locked
+    if( nullptr != _gattHandler ) {
+        DBG_PRINT("DBTDevice::notifyDisconnected: disconnect GATT");
+        // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
+        _gattHandler->disconnect();
+    } else {
+        DBG_PRINT("DBTDevice::notifyDisconnected");
+    }
     hciConnHandle = 0;
 }
 
@@ -388,13 +395,10 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
     if( nullptr != gattHandler && gattHandler->isOpen() ) {
         return gattHandler;
     }
-    gattHandler = nullptr;
-    std::shared_ptr<GATTHandler> _gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, timeoutMS));
-    if( _gattHandler->connect() ) {
-        gattHandler = _gattHandler;
-    } else {
+    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, timeoutMS));
+    if( !gattHandler->connect() ) {
         DBG_PRINT("DBTDevice::connectGATT: Connection failed");
-        _gattHandler = nullptr;
+        gattHandler = nullptr;
     }
     return gattHandler;
 }

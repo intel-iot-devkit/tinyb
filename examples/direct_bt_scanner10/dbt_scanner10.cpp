@@ -255,6 +255,9 @@ static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
 }
 
 static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
+    // earmark device as being processed right-away
+    addDevicesProcessed(device->getAddress());
+
     fprintf(stderr, "****** Device Process: Start %s\n", device->toString().c_str());
     const uint64_t t1 = getCurrentMilliseconds();
 
@@ -330,7 +333,6 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
     }
 
 out:
-    addDevicesProcessed(device->getAddress());
     if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
         if( 1 >= getDeviceTaskCount() ) {
             device->getAdapter().startDiscovery( BLOCK_DISCOVERY );

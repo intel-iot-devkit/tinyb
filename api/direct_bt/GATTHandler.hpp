@@ -95,14 +95,14 @@ namespace direct_bt {
             std::recursive_mutex mtx_write;
             POctets rbuffer;
 
-            State state;
             L2CAPComm l2cap;
             const int timeoutMS;
+            std::atomic<State> state;
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
-            std::thread l2capReaderThread;
-            volatile bool l2capReaderRunning;
-            volatile bool l2capReaderShallStop;
+            std::atomic<pthread_t> l2capReaderThreadId;
+            std::atomic<bool> l2capReaderRunning;
+            std::atomic<bool> l2capReaderShallStop;
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             bool sendIndicationConfirmation = true;

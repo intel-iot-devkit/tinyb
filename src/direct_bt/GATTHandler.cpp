@@ -237,9 +237,10 @@ void GATTHandler::l2capReaderThreadImpl() {
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int timeoutMS)
-: device(device), rbuffer(ClientMaxMTU), state(Disconnected),
+: device(device), rbuffer(ClientMaxMTU),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), timeoutMS(timeoutMS),
-  attPDURing(ATTPDU_RING_CAPACITY), l2capReaderRunning(false), l2capReaderShallStop(false),
+  state(Disconnected), attPDURing(ATTPDU_RING_CAPACITY),
+  l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
 { }
 
@@ -265,12 +266,13 @@ bool GATTHandler::connect() {
      * We utilize DBTManager's mgmthandler_sigaction SIGINT handler,
      * as we only can install one handler.
      */
-    l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
+    std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
+    l2capReaderThreadId = l2capReaderThread.native_handle();
     // Avoid 'terminate called without an active exception'
     // as l2capReaderThread may end due to I/O errors.
     l2capReaderThread.detach();
 
-    serverMTU = exchangeMTU(ClientMaxMTU);;
+    serverMTU = exchangeMTU(ClientMaxMTU); // First point of failure if device exposes no GATT functionality
     usedMTU = std::min((int)ClientMaxMTU, (int)serverMTU);
     if( 0 == serverMTU ) {
         ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", device->toString().c_str());
@@ -283,30 +285,26 @@ bool GATTHandler::connect() {
 bool GATTHandler::disconnect() {
     if( Disconnected >= state ) {
         // not open
+        l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         return false;
     }
 
     const pthread_t tid_self = pthread_self();
-    const pthread_t tid_l2capReader = l2capReaderThread.native_handle();
+    const pthread_t tid_l2capReader = l2capReaderThreadId;
+    l2capReaderThreadId = 0;
     const bool is_l2capReader = tid_l2capReader == tid_self;
-    DBG_PRINT("GATTHandler.disconnect: Start (is_l2capReader %d)", is_l2capReader);
+    DBG_PRINT("GATTHandler.disconnect: Start l2capReader[running %d, shallStop %d, isReader %d, tid %p)",
+            l2capReaderRunning.load(), l2capReaderShallStop.load(), is_l2capReader, (void*)tid_l2capReader);
     if( l2capReaderRunning ) {
         l2capReaderShallStop = true;
-        if( !is_l2capReader ) {
+        if( !is_l2capReader && 0 != tid_l2capReader ) {
             pthread_kill(tid_l2capReader, SIGINT);
         }
     }
 
-    l2cap.disconnect();
+    l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
     state = Disconnected;
 
-    if( !is_l2capReader ) {
-        if( l2capReaderRunning ) {
-            // still running ..
-            WARN_PRINT("GATTHandler.disconnect: l2capReaderThread still running!");
-        }
-    }
-    l2capReaderThread = std::thread(); // empty
     DBG_PRINT("GATTHandler.disconnect End");
     return Disconnected == validateState();
 }
@@ -738,7 +736,7 @@ bool GATTHandler::writeDescriptorValue(const GATTDescriptor & cd) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
-    DBG_PRINT("GATTHandler::writeDesccriptorValue desc %s, value %s", cd.toString().c_str(), value.toString().c_str());
+    DBG_PRINT("GATTHandler::writeDesccriptorValue desc %s", cd.toString().c_str());
     return writeValue(cd.handle, cd.value, true);
 }
 

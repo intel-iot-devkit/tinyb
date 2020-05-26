@@ -44,8 +44,10 @@ extern "C" {
     #include <unistd.h>
     #include <sys/socket.h>
     #include <poll.h>
+    #include <signal.h>
 }
 
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 using namespace direct_bt;
@@ -76,7 +78,6 @@ int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, 
         ERR_PRINT("L2CAPComm::l2cap_open_dev: bind failed");
         goto failed;
     }
-
     return dd;
 
 failed:
@@ -116,6 +117,9 @@ std::string L2CAPComm::getStateString(const State state) {
 L2CAPComm::State L2CAPComm::connect() {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
 
+    DBG_PRINT("L2CAPComm::connect: Start dd %d, %s, psm %u, cid %u, pubDevice %d",
+            _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+
     if( 0 <= _dd ) {
         return state; // already open
     }
@@ -128,6 +132,11 @@ L2CAPComm::State L2CAPComm::connect() {
         goto failure; // open failed
     }
 
+    DBG_PRINT("L2CAPComm::connect: Connect %s, psm %u, cid %u, pubDevice %d",
+            device->getAddress().toString().c_str(), psm, cid, pubaddr);
+
+    tid_connect = pthread_self(); // temporary safe tid to allow interruption
+
     // actual request to connect to remote device
     bzero((void *)&req, sizeof(req));
     req.l2_family = AF_BLUETOOTH;
@@ -138,6 +147,11 @@ L2CAPComm::State L2CAPComm::connect() {
 
     // may block if O_NONBLOCK has not been specified in open_dev(..)
     res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
+
+    tid_connect = 0;
+
+    DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
+            res, errno, strerror(errno), device->getAddress().toString().c_str());
 
     if( !res )
     {
@@ -165,12 +179,27 @@ failure:
 
 bool L2CAPComm::disconnect() {
     if( 0 > _dd ) {
+        DBG_PRINT("L2CAPComm::disconnect: Not connected");
+        state = Disconnected;
         return false;
     }
+    DBG_PRINT("L2CAPComm::disconnect: Start dd %d", _dd.load());
     interruptReadFlag = true;
+
+    // interrupt L2CAP ::connect(..), avoiding prolonged hang
+    pthread_t _tid_connect = tid_connect;
+    tid_connect = 0;
+    if( 0 != _tid_connect ) {
+        pthread_t tid_self = pthread_self();
+        if( tid_self != _tid_connect ) {
+            pthread_kill(_tid_connect, SIGINT);
+        }
+    }
+
     l2cap_close_dev(_dd);
     _dd = -1;
     state = Disconnected;
+    DBG_PRINT("L2CAPComm::disconnect: End dd %d", _dd.load());
     return true;
 }
 

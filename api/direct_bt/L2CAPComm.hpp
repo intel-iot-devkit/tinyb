@@ -64,18 +64,20 @@ namespace direct_bt {
             static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr, const bool blocking);
             static int l2cap_close_dev(int dd);
 
-            State state;
             std::shared_ptr<DBTDevice> device;
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;
             const bool blocking;
-            int _dd; // the l2cap socket
-            volatile bool interruptReadFlag; // for forced disconnect
+            std::atomic<State> state;
+            std::atomic<int> _dd; // the l2cap socket
+            std::atomic<bool> interruptReadFlag; // for forced disconnect
+            std::atomic<pthread_t> tid_connect;
 
         public:
             L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true, const bool blocking=true)
-            : state(Disconnected), device(device), psm(psm), cid(cid), pubaddr(pubaddr), blocking(blocking), _dd(-1), interruptReadFlag(false) {}
+            : device(device), psm(psm), cid(cid), pubaddr(pubaddr), blocking(blocking),
+              state(Disconnected), _dd(-1), interruptReadFlag(false), tid_connect(0) {}
             ~L2CAPComm() { disconnect(); }
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
