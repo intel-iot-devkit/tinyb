@@ -177,7 +177,7 @@ void GATTHandler::l2capReaderThreadImpl() {
         int len;
         if( Disconnected >= validateState() ) {
             // not open
-            ERR_PRINT("GATTHandler::l2capReaderThread: Not connected -> Stop: %s", device->toString().c_str());
+            ERR_PRINT("GATTHandler::l2capReaderThread: Not connected -> Stop");
             l2capReaderShallStop = true;
             break;
         }
@@ -228,7 +228,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error: %s", device->toString().c_str());
+            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error");
         }
     }
 
