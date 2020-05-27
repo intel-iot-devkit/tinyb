@@ -252,9 +252,9 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
-    std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
+    std::shared_ptr<HCIComm> hciComm = adapter.openHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Opening adapter's HCIComm failed: %s", toString().c_str());
         return 0;
     }
     if( !isLEAddressType() ) {
@@ -292,9 +292,9 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
         throw InternalError("DBTDevice::connectBREDR: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
-    std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
+    std::shared_ptr<HCIComm> hciComm = adapter.openHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        ERR_PRINT("DBTDevice::le_connect: Adapter's HCIComm not opened: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Opening adapter's HCIComm failed: %s", toString().c_str());
         return 0;
     }
     if( !isBREDRAddressType() ) {

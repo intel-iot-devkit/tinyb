@@ -395,12 +395,6 @@ int main(int argc, char *argv[])
 
     adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
-    std::shared_ptr<HCIComm> hci = adapter.openHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-        exit(1);
-    }
-
     if( USE_WHITELIST ) {
         for (auto it = whitelist.begin(); it != whitelist.end(); ++it) {
             std::shared_ptr<EUI48> wlmac = *it;
@@ -430,7 +424,6 @@ int main(int argc, char *argv[])
     } while( !done );
 
 out:
-    adapter.closeHCI();
     return 0;
 }
 
