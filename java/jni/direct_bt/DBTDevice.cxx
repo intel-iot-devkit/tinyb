@@ -286,7 +286,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_remove(JNIEnv *env, jobject obj)
     return JNI_TRUE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
+jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
@@ -315,10 +315,10 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj,
-                                                     jshort interval, jshort window,
-                                                     jshort min_interval, jshort max_interval,
-                                                     jshort latency, jshort timeout)
+jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobject obj,
+                                                             jshort interval, jshort window,
+                                                             jshort min_interval, jshort max_interval,
+                                                             jshort latency, jshort timeout)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
@@ -327,11 +327,11 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl(JNIEnv *env, jobject obj,
         switch( device->addressType ) {
             case BDAddressType::BDADDR_LE_PUBLIC:
                 hciHandle = device->connectLE(HCIAddressType::HCIADDR_LE_PUBLIC, HCIAddressType::HCIADDR_LE_PUBLIC,
-                                                 interval, window, min_interval, max_interval, latency, timeout);
+                                              interval, window, min_interval, max_interval, latency, timeout);
                 break;
             case BDAddressType::BDADDR_LE_RANDOM:
                 hciHandle = device->connectLE(HCIAddressType::HCIADDR_LE_RANDOM, HCIAddressType::HCIADDR_LE_PUBLIC,
-                                                 interval, window, min_interval, max_interval, latency, timeout);
+                                              interval, window, min_interval, max_interval, latency, timeout);
                 break;
             default:
                 hciHandle = device->connectDefault();
