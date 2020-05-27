@@ -267,13 +267,18 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         DBTManager & mngr = adapter.getManager();
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
-
-    hciConnHandle = hciComm->le_create_conn(
-                        address, peer_mac_type, own_mac_type,
-                        interval, window, min_interval, max_interval, latency, supervision_timeout);
-
-    if ( 0 == hciConnHandle ) {
-        WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: %s", toString().c_str());
+    HCIErrorCode status = hciComm->le_create_conn(&hciConnHandle, address,
+                                                  peer_mac_type, own_mac_type,
+                                                  interval, window, min_interval, max_interval,
+                                                  latency, supervision_timeout);
+    if( HCIErrorCode::COMMAND_DISALLOWED == status ) {
+        WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d %s on %s",
+                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+        return 0;
+    }
+    if ( HCIErrorCode::SUCCESS != status ) {
+        ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
+                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);
@@ -308,10 +313,10 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
-    hciConnHandle = hciComm->create_conn(address, pkt_type, clock_offset, role_switch);
-
-    if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: %s", toString().c_str());
+    HCIErrorCode status = hciComm->create_conn(&hciConnHandle, address, pkt_type, clock_offset, role_switch);
+    if ( HCIErrorCode::SUCCESS != status ) {
+        ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
+                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);

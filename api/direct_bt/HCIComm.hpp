@@ -212,19 +212,19 @@ namespace direct_bt {
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
              */
-            uint16_t le_create_conn(const EUI48 &peer_bdaddr,
-                                    const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                    const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                    const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                                    const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                    const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80);
+            HCIErrorCode le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
+                                        const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                        const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                        const uint16_t interval=0x0004, const uint16_t window=0x0004,
+                                        const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
+                                        const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80);
 
             /**
              * Establish a connection to the given BREDR (non LE).
              */
-            uint16_t create_conn(const EUI48 &bdaddr,
-                                 const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                                 const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+            HCIErrorCode create_conn(uint16_t * handle_return, const EUI48 &bdaddr,
+                                     const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                                     const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
             /**
              * Disconnect an established connection.

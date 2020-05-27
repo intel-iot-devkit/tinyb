@@ -678,19 +678,22 @@ bool HCIComm::le_enable_scan(const HCIAddressType own_type,
     return true;
 }
 
-uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
-                                 const HCIAddressType peer_mac_type,
-                                 const HCIAddressType own_mac_type,
-                                 const uint16_t interval, const uint16_t window,
-                                 const uint16_t min_interval, const uint16_t max_interval,
-                                 const uint16_t latency, const uint16_t supervision_timeout)
+HCIErrorCode HCIComm::le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
+                                     const HCIAddressType peer_mac_type,
+                                     const HCIAddressType own_mac_type,
+                                     const uint16_t interval, const uint16_t window,
+                                     const uint16_t min_interval, const uint16_t max_interval,
+                                     const uint16_t latency, const uint16_t supervision_timeout)
 {
 
     /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command */
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( nullptr != handle_return ) {
+        *handle_return = 0;
+    }
     if( 0 > _dd ) {
         ERR_PRINT("hci_le_create_conn: device not open");
-        return 0;
+        return HCIErrorCode::INTERNAL_FAILURE;
     }
 	hci_cp_le_create_conn cp;
 	hci_ev_le_conn_complete rp;
@@ -698,7 +701,6 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
     const uint16_t min_ce_length = 0x0000;
     const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
-
 
 	bzero((void*)&cp, sizeof(cp));
 	cp.scan_interval = cpu_to_le(interval);
@@ -719,29 +721,36 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
 	if( HCIErrorCode::COMMAND_DISALLOWED == res ) {
         WARN_PRINT("hci_le_create_conn: COMMAND_DISALLOWED reply, connect may still be in progress. error status 0x%2.2X (%s), errno %d %s",
                   static_cast<uint8_t>(res), getHCIErrorCodeString(res).c_str(), errno, strerror(errno));
-        return 0;
-	} else if( HCIErrorCode::SUCCESS != res ) {
+        return res;
+	}
+	if( HCIErrorCode::SUCCESS != res ) {
         ERR_PRINT("hci_le_create_conn: error status 0x%2.2X (%s), errno %d %s",
                 static_cast<uint8_t>(res), getHCIErrorCodeString(res).c_str(), errno, strerror(errno));
-        return 0;
+        return res;
     }
     HCIErrorCode status = static_cast<HCIErrorCode>(rp.status);
     if( HCIErrorCode::SUCCESS != status ) {
         errno = EIO;
         ERR_PRINT("hci_le_create_conn: error status 0x%2.2X (%s), errno %d %s",
                 rp.status, getHCIErrorCodeString(status).c_str(), errno, strerror(errno));
-        return 0;
+        return status;
     }
-	return rp.handle;
+    if( nullptr != handle_return ) {
+        *handle_return = rp.handle;
+    }
+    return HCIErrorCode::SUCCESS;
 }
 
-uint16_t HCIComm::create_conn(const EUI48 &bdaddr, const uint16_t pkt_type,
-                              const uint16_t clock_offset, const uint8_t role_switch)
+HCIErrorCode HCIComm::create_conn(uint16_t * handle_return, const EUI48 &bdaddr, const uint16_t pkt_type,
+                                  const uint16_t clock_offset, const uint8_t role_switch)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( nullptr != handle_return ) {
+        *handle_return = 0;
+    }
     if( 0 > _dd ) {
         ERR_PRINT("hci_create_conn: device not open");
-        return 0;
+        return HCIErrorCode::INTERNAL_FAILURE;
     }
     hci_cp_create_conn cp;
     hci_ev_conn_complete rp;
@@ -759,16 +768,19 @@ uint16_t HCIComm::create_conn(const EUI48 &bdaddr, const uint16_t pkt_type,
     if( HCIErrorCode::SUCCESS != res ) {
         ERR_PRINT("hci_create_conn: error status 0x%2.2X (%s), errno %d %s",
                 static_cast<uint8_t>(res), getHCIErrorCodeString(res).c_str(), errno, strerror(errno));
-        return 0;
+        return res;
     }
     HCIErrorCode status = static_cast<HCIErrorCode>(rp.status);
     if( HCIErrorCode::SUCCESS != status ) {
         errno = EIO;
         ERR_PRINT("hci_create_conn: error status 0x%2.2X (%s), errno %d %s",
                 rp.status, getHCIErrorCodeString(status).c_str(), errno, strerror(errno));
-        return 0;
+        return status;
     }
-    return rp.handle;
+    if( nullptr != handle_return ) {
+        *handle_return = rp.handle;
+    }
+    return HCIErrorCode::SUCCESS;
 }
 
 } /* namespace direct_bt */
