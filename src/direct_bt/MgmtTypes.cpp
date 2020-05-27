@@ -57,7 +57,7 @@ using namespace direct_bt;
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
-#define STATUS_ENUM(X) \
+#define MGMT_STATUS_ENUM(X) \
     X(SUCCESS) \
     X(UNKNOWN_COMMAND) \
     X(NOT_CONNECTED) \
@@ -80,9 +80,11 @@ using namespace direct_bt;
     X(ALREADY_PAIRED) \
     X(PERMISSION_DENIED)
 
+#define MGMT_STATUS_CASE_TO_STRING(V) case MgmtStatus::V: return #V;
+
 std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
     switch(opc) {
-        STATUS_ENUM(CASE_TO_STRING)
+        MGMT_STATUS_ENUM(MGMT_STATUS_CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown Status";
@@ -92,7 +94,7 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
 // *************************************************
 // *************************************************
 
-#define OPERATION_ENUM(X) \
+#define MGMT_OPCODE_ENUM(X) \
     X(READ_VERSION) \
     X(READ_COMMANDS) \
     X(READ_INDEX_LIST) \
@@ -164,9 +166,11 @@ std::string direct_bt::getMgmtStatusString(const MgmtStatus opc) {
     X(SET_PHY_CONFIGURATION) \
     X(SET_BLOCKED_KEYS)
 
+#define MGMT_OPCODE_CASE_TO_STRING(V) case MgmtOpcode::V: return #V;
+
 std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
     switch(op) {
-        OPERATION_ENUM(CASE_TO_STRING)
+        MGMT_OPCODE_ENUM(MGMT_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown Operation";
@@ -176,7 +180,7 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
 // *************************************************
 // *************************************************
 
-#define OPCODE_ENUM(X) \
+#define MGMT_EV_OPCODE_ENUM(X) \
     X(CMD_COMPLETE) \
     X(CMD_STATUS) \
     X(CONTROLLER_ERROR) \
@@ -216,16 +220,18 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
     X(EXT_INFO_CHANGED) \
     X(PHY_CONFIGURATION_CHANGED)
 
+#define MGMT_EV_OPCODE_CASE_TO_STRING(V) case MgmtEvent::Opcode::V: return #V;
+
 std::string MgmtEvent::getOpcodeString(const Opcode opc) {
     switch(opc) {
-        OPCODE_ENUM(CASE_TO_STRING)
+        MGMT_EV_OPCODE_ENUM(MGMT_EV_OPCODE_CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown Opcode";
 }
 
 MgmtEvent* MgmtEvent::getSpecialized(const uint8_t * buffer, int const buffer_size) {
-    const uint8_t opc = *buffer;
+    const MgmtEvent::Opcode opc = static_cast<MgmtEvent::Opcode>( get_uint16(buffer, 0, true /* littleEndian */) );
     switch( opc ) {
         case MgmtEvent::Opcode::CMD_COMPLETE:
             if( buffer_size >= MgmtEvtAdapterInfo::getRequiredSize() ) {

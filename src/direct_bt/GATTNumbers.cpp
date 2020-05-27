@@ -368,7 +368,8 @@ std::string PeriphalPreferredConnectionParameters::toString() const {
 }
 
 std::string GenericAccess::toString() const {
-    return "'"+deviceName+"'[appearance "+uint16HexString(appearance)+" ("+AppearanceCatToString(appearance)+"), "+prefConnParam.toString()+"]";
+    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+"), "+
+            prefConnParam.toString()+"]";
 }
 
 PnP_ID::PnP_ID(const TROOctets &source)

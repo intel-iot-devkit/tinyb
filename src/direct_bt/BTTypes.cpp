@@ -106,7 +106,7 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
-#define GENERIC_ACCESS_APPEARANCECAT_ENUM(X) \
+#define APPEARANCECAT_ENUM(X) \
     X(UNKNOWN) \
     X(GENERIC_PHONE) \
     X(GENERIC_COMPUTER) \
@@ -166,9 +166,11 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD) \
     X(OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD) \
 
+#define APPEARANCE_CASE_TO_STRING(V) case AppearanceCat::V: return #V;
+
 std::string direct_bt::AppearanceCatToString(const AppearanceCat v) {
     switch(v) {
-        GENERIC_ACCESS_APPEARANCECAT_ENUM(CASE_TO_STRING)
+        APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown";
@@ -284,7 +286,7 @@ std::string EInfoReport::toString() const {
                     ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+
-                    ", appearance "+uint16HexString(appearance, true)+" ("+AppearanceCatToString(appearance)+
+                    ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
                     "], device-id[source "+uint16HexString(did_source, true)+
@@ -369,7 +371,7 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
         count++;
 
         // Guaranteed: elem_len >= 0!
-        switch ( elem_type ) {
+        switch ( static_cast<GAP_T>(elem_type) ) {
             case GAP_T::FLAGS:
                 if( 1 <= elem_len ) {
                     setFlags(*const_uint8_to_const_int8_ptr(elem_data));
@@ -434,12 +436,12 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
                     setAppearance(static_cast<AppearanceCat>( get_uint16(elem_data, 0, true /* littleEndian */) ));
                 }
                 break;
-            case SSP_HASH_C192:
+            case GAP_T::SSP_HASH_C192:
                 if( 16 <= elem_len ) {
                     setHash(elem_data);
                 }
                 break;
-            case SSP_RANDOMIZER_R192:
+            case GAP_T::SSP_RANDOMIZER_R192:
                 if( 16 <= elem_len ) {
                     setRandomizer(elem_data);
                 }

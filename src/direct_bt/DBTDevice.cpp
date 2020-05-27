@@ -121,7 +121,7 @@ std::string DBTDevice::toString() const {
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+
             "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
-            ", appearance "+uint16HexString(appearance)+" ("+AppearanceCatToString(appearance)+
+            ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
     if(services.size() > 0 ) {
         out.append("\n");

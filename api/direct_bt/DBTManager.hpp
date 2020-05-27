@@ -122,11 +122,11 @@ namespace direct_bt {
             volatile bool mgmtReaderShallStop;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
-            std::array<MgmtAdapterEventCallbackList, MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT> mgmtAdapterEventCallbackLists;
+            std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;
             std::recursive_mutex mtx_callbackLists;
             inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
-                if( opc >= mgmtAdapterEventCallbackLists.size() ) {
-                    throw IndexOutOfBoundsException(opc, 1, mgmtAdapterEventCallbackLists.size(), E_FILE_LINE);
+                if( static_cast<uint16_t>(opc) >= mgmtAdapterEventCallbackLists.size() ) {
+                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), 1, mgmtAdapterEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
 

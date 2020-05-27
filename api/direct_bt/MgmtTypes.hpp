@@ -69,7 +69,7 @@ namespace direct_bt {
         MGMT_HEADER_SIZE       = 6
     };
 
-    enum MgmtStatus : uint8_t {
+    enum class MgmtStatus : uint8_t {
         SUCCESS             = 0x00,
         UNKNOWN_COMMAND     = 0x01,
         NOT_CONNECTED       = 0x02,
@@ -95,7 +95,7 @@ namespace direct_bt {
 
     std::string getMgmtStatusString(const MgmtStatus opc);
 
-    enum MgmtOpcode : uint16_t {
+    enum class MgmtOpcode : uint16_t {
         READ_VERSION            = 0x0001,
         READ_COMMANDS           = 0x0002,
         READ_INDEX_LIST         = 0x0003,
@@ -190,13 +190,14 @@ namespace direct_bt {
             inline static void checkOpcode(const MgmtOpcode has, const MgmtOpcode min, const MgmtOpcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has opcode "+uint16HexString(has, true)+
-                                     ", not within range ["+uint16HexString(min, true)+".."+uint16HexString(max, true)+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has opcode "+uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not within range ["+uint16HexString(static_cast<uint16_t>(min))+
+                                     ".."+uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const {
-                return "opcode="+uint8HexString(getOpcode(), true)+" "+getOpcodeString()+", devID "+uint16HexString(getDevID(), true);
+                return "opcode="+uint8HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+uint16HexString(getDevID());
             }
             virtual std::string valueString() const {
                 const int psz = getParamSize();
@@ -209,9 +210,9 @@ namespace direct_bt {
             MgmtCommand(const MgmtOpcode opc, const uint16_t dev_id, const uint16_t param_size=0)
             : pdu(MGMT_HEADER_SIZE+param_size)
             {
-                checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
+                checkOpcode(opc, MgmtOpcode::READ_VERSION, MgmtOpcode::SET_BLOCKED_KEYS);
 
-                pdu.put_uint16(0, opc);
+                pdu.put_uint16(0, static_cast<uint16_t>(opc));
                 pdu.put_uint16(2, dev_id);
                 pdu.put_uint16(4, param_size);
             }
@@ -356,7 +357,7 @@ namespace direct_bt {
         protected:
             std::string valueString() const override {
                 const std::string ps = "address "+getAddress().toString()+", addressType "+getBDAddressTypeString(getAddressType())+
-                                       ", connectionType "+std::to_string(getConnectionType());
+                                       ", connectionType "+std::to_string(static_cast<uint8_t>(getConnectionType()));
                 return "param[size "+std::to_string(getParamSize())+", data["+ps+"]], tsz "+std::to_string(getTotalSize());
             }
 
@@ -508,7 +509,7 @@ namespace direct_bt {
     class MgmtEvent
     {
         public:
-            enum Opcode : uint16_t {
+            enum class Opcode : uint16_t {
                 CMD_COMPLETE               = 0x0001,
                 CMD_STATUS                 = 0x0002,
                 CONTROLLER_ERROR           = 0x0003,
@@ -560,20 +561,22 @@ namespace direct_bt {
             static void checkOpcode(const Opcode has, const Opcode min, const Opcode max)
             {
                 if( has < min || has > max ) {
-                    throw MgmtOpcodeException("Has evcode "+uint16HexString(has, true)+
-                                     ", not within range ["+uint16HexString(min, true)+".."+uint16HexString(max, true)+"]", E_FILE_LINE);
+                    throw MgmtOpcodeException("Has evcode "+uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not within range ["+uint16HexString(static_cast<uint16_t>(min))+
+                                     ".."+uint16HexString(static_cast<uint16_t>(max))+"]", E_FILE_LINE);
                 }
             }
             static void checkOpcode(const Opcode has, const Opcode exp)
             {
                 if( has != exp ) {
-                    throw MgmtOpcodeException("Has evcode "+uint16HexString(has, true)+
-                                     ", not matching "+uint16HexString(exp, true), E_FILE_LINE);
+                    throw MgmtOpcodeException("Has evcode "+uint16HexString(static_cast<uint16_t>(has))+
+                                     ", not matching "+uint16HexString(static_cast<uint16_t>(exp)), E_FILE_LINE);
                 }
             }
 
             virtual std::string baseString() const {
-                return "opcode="+uint8HexString(getOpcode(), true)+" "+getOpcodeString()+", devID "+uint16HexString(getDevID(), true);
+                return "opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
+                        " "+getOpcodeString()+", devID "+uint16HexString(getDevID(), true);
             }
             virtual std::string valueString() const {
                 const int d_sz = getDataSize();
@@ -596,14 +599,14 @@ namespace direct_bt {
             : pdu(buffer, buffer_len), ts_creation(getCurrentMilliseconds())
             {
                 pdu.check_range(0, MGMT_HEADER_SIZE+getParamSize());
-                checkOpcode(getOpcode(), CMD_COMPLETE, PHY_CONFIGURATION_CHANGED);
+                checkOpcode(getOpcode(), Opcode::CMD_COMPLETE, Opcode::PHY_CONFIGURATION_CHANGED);
             }
             MgmtEvent(const Opcode opc, const uint16_t dev_id, const uint16_t param_size=0)
             : pdu(MGMT_HEADER_SIZE+param_size), ts_creation(getCurrentMilliseconds())
             {
                 // checkOpcode(opc, READ_VERSION, SET_BLOCKED_KEYS);
 
-                pdu.put_uint16(0, opc);
+                pdu.put_uint16(0, static_cast<uint16_t>(opc));
                 pdu.put_uint16(2, dev_id);
                 pdu.put_uint16(4, param_size);
             }
@@ -641,8 +644,9 @@ namespace direct_bt {
     {
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", req-opcode="+uint8HexString(getReqOpcode(), true)+" "+getMgmtOpcodeString(getReqOpcode())+
-                       ", status "+uint8HexString(getStatus(), true)+" "+getMgmtStatusString(getStatus());
+                return MgmtEvent::baseString()+", req-opcode="+uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
+                        " "+getMgmtOpcodeString(getReqOpcode())+
+                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getMgmtStatusString(getStatus());
             }
 
         public:
@@ -653,7 +657,7 @@ namespace direct_bt {
             MgmtEvtCmdComplete(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), CMD_COMPLETE);
+                checkOpcode(getOpcode(), Opcode::CMD_COMPLETE);
             }
             MgmtOpcode getReqOpcode() const { return static_cast<MgmtOpcode>( pdu.get_uint16(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(MGMT_HEADER_SIZE+2) ); }
@@ -687,15 +691,16 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", req-opcode="+uint8HexString(getReqOpcode(), true)+" "+getMgmtOpcodeString(getReqOpcode())+
-                       ", status "+uint8HexString(getStatus(), true)+" "+getMgmtStatusString(getStatus());
+                return MgmtEvent::baseString()+", req-opcode="+uint16HexString(static_cast<uint16_t>(getReqOpcode()))+
+                       " "+getMgmtOpcodeString(getReqOpcode())+
+                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
             }
 
         public:
             MgmtEvtCmdStatus(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), CMD_STATUS);
+                checkOpcode(getOpcode(), Opcode::CMD_STATUS);
             }
             MgmtOpcode getReqOpcode() const { return static_cast<MgmtOpcode>( pdu.get_uint16(MGMT_HEADER_SIZE) ); }
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(MGMT_HEADER_SIZE+2) ); }
@@ -723,7 +728,7 @@ namespace direct_bt {
             MgmtEvtDiscovering(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DISCOVERING);
+                checkOpcode(getOpcode(), Opcode::DISCOVERING);
             }
             ScanType getScanType() const { return static_cast<ScanType>( pdu.get_uint8(MGMT_HEADER_SIZE) ); }
             bool getEnabled() const { return 0 != pdu.get_uint8(MGMT_HEADER_SIZE+1); }
@@ -749,7 +754,7 @@ namespace direct_bt {
             MgmtEvtNewSettings(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), NEW_SETTINGS);
+                checkOpcode(getOpcode(), Opcode::NEW_SETTINGS);
             }
             AdapterSetting getSettings() const { return static_cast<AdapterSetting>( pdu.get_uint32(MGMT_HEADER_SIZE) ); }
 
@@ -783,7 +788,7 @@ namespace direct_bt {
             MgmtEvtNewConnectionParam(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), NEW_CONN_PARAM);
+                checkOpcode(getOpcode(), Opcode::NEW_CONN_PARAM);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -822,7 +827,7 @@ namespace direct_bt {
             MgmtEvtDeviceFound(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_FOUND);
+                checkOpcode(getOpcode(), Opcode::DEVICE_FOUND);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -858,7 +863,7 @@ namespace direct_bt {
             MgmtEvtDeviceConnected(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_CONNECTED);
+                checkOpcode(getOpcode(), Opcode::DEVICE_CONNECTED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -883,14 +888,14 @@ namespace direct_bt {
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status "+uint8HexString(getStatus(), true)+" "+getMgmtStatusString(getStatus());
+                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
             }
 
         public:
             MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), CONNECT_FAILED);
+                checkOpcode(getOpcode(), Opcode::CONNECT_FAILED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -921,10 +926,10 @@ namespace direct_bt {
             MgmtEvtDeviceDisconnected(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_DISCONNECTED);
+                checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
             MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, uint8_t reason)
-            : MgmtEvent(DEVICE_DISCONNECTED, dev_id, 6+1+1)
+            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
@@ -960,7 +965,7 @@ namespace direct_bt {
             MgmtEvtPinCodeRequest(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), PIN_CODE_REQUEST);
+                checkOpcode(getOpcode(), Opcode::PIN_CODE_REQUEST);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -991,7 +996,7 @@ namespace direct_bt {
             MgmtEvtDeviceWhitelistAdded(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_WHITELIST_ADDED);
+                checkOpcode(getOpcode(), Opcode::DEVICE_WHITELIST_ADDED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1020,7 +1025,7 @@ namespace direct_bt {
             MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_WHITELIST_REMOVED);
+                checkOpcode(getOpcode(), Opcode::DEVICE_WHITELIST_REMOVED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1047,7 +1052,7 @@ namespace direct_bt {
             MgmtEvtDeviceUnpaired(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), DEVICE_UNPAIRED);
+                checkOpcode(getOpcode(), Opcode::DEVICE_UNPAIRED);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1075,11 +1080,11 @@ namespace direct_bt {
             MgmtEvtLocalNameChanged(const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), LOCAL_NAME_CHANGED);
+                checkOpcode(getOpcode(), Opcode::LOCAL_NAME_CHANGED);
                 pdu.check_range(0, getRequiredSize());
             }
             MgmtEvtLocalNameChanged(const uint16_t dev_id, const std::string & name, const std::string & short_name)
-            : MgmtEvent(LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
+            : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
             {
                 pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
                 pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);

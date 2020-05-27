@@ -106,7 +106,7 @@ namespace direct_bt {
     /**
      * BT Core Spec v5.2:  Vol 3, Part A L2CAP Spec: 6 State Machine
      */
-    enum L2CAP_States : uint8_t {
+    enum class L2CAP_States : uint8_t {
         CLOSED,
         WAIT_CONNECTED,
         WAIT_CONNECTED_RSP,
@@ -141,7 +141,7 @@ namespace direct_bt {
      * https://www.bluetooth.com/specifications/archived-specifications/
      * </p>
      */
-    enum GAP_T : uint8_t {
+    enum class GAP_T : uint8_t {
         // Last sync 2020-02-17 with <https://www.bluetooth.com/specifications/assigned-numbers/generic-access-profile/>
         /** Flags */
         FLAGS                   = 0x01,
@@ -255,7 +255,7 @@ namespace direct_bt {
         MANUFACTURE_SPECIFIC    = 0xFF
     };
 
-    enum AppearanceCat : uint16_t {
+    enum class AppearanceCat : uint16_t {
         UNKNOWN = 0,
         GENERIC_PHONE = 64,
         GENERIC_COMPUTER = 128,
@@ -315,7 +315,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
-    extern std::string AppearanceCatToString(const AppearanceCat v);
+    std::string AppearanceCatToString(const AppearanceCat v);
 
     // *************************************************
     // *************************************************
