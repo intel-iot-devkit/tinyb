@@ -243,13 +243,13 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         uint16_t latency, uint16_t supervision_timeout)
 {
     if( 0 < hciConnHandle ) {
-        ERR_PRINT("DBTDevice::le_connect: Already connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
         return 0;
     }
 
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+        throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
@@ -258,7 +258,7 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         return 0;
     }
     if( !isLEAddressType() ) {
-        ERR_PRINT("DBTDevice::le_connect: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
         return 0;
     }
 
@@ -273,7 +273,7 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
                         interval, window, min_interval, max_interval, latency, supervision_timeout);
 
     if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::le_connect: Could not create connection: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Could not create connection: %s", toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);
@@ -284,12 +284,12 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
 uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
     if( 0 < hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connect: Already connected: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
         return 0;
     }
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+        throw InternalError("DBTDevice::connectBREDR: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
@@ -298,7 +298,7 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
         return 0;
     }
     if( !isBREDRAddressType() ) {
-        ERR_PRINT("DBTDevice::connect: Not a BDADDR_BREDR address: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Not a BDADDR_BREDR address: %s", toString().c_str());
         return 0;
     }
 
@@ -311,7 +311,7 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
     hciConnHandle = hciComm->create_conn(address, pkt_type, clock_offset, role_switch);
 
     if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connect: Could not create connection: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: %s", toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);
@@ -329,7 +329,7 @@ uint16_t DBTDevice::connectDefault()
         case BDAddressType::BDADDR_BREDR:
             return connectBREDR();
         default:
-            ERR_PRINT("DBTDevice::defaultConnect: Not a valid address type: %s", toString().c_str());
+            ERR_PRINT("DBTDevice::connectDefault: Not a valid address type: %s", toString().c_str());
             return 0;
     }
 }
@@ -358,11 +358,8 @@ void DBTDevice::disconnect(const uint8_t reason) {
     }
 
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not opened");
-        goto errout;
-    }
-
-    {
+        DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not open: %s", toString().c_str());
+    } else {
         const uint16_t _connHandle = hciConnHandle;
         hciConnHandle = 0;
         if( !hciComm->disconnect(_connHandle, reason) ) {

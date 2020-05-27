@@ -190,7 +190,7 @@ std::shared_ptr<HCIComm> DBTAdapter::openHCI()
     HCIComm *s = new HCIComm(dev_id, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
     if( !s->isOpen() ) {
         delete s;
-        ERR_PRINT("Could not open HCIComm");
+        ERR_PRINT("Could not open HCIComm: %s", toString().c_str());
         return nullptr;
     }
     hciComm = std::shared_ptr<HCIComm>( s );
