@@ -223,6 +223,7 @@ int main(int argc, char *argv[])
             if( doHCI_Connect ) {
                 if( 0 == device->connectDefault() ) {
                     fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
+                    // we tolerate the failed immediate connect, as it might happen at a later time
                 } else {
                     fprintf(stderr, "Connect: Success\n");
                 }

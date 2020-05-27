@@ -272,7 +272,7 @@ public class ScannerTinyB10 {
                 } else {
                     t3 = BluetoothUtils.getCurrentMilliseconds();
                     System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                    continue; // forever loop
+                    // we tolerate the failed immediate connect, as it might happen at a later time
                 }
 
                 synchronized( servicesResolvedNotification ) {

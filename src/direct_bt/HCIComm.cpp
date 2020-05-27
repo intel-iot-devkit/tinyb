@@ -425,8 +425,8 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                 if (exp_event != HCI_EV_CMD_STATUS) {
                     if ( HCIErrorCode::SUCCESS != status ) {
                         errno = EIO;
-                        ERR_PRINT("hci_send_req: event exp 0x%X != has 0x%X, error status 0x%2.2X (%s)", exp_event,
-                                hdr->evt, cs->status, getHCIErrorCodeString(status).c_str());
+                        DBG_PRINT("hci_send_req: event exp 0x%X != has 0x%X, error status 0x%2.2X (%s)", exp_event,
+                                  hdr->evt, cs->status, getHCIErrorCodeString(status).c_str());
                         res = status;
                         goto failed;
                     }
@@ -695,8 +695,8 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
 	hci_cp_le_create_conn cp;
 	hci_ev_le_conn_complete rp;
 
-    const uint16_t min_ce_length = 0x0001; // 0x0001 ??
-    const uint16_t max_ce_length = 0x0001; // 0x0001 ??
+    const uint16_t min_ce_length = 0x0000;
+    const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
 
 
@@ -716,7 +716,11 @@ uint16_t HCIComm::le_create_conn(const EUI48 &peer_bdaddr,
 
 	HCIErrorCode res = send_req( hci_opcode_pack(OGF_LE_CTL, HCI_OP_LE_CREATE_CONN), &cp, sizeof(cp),
                                  HCI_EV_LE_CONN_COMPLETE, &rp, sizeof(rp) );
-    if( HCIErrorCode::SUCCESS != res ) {
+	if( HCIErrorCode::COMMAND_DISALLOWED == res ) {
+        WARN_PRINT("hci_le_create_conn: COMMAND_DISALLOWED reply, connect may still be in progress. error status 0x%2.2X (%s), errno %d %s",
+                  static_cast<uint8_t>(res), getHCIErrorCodeString(res).c_str(), errno, strerror(errno));
+        return 0;
+	} else if( HCIErrorCode::SUCCESS != res ) {
         ERR_PRINT("hci_le_create_conn: error status 0x%2.2X (%s), errno %d %s",
                 static_cast<uint8_t>(res), getHCIErrorCodeString(res).c_str(), errno, strerror(errno));
         return 0;

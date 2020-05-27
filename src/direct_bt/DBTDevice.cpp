@@ -273,7 +273,7 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
                         interval, window, min_interval, max_interval, latency, supervision_timeout);
 
     if ( 0 == hciConnHandle ) {
-        ERR_PRINT("DBTDevice::connectLE: Could not create connection: %s", toString().c_str());
+        WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: %s", toString().c_str());
         return 0;
     }
     adapter.addConnectedDevice(sharedInstance);

@@ -292,9 +292,9 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         uint16_t hciHandle = device->connectDefault();
-        if( 0 == hciHandle ) {
-            return JNI_FALSE;
-        }
+        (void) hciHandle;
+        // we tolerate the failed immediate connect, as it might happen at a later time
+
         std::shared_ptr<GATTHandler> gatt = device->connectGATT();
         if( nullptr != gatt ) {
             // FIXME: Split up - may offload to other thread
