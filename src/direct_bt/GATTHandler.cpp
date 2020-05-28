@@ -193,10 +193,18 @@ void GATTHandler::l2capReaderThreadImpl() {
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
+                int i=0;
                 for_each_idx_mtx(mtx_eventListenerList, eventListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
-                    if( l->match(*decl) ) {
-                        l->notificationReceived(decl, data, timestamp);
+                    try {
+                        if( l->match(*decl) ) {
+                            l->notificationReceived(decl, data, timestamp);
+                        }
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
+                                i+1, eventListenerList.size(),
+                                aptrHexString((void*)l.get()).c_str(), e.what());
                     }
+                    i++;
                 });
                 attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
@@ -211,10 +219,18 @@ void GATTHandler::l2capReaderThreadImpl() {
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
+                int i=0;
                 for_each_idx_mtx(mtx_eventListenerList, eventListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
-                    if( l->match(*decl) ) {
-                        l->indicationReceived(decl, data, timestamp, cfmSent);
+                    try {
+                        if( l->match(*decl) ) {
+                            l->indicationReceived(decl, data, timestamp, cfmSent);
+                        }
+                    } catch (std::exception &e) {
+                        ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
+                                i+1, eventListenerList.size(),
+                                aptrHexString((void*)l.get()).c_str(), cfmSent, e.what());
                     }
+                    i++;
                 });
                 attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF == opc ) {

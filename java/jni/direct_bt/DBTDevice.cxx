@@ -102,44 +102,36 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
     void notificationReceived(GATTCharacteristicRef charDecl,
                               std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        try {
-            JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
-            jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
+        JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
+        jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
 
-            const size_t value_size = charValue->getSize();
-            jbyteArray jvalue = env->NewByteArray((jsize)value_size);
-            env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
-            java_exception_check_and_throw(env, E_FILE_LINE);
+        const size_t value_size = charValue->getSize();
+        jbyteArray jvalue = env->NewByteArray((jsize)value_size);
+        env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+        java_exception_check_and_throw(env, E_FILE_LINE);
 
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mNotificationReceived,
-                                jCharDecl, jvalue, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        env->CallVoidMethod(listenerObjRef->getObject(), mNotificationReceived,
+                            jCharDecl, jvalue, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
     void indicationReceived(GATTCharacteristicRef charDecl,
                             std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
                             const bool confirmationSent) override {
         JNIEnv *env = *jni_env;
-        try {
-            JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
-            jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
+        JavaGlobalObj::check(charDecl->getJavaObject(), E_FILE_LINE);
+        jobject jCharDecl = JavaGlobalObj::GetObject(charDecl->getJavaObject());
 
-            const size_t value_size = charValue->getSize();
-            jbyteArray jvalue = env->NewByteArray((jsize)value_size);
-            env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
-            java_exception_check_and_throw(env, E_FILE_LINE);
+        const size_t value_size = charValue->getSize();
+        jbyteArray jvalue = env->NewByteArray((jsize)value_size);
+        env->SetByteArrayRegion(jvalue, 0, (jsize)value_size, (const jbyte *)charValue->get_ptr());
+        java_exception_check_and_throw(env, E_FILE_LINE);
 
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mIndicationReceived,
-                                jCharDecl, jvalue, (jlong)timestamp, (jboolean)confirmationSent);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        env->CallVoidMethod(listenerObjRef->getObject(), mIndicationReceived,
+                            jCharDecl, jvalue, (jlong)timestamp, (jboolean)confirmationSent);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
 

@@ -230,7 +230,7 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
             if( nullptr == sharedInstance ) {
                 ERR_PRINT("DBTDevice::getConnectionInfo: Device unknown to adapter and not tracked: %s", toString().c_str());
             } else {
-                adapter.sendDeviceUpdated(sharedInstance, getCurrentMilliseconds(), updateMask);
+                adapter.sendDeviceUpdated("getConnectionInfo", sharedInstance, getCurrentMilliseconds(), updateMask);
             }
         }
     }
@@ -439,7 +439,7 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
             if( nullptr == sharedInstance ) {
                 ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
             } else {
-                adapter.sendDeviceUpdated(sharedInstance, ts, updateMask);
+                adapter.sendDeviceUpdated("getGATTServices", sharedInstance, ts, updateMask);
             }
         }
     }

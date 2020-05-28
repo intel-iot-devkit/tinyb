@@ -193,129 +193,89 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        try {
-            #ifdef VERBOSE_ON
-                fprintf(stderr, "****** Native Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                        direct_bt::adapterSettingsToString(oldmask).c_str(),
-                        direct_bt::adapterSettingsToString(newmask).c_str(),
-                        direct_bt::adapterSettingsToString(changedmask).c_str());
-                fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", a.toString().c_str());
-            #endif
-            (void)a;
-            jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(adapterSettingOld, E_FILE_LINE);
+        DBG_PRINT("****** JNI Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
+                    direct_bt::adapterSettingsToString(oldmask).c_str(),
+                    direct_bt::adapterSettingsToString(newmask).c_str(),
+                    direct_bt::adapterSettingsToString(changedmask).c_str());
+        (void)a;
+        jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(adapterSettingOld, E_FILE_LINE);
 
-            jobject adapterSettingNew = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)newmask);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(adapterSettingNew, E_FILE_LINE);
+        jobject adapterSettingNew = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)newmask);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(adapterSettingNew, E_FILE_LINE);
 
-            jobject adapterSettingChanged = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)changedmask);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(adapterSettingChanged, E_FILE_LINE);
+        jobject adapterSettingChanged = env->NewObject(adapterSettingsClazzRef->getClass(), adapterSettingsClazzCtor,  (jint)changedmask);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(adapterSettingChanged, E_FILE_LINE);
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mAdapterSettingsChanged,
-                    JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        env->CallVoidMethod(listenerObjRef->getObject(), mAdapterSettingsChanged,
+                JavaGlobalObj::GetObject(adapterObjRef), adapterSettingOld, adapterSettingNew, adapterSettingChanged, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
     void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        try {
-            #ifdef VERBOSE_ON
-                fprintf(stderr, "****** DBTAdapter Device DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
-                fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
-            #endif
-            (void)a;
-            env->CallVoidMethod(listenerObjRef->getObject(), mDiscoveringChanged, JavaGlobalObj::GetObject(adapterObjRef),
-                                (jboolean)enabled, (jboolean)keepAlive, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        DBG_PRINT("****** JNI Adapter Device DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
+        (void)a;
+        env->CallVoidMethod(listenerObjRef->getObject(), mDiscoveringChanged, JavaGlobalObj::GetObject(adapterObjRef),
+                            (jboolean)enabled, (jboolean)keepAlive, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        try {
-            #ifdef VERBOSE_ON
-                fprintf(stderr, "****** Native Adapter Device FOUND__: %s\n", device->toString().c_str());
-                fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
-            #endif
-            jobject jdevice;
-            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            if( JavaGlobalObj::isValid(jDeviceRef) ) {
-                // Reuse Java instance
-                jdevice = JavaGlobalObj::GetObject(jDeviceRef);
-            } else {
-                // New Java instance
-                // Device(final long nativeInstance, final Adapter adptr, final String address, final String name)
-                const jstring addr = from_string_to_jstring(env, device->getAddressString());
-                const jstring name = from_string_to_jstring(env, device->getName());
-                java_exception_check_and_throw(env, E_FILE_LINE);
-                jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
-                        (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
-                java_exception_check_and_throw(env, E_FILE_LINE);
-                JNIGlobalRef::check(jDevice, E_FILE_LINE);
-                std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-                JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-                jdevice = JavaGlobalObj::GetObject(jDeviceRef);
-            }
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound, jdevice, (jlong)timestamp);
+        DBG_PRINT("****** JNI Adapter Device FOUND__: %s\n", device->toString(true).c_str());
+        jobject jdevice;
+        std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+        if( JavaGlobalObj::isValid(jDeviceRef) ) {
+            // Reuse Java instance
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+        } else {
+            // New Java instance
+            // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
+            const jstring addr = from_string_to_jstring(env, device->getAddressString());
+            const jstring name = from_string_to_jstring(env, device->getName());
             java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
+            jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
+                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            JNIGlobalRef::check(jDevice, E_FILE_LINE);
+            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
         }
+        env->CallVoidMethod(listenerObjRef->getObject(), mDeviceFound, jdevice, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
         JNIEnv *env = *jni_env;
-        try {
-            #ifdef VERBOSE_ON
-                fprintf(stderr, "****** Native Adapter Device UPDATED: %s of %s\n", direct_bt::eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
-                fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
-            #endif
-            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
+        DBG_PRINT("****** JNI Adapter Device UPDATED: %s of %s\n", direct_bt::eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
+        std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+        JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+        env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
 
-            jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef->getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(eirDataTypeSet, E_FILE_LINE);
+        jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef->getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        JNIGlobalRef::check(eirDataTypeSet, E_FILE_LINE);
 
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated, JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataTypeSet);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        env->CallVoidMethod(listenerObjRef->getObject(), mDeviceUpdated, JavaGlobalObj::GetObject(jDeviceRef), (jlong)timestamp, eirDataTypeSet);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
     void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        try {
-            #ifdef VERBOSE_ON
-                fprintf(stderr, "****** DBTAdapter Device CONNECTION: connected %d: %s\n", connected, device->toString().c_str());
-                fprintf(stderr, "Status DBTAdapter:\n");
-                fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
-            #endif
-            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-            env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnectionChanged, JavaGlobalObj::GetObject(jDeviceRef),
-                               (jboolean)connected, (jlong)timestamp);
-            java_exception_check_and_throw(env, E_FILE_LINE);
-        } catch(...) {
-            rethrow_and_raise_java_exception(env);
-        }
+        DBG_PRINT("****** JNI Adapter Device CONNECTION: connected %d: %s\n", connected, device->toString(true).c_str());
+        std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+        JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+        env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnectionChanged, JavaGlobalObj::GetObject(jDeviceRef),
+                           (jboolean)connected, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
 std::atomic<int> JNIAdapterStatusListener::iname_next(0);
@@ -324,13 +284,13 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
 {
     try {
         if( nullptr == statusListener ) {
-            throw IllegalArgumentException("statusListener is null", E_FILE_LINE);
+            throw IllegalArgumentException("JNIAdapterStatusListener::addStatusListener: statusListener is null", E_FILE_LINE);
         }
         {
             JNIAdapterStatusListener * pre =
                     getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
             if( nullptr != pre ) {
-                WARN_PRINT("statusListener's nativeInstance not null, already in use");
+                WARN_PRINT("JNIAdapterStatusListener::addStatusListener: statusListener's nativeInstance not null, already in use");
                 return false;
             }
         }
@@ -348,11 +308,14 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
 
         if( adapter->addStatusListener( l ) ) {
             setInstance(env, statusListener, l.get());
+            DBG_PRINT("JNIAdapterStatusListener::addStatusListener: OK: %s", l->toString().c_str());
             return JNI_TRUE;
         }
+        ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", l->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
+    DBG_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED XX");
     return JNI_FALSE;
 }
 

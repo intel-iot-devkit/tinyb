@@ -87,7 +87,13 @@ void DBTManager::mgmtReaderThreadImpl() {
                 int invokeCount = 0;
                 for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
                     if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
-                        it->getCallback().invoke(event);
+                        try {
+                            it->getCallback().invoke(event);
+                        } catch (std::exception &e) {
+                            ERR_PRINT("DBTManager::fwdPacketReceived-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
+                                    invokeCount+1, mgmtEventCallbackList.size(),
+                                    it->toString().c_str(), e.what());
+                        }
                         invokeCount++;
                     }
                 }
