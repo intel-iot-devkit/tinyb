@@ -389,6 +389,16 @@ namespace direct_bt {
     /** trim copy */
     std::string trimCopy(const std::string &s);
 
+    /**
+     * Returns all valid consecutive UTF-8 characters within buffer
+     * in the range up to buffer_size or until EOS.
+     * <p>
+     * In case a non UTF-8 character has been detected,
+     * the content will be cut off and the decoding loop ends.
+     * </p>
+     */
+    std::string getUTF8String(const uint8_t *buffer, const size_t buffer_size);
+
 } // namespace direct_bt
 
 #endif /* BASIC_TYPES_HPP_ */

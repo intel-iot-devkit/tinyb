@@ -71,4 +71,15 @@ public class BluetoothUtils {
     }
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
+
+    /**
+     * Returns all valid consecutive UTF-8 characters within buffer
+     * in the range offset -> size or until EOS.
+     * <p>
+     * In case a non UTF-8 character has been detected,
+     * the content will be cut off and the decoding loop ends.
+     * </p>
+     */
+    public static native String getUTF8String(final byte[] buffer, final int offset, final int size);
+
 }

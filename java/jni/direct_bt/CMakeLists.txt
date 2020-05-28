@@ -33,6 +33,7 @@ set (direct_bt_JNI_SRCS
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTGattService.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTManager.cxx
   ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTObject.cxx
+  ${PROJECT_SOURCE_DIR}/java/jni/direct_bt/DBTUtils.cxx
 )
 
 set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--as-needed")
