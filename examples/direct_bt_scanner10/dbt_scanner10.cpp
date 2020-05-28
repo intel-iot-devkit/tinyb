@@ -162,7 +162,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
         if( waitForDevice == EUI48_ANY_DEVICE ||
-            ( waitForDevice == device->address && !isDeviceProcessed(waitForDevice) ) )
+            ( waitForDevice == device->address &&
+              !isDeviceProcessed(waitForDevice) &&
+              !isDeviceTaskInProgress(device)
+            ) )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString().c_str());
             std::thread dc(::deviceConnectTask, device);
@@ -191,7 +194,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
         if( waitForDevice == EUI48_ANY_DEVICE ||
-            ( waitForDevice == device->address && !isDeviceProcessed(waitForDevice) ) )
+            ( waitForDevice == device->address &&
+              !isDeviceProcessed(waitForDevice) &&
+              !isDeviceTaskInProgress(device)
+            ) )
         {
             fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString().c_str());
             addDeviceTask( device );
@@ -264,13 +270,7 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
     //
     // GATT Service Processing
     //
-    std::vector<GATTServiceRef> primServices;
-    std::shared_ptr<GATTHandler> gatt = device->connectGATT();
-    if( nullptr == gatt ) {
-        fprintf(stderr, "****** Device Process: GATT Connect failed: %s\n", device->toString().c_str());
-        goto out;
-    }
-    primServices = device->getGATTServices(); // implicit GATT connect...
+    std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
     if( primServices.size() > 0 ) {
         const uint64_t t5 = getCurrentMilliseconds();
         {
@@ -309,7 +309,8 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
                 if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
                     POctets value(GATTHandler::ClientMaxMTU, 0);
                     if( serviceChar.readValue(value) ) {
-                        fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
+                        std::string sval = getUTF8String(value.get_ptr(), value.getSize());
+                        fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());
                     }
                 }
                 bool cccdEnableResult[2];
@@ -332,7 +333,6 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
         device->getAdapter().startDiscovery(false);
     }
 
-out:
     if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
         if( 1 >= getDeviceTaskCount() ) {
             device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
@@ -401,17 +401,15 @@ int main(int argc, char *argv[])
             bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
             fprintf(stderr, "Added to whitelist: res %d, address %s\n", res, wlmac->toString().c_str());
         }
-    }
-
-    if( !USE_WHITELIST ) {
+    } else {
         fprintf(stderr, "****** Main: startDiscovery()\n");
         if( !adapter.startDiscovery( BLOCK_DISCOVERY ) ) {
             perror("Adapter start discovery failed");
-            goto out;
+            done = true;
         }
     }
 
-    do {
+    while( !done ) {
         if( waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) ) {
             fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
             done = true;
@@ -421,9 +419,8 @@ int main(int argc, char *argv[])
             }
         }
         sleep(5);
-    } while( !done );
+    }
 
-out:
     return 0;
 }
 
