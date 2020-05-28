@@ -215,10 +215,14 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
                 // FIXME: Split up - may offload to other thread
                 // Currently service resolution performed in connectImpl()!
                 servicesResolved = false;
-                userServicesResolvedNotificationsCB.run(Boolean.FALSE);
+                if( null != userServicesResolvedNotificationsCB ) {
+                    userServicesResolvedNotificationsCB.run(Boolean.FALSE);
+                }
 
                 connected = false;
-                userConnectedNotificationsCB.run(Boolean.FALSE);
+                if( null != userConnectedNotificationsCB ) {
+                    userConnectedNotificationsCB.run(Boolean.FALSE);
+                }
             }
         }
         return res;
@@ -232,12 +236,16 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             res = connectImpl();
             if( res ) {
                 connected = true;
-                userConnectedNotificationsCB.run(Boolean.TRUE);
+                if( null != userConnectedNotificationsCB ) {
+                    userConnectedNotificationsCB.run(Boolean.TRUE);
+                }
 
                 // FIXME: Split up - may offload to other thread
                 // Currently service resolution performed in connectImpl()!
                 servicesResolved = true;
-                userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+                if( null != userServicesResolvedNotificationsCB ) {
+                    userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+                }
             }
         }
         return res;
@@ -253,12 +261,16 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             res = connectImpl(interval, window, min_interval, max_interval, latency, timeout);
             if( res ) {
                 connected = true;
-                userConnectedNotificationsCB.run(Boolean.TRUE);
+                if( null != userConnectedNotificationsCB ) {
+                    userConnectedNotificationsCB.run(Boolean.TRUE);
+                }
 
                 // FIXME: Split up - may offload to other thread
                 // Currently service resolution performed in connectImpl()!
                 servicesResolved = true;
-                userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+                if( null != userServicesResolvedNotificationsCB ) {
+                    userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+                }
             }
         }
         return res;
