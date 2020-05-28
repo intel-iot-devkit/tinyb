@@ -104,6 +104,8 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac) c
 // *************************************************
 
 bool DBTAdapter::validateDevInfo() {
+    keepDiscoveringAlive = false;
+
     if( !mgmt.isOpen() || 0 > dev_id ) {
         return false;
     }
@@ -435,7 +437,7 @@ std::string DBTAdapter::toString() const {
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(dev_id %d, keepDiscoveringAlive %d): %s",
-        dev_id, keepDiscoveringAlive, e->toString().c_str());
+        dev_id, keepDiscoveringAlive.load(), e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     const bool enabled = event.getEnabled();
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {

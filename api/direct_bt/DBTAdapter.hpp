@@ -160,7 +160,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
-            volatile bool keepDiscoveringAlive = false;
+            std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             bool validateDevInfo();
 
@@ -196,7 +196,7 @@ namespace direct_bt {
 
             void startDiscoveryBackground();
 
-            void sendDeviceUpdated(std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
+            void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
 
 
         public:

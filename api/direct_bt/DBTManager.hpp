@@ -118,8 +118,8 @@ namespace direct_bt {
 
             LFRingbuffer<std::shared_ptr<MgmtEvent>, nullptr> mgmtEventRing;
             std::thread mgmtReaderThread;
-            volatile bool mgmtReaderRunning;
-            volatile bool mgmtReaderShallStop;
+            std::atomic<bool> mgmtReaderRunning;
+            std::atomic<bool> mgmtReaderShallStop;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;

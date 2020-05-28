@@ -85,11 +85,11 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
         std::condition_variable cvRead;
         std::condition_variable cvWrite;
 
-        /* final */ int volatile capacityPlusOne;  // not final due to grow
-        /* final */ T * volatile array; // not final due to grow
-        int volatile readPos;
-        int volatile writePos;
-        std::atomic_int size;
+        /* final */ int capacityPlusOne;  // not final due to grow
+        /* final */ T * array; // not final due to grow
+        std::atomic<int> readPos;
+        std::atomic<int> writePos;
+        std::atomic<int> size;
 
         T * newArray(const int count) {
             return new T[count];
