@@ -75,15 +75,47 @@ namespace direct_bt {
                 return true;
             }
 
+            /**
+             * DBTAdapter setting(s) changed.
+             * @param a the adapter which settings have changed.
+             * @param oldmask the previous settings mask
+             * @param newmask the new settings mask
+             * @param changedmask the changes settings mask
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
             virtual void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                                 const AdapterSetting changedmask, const uint64_t timestamp) = 0;
 
+            /**
+             * DBTAdapter's discovery state has changed, i.e. enabled or disabled.
+             * @param a the adapter which discovering state has changed.
+             * @param enabled the new discovery state
+             * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
             virtual void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) = 0;
 
+            /**
+             * A DBTDevice has been newly discovered.
+             * @param device the found device
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
             virtual void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
 
+            /**
+             * An already discovered DBTDevice has been updated.
+             * @param device the updated device
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             * @param updateMask the update mask of changed data
+             */
             virtual void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
 
+            /**
+             * DBTDevice's connection status has changed.
+             * @param device the device which connection state has changed
+             * @param connected if {@code true} the device has been connected, otherwise disconnected
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
             virtual void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) = 0;
 
             virtual ~AdapterStatusListener() {}

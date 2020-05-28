@@ -51,26 +51,47 @@ public abstract class AdapterStatusListener {
     @SuppressWarnings("unused")
     private long nativeInstance;
 
-    /** A {@link BluetoothAdapter} setting has been changed. */
+    /**
+     * {@link BluetoothAdapter} setting(s) changed.
+     * @param adapter the adapter which settings have changed.
+     * @param oldmask the previous settings mask
+     * @param newmask the new settings mask
+     * @param changedmask the changes settings mask
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     */
     public void adapterSettingsChanged(final BluetoothAdapter adapter,
                                        final AdapterSettings oldmask, final AdapterSettings newmask,
                                        final AdapterSettings changedmask, final long timestamp) { }
 
     /**
      * {@link BluetoothAdapter}'s discovery state has changed, i.e. enabled or disabled.
-     * @param adapter the adapter which state has changed.
+     * @param adapter the adapter which discovering state has changed.
      * @param enabled the new discovery state
      * @param keepAlive if {@code true}, the discovery will be re-enabled if disabled by the underlying Bluetooth implementation.
-     * @param timestamp the time in monotonic milliseconds when this event occured.
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
     public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) { }
 
-    /** A {@link BluetoothDevice} has been newly discovered. */
+    /**
+     * A {@link BluetoothDevice} has been newly discovered.
+     * @param device the found device
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     */
     public void deviceFound(final BluetoothDevice device, final long timestamp) { }
 
-    /** An already discovered {@link BluetoothDevice} has been updated. */
+    /**
+     * An already discovered {@link BluetoothDevice} has been updated.
+     * @param device the updated device
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     * @param updateMask the update mask of changed data
+     */
     public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) { }
 
-    /** {@link BluetoothDevice}'s connection status has changed. */
+    /**
+     * {@link BluetoothDevice}'s connection status has changed.
+     * @param device the device which connection state has changed
+     * @param connected if {@code true} the device has been connected, otherwise disconnected
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     */
     public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) { }
 };
