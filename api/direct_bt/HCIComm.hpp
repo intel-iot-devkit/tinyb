@@ -229,7 +229,7 @@ namespace direct_bt {
             /**
              * Disconnect an established connection.
              */
-            bool disconnect(const uint16_t conn_handle, const uint8_t reason=0);
+            bool disconnect(const uint16_t conn_handle, const uint8_t reason=static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION));
 
         private:
             static inline void set_bit(int nr, void *addr)

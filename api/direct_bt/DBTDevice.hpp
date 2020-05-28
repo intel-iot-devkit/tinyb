@@ -209,7 +209,7 @@ namespace direct_bt {
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
              */
-            void disconnect(const uint8_t reason=0);
+            void disconnect(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
 
             /**
              * Disconnects this device via disconnect(..) and
