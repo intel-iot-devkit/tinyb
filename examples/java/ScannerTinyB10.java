@@ -194,7 +194,9 @@ public class ScannerTinyB10 {
         // GATT Service Processing
         //
         final List<BluetoothGattService> primServices = device.getServices(); // implicit GATT connect...
-        if( primServices.size() > 0 ) {
+        if( null == primServices ) {
+            System.err.println("****** Device Process: getServices() failed " + device.toString());
+        } else {
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
             {
                 final long td15 = t5 - t1; // connected -> gatt-complete

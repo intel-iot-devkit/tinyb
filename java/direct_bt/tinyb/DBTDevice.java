@@ -73,10 +73,18 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
         @Override
         public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
-            DBTDevice.this.connected = connected;
-            synchronized(userCallbackLock) {
-                if( null != userConnectedNotificationsCB ) {
-                    userConnectedNotificationsCB.run(connected);
+            if( DBTDevice.this.connected != connected ) {
+                DBTDevice.this.connected = connected;
+                synchronized(userCallbackLock) {
+                    if( null != userConnectedNotificationsCB ) {
+                        userConnectedNotificationsCB.run(connected);
+                    }
+                    if( connected && !servicesResolved ) {
+                        servicesResolved = true;
+                        if( null != userServicesResolvedNotificationsCB ) {
+                            userServicesResolvedNotificationsCB.run(Boolean.TRUE);
+                        }
+                    }
                 }
             }
         }

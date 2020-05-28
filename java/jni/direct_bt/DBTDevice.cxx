@@ -284,23 +284,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__(JNIEnv *env, jobject obj)
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         uint16_t hciHandle = device->connectDefault();
-        (void) hciHandle;
-        // we tolerate the failed immediate connect, as it might happen at a later time
-
-        std::shared_ptr<GATTHandler> gatt = device->connectGATT();
-        if( nullptr != gatt ) {
-            // FIXME: Split up - may offload to other thread
-            std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
-            if( services.size() > 0 ) {
-                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
-                if( nullptr != ga ) {
-                    env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
-                    java_exception_check_and_throw(env, E_FILE_LINE);
-                    DBG_PRINT("GATT connected to GenericAccess: %s", ga->toString().c_str());
-                }
-            }
-            return JNI_TRUE;
-        }
+        return 0 != hciHandle ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -329,23 +313,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobjec
                 hciHandle = device->connectDefault();
                 break;
         }
-        if( 0 == hciHandle ) {
-            return JNI_FALSE;
-        }
-        std::shared_ptr<GATTHandler> gatt = device->connectGATT();
-        if( nullptr != gatt ) {
-            // FIXME: Split up - may offload to other thread
-            std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
-            if( services.size() > 0 ) {
-                std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
-                if( nullptr != ga ) {
-                    env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
-                    java_exception_check_and_throw(env, E_FILE_LINE);
-                    DBG_PRINT("GATT connected to GenericAccess: %s", ga->toString().c_str());
-                }
-            }
-            return JNI_TRUE;
-        }
+        return 0 != hciHandle ? JNI_TRUE : JNI_FALSE;
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
@@ -363,7 +331,19 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required
+        std::shared_ptr<GATTHandler> gatt = device->connectGATT();
+        if( nullptr == gatt || !gatt->isOpen() ) {
+            return nullptr;
+        }
+        std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
+        if( services.size() > 0 ) {
+            std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
+            if( nullptr != ga ) {
+                env->SetShortField(obj, getField(env, obj, "appearance", "S"), static_cast<jshort>(ga->appearance));
+                java_exception_check_and_throw(env, E_FILE_LINE);
+                DBG_PRINT("DBTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
+            }
+        }
 
         // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
         //                final String type_uuid, final short handleStart, final short handleEnd)
