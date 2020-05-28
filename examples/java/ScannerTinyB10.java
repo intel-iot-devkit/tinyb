@@ -88,9 +88,9 @@ public class ScannerTinyB10 {
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
             System.err.println("****** FOUND__: "+device.toString());
 
-            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType() &&
-                BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() ) {
-                System.err.println("****** FOUND__-2: Skip non LE "+device.toString());
+            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType()
+                /** && BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() */ ) {
+                System.err.println("****** FOUND__-2: Skip non public LE "+device.toString());
                 return;
             }
             if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
@@ -127,11 +127,6 @@ public class ScannerTinyB10 {
                 return;
             }
 
-            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType() &&
-                BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() ) {
-                System.err.println("****** CONNECTED-2: Skip non LE "+device.toString());
-                return;
-            }
             if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
                 ( waitForDevice.equals(device.getAddress()) &&
                   !devicesProcessed.contains(waitForDevice) &&

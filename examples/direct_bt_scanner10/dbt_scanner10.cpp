@@ -156,9 +156,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
 
-        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
-            BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
-            fprintf(stderr, "****** FOUND__-2: Skip non LE %s\n", device->toString(true).c_str());
+        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType()
+            /** && BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() */ ) {
+            fprintf(stderr, "****** FOUND__-2: Skip non public LE %s\n", device->toString(true).c_str());
             return;
         }
         if( waitForDevice == EUI48_ANY_DEVICE ||
@@ -188,11 +188,6 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
 
-        if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
-            BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
-            fprintf(stderr, "****** CONNECTED-2: Skip non LE %s\n", device->toString(true).c_str());
-            return;
-        }
         if( waitForDevice == EUI48_ANY_DEVICE ||
             ( waitForDevice == device->address &&
               !isDeviceProcessed(waitForDevice) &&
