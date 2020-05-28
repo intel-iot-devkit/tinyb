@@ -192,7 +192,7 @@ bool L2CAPComm::disconnect() {
     if( 0 != _tid_connect ) {
         pthread_t tid_self = pthread_self();
         if( tid_self != _tid_connect ) {
-            pthread_kill(_tid_connect, SIGINT);
+            pthread_kill(_tid_connect, SIGALRM);
         }
     }
 

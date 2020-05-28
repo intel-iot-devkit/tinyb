@@ -279,7 +279,7 @@ bool GATTHandler::connect() {
     }
 
     /**
-     * We utilize DBTManager's mgmthandler_sigaction SIGINT handler,
+     * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
     std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
@@ -314,7 +314,7 @@ bool GATTHandler::disconnect() {
     if( l2capReaderRunning ) {
         l2capReaderShallStop = true;
         if( !is_l2capReader && 0 != tid_l2capReader ) {
-            pthread_kill(tid_l2capReader, SIGINT);
+            pthread_kill(tid_l2capReader, SIGALRM);
         }
     }
 

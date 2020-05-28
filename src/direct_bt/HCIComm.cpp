@@ -204,7 +204,7 @@ int HCIComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
 #if 0
         sigset_t sigmask;
         sigemptyset(&sigmask);
-        // sigaddset(&sigmask, SIGINT);
+        // sigaddset(&sigmask, SIGALRM);
         struct timespec timeout_ts;
         timeout_ts.tv_sec=0;
         timeout_ts.tv_nsec=(long)timeoutMS*1000000L;
@@ -362,7 +362,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
 #if 0
 			sigset_t sigmask;
 			sigemptyset(&sigmask);
-			sigaddset(&sigmask, SIGINT);
+			sigaddset(&sigmask, SIGALRM);
 			struct timespec timeout_ts;
 			timeout_ts.tv_sec=0;
 			timeout_ts.tv_nsec=(long)_timeoutMS*1000000L;

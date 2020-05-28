@@ -134,19 +134,19 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
             DBTManager::pidSelf, pidMatch);
     (void)ucontext;
 
-    if( !pidMatch || SIGINT != sig ) {
+    if( !pidMatch || SIGALRM != sig ) {
         return;
     }
 #if 0
     // We do not de-install the handler on single use,
-    // as we act for multiple SIGINT events within direct-bt
+    // as we act for multiple SIGALRM events within direct-bt
     {
         struct sigaction sa_setup;
         bzero(&sa_setup, sizeof(sa_setup));
         sa_setup.sa_handler = SIG_DFL;
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
-        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
             ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
         }
     }
@@ -250,7 +250,7 @@ DBTManager::DBTManager(const BTMode btMode)
         sa_setup.sa_sigaction = mgmthandler_sigaction;
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = SA_SIGINFO;
-        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
             ERR_PRINT("DBTManager::open: Setting sighandler");
         }
     }
@@ -392,7 +392,7 @@ void DBTManager::close() {
     if( mgmtReaderRunning && mgmtReaderThread.joinable() ) {
         mgmtReaderShallStop = true;
         pthread_t tid = mgmtReaderThread.native_handle();
-        pthread_kill(tid, SIGINT);
+        pthread_kill(tid, SIGALRM);
     }
     comm.close();
 
@@ -408,7 +408,7 @@ void DBTManager::close() {
         sa_setup.sa_handler = SIG_DFL;
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = 0;
-        if( 0 != sigaction( SIGINT, &sa_setup, NULL ) ) {
+        if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
             ERR_PRINT("DBTManager.sigaction: Resetting sighandler");
         }
     }
