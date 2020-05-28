@@ -65,7 +65,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jo
 
         if( !descriptor->readValue() ) {
             ERR_PRINT("Characteristic readValue failed: %s", descriptor->toString().c_str());
-            return JNI_FALSE;
+            return env->NewByteArray((jsize)0);
         }
         const size_t value_size = descriptor->value.getSize();
         jbyteArray jres = env->NewByteArray((jsize)value_size);

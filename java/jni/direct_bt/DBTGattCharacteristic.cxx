@@ -113,7 +113,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env
         POctets res(GATTHandler::ClientMaxMTU, 0);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
-            return JNI_FALSE;
+            return env->NewByteArray((jsize)0);
         }
 
         const size_t value_size = res.getSize();
