@@ -65,7 +65,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) { }
         };
     */
-    const DBTDevice * deviceMatchRef;
+    static std::atomic<int> iname_next;
+    int const iname;
+    DBTDevice const * const deviceMatchRef;
     std::shared_ptr<JavaAnonObj> adapterObjRef;
     std::unique_ptr<JNIGlobalRef> adapterSettingsClazzRef;
     jmethodID adapterSettingsClazzCtor;
@@ -83,7 +85,14 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
   public:
 
-    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener, const DBTDevice * deviceMatchRef) {
+    std::string toString() const override {
+        const std::string devMatchAddr = nullptr != deviceMatchRef ? deviceMatchRef->address.toString() : "nil";
+        return "JNIAdapterStatusListener[this "+aptrHexString(this)+", iname "+std::to_string(iname)+", devMatchAddr "+devMatchAddr+"]";
+    }
+
+    JNIAdapterStatusListener(JNIEnv *env, DBTAdapter *adapter, jobject statusListener, const DBTDevice * _deviceMatchRef)
+    : iname(iname_next.fetch_add(1)), deviceMatchRef(_deviceMatchRef)
+    {
         adapterObjRef = adapter->getJavaObject();
         JavaGlobalObj::check(adapterObjRef, E_FILE_LINE);
 
@@ -93,8 +102,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         if( nullptr == listenerClazz ) {
             throw InternalError("AdapterStatusListener not found", E_FILE_LINE);
         }
-
-        this->deviceMatchRef = deviceMatchRef;
 
         // adapterSettingsClazzRef, adapterSettingsClazzCtor
         {
@@ -311,6 +318,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         }
     }
 };
+std::atomic<int> JNIAdapterStatusListener::iname_next(0);
 
 jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject obj, jobject statusListener, jobject jdeviceMatch)
 {

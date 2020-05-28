@@ -114,7 +114,7 @@ std::vector<std::shared_ptr<uuid_t>> DBTDevice::getServices() const {
     return services;
 }
 
-std::string DBTDevice::toString() const {
+std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
@@ -123,7 +123,7 @@ std::string DBTDevice::toString() const {
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
-    if(services.size() > 0 ) {
+    if(includeDiscoveredServices && services.size() > 0 ) {
         out.append("\n");
         int i=0;
         for(auto it = services.begin(); it != services.end(); it++, i++) {

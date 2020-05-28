@@ -129,7 +129,9 @@ namespace direct_bt {
             /** Returns index >= 0 if found, otherwise -1 */
             int findService(std::shared_ptr<uuid_t> const &uuid) const;
 
-            std::string toString() const override;
+            std::string toString() const override { return toString(false); }
+
+            std::string toString(bool includeDiscoveredServices) const;
 
             /**
              * Retrieves the current connection info for this device and returns the ConnectionInfo reference if successful,

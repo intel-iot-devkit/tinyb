@@ -158,7 +158,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
             BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
-            fprintf(stderr, "****** FOUND__-2: Skip non LE %s\n", device->toString().c_str());
+            fprintf(stderr, "****** FOUND__-2: Skip non LE %s\n", device->toString(true).c_str());
             return;
         }
         if( waitForDevice == EUI48_ANY_DEVICE ||
@@ -167,16 +167,16 @@ class MyAdapterStatusListener : public AdapterStatusListener {
               !isDeviceTaskInProgress(device)
             ) )
         {
-            fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString().c_str());
+            fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
             std::thread dc(::deviceConnectTask, device);
             dc.detach();
         } else {
-            fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString().c_str());
+            fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
         }
     }
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
-        fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
+        fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
         (void)timestamp;
     }
 
@@ -184,13 +184,13 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
 
         if( !connected ) {
-            fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString().c_str());
+            fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString(true).c_str());
             return;
         }
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType() &&
             BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() ) {
-            fprintf(stderr, "****** CONNECTED-2: Skip non LE %s\n", device->toString().c_str());
+            fprintf(stderr, "****** CONNECTED-2: Skip non LE %s\n", device->toString(true).c_str());
             return;
         }
         if( waitForDevice == EUI48_ANY_DEVICE ||
@@ -199,11 +199,15 @@ class MyAdapterStatusListener : public AdapterStatusListener {
               !isDeviceTaskInProgress(device)
             ) )
         {
-            fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString().c_str());
+            fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
             addDeviceTask( device );
         } else {
-            fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString().c_str());
+            fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
         }
+    }
+
+    std::string toString() const override {
+        return "MyAdapterStatusListener[this "+aptrHexString(this)+"]";
     }
 };
 

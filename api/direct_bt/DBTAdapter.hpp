@@ -120,6 +120,8 @@ namespace direct_bt {
 
             virtual ~AdapterStatusListener() {}
 
+            virtual std::string toString() const = 0;
+
             /**
              * Default comparison operator, merely testing for same memory reference.
              * <p>

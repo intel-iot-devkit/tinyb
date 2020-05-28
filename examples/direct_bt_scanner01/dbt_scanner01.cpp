@@ -61,7 +61,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
-        fprintf(stderr, "****** FOUND__: %s\n", device->toString().c_str());
+        fprintf(stderr, "****** FOUND__: %s\n", device->toString(true).c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         {
@@ -72,16 +72,20 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
     }
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
-        fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString().c_str());
+        fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         (void)timestamp;
     }
     void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
-        fprintf(stderr, "****** CONNECTION: connected %d: %s\n", connected, device->toString().c_str());
+        fprintf(stderr, "****** CONNECTION: connected %d: %s\n", connected, device->toString(true).c_str());
         fprintf(stderr, "Status Adapter:\n");
         fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         (void)timestamp;
+    }
+
+    std::string toString() const override {
+        return "MyAdapterStatusListener[this "+aptrHexString(this)+"]";
     }
 };
 
