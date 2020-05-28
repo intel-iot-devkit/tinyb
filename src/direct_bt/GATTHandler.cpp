@@ -637,12 +637,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 
 bool GATTHandler::readDescriptorValue(GATTDescriptor & desc, int expectedLength) {
     DBG_PRINT("GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
-    POctets value(GATTHandler::ClientMaxMTU, 0); // Use a local high capacity avoiding mem-realloc when composing
-    bool res = readValue(desc.handle, desc.value, expectedLength);
-    if( res ) {
-        desc.value = value; // copy once more, using capacity = size
-    }
-    return res;
+    return readValue(desc.handle, desc.value, expectedLength);
 }
 
 bool GATTHandler::readCharacteristicValue(const GATTCharacteristic & decl, POctets & res, int expectedLength) {
