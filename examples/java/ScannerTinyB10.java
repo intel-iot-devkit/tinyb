@@ -24,68 +24,238 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 import org.tinyb.AdapterSettings;
 import org.tinyb.BluetoothAdapter;
+import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
-import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.HCIWhitelistConnectType;
 
 public class ScannerTinyB10 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
     }
-    /** 10,000 milliseconds */
-    static long TO_DISCOVER = 10000;
 
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
-    static String waitForDevice = EUI48_ANY_DEVICE;
 
-    public static void main(final String[] args) throws InterruptedException {
-        long t0_discovery = TO_DISCOVER;
-        int factory = 0;
-        int dev_id = 0; // default
-        int mode = 0;
-        boolean forever = false;
-        {
-            for(int i=0; i< args.length; i++) {
-                final String arg = args[i];
+    String waitForDevice = EUI48_ANY_DEVICE;
 
-                if( arg.equals("-dev_id") && args.length > (i+1) ) {
-                    dev_id = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    waitForDevice = args[++i];
-                } else if( arg.equals("-mode") && args.length > (i+1) ) {
-                    mode = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-factory") && args.length > (i+1) ) {
-                    factory = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-t0_discovery") && args.length > (i+1) ) {
-                    t0_discovery = Long.valueOf(args[++i]).longValue();
-                } else if( arg.equals("-forever") ) {
-                    forever = true;
-                }
+    long timestamp_t0;
+
+    boolean USE_WHITELIST = false;
+    final List<String> whitelist = new ArrayList<String>();
+
+    boolean BLOCK_DISCOVERY = true;
+
+    int factory = 0;
+
+    int dev_id = 0; // default
+
+    Collection<String> devicesTasks = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
+
+    final AdapterStatusListener statusListener = new AdapterStatusListener() {
+        @Override
+        public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
+                                           final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
+            System.err.println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+            System.err.println("Status Adapter:");
+            System.err.println(adapter.toString());
+        }
+
+        @Override
+        public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
+            System.err.println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+        }
+
+        @Override
+        public void deviceFound(final BluetoothDevice device, final long timestamp) {
+            System.err.println("****** FOUND__: "+device.toString());
+
+            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType() &&
+                BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() ) {
+                System.err.println("****** FOUND__-2: Skip non LE "+device.toString());
+                return;
             }
-
-            if ( EUI48_ANY_DEVICE.equals(waitForDevice) ) {
-                System.err.println("Run with '-mac <device_address> [-dev_id <adapter-index>] [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
-                System.exit(-1);
+            if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
+                ( waitForDevice.equals(device.getAddress()) &&
+                  !devicesProcessed.contains(waitForDevice) &&
+                  !devicesTasks.contains(waitForDevice)
+                ) )
+            {
+                System.err.println("****** FOUND__-0: Connecting "+device.toString());
+                final Thread deviceConnectTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        deviceConnectTask(device);
+                    }
+                }, "DBT-Connect-"+device.getAddress());
+                deviceConnectTask.setDaemon(true); // detach thread
+                deviceConnectTask.start();
+            } else {
+                System.err.println("****** FOUND__-1: NOP "+device.toString());
             }
         }
 
-        System.err.println("dev_id "+dev_id);
-        System.err.println("waitForDevice: "+waitForDevice);
+        @Override
+        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+            System.err.println("****** UPDATED: "+updateMask+" of "+device);
+        }
 
+        @Override
+        public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
+            System.err.println("****** CONNECTION: connected "+connected+": "+device);
+
+            if( !connected ) {
+                System.err.println("****** DISCONNECTED: "+device.toString());
+                return;
+            }
+
+            if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType() &&
+                BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() ) {
+                System.err.println("****** CONNECTED-2: Skip non LE "+device.toString());
+                return;
+            }
+            if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
+                ( waitForDevice.equals(device.getAddress()) &&
+                  !devicesProcessed.contains(waitForDevice) &&
+                  !devicesTasks.contains(waitForDevice)
+                ) )
+            {
+                System.err.println("****** CONNECTED-0: Processing "+device.toString());
+                final Thread deviceProcessingTask = new Thread( new Runnable() {
+                    @Override
+                    public void run() {
+                        deviceProcessTask(device);
+                    }
+                }, "DBT-Process-"+device.getAddress());
+                devicesTasks.add(device.getAddress());
+                deviceProcessingTask.setDaemon(true); // detach thread
+                deviceProcessingTask.start();
+            } else {
+                System.err.println("****** CONNECTED-1: NOP %s" + device.toString());
+            }
+        }
+    };
+
+    final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener() {
+        @Override
+        public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                         final byte[] value, final long timestamp) {
+            System.err.println("****** GATT notificationReceived: "+charDecl+
+                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
+        }
+
+        @Override
+        public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                       final byte[] value, final long timestamp, final boolean confirmationSent) {
+            System.err.println("****** GATT indicationReceived: "+charDecl+
+                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
+        }
+    };
+
+    private void deviceConnectTask(final BluetoothDevice device) {
+        System.err.println("****** Device Connector: Start " + device.toString());
+        device.getAdapter().stopDiscovery();
+        boolean res = false;
+        if( !USE_WHITELIST ) {
+            res = device.connect();
+        }
+        System.err.println("****** Device Connector: End result "+res+" of " + device.toString());
+        if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
+            device.getAdapter().startDiscovery( BLOCK_DISCOVERY );
+        }
+    }
+
+    private void deviceProcessTask(final BluetoothDevice device) {
+        // earmark device as being processed right-away
+        devicesProcessed.add(device.getAddress());
+
+        System.err.println("****** Device Process: Start " + device.toString());
+        final long t1 = BluetoothUtils.getCurrentMilliseconds();
+
+        //
+        // GATT Service Processing
+        //
+        final List<BluetoothGattService> primServices = device.getServices(); // implicit GATT connect...
+        if( primServices.size() > 0 ) {
+            final long t5 = BluetoothUtils.getCurrentMilliseconds();
+            {
+                final long td15 = t5 - t1; // connected -> gatt-complete
+                final long tdc5 = t5 - device.getCreationTimestamp(); // discovered to gatt-complete
+                final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
+                System.err.println(System.lineSeparator()+System.lineSeparator());
+                System.err.println("GATT primary-services completed\n");
+                System.err.println("  connected to gatt-complete " + td15 + " ms,"+System.lineSeparator()+
+                                   "  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
+                                   "  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
+            }
+            final boolean addedCharacteristicListenerRes =
+              BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
+            System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+
+            int i=0, j=0;
+            for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
+                final BluetoothGattService primService = srvIter.next();
+                System.err.printf("  [%02d] Service %s\n", i, primService.toString());
+                System.err.printf("  [%02d] Service Characteristics\n", i);
+                final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
+                for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
+                    final BluetoothGattCharacteristic serviceChar = charIter.next();
+                    System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                    final List<String> properties = Arrays.asList(serviceChar.getFlags());
+                    if( properties.contains("read") ) {
+                        final byte[] value = serviceChar.readValue();
+                        final String svalue = BluetoothUtils.getUTF8String(value, 0, value.length);
+                        System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
+                                i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                    }
+                }
+            }
+            // FIXME sleep 1s for potential callbacks ..
+            try {
+                Thread.sleep(1000);
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(device, primServices, myCharacteristicListener);
+            System.err.println("Removed GATTCharacteristicListener: "+remRes);
+        }
+        if( USE_WHITELIST || BLOCK_DISCOVERY ) {
+            device.disconnect();
+        } else {
+            device.getAdapter().stopDiscovery();
+            device.disconnect();
+            device.getAdapter().startDiscovery(false);
+        }
+
+        if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
+            if( 1 >= devicesTasks.size() ) {
+                device.getAdapter().startDiscovery( BLOCK_DISCOVERY );
+            }
+        }
+        devicesTasks.remove(device.getAddress());
+        System.err.println("****** Device Process: End: " + device.toString());
+    }
+
+    public void runTest() {
         final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
         final BluetoothManager manager;
         {
@@ -114,284 +284,101 @@ public class ScannerTinyB10 {
             adapter = adapters.get(dev_id);
         }
 
-        final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };
+        timestamp_t0 = BluetoothUtils.getCurrentMilliseconds();
 
-        final AdapterStatusListener statusListener = new AdapterStatusListener() {
-            @Override
-            public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
-                                               final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
-                System.err.println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
-                System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
-            }
-
-            @Override
-            public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
-                System.err.println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
-                System.err.println("Status Adapter:");
-                System.err.println(adapter.toString());
-            }
-
-            @Override
-            public void deviceFound(final BluetoothDevice device, final long timestamp) {
-                final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** FOUND__: "+device.toString()+" - match "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
-
-                if( matches ) {
-                    synchronized(matchingDiscoveredDeviceBucket) {
-                        matchingDiscoveredDeviceBucket[0] = device;
-                        matchingDiscoveredDeviceBucket.notifyAll();
-                    }
-                }
-            }
-
-            @Override
-            public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-                final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
-            }
-
-            @Override
-            public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
-                final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** CONNECTION: connected "+connected+": "+device+" - matches "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
-            }
-        };
         adapter.addStatusListener(statusListener, null);
-        adapter.enableDiscoverableNotifications(new BluetoothNotification<Boolean>() {
-            @Override
-            public void run(final Boolean value) {
-                System.err.println("****** Discoverable: "+value);
+        adapter.enableDiscoverableNotifications(new BooleanNotification("Discoverable", timestamp_t0));
+
+        adapter.enableDiscoveringNotifications(new BooleanNotification("Discovering", timestamp_t0));
+
+        adapter.enablePairableNotifications(new BooleanNotification("Pairable", timestamp_t0));
+
+        adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
+
+        if( USE_WHITELIST ) {
+            for(final Iterator<String> wliter = whitelist.iterator(); wliter.hasNext(); ) {
+                final String addr = wliter.next();
+                final boolean res = adapter.addDeviceToWhitelist(addr, BluetoothAddressType.BDADDR_LE_PUBLIC, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
+                System.err.println("Added to whitelist: res "+res+", address "+addr);
             }
-        });
-        adapter.enableDiscoveringNotifications(new BluetoothNotification<Boolean>() {
-            @Override
-            public void run(final Boolean value) {
-                System.err.println("****** Discovering: "+value);
-            }
-        });
-        adapter.enablePairableNotifications(new BluetoothNotification<Boolean>() {
-            @Override
-            public void run(final Boolean value) {
-                System.err.println("****** Pairable: "+value);
-            }
-        });
-        adapter.enablePoweredNotifications(new BluetoothNotification<Boolean>() {
-            @Override
-            public void run(final Boolean value) {
-                System.err.println("****** Powered: "+value);
-            }
-        });
-
-        final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener() {
-            @Override
-            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
-                                             final byte[] value, final long timestamp) {
-                System.err.println("****** GATT notificationReceived: "+charDecl+
-                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
-            }
-
-            @Override
-            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
-                                           final byte[] value, final long timestamp, final boolean confirmationSent) {
-                System.err.println("****** GATT indicationReceived: "+charDecl+
-                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
-            }
-        };
-
-        int loop = 0;
-        try {
-            do {
-                loop++;
-                System.err.println("****** Loop "+loop);
-
-                final long t0 = BluetoothUtils.getCurrentMilliseconds();
-
-                final boolean discoveryStarted = adapter.startDiscovery(true);
-
-                System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+waitForDevice+", mode "+mode);
-                if( !discoveryStarted ) {
-                    break;
-                }
-                BluetoothDevice sensor = null;
-
-                if( 0 == mode ) {
-                    synchronized(matchingDiscoveredDeviceBucket) {
-                        boolean timeout = false;
-                        while( !timeout && null == matchingDiscoveredDeviceBucket[0] ) {
-                            matchingDiscoveredDeviceBucket.wait(t0_discovery);
-                            final long tn = BluetoothUtils.getCurrentMilliseconds();
-                            timeout = ( tn - t0 ) > t0_discovery;
-                        }
-                        sensor = matchingDiscoveredDeviceBucket[0];
-                        matchingDiscoveredDeviceBucket[0] = null;
-                    }
-                } else if( 1 == mode ) {
-                    sensor = adapter.find(null, waitForDevice, t0_discovery);
-                } else {
-                    boolean timeout = false;
-                    while( null == sensor && !timeout ) {
-                        final List<BluetoothDevice> devices = adapter.getDevices();
-                        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
-                            final BluetoothDevice d = id.next();
-                            if(d.getAddress().equals(waitForDevice)) {
-                                sensor = d;
-                                break;
-                            }
-                            final long tn = BluetoothUtils.getCurrentMilliseconds();
-                            timeout = ( tn - t0 ) > t0_discovery;
-                        }
-                    }
-                }
-                final long t1 = BluetoothUtils.getCurrentMilliseconds();
-                if (sensor == null) {
-                    System.err.println("No sensor found within "+(t1-t0)+" ms");
-                    continue; // forever loop
-                }
-                System.err.println("Found device in "+(t1-t0)+" ms: ");
-                printDevice(sensor);
-                adapter.stopDiscovery();
-
-                final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
-                final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
-                sensor.enableConnectedNotifications(connectedNotification);
-                sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
-
-                final long t2 = BluetoothUtils.getCurrentMilliseconds();
-                final long t3;
-                if ( sensor.connect() ) {
-                    t3 = BluetoothUtils.getCurrentMilliseconds();
-                    System.err.println("Sensor connected: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                    System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
-                } else {
-                    t3 = BluetoothUtils.getCurrentMilliseconds();
-                    System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
-                    // we tolerate the failed immediate connect, as it might happen at a later time
-                }
-
-                synchronized( servicesResolvedNotification ) {
-                    while( !servicesResolvedNotification.getValue() ) {
-                        final long tn = BluetoothUtils.getCurrentMilliseconds();
-                        if( tn - t3 > 20000 ) {
-                            break; // 20s TO
-                        }
-                        servicesResolvedNotification.wait();
-                    }
-                }
-                final long t4;
-                if ( servicesResolvedNotification.getValue() ) {
-                    t4 = BluetoothUtils.getCurrentMilliseconds();
-                    System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
-                } else {
-                    t4 = BluetoothUtils.getCurrentMilliseconds();
-                    System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
-                    System.exit(-1);
-                }
-
-                final List<BluetoothGattService> allBluetoothServices = sensor.getServices();
-                if ( null == allBluetoothServices || allBluetoothServices.isEmpty() ) {
-                    System.err.println("No BluetoothGattService found!");
-                } else {
-                    final boolean addedCharacteristicListenerRes =
-                      BluetoothGattService.addCharacteristicListenerToAll(sensor, allBluetoothServices, myCharacteristicListener);
-                    System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
-                    // DBTGattService dbtService
-                    printAllServiceInfo(allBluetoothServices);
-
-                    Thread.sleep(1000); // FIXME: Wait for notifications
-
-                    final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, allBluetoothServices, myCharacteristicListener);
-                    System.err.println("Removed GATTCharacteristicListener: "+remRes);
-                }
-                sensor.disconnect();
-                // sensor.remove();
-                System.err.println("ScannerTinyB01 04 ...: "+adapter);
-            } while( forever );
-        } catch (final Throwable t) {
-            System.err.println("Caught: "+t.getMessage());
-            t.printStackTrace();
         }
 
-        System.err.println("ScannerTinyB01 02 clear listener etc .. ");
-        adapter.removeStatusListener(statusListener);
-        adapter.disableDiscoverableNotifications();
-        adapter.disableDiscoveringNotifications();
-        adapter.disablePairableNotifications();
-        adapter.disablePoweredNotifications();
+        boolean done = false;
 
-        System.err.println("ScannerTinyB01 03 close: "+adapter);
+        if( !USE_WHITELIST ) {
+            System.err.println("****** Main: startDiscovery()\n");
+            if( !adapter.startDiscovery( BLOCK_DISCOVERY ) ) {
+                System.err.println("Adapter start discovery failed");
+                done = true;
+            }
+        }
+
+        while( !done ) {
+            if( !waitForDevice.equals(EUI48_ANY_DEVICE) && devicesProcessed.contains(waitForDevice) ) {
+                System.err.println("****** WaitForDevice processed "+waitForDevice);
+                done = true;
+            } else {
+                if( !!USE_WHITELIST && !BLOCK_DISCOVERY && 0 >= devicesTasks.size() ) {
+                    adapter.startDiscovery(false);
+                }
+            }
+            try {
+                Thread.sleep(5000);
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.err.println("ScannerTinyB10 03 close: "+adapter);
         adapter.close();
-        System.err.println("ScannerTinyB01 04");
+        System.err.println("ScannerTinyB10 04");
         manager.shutdown();
-        System.err.println("ScannerTinyB01 XX");
+        System.err.println("ScannerTinyB10 XX");
     }
-    private static void printDevice(final BluetoothDevice device) {
-        System.err.println("Address = " + device.getAddress());
-        System.err.println("  Name = " + device.getName());
-        System.err.println("  Connected = " + device.getConnected());
-        System.err.println();
-    }
-    private static void printAllServiceInfo(final List<BluetoothGattService> allBluetoothServices) {
-        try {
-            for (final BluetoothGattService service : allBluetoothServices) {
-                System.err.println("Service: " + service.getUUID());
-                final List<BluetoothGattCharacteristic> v = service.getCharacteristics();
-                for (final BluetoothGattCharacteristic c : v) {
-                    System.err.println("    Characteristic: " + c);
 
-                    final List<BluetoothGattDescriptor> descriptors = c.getDescriptors();
+    public static void main(final String[] args) throws InterruptedException {
+        final ScannerTinyB10 test = new ScannerTinyB10();
 
-                    for (final BluetoothGattDescriptor d : descriptors) {
-                        System.err.println("        Descriptor: " + d);
-                    }
-                    final String uuid = c.getUUID();
-                    System.err.println("**** Quering: " + uuid);
+        boolean waitForEnter=false;
+        {
+            for(int i=0; i< args.length; i++) {
+                final String arg = args[i];
 
-                    if (uuid.contains("2a29-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Manufacturer: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a28-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Software: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a27-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Hardware: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a26-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Firmware: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a25-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Serial: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a24-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** Model: " + new String(tempRaw));
-                    }
-
-                    if (uuid.contains("2a23-")) {
-                        final byte[] tempRaw = c.readValue();
-                        System.err.println("**** System ID: " + BluetoothUtils.bytesHexString(tempRaw, true, true));
-                    }
+                if( arg.equals("-wait") ) {
+                    waitForEnter = true;
+                } else if( arg.equals("-keepDiscovery") ) {
+                    test.BLOCK_DISCOVERY = false;
+                } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
+                    test.dev_id = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-mac") && args.length > (i+1) ) {
+                    test.waitForDevice = args[++i];
+                } else if( arg.equals("-wl") && args.length > (i+1) ) {
+                    final String addr = args[++i];
+                    System.err.println("Whitelist + "+addr);
+                    test.whitelist.add(addr);
+                    test.BLOCK_DISCOVERY = true;
+                    test.USE_WHITELIST = true;
+                } else if( arg.equals("-factory") && args.length > (i+1) ) {
+                    test.factory = Integer.valueOf(args[++i]).intValue();
                 }
             }
-        } catch (final RuntimeException e) {
+
+            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-factory <BluetoothManager-Factory-Implementation-Class>]'");
         }
+
+        System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
+        System.err.println("BLOCK_DISCOVERY "+test.BLOCK_DISCOVERY);
+        System.err.println("dev_id "+test.dev_id);
+        System.err.println("waitForDevice: "+test.waitForDevice);
+
+        if( waitForEnter ) {
+            System.err.println("Press ENTER to continue\n");
+            try{ System.in.read();
+            } catch(final Exception e) { }
+        }
+        test.runTest();
     }
+
     static class BooleanNotification implements BluetoothNotification<Boolean> {
         private final long t0;
         private final String name;
@@ -408,7 +395,7 @@ public class ScannerTinyB10 {
             synchronized(this) {
                 final long t1 = BluetoothUtils.getCurrentMilliseconds();
                 this.v = v.booleanValue();
-                System.out.println("#### "+name+": "+v+" in td "+(t1-t0)+" ms!");
+                System.out.println("###### "+name+": "+v+" in td "+(t1-t0)+" ms!");
                 this.notifyAll();
             }
         }
