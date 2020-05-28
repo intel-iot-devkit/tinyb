@@ -139,11 +139,26 @@ public interface BluetoothDevice extends BluetoothObject
       */
     List<BluetoothGattService> getServices();
 
-    /* D-Bus property accessors: */
+    /**
+     * Returns the timestamp in monotonic milliseconds when this device instance has been created, either via discovery or direct connection.
+     *
+     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @since 2.0.0
+     */
+    long getCreationTimestamp();
+
     /** Returns the hardware address of this device.
       * @return The hardware address of this device.
       */
     String getAddress();
+
+    /**
+     * Returns the {@link BluetoothAddressType},
+     * determining whether the device is {@link BluetoothAddressType#BDADDR_BREDR}
+     * or an LE device, {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
+     * @since 2.0.0
+     */
+    BluetoothAddressType getAddressType();
 
     /** Returns the remote friendly name of this device.
       * @return The remote friendly name of this device, or NULL if not set.

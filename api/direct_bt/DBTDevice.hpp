@@ -104,7 +104,12 @@ namespace direct_bt {
             /** Returns the managing adapter */
             DBTAdapter & getAdapter() const { return adapter; }
 
+            /**
+             * Returns the timestamp in monotonic milliseconds when this device instance has been created, either via discovery or direct connection.
+             * @see BasicTypes::getCurrentMilliseconds()
+             */
             uint64_t getCreationTimestamp() const { return ts_creation; }
+
             uint64_t getUpdateTimestamp() const { return ts_update; }
             uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
 

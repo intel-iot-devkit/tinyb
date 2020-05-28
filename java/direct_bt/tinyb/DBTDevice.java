@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -43,6 +44,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 {
     private final DBTAdapter adapter;
     private final String address;
+    private final BluetoothAddressType addressType;
     private final String name;
     private final long ts_creation;
     long ts_update;
@@ -81,11 +83,14 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     };
 
 
-    /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr, final String address, final String name, final long ts_creation)
+    /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
+                       final String address, final int intAddressType,
+                       final String name, final long ts_creation)
     {
         super(nativeInstance, compHash(address, name));
         this.adapter = adptr;
         this.address = address;
+        this.addressType = BluetoothAddressType.get(intAddressType);
         this.name = name;
         this.ts_creation = ts_creation;
         ts_update = ts_creation;
@@ -123,12 +128,18 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
+    public final long getCreationTimestamp() { return ts_creation; }
+
+    @Override
     public DBTAdapter getAdapter() {
         return adapter;
     }
 
     @Override
     public String getAddress() { return address; }
+
+    @Override
+    public BluetoothAddressType getAddressType() { return addressType; }
 
     @Override
     public String getName() { return name; }

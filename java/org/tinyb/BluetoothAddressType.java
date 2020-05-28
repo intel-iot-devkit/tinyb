@@ -85,7 +85,7 @@ public enum BluetoothAddressType {
      * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
      *                                  as described above.
      */
-    public static BluetoothAddressType get(final String name) {
+    public static BluetoothAddressType get(final String name) throws IllegalArgumentException {
         if( null == name || name.length() == 0 ) {
             return BDADDR_BREDR;
         }
@@ -96,6 +96,22 @@ public enum BluetoothAddressType {
             return BDADDR_LE_RANDOM;
         }
         return valueOf(name);
+    }
+
+    /**
+     * Maps the specified integer value to a constant of BluetoothAddressType.
+     * @param value the integer value to be mapped to a constant of this enum type.
+     * @return the corresponding constant of this enum type.
+     * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
+     *                                  as described above.
+     */
+    public static BluetoothAddressType get(final int value) throws IllegalArgumentException {
+        switch(value) {
+            case 0x00: return BDADDR_BREDR;
+            case 0x01: return BDADDR_LE_PUBLIC;
+            case 0x02: return BDADDR_LE_RANDOM;
+        }
+        throw new IllegalArgumentException("Unsupported value "+value);
     }
 
     BluetoothAddressType(final int v) {

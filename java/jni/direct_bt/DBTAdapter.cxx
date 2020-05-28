@@ -40,7 +40,7 @@ static const std::string _adapterSettingsClassName("org/tinyb/AdapterSettings");
 static const std::string _adapterSettingsClazzCtorArgs("(I)V");
 static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
-static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;Ljava/lang/String;J)V");
+static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;ILjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
 static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;ZZJ)V");
@@ -253,7 +253,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
                 const jstring name = from_string_to_jstring(env, device->getName());
                 java_exception_check_and_throw(env, E_FILE_LINE);
                 jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
-                        (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, name, (jlong)timestamp);
+                        (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
                 java_exception_check_and_throw(env, E_FILE_LINE);
                 JNIGlobalRef::check(jDevice, E_FILE_LINE);
                 std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
@@ -401,7 +401,8 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobje
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType, int jctype,
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_String_2IISSSS(JNIEnv *env, jobject obj,
+                                                               jstring jaddress, int jaddressType, int jctype,
                                                                jshort min_interval, jshort max_interval,
                                                                jshort latency, jshort timeout) {
     try {
@@ -418,7 +419,8 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist(JNIEnv *env, jobj
     }
     return JNI_FALSE;
 }
-jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType, int jctype) {
+jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_String_2II(JNIEnv *env, jobject obj,
+                                                               jstring jaddress, int jaddressType, int jctype) {
     try {
         DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);

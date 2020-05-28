@@ -31,6 +31,7 @@ package tinyb.dbus;
 import java.util.List;
 import java.util.Map;
 
+import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -38,10 +39,14 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
+import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
+    @Override
+    public final long getCreationTimestamp() { return ts_creation; }
+
     @Override
     public native BluetoothType getBluetoothType();
     @Override
@@ -98,6 +103,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
 
     @Override
     public native String getAddress();
+
+    @Override
+    public BluetoothAddressType getAddressType() { return BluetoothAddressType.BDADDR_LE_PUBLIC; /* FIXME */}
 
     @Override
     public native String getName();
@@ -231,6 +239,7 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     private DBusDevice(final long instance)
     {
         super(instance);
+        ts_creation = BluetoothUtils.getCurrentMilliseconds();
     }
-
+    final long ts_creation;
 }
