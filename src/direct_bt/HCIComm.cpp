@@ -337,9 +337,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
 	filter_set_event(HCI_EV_CMD_STATUS, &nf);
 	filter_set_event(HCI_EV_CMD_COMPLETE, &nf);
 	filter_set_event(HCI_EV_LE_META, &nf);
-	if( 0 != exp_event ) {
-	    filter_set_event(exp_event, &nf);
-	}
+    filter_set_event(exp_event, &nf);
 	filter_set_opcode(opcode_le16, &nf);
 	if (setsockopt(_dd, SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
 	    ERR_PRINT("hci_send_req");
@@ -354,8 +352,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
 		goto failed;
 	}
 
-	// FIXME: Review the 10 packet trial for HCI responses,
-	//        this is an artifact from the BlueZ client library.
+	// Reading up to 10 packets for HCI responses,
 	while ( _HCI_PKT_TRY_COUNT > tryCount++ ) {
 		if ( _timeoutMS ) {
 			struct pollfd p;
@@ -419,7 +416,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         response_len, len);
 
                 if (cs->opcode != opcode_le16) {
-                    continue;
+                    continue; // next packet
                 }
 
                 if (exp_event != HCI_EV_CMD_STATUS) {
@@ -430,7 +427,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         res = status;
                         goto failed;
                     }
-                    break;
+                    continue; // next packet
                 }
 
                 const int rlen = MIN(len, response_len);
@@ -447,7 +444,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         cc->opcode, (cc->opcode == opcode_le16), exp_event, response_len, len);
 
                 if (cc->opcode != opcode_le16) {
-                    continue;
+                    continue; // next packet
                 }
 
                 ptr += sizeof(hci_ev_cmd_complete);
@@ -464,7 +461,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                           hdr->evt, exp_event, (hdr->evt == exp_event), response_len, len);
 
                 if (hdr->evt != exp_event) {
-                    break;
+                    continue; // next packet
                 }
 
                 const hci_ev_remote_name *rn = static_cast<const hci_ev_remote_name *>(static_cast<const void *>( ptr ));
@@ -473,7 +470,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                 if ( rn->bdaddr != cp->bdaddr ) {
                     DBG_PRINT("hci_send_req: HCI_EV_REMOTE_NAME: address mismatch: cmd %s != req %s",
                               cp->bdaddr.toString().c_str(), rn->bdaddr.toString().c_str());
-                    continue;
+                    continue; // next packet
                 }
 
                 const int rlen = MIN(len, response_len);
@@ -490,7 +487,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         me->subevent, exp_event, (me->subevent == exp_event), response_len, len);
 
                 if (me->subevent != exp_event) {
-                    continue;
+                    continue; // next packet
                 }
 
                 ptr += 1;
@@ -508,7 +505,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         hdr->evt, exp_event, (hdr->evt == exp_event), response_len, len);
 
                 if (hdr->evt != exp_event) {
-                    break;
+                    continue; // next packet
                 }
 
                 const int rlen = MIN(len, response_len);
@@ -517,8 +514,8 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                         rlen, bytesHexString((uint8_t*)ptr, 0, rlen, false /* lsbFirst */, true /* leading0X */).c_str());
                 goto done;
 		    }
-		}
-	}
+		} // switch event
+	} // while packets ...
 	errno = ETIMEDOUT;
 
 failed:
@@ -534,7 +531,9 @@ done:
 
 bool HCIComm::disconnect(const uint16_t le_conn_handle, const uint8_t reason)
 {
+    /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command */
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    DBG_PRINT("hci_disconnect: handle 0x%x, reason 0x%x", le_conn_handle, reason);
     if( 0 > _dd ) {
         return true;
     }
@@ -687,6 +686,7 @@ HCIErrorCode HCIComm::le_create_conn(uint16_t * handle_return, const EUI48 &peer
 {
 
     /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command */
+    /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65 LE Meta event: 7.7.65.1 LE Connection Complete event */
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
     if( nullptr != handle_return ) {
         *handle_return = 0;
@@ -735,6 +735,7 @@ HCIErrorCode HCIComm::le_create_conn(uint16_t * handle_return, const EUI48 &peer
                 rp.status, getHCIErrorCodeString(status).c_str(), errno, strerror(errno));
         return status;
     }
+    DBG_PRINT("hci_le_create_conn: Success: handle 0x%x", rp.handle);
     if( nullptr != handle_return ) {
         *handle_return = rp.handle;
     }

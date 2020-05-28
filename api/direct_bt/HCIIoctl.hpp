@@ -2116,6 +2116,7 @@ struct hci_ev_sync_train_complete {
 
 #define HCI_EV_SLAVE_PAGE_RESP_TIMEOUT	0x54
 
+/** BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65 LE Meta event: 7.7.65.1 LE Connection Complete event */
 #define HCI_EV_LE_CONN_COMPLETE		0x01
 struct hci_ev_le_conn_complete {
 	__u8     status;
