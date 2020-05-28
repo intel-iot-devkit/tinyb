@@ -310,7 +310,7 @@ namespace direct_bt {
 
             POctets(const POctets &_source) noexcept
             : TOctets( static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize()),
-              capacity( _source.getCapacity() )
+              capacity( _source.getSize() )
             {
                 std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
                 TRACE_PRINT("POctets ctor-cpy0: %p", get_wptr());
@@ -333,7 +333,7 @@ namespace direct_bt {
                 }
                 release();
                 setData(static_cast<uint8_t*>( std::malloc(_source.getSize()) ), _source.getSize());
-                capacity = _source.getCapacity();
+                capacity = _source.getSize();
                 std::memcpy(get_wptr(), _source.get_ptr(), _source.getSize());
                 TRACE_PRINT("POctets assign0: %p", get_wptr());
                 return *this;
