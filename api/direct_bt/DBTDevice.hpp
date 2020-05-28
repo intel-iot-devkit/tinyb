@@ -33,7 +33,6 @@
 #include <vector>
 
 #include <mutex>
-#include <atomic>
 
 #include "DBTTypes.hpp"
 
@@ -119,11 +118,21 @@ namespace direct_bt {
             bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
             bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
 
+            /** Return RSSI of device as recognized at discovery and connect. */
             int8_t getRSSI() const { return rssi; }
+
+            /** Return Tx Power of device as recognized at discovery and connect. */
             int8_t getTxPower() const { return tx_power; }
+
+            /** Return AppearanceCat of device as recognized at discovery, connect and GATT discovery. */
             AppearanceCat getAppearance() const { return appearance; }
+
             std::string const getName() const;
+
+            /** Return shared ManufactureSpecificData as recognized at discovery, pre GATT discovery. */
             std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const;
+
+            /** Return a list of services as recognized at discovery, pre GATT discovery. */
             std::vector<std::shared_ptr<uuid_t>> getServices() const;
 
             /** Returns index >= 0 if found, otherwise -1 */
