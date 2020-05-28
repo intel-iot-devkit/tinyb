@@ -54,6 +54,8 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     /* Characteristics Property */
     private final String[] properties;
+    // private final boolean hasNotify;
+    // private final boolean hasIndicate;
 
     /* Characteristics Value Type UUID */
     private final String value_type_uuid;
@@ -132,7 +134,23 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         super(nativeInstance, handle /* hash */);
         this.service = service;
         this.handle = handle;
+
         this.properties = properties;
+        /** {
+            boolean hasNotify = false;
+            boolean hasIndicate = false;
+            for(int i=0; !hasNotify && !hasIndicate && i<properties.length; i++) {
+                if( "notify".equals(properties[i]) ) {
+                    hasNotify = true;
+                }
+                if( "indicate".equals(properties[i]) ) {
+                    hasIndicate = true;
+                }
+            }
+            this.hasNotify = hasNotify;
+            this.hasIndicate = hasIndicate;
+        } */
+
         this.value_type_uuid = value_type_uuid;
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
