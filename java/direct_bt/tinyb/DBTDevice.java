@@ -101,6 +101,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public synchronized void close() {
+        if( !isValid() ) {
+            return;
+        }
         disconnect();
 
         disableConnectedNotifications();

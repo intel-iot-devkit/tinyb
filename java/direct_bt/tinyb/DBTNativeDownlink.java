@@ -43,6 +43,8 @@ public abstract class DBTNativeDownlink
         initNativeJavaObject(nativeInstance);
     }
 
+    protected final boolean isValid() { return isValid; }
+
     @Override
     protected void finalize()
     {

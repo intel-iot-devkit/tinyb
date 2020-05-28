@@ -79,6 +79,9 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
 
     @Override
     public synchronized void close() {
+        if( !isValid() ) {
+            return;
+        }
         disableValueNotifications();
         super.close();
     }

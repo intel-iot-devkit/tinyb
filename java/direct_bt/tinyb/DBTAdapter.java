@@ -68,7 +68,6 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private BluetoothNotification<Boolean> pairableNotification = null;
     private volatile boolean isPairable = false;
 
-    private boolean isOpen = false;
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
     /* pp */ DBTAdapter(final long nativeInstance, final String address, final String name)
@@ -81,25 +80,25 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized void close() {
-        if( isOpen ) {
-            stopDiscovery();
-
-            for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
-                final BluetoothDevice d = id.next();
-                d.close();
-            }
-
-            removeAllStatusListener();
-            disableDiscoverableNotifications();
-            disableDiscoveringNotifications();
-            disablePairableNotifications();
-            disablePoweredNotifications();
-
-            removeDevicesImpl();
-            discoveredDevices.clear();
-
-            isOpen = false;
+        if( !isValid() ) {
+            return;
         }
+        stopDiscovery();
+
+        for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
+            final BluetoothDevice d = id.next();
+            d.close();
+        }
+
+        removeAllStatusListener();
+        disableDiscoverableNotifications();
+        disableDiscoveringNotifications();
+        disablePairableNotifications();
+        disablePoweredNotifications();
+
+        removeDevicesImpl();
+        discoveredDevices.clear();
+
         super.close();
     }
 
@@ -299,9 +298,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     public synchronized boolean stopDiscovery() throws BluetoothException {
         if( isDiscovering ) {
             isDiscovering = false;
-            if( isOpen ) {
-                return stopDiscoveryImpl();
-            }
+            return stopDiscoveryImpl();
         }
         return false;
     }

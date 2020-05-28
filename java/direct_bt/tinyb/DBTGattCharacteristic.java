@@ -142,6 +142,9 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public synchronized void close() {
+        if( !isValid() ) {
+            return;
+        }
         removeAllCharacteristicListener();
         disableValueNotifications();
         super.close();
