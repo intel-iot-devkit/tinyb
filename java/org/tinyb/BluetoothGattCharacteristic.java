@@ -140,9 +140,19 @@ public interface BluetoothGattCharacteristic extends BluetoothObject
       */
     public boolean getNotifying();
 
-    /** Returns the flags this characterstic has.
-      * @return A list of flags for this characteristic.
-      */
+    /**
+     * Returns the flags this characterstic has.
+     * <p>
+     * These flags are actually the BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
+     * </p>
+     * <p>
+     * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
+     * <pre>
+     * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
+     * </pre>
+     * </p>
+     * @return A list of flags for this characteristic.
+     */
     public String[] getFlags();
 
     /** Returns a list of BluetoothGattDescriptors this characteristic exposes.

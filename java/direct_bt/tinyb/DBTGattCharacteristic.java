@@ -187,18 +187,6 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     @Override
     public final BluetoothGattService getService() { return service; }
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Actually the BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties
-     * </p>
-     * <p>
-     * Returns string values as defined in <https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt>
-     * <pre>
-     * org.bluez.GattCharacteristic1 :: array{string} Flags [read-only]
-     * </pre>
-     * </p>
-     */
     @Override
     public final String[] getFlags() { return properties; }
 
