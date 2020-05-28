@@ -269,12 +269,29 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         DBG_PRINT("****** JNI Adapter Device CONNECTION: connected %d: %s\n", connected, device->toString(true).c_str());
+
+        jobject jdevice;
         std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-        JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-        env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
+        if( JavaGlobalObj::isValid(jDeviceRef) ) {
+            // Reuse Java instance
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+        } else {
+            // New Java instance
+            // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
+            const jstring addr = from_string_to_jstring(env, device->getAddressString());
+            const jstring name = from_string_to_jstring(env, device->getName());
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            jobject jDevice = env->NewObject(deviceClazzRef->getClass(), deviceClazzCtor,
+                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
+            java_exception_check_and_throw(env, E_FILE_LINE);
+            JNIGlobalRef::check(jDevice, E_FILE_LINE);
+            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+        }
+        env->SetLongField(jdevice, deviceClazzTSUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnectionChanged, JavaGlobalObj::GetObject(jDeviceRef),
-                           (jboolean)connected, (jlong)timestamp);
+        env->CallVoidMethod(listenerObjRef->getObject(), mDeviceConnectionChanged, jdevice, (jboolean)connected, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };
