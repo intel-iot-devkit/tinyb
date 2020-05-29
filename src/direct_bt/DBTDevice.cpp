@@ -352,26 +352,25 @@ void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason) {
 
     if( 0 == hciConnHandle ) {
         DBG_PRINT("DBTDevice::disconnect: HCI not connected");
-        goto skiphci;
+        goto skip_hci_disconnect;
     }
 
     if( nullptr == hciComm || !hciComm->isOpen() ) {
         DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not open: %s", toString().c_str());
     } else {
-        const uint16_t _connHandle = hciConnHandle;
-        hciConnHandle = 0;
-        if( !hciComm->disconnect(_connHandle, reason) ) {
+        if( !hciComm->disconnect(hciConnHandle, reason) ) {
             DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _connHandle, errno, strerror(errno));
         }
     }
+    hciConnHandle = 0;
 
-skiphci:
     if( disconnectManager ) {
         // mngr.disconnect also sends DISCONNECT
         DBTManager & mngr = adapter.getManager();
         mngr.disconnect(adapter.dev_id, address, addressType, reason);
     }
 
+skip_hci_disconnect:
     adapter.removeConnectedDevice(*this);
 }
 
