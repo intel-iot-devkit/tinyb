@@ -231,12 +231,9 @@ public class ScannerTinyB10 {
             } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
-
-            final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(device, primServices, myCharacteristicListener);
-            System.err.println("Removed GATTCharacteristicListener: "+remRes);
         }
         if( USE_WHITELIST || BLOCK_DISCOVERY ) {
-            device.disconnect();
+            device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
         } else {
             device.getAdapter().stopDiscovery();
             device.disconnect();
