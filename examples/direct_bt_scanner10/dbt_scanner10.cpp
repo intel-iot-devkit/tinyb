@@ -46,9 +46,9 @@ static bool BLOCK_DISCOVERY = true;
 
 static EUI48 waitForDevice = EUI48_ANY_DEVICE;
 
-static void deviceConnectTask(std::shared_ptr<DBTDevice> device);
+static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
 
-static void deviceProcessTask(std::shared_ptr<DBTDevice> device);
+static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
 
 #include <pthread.h>
 
@@ -59,7 +59,7 @@ class DeviceTask {
 
         DeviceTask(std::shared_ptr<DBTDevice> d)
         : device(d),
-          worker( std::thread(::deviceProcessTask, d) )
+          worker( std::thread(::processConnectedDevice, d) )
         {
             worker.detach();
             fprintf(stderr, "DeviceTask ctor: %s\n", d->toString().c_str());
@@ -168,7 +168,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             ) )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
-            std::thread dc(::deviceConnectTask, device);
+            std::thread dc(::connectDiscoveredDevice, device);
             dc.detach();
         } else {
             fprintf(stderr, "****** FOUND__-1: NOP %s\n", device->toString(true).c_str());
@@ -246,24 +246,24 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
     }
 };
 
-static void deviceConnectTask(std::shared_ptr<DBTDevice> device) {
-    fprintf(stderr, "****** Device Connector: Start %s\n", device->toString().c_str());
+static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
+    fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
     bool res = false;
     if( !USE_WHITELIST ) {
         res = device->connectDefault();
     }
-    fprintf(stderr, "****** Device Connector: End result %d of %s\n", res, device->toString().c_str());
+    fprintf(stderr, "****** Connecting Device: End result %d of %s\n", res, device->toString().c_str());
     if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
         device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
     }
 }
 
-static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
+static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     // earmark device as being processed right-away
     addDevicesProcessed(device->getAddress());
 
-    fprintf(stderr, "****** Device Process: Start %s\n", device->toString().c_str());
+    fprintf(stderr, "****** Processing Device: Start %s\n", device->toString().c_str());
     const uint64_t t1 = getCurrentMilliseconds();
 
     //
@@ -338,7 +338,7 @@ static void deviceProcessTask(std::shared_ptr<DBTDevice> device) {
         }
     }
     removeDeviceTask(device);
-    fprintf(stderr, "****** Device Process: End: %s\n", device->toString().c_str());
+    fprintf(stderr, "****** Processing Device: End: %s\n", device->toString().c_str());
 }
 
 

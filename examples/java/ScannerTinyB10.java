@@ -103,7 +103,7 @@ public class ScannerTinyB10 {
                 final Thread deviceConnectTask = new Thread( new Runnable() {
                     @Override
                     public void run() {
-                        deviceConnectTask(device);
+                        connectDiscoveredDevice(device);
                     }
                 }, "DBT-Connect-"+device.getAddress());
                 deviceConnectTask.setDaemon(true); // detach thread
@@ -137,7 +137,7 @@ public class ScannerTinyB10 {
                 final Thread deviceProcessingTask = new Thread( new Runnable() {
                     @Override
                     public void run() {
-                        deviceProcessTask(device);
+                        processConnectedDevice(device);
                     }
                 }, "DBT-Process-"+device.getAddress());
                 devicesTasks.add(device.getAddress());
@@ -165,24 +165,24 @@ public class ScannerTinyB10 {
         }
     };
 
-    private void deviceConnectTask(final BluetoothDevice device) {
-        System.err.println("****** Device Connector: Start " + device.toString());
+    private void connectDiscoveredDevice(final BluetoothDevice device) {
+        System.err.println("****** Connecting Device: Start " + device.toString());
         device.getAdapter().stopDiscovery();
         boolean res = false;
         if( !USE_WHITELIST ) {
             res = device.connect();
         }
-        System.err.println("****** Device Connector: End result "+res+" of " + device.toString());
+        System.err.println("****** Connecting Device: End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
             device.getAdapter().startDiscovery( BLOCK_DISCOVERY );
         }
     }
 
-    private void deviceProcessTask(final BluetoothDevice device) {
+    private void processConnectedDevice(final BluetoothDevice device) {
         // earmark device as being processed right-away
         devicesProcessed.add(device.getAddress());
 
-        System.err.println("****** Device Process: Start " + device.toString());
+        System.err.println("****** Processing Device: Start " + device.toString());
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
 
         //
@@ -190,7 +190,7 @@ public class ScannerTinyB10 {
         //
         final List<BluetoothGattService> primServices = device.getServices(); // implicit GATT connect...
         if( null == primServices ) {
-            System.err.println("****** Device Process: getServices() failed " + device.toString());
+            System.err.println("****** Processing Device: getServices() failed " + device.toString());
         } else {
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
             {
@@ -249,7 +249,7 @@ public class ScannerTinyB10 {
             }
         }
         devicesTasks.remove(device.getAddress());
-        System.err.println("****** Device Process: End: " + device.toString());
+        System.err.println("****** Processing Device: End: " + device.toString());
     }
 
     public void runTest() {
