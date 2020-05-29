@@ -177,7 +177,7 @@ namespace direct_bt {
 
             void addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             void removeConnectedDevice(const DBTDevice & device);
-            int disconnectAllDevices(const uint8_t reason=0);
+            int disconnectAllDevices(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
