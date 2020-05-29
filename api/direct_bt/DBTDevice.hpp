@@ -81,6 +81,7 @@ namespace direct_bt {
 
             void releaseSharedInstance() const;
             void notifyDisconnected();
+            void disconnect(const bool disconnectManager, const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
 
         public:
             const uint64_t ts_creation;
@@ -220,7 +221,9 @@ namespace direct_bt {
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
              */
-            void disconnect(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
+            void disconnect(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */) {
+                disconnect(true /* disconnectManager */, reason);
+            }
 
             /**
              * Disconnects this device via disconnect(..) and

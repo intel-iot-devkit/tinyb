@@ -244,12 +244,14 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error");
+            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
+            l2capReaderShallStop = true;
         }
     }
 
     INFO_PRINT("l2capReaderThreadImpl Ended");
     l2capReaderRunning = false;
+    disconnect();
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int timeoutMS)
@@ -320,6 +322,8 @@ bool GATTHandler::disconnect() {
 
     l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
     state = Disconnected;
+
+    device->disconnect(); // cleanup device resources, proper connection state
 
     DBG_PRINT("GATTHandler.disconnect End");
     return Disconnected == validateState();

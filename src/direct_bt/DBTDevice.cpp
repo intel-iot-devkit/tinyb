@@ -340,26 +340,19 @@ uint16_t DBTDevice::connectDefault()
 }
 
 void DBTDevice::notifyDisconnected() {
-    std::shared_ptr<GATTHandler> _gattHandler = gattHandler; // avoid race condition, writing to field is mutex locked
-    if( nullptr != _gattHandler ) {
-        DBG_PRINT("DBTDevice::notifyDisconnected: disconnect GATT");
-        // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
-        _gattHandler->disconnect();
-    } else {
-        DBG_PRINT("DBTDevice::notifyDisconnected");
-    }
-    hciConnHandle = 0;
+    DBG_PRINT("DBTDevice::notifyDisconnected: disconnecting ...");
+    disconnect(false); // coming from manager disconnect, but ensure cleaning up!
 }
 
-void DBTDevice::disconnect(const uint8_t reason) {
+void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason) {
     disconnectGATT();
 
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
 
     if( 0 == hciConnHandle ) {
-        DBG_PRINT("DBTDevice::disconnect: Not connected");
-        goto errout;
+        DBG_PRINT("DBTDevice::disconnect: HCI not connected");
+        goto skiphci;
     }
 
     if( nullptr == hciComm || !hciComm->isOpen() ) {
@@ -372,18 +365,18 @@ void DBTDevice::disconnect(const uint8_t reason) {
         }
     }
 
-    {
-        // Actually issuing DISCONNECT post HCI
+skiphci:
+    if( disconnectManager ) {
+        // mngr.disconnect also sends DISCONNECT
         DBTManager & mngr = adapter.getManager();
         mngr.disconnect(adapter.dev_id, address, addressType, reason);
     }
 
-errout:
     adapter.removeConnectedDevice(*this);
 }
 
 void DBTDevice::remove() {
-    disconnect(0);
+    disconnect();
     releaseSharedInstance();
 }
 
@@ -455,6 +448,7 @@ void DBTDevice::disconnectGATT() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     if( nullptr != gattHandler ) {
         DBG_PRINT("DBTDevice::disconnectGATT: Disconnecting...");
+        // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         gattHandler->disconnect();
         gattHandler = nullptr;
     }
