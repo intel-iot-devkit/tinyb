@@ -92,6 +92,7 @@ namespace direct_bt {
 
        private:
             std::shared_ptr<DBTDevice> device;
+            const std::string deviceString;
             std::recursive_mutex mtx_write;
             POctets rbuffer;
 
