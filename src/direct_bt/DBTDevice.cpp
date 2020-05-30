@@ -388,8 +388,11 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
     }
 
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    if( nullptr != gattHandler && gattHandler->isOpen() ) {
-        return gattHandler;
+    if( nullptr != gattHandler ) {
+        if( gattHandler->isOpen() ) {
+            return gattHandler;
+        }
+        gattHandler = nullptr;
     }
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, timeoutMS));
     if( !gattHandler->connect() ) {
