@@ -42,8 +42,6 @@ static int64_t timestamp_t0;
 
 static bool USE_WHITELIST = false;
 
-static bool BLOCK_DISCOVERY = true;
-
 static EUI48 waitForDevice = EUI48_ANY_DEVICE;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
@@ -52,82 +50,43 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device);
 
 #include <pthread.h>
 
-class DeviceTask {
-    public:
-        std::shared_ptr<DBTDevice> device;
-        std::thread worker;
-
-        DeviceTask(std::shared_ptr<DBTDevice> d)
-        : device(d),
-          worker( std::thread(::processConnectedDevice, d) )
-        {
-            worker.detach();
-            fprintf(stderr, "DeviceTask ctor: %s\n", d->toString().c_str());
-        }
-
-        DeviceTask(const DeviceTask &o) noexcept = default;
-        DeviceTask(DeviceTask &&o) noexcept = default;
-        DeviceTask& operator=(const DeviceTask &o) noexcept = default;
-        DeviceTask& operator=(DeviceTask &&o) noexcept = default;
-
-        ~DeviceTask() {
-            fprintf(stderr, "DeviceTask dtor: %s\n", device->toString().c_str());
-        }
-
-};
-
-/**
- * TODO: Analyze why 'vector<DeviceTask>' regarding field 'std::thread'
- *       does _not_ work. Instance vector of DeviceTask with std::thread
- *       causes multiple occasions of SIGSEGFAULT and mutex issues!
- */
-static std::vector<std::shared_ptr<DeviceTask>> deviceTasks;
-static std::recursive_mutex mtx_deviceTasks;
-
-static int getDeviceTaskCount() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceTasks); // RAII-style acquire and relinquish via destructor
-    return deviceTasks.size();
-}
-static bool isDeviceTaskInProgress(std::shared_ptr<DBTDevice> d) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceTasks); // RAII-style acquire and relinquish via destructor
-    for (auto it = deviceTasks.begin(); it != deviceTasks.end(); ++it) {
-        if ( *d == *(*it)->device ) {
-            return true;
-        }
-    }
-    return false;
-}
-static bool addDeviceTask(std::shared_ptr<DBTDevice> d) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceTasks); // RAII-style acquire and relinquish via destructor
-    if( !isDeviceTaskInProgress(d) ) {
-        deviceTasks.push_back( std::shared_ptr<DeviceTask>( new DeviceTask(d) ) );
-        return true;
-    }
-    return false;
-}
-static bool removeDeviceTask(std::shared_ptr<DBTDevice> d) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_deviceTasks); // RAII-style acquire and relinquish via destructor
-    for (auto it = deviceTasks.begin(); it != deviceTasks.end(); ) {
-        if ( *d == *(*it)->device ) {
-            it = deviceTasks.erase(it);
-            return true;
-        } else {
-            ++it;
-        }
-    }
-    return false;
-}
+static std::vector<EUI48> devicesInProcessing;
+static std::recursive_mutex mtx_devicesProcessing;
 
 static std::recursive_mutex mtx_devicesProcessed;
 static std::vector<EUI48> devicesProcessed;
 
-static void addDevicesProcessed(const EUI48 &a) {
+static void addToDevicesProcessed(const EUI48 &a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     devicesProcessed.push_back(a);
 }
 static bool isDeviceProcessed(const EUI48 & a) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessed); // RAII-style acquire and relinquish via destructor
     for (auto it = devicesProcessed.begin(); it != devicesProcessed.end(); ++it) {
+        if ( a == *it ) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void addToDevicesProcessing(const EUI48 &a) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+    devicesInProcessing.push_back(a);
+}
+static bool removeFromDevicesProcessing(const EUI48 &a) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+    for (auto it = devicesInProcessing.begin(); it != devicesInProcessing.end(); ++it) {
+        if ( a == *it ) {
+            devicesInProcessing.erase(it);
+            return true;
+        }
+    }
+    return false;
+}
+static bool isDeviceProcessing(const EUI48 & a) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_devicesProcessing); // RAII-style acquire and relinquish via destructor
+    for (auto it = devicesInProcessing.begin(); it != devicesInProcessing.end(); ++it) {
         if ( a == *it ) {
             return true;
         }
@@ -164,7 +123,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         if( waitForDevice == EUI48_ANY_DEVICE ||
             ( waitForDevice == device->address &&
               !isDeviceProcessed(waitForDevice) &&
-              !isDeviceTaskInProgress(device)
+              !isDeviceProcessing(waitForDevice)
             ) )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
@@ -191,11 +150,13 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         if( waitForDevice == EUI48_ANY_DEVICE ||
             ( waitForDevice == device->address &&
               !isDeviceProcessed(waitForDevice) &&
-              !isDeviceTaskInProgress(device)
+              !isDeviceProcessing(waitForDevice)
             ) )
         {
             fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
-            addDeviceTask( device );
+            addToDevicesProcessing(device->getAddress());
+            std::thread dc(::processConnectedDevice, device);
+            dc.detach();
         } else {
             fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
         }
@@ -254,23 +215,25 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
         res = device->connectDefault();
     }
     fprintf(stderr, "****** Connecting Device: End result %d of %s\n", res, device->toString().c_str());
-    if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
-        device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
+    if( !USE_WHITELIST && 0 == devicesInProcessing.size() && !res ) {
+        device->getAdapter().startDiscovery( true );
     }
 }
 
 static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
-    // earmark device as being processed right-away
-    addDevicesProcessed(device->getAddress());
-
     fprintf(stderr, "****** Processing Device: Start %s\n", device->toString().c_str());
     const uint64_t t1 = getCurrentMilliseconds();
+    bool success = false;
 
     //
     // GATT Service Processing
     //
-    std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
-    if( primServices.size() > 0 ) {
+    try {
+        std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
+        if( 0 == primServices.size() ) {
+            goto exit;
+        }
+
         const uint64_t t5 = getCurrentMilliseconds();
         {
             const uint64_t td15 = t5 - t1; // connected -> gatt-complete
@@ -323,22 +286,22 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         }
         // FIXME sleep 1s for potential callbacks ..
         sleep(1);
-    }
-    if( USE_WHITELIST || BLOCK_DISCOVERY ) {
-        device->disconnect();
-    } else {
-        device->getAdapter().stopDiscovery();
-        device->disconnect();
-        device->getAdapter().startDiscovery(false);
+        success = true;
+    } catch ( std::exception & e ) {
+        fprintf(stderr, "****** Processing Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
     }
 
-    if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
-        if( 1 >= getDeviceTaskCount() ) {
-            device->getAdapter().startDiscovery( BLOCK_DISCOVERY );
-        }
+exit:
+    device->disconnect();
+
+    if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
+        device->getAdapter().startDiscovery( true );
     }
-    removeDeviceTask(device);
-    fprintf(stderr, "****** Processing Device: End: %s\n", device->toString().c_str());
+    removeFromDevicesProcessing(device->getAddress());
+    fprintf(stderr, "****** Processing Device: End: Success %d on %s\n", success, device->toString().c_str());
+    if( success ) {
+        addToDevicesProcessed(device->getAddress());
+    }
 }
 
 
@@ -352,8 +315,6 @@ int main(int argc, char *argv[])
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
-        } else if( !strcmp("-keepDiscovery", argv[i]) ) {
-            BLOCK_DISCOVERY = false;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
@@ -364,12 +325,10 @@ int main(int argc, char *argv[])
             std::shared_ptr<EUI48> wlmac( new EUI48(macstr) );
             fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
             whitelist.push_back( wlmac );
-            BLOCK_DISCOVERY = true;
             USE_WHITELIST = true;
         }
     }
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
-    fprintf(stderr, "BLOCK_DISCOVERY %d\n", BLOCK_DISCOVERY);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
 
@@ -401,8 +360,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Added to whitelist: res %d, address %s\n", res, wlmac->toString().c_str());
         }
     } else {
-        fprintf(stderr, "****** Main: startDiscovery()\n");
-        if( !adapter.startDiscovery( BLOCK_DISCOVERY ) ) {
+        if( !adapter.startDiscovery( true ) ) {
             perror("Adapter start discovery failed");
             done = true;
         }
@@ -412,12 +370,8 @@ int main(int argc, char *argv[])
         if( waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) ) {
             fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
             done = true;
-        } else {
-            if( !!USE_WHITELIST && !BLOCK_DISCOVERY && 0 >= getDeviceTaskCount() ) {
-                adapter.startDiscovery(false);
-            }
         }
-        sleep(5);
+        sleep(3);
     }
 
     return 0;
