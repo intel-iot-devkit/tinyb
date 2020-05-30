@@ -318,7 +318,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         final int cj = removeDiscoveredDevices();
         final int cn = removeDevicesImpl();
         if( cj != cn ) {
-            throw new InternalError("Inconsistent discovered device count: Native "+cn+", callback "+cj);
+            System.err.println("DBTAdapter::removeDevices: Inconsistent discovered device count: Native "+cn+", callback "+cj);
         }
         return cn;
     }

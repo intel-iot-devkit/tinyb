@@ -231,6 +231,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     try {
         std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
         if( 0 == primServices.size() ) {
+            fprintf(stderr, "****** Processing Device: getServices() failed %s\n", device->toString().c_str());
             goto exit;
         }
 
@@ -292,7 +293,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
-    device->disconnect();
+    device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
 
     if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
         device->getAdapter().startDiscovery( true );
@@ -328,6 +329,8 @@ int main(int argc, char *argv[])
             USE_WHITELIST = true;
         }
     }
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)*'");
+
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());

@@ -61,13 +61,11 @@ public class ScannerTinyB10 {
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
 
-    boolean BLOCK_DISCOVERY = true;
-
     int factory = 0;
 
     int dev_id = 0; // default
 
-    Collection<String> devicesTasks = Collections.synchronizedCollection(new ArrayList<>());
+    Collection<String> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
     Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
@@ -96,7 +94,7 @@ public class ScannerTinyB10 {
             if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
                 ( waitForDevice.equals(device.getAddress()) &&
                   !devicesProcessed.contains(waitForDevice) &&
-                  !devicesTasks.contains(waitForDevice)
+                  !devicesInProcessing.contains(waitForDevice)
                 ) )
             {
                 System.err.println("****** FOUND__-0: Connecting "+device.toString());
@@ -130,7 +128,7 @@ public class ScannerTinyB10 {
             if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
                 ( waitForDevice.equals(device.getAddress()) &&
                   !devicesProcessed.contains(waitForDevice) &&
-                  !devicesTasks.contains(waitForDevice)
+                  !devicesInProcessing.contains(waitForDevice)
                 ) )
             {
                 System.err.println("****** CONNECTED-0: Processing "+device.toString());
@@ -140,7 +138,7 @@ public class ScannerTinyB10 {
                         processConnectedDevice(device);
                     }
                 }, "DBT-Process-"+device.getAddress());
-                devicesTasks.add(device.getAddress());
+                devicesInProcessing.add(device.getAddress());
                 deviceProcessingTask.setDaemon(true); // detach thread
                 deviceProcessingTask.start();
             } else {
@@ -173,25 +171,27 @@ public class ScannerTinyB10 {
             res = device.connect();
         }
         System.err.println("****** Connecting Device: End result "+res+" of " + device.toString());
-        if( !USE_WHITELIST && ( !BLOCK_DISCOVERY || !res ) ) {
-            device.getAdapter().startDiscovery( BLOCK_DISCOVERY );
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() && !res ) {
+            device.getAdapter().startDiscovery( true );
         }
     }
 
     private void processConnectedDevice(final BluetoothDevice device) {
-        // earmark device as being processed right-away
-        devicesProcessed.add(device.getAddress());
 
         System.err.println("****** Processing Device: Start " + device.toString());
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
+        boolean success = false;
 
         //
         // GATT Service Processing
         //
-        final List<BluetoothGattService> primServices = device.getServices(); // implicit GATT connect...
-        if( null == primServices ) {
-            System.err.println("****** Processing Device: getServices() failed " + device.toString());
-        } else {
+        try {
+            final List<BluetoothGattService> primServices = device.getServices(); // implicit GATT connect...
+            if( null == primServices || 0 == primServices.size() ) {
+                // Cheating the flow, but avoiding: goto, do-while-false and lastly unreadable intendations
+                // And it is an error case nonetheless ;-)
+                throw new RuntimeException("Processing Device: getServices() failed " + device.toString());
+            }
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
             {
                 final long td15 = t5 - t1; // connected -> gatt-complete
@@ -231,22 +231,22 @@ public class ScannerTinyB10 {
             } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
-        }
-        if( USE_WHITELIST || BLOCK_DISCOVERY ) {
+            success = true;
+        } catch (final Throwable t ) {
+            System.err.println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            t.printStackTrace();
+        } finally {
             device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
-        } else {
-            device.getAdapter().stopDiscovery();
-            device.disconnect();
-            device.getAdapter().startDiscovery(false);
-        }
 
-        if( !USE_WHITELIST && BLOCK_DISCOVERY ) {
-            if( 1 >= devicesTasks.size() ) {
-                device.getAdapter().startDiscovery( BLOCK_DISCOVERY );
+            if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
+                device.getAdapter().startDiscovery( true );
+            }
+            devicesInProcessing.remove(device.getAddress());
+            System.err.println("****** Processing Device: End: Success " + success + " on " + device.toString());
+            if( success ) {
+                devicesProcessed.add(device.getAddress());
             }
         }
-        devicesTasks.remove(device.getAddress());
-        System.err.println("****** Processing Device: End: " + device.toString());
     }
 
     public void runTest() {
@@ -289,19 +289,16 @@ public class ScannerTinyB10 {
 
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
+        boolean done = false;
+
         if( USE_WHITELIST ) {
             for(final Iterator<String> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final String addr = wliter.next();
                 final boolean res = adapter.addDeviceToWhitelist(addr, BluetoothAddressType.BDADDR_LE_PUBLIC, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
                 System.err.println("Added to whitelist: res "+res+", address "+addr);
             }
-        }
-
-        boolean done = false;
-
-        if( !USE_WHITELIST ) {
-            System.err.println("****** Main: startDiscovery()\n");
-            if( !adapter.startDiscovery( BLOCK_DISCOVERY ) ) {
+        } else {
+            if( !adapter.startDiscovery( true ) ) {
                 System.err.println("Adapter start discovery failed");
                 done = true;
             }
@@ -311,23 +308,17 @@ public class ScannerTinyB10 {
             if( !waitForDevice.equals(EUI48_ANY_DEVICE) && devicesProcessed.contains(waitForDevice) ) {
                 System.err.println("****** WaitForDevice processed "+waitForDevice);
                 done = true;
-            } else {
-                if( !!USE_WHITELIST && !BLOCK_DISCOVERY && 0 >= devicesTasks.size() ) {
-                    adapter.startDiscovery(false);
-                }
             }
             try {
-                Thread.sleep(5000);
+                Thread.sleep(3000);
             } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
         }
 
-        System.err.println("ScannerTinyB10 03 close: "+adapter);
-        adapter.close();
-        System.err.println("ScannerTinyB10 04");
-        manager.shutdown();
-        System.err.println("ScannerTinyB10 XX");
+        // All implicit via destructor or shutdown hook!
+        // adapter.close();
+        // manager.shutdown();
     }
 
     public static void main(final String[] args) throws InterruptedException {
@@ -340,8 +331,6 @@ public class ScannerTinyB10 {
 
                 if( arg.equals("-wait") ) {
                     waitForEnter = true;
-                } else if( arg.equals("-keepDiscovery") ) {
-                    test.BLOCK_DISCOVERY = false;
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
@@ -350,7 +339,6 @@ public class ScannerTinyB10 {
                     final String addr = args[++i];
                     System.err.println("Whitelist + "+addr);
                     test.whitelist.add(addr);
-                    test.BLOCK_DISCOVERY = true;
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     test.factory = Integer.valueOf(args[++i]).intValue();
@@ -361,7 +349,6 @@ public class ScannerTinyB10 {
         }
 
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
-        System.err.println("BLOCK_DISCOVERY "+test.BLOCK_DISCOVERY);
         System.err.println("dev_id "+test.dev_id);
         System.err.println("waitForDevice: "+test.waitForDevice);
 
