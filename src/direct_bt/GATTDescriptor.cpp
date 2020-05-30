@@ -51,7 +51,7 @@ bool GATTDescriptor::readValue(int expectedLength) {
     std::shared_ptr<DBTDevice> device = getDevice();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
+        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+
                 toString() + ", " + device->toString(), E_FILE_LINE);
     }
     return gatt->readDescriptorValue(*this, expectedLength);
@@ -61,7 +61,7 @@ bool GATTDescriptor::writeValue() {
     std::shared_ptr<DBTDevice> device = getDevice();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
+        throw IllegalStateException("Descriptor's device GATTHandle not connected: "+
                 toString() + ", " + device->toString(), E_FILE_LINE);
     }
     return gatt->writeDescriptorValue(*this);

@@ -44,15 +44,6 @@ std::string GATTService::toString() const {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
-    std::string res = "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
-                      name+"[ ";
-
-    for(size_t i=0; i<characteristicList.size(); i++) {
-        if( 0 < i ) {
-            res += ", ";
-        }
-        res += std::to_string(i)+"[ "+characteristicList[i]->toString()+" ]";
-    }
-    res += " ]";
-    return res;
+    return "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                      name+", "+std::to_string(characteristicList.size())+" characteristics";
 }
