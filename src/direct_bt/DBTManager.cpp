@@ -154,42 +154,45 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 }
 
 std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
-    DBG_PRINT("DBTManager::send: Command %s", req.toString().c_str());
     {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
-            ERR_PRINT("DBTManager::send: HCIComm error");
+            ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
             return nullptr;
         }
     }
     // Ringbuffer read is thread safe
-    std::shared_ptr<MgmtEvent> res = receiveNext();
-    if( nullptr == res ) {
-        errno = ETIMEDOUT;
-        WARN_PRINT("DBTManager::send: nullptr result (timeout): req %s", req.toString().c_str());
-        return nullptr;
-    } else if( !res->validate(req) ) {
-        WARN_PRINT("DBTManager::send: res mismatch: res %s; req %s", res->toString().c_str(), req.toString().c_str());
-        return nullptr;
+    int retry = 3;
+    while( 0 < retry ) {
+        std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(MGMT_READER_THREAD_POLL_TIMEOUT);
+        // std::shared_ptr<MgmtEvent> res = receiveNext();
+        if( nullptr == res ) {
+            errno = ETIMEDOUT;
+            ERR_PRINT("DBTManager::sendWithReply: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            return nullptr;
+        } else if( !res->validate(req) ) {
+            // This could occur due to an earlier timeout w/ a nullptr == res (see above),
+            // i.e. the pending reply processed here and naturally not-matching.
+            ERR_PRINT("DBTManager::sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
+                    retry, res->toString().c_str(), req.toString().c_str());
+            retry--;
+        } else {
+            DBG_PRINT("DBTManager::sendWithReply: res: %s, req %s", res->toString().c_str(), req.toString().c_str());
+            return res;
+        }
     }
-    return res;
-}
-
-std::shared_ptr<MgmtEvent> DBTManager::receiveNext() {
-    return mgmtEventRing.getBlocking(MGMT_READER_THREAD_POLL_TIMEOUT);
+    return nullptr;
 }
 
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
-    DBG_PRINT("DBTManager::initAdapter dev_id %d: req: %s", dev_id, req0.toString().c_str());
     {
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
-        DBG_PRINT("DBTManager::initAdapter dev_id %d: res: %s", dev_id, res->toString().c_str());
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredSize()) {
             ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredSize(), res->toString().c_str());
             goto fail;
@@ -251,7 +254,7 @@ DBTManager::DBTManager(const BTMode btMode)
         sigemptyset(&(sa_setup.sa_mask));
         sa_setup.sa_flags = SA_SIGINFO;
         if( 0 != sigaction( SIGALRM, &sa_setup, NULL ) ) {
-            ERR_PRINT("DBTManager::open: Setting sighandler");
+            ERR_PRINT("DBTManager::ctor: Setting sighandler");
         }
     }
     mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
@@ -262,12 +265,10 @@ DBTManager::DBTManager(const BTMode btMode)
     // Mandatory
     {
         MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::INDEX_NONE);
-        DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
-        DBG_PRINT("DBTManager::open res: %s", res->toString().c_str());
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getDataSize() < 3) {
             ERR_PRINT("Wrong version response: %s", res->toString().c_str());
             goto fail;
@@ -284,12 +285,10 @@ DBTManager::DBTManager(const BTMode btMode)
     // Optional
     {
         MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::INDEX_NONE);
-        DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto next1;
         }
-        DBG_PRINT("DBTManager::open res: %s", res->toString().c_str());
         if( MgmtEvent::Opcode::CMD_COMPLETE == res->getOpcode() && res->getDataSize() >= 4) {
             const uint8_t *data = res->getData();
             const uint16_t num_commands = get_uint16(data, 0, true /* littleEndian */);
@@ -315,12 +314,10 @@ next1:
     // Mandatory
     {
         MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::INDEX_NONE);
-        DBG_PRINT("DBTManager::open req: %s", req0.toString().c_str());
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
         }
-        DBG_PRINT("DBTManager::open res: %s", res->toString().c_str());
         if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getDataSize() < 2) {
             ERR_PRINT("Insufficient data for adapter index: res %s", res->toString().c_str());
             goto fail;
@@ -447,15 +444,17 @@ std::shared_ptr<AdapterInfo> DBTManager::getAdapterInfo(const int idx) const {
 
 bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode) {
     MgmtUint8Cmd req(opc, dev_id, mode);
-    DBG_PRINT("DBTManager::setMode: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res ) {
-        DBG_PRINT("DBTManager::setMode res: %s", res->toString().c_str());
-        return true;
-    } else {
-        DBG_PRINT("DBTManager::setMode res: NULL");
-        return false;
+        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            return MgmtStatus::SUCCESS == res1.getStatus();
+        } else if( res->getOpcode() == MgmtEvent::Opcode::CMD_STATUS ) {
+            const MgmtEvtCmdStatus &res1 = *static_cast<const MgmtEvtCmdStatus *>(res.get());
+            return MgmtStatus::SUCCESS == res1.getStatus();
+        }
     }
+    return false;
 }
 
 ScanType DBTManager::startDiscovery(const int dev_id) {
@@ -476,40 +475,24 @@ ScanType DBTManager::startDiscovery(const int dev_id) {
 
 ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
     MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, scanType);
-    DBG_PRINT("DBTManager::startDiscovery: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::startDiscovery res: NULL");
-        return ScanType::SCAN_TYPE_NONE;
-    }
-    DBG_PRINT("DBTManager::startDiscovery res: %s", res->toString().c_str());
     ScanType type = ScanType::SCAN_TYPE_NONE;
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() && 1 == res1.getDataSize() ) {
             type = static_cast<ScanType>( *res1.getData() );
-            DBG_PRINT("DBTManager::startDiscovery res: ScanType %d", (int)type);
-        } else {
-            DBG_PRINT("DBTManager::startDiscovery no-success or invalid res: %s", res1.toString().c_str());
         }
     }
     return type;
 }
 bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
     MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, type);
-    DBG_PRINT("DBTManager::stopDiscovery: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
-        return false;
-    }
-    DBG_PRINT("DBTManager::stopDiscovery res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         return MgmtStatus::SUCCESS == res1.getStatus();
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
@@ -517,18 +500,10 @@ bool DBTManager::uploadConnParam(const int dev_id, const EUI48 &address, const B
                                  const uint16_t latency, const uint16_t timeout) {
     MgmtConnParam connParam{ address, address_type, min_interval, max_interval, latency, timeout };
     MgmtLoadConnParamCmd req(dev_id, connParam);
-    DBG_PRINT("DBTManager::uploadConnParam: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::uploadConnParam res: NULL");
-    } else {
-        DBG_PRINT("DBTManager::uploadConnParam res: %s", res->toString().c_str());
-        if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-            if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-                return true;
-            }
-        }
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+        return MgmtStatus::SUCCESS == res1.getStatus();
     }
     return false;
 }
@@ -547,7 +522,6 @@ bool DBTManager::isDeviceWhitelisted(const int dev_id, const EUI48 &address) {
 
 bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype) {
     MgmtAddDeviceToWhitelistCmd req(dev_id, address, address_type, ctype);
-    DBG_PRINT("DBTManager::addDeviceToWhitelist: %s", req.toString().c_str());
 
     // Check if already exist in our local whitelist first, reject if so ..
     if( isDeviceWhitelisted(dev_id, address) ) {
@@ -555,12 +529,7 @@ bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, co
         return false;
     }
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::addDeviceToWhitelist res: NULL");
-        return false;
-    }
-    DBG_PRINT("DBTManager::addDeviceToWhitelist res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
             std::shared_ptr<WhitelistElem> wle( new WhitelistElem{dev_id, address, address_type, ctype} );
@@ -601,14 +570,8 @@ bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &addres
 
     // Actual removal
     MgmtRemoveDeviceFromWhitelistCmd req(dev_id, address, address_type);
-    DBG_PRINT("DBTManager::removeDeviceFromWhitelist: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::removeDeviceFromWhitelist res: NULL");
-        return false;
-    }
-    DBG_PRINT("DBTManager::removeDeviceFromWhitelist res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
             return true;
@@ -646,35 +609,24 @@ uint16_t DBTManager::create_connection(const int dev_id,
 
 bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason) {
     MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
-    DBG_PRINT("DBTManager::disconnect: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::stopDiscovery res: NULL");
-        return false;
-    }
-    DBG_PRINT("DBTManager::disconnect res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    bool bres = false;
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            // explicit disconnected event
-            MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason);
-            sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
-            return true;
+            bres = true;
         }
     }
-    return false;
+    // explicit disconnected event anyways
+    MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason);
+    sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
+    return bres;
 }
 
 std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type) {
     MgmtGetConnectionInfoCmd req(dev_id, address, address_type);
-    DBG_PRINT("DBTManager::getConnectionInfo: %s", req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::getConnectionInfo res: NULL");
-        return nullptr;
-    }
-    DBG_PRINT("DBTManager::getConnectionInfo res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
             std::shared_ptr<ConnectionInfo> result = res1.toConnectionInfo();
@@ -686,14 +638,8 @@ std::shared_ptr<ConnectionInfo> DBTManager::getConnectionInfo(const int dev_id, 
 
 std::shared_ptr<NameAndShortName> DBTManager::setLocalName(const int dev_id, const std::string & name, const std::string & short_name) {
     MgmtSetLocalNameCmd req (dev_id, name, short_name);
-    DBG_PRINT("DBTManager::setLocalName: '%s', short '%s': %s", name.c_str(), short_name.c_str(), req.toString().c_str());
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    if( nullptr == res ) {
-        DBG_PRINT("DBTManager::setLocalName res: NULL");
-        return nullptr;
-    }
-    DBG_PRINT("DBTManager::setLocalName res: %s", res->toString().c_str());
-    if( res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() ) {
             std::shared_ptr<NameAndShortName> result = res1.toNameAndShortName();

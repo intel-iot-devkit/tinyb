@@ -132,7 +132,12 @@ namespace direct_bt {
 
             std::vector<std::shared_ptr<AdapterInfo>> adapterInfos;
             void mgmtReaderThreadImpl();
-            std::shared_ptr<MgmtEvent> receiveNext();
+
+            /**
+             * In case response size check or devID and optional opcode validation fails,
+             * function returns NULL.
+             */
+            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req);
 
             DBTManager(const BTMode btMode);
             DBTManager(const DBTManager&) = delete;
@@ -226,12 +231,6 @@ namespace direct_bt {
              * Returns the default AdapterInfo (0 == index == dev_id) or nullptr if no adapter is available.
              */
             std::shared_ptr<AdapterInfo> getDefaultAdapterInfo() const { return adapterInfos.size() > 0 ? getAdapterInfo(0) : nullptr; }
-
-            /**
-             * In case response size check or devID and optional opcode validation fails,
-             * function returns NULL.
-             */
-            std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req);
 
             bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode);
 
