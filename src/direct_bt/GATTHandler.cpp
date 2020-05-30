@@ -213,7 +213,8 @@ void GATTHandler::l2capReaderThreadImpl() {
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
                     AttHandleValueCfm cfm;
-                    cfmSent = send(cfm);
+                    send(cfm);
+                    cfmSent = true;
                     DBG_PRINT("GATTHandler: CFM send: %s, confirmationSent %d", cfm.toString().c_str(), cfmSent);
                 }
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
@@ -327,16 +328,18 @@ bool GATTHandler::disconnect() {
     l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
     state = Disconnected;
 
-    device->disconnect(); // cleanup device resources, proper connection state
+    if( nullptr != device ) {
+        device->disconnect(); // cleanup device resources, proper connection state
+    }
 
     DBG_PRINT("GATTHandler::disconnect End");
     return Disconnected == validateState();
 }
 
-bool GATTHandler::send(const AttPDUMsg & msg) {
+void GATTHandler::send(const AttPDUMsg & msg) {
     if( Disconnected >= validateState() ) {
         // not open
-        return false;
+        throw IllegalStateException("GATTHandler::send: Not connected: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( msg.pdu.getSize() > usedMTU ) {
         throw IllegalArgumentException("clientMaxMTU "+std::to_string(msg.pdu.getSize())+" > usedMTU "+std::to_string(usedMTU)+
@@ -351,28 +354,28 @@ bool GATTHandler::send(const AttPDUMsg & msg) {
         ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
         state = Error;
         disconnect(); // state -> Disconnected
-        return false;
+        throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( res != msg.pdu.getSize() ) {
         ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %d: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
         state = Error;
         disconnect(); // state -> Disconnected
-        return false;
+        throw BluetoothException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
+                                 +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
     }
-    return true;
 }
 
 std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & msg) {
-    if( !send( msg ) ) {
-        return nullptr;
-    }
+    send( msg );
+
     // Ringbuffer read is thread safe
     std::shared_ptr<const AttPDUMsg> res = receiveNext();
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         ERR_PRINT("GATTHandler::send: nullptr result (timeout): req %s to %s", msg.toString().c_str(), deviceString.c_str());
         disconnect();
+        throw BluetoothException("GATTHandler::send: nullptr result (timeout): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }
@@ -789,7 +792,8 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     DBG_PRINT("GATT WV send(resp %d): %s", expResponse, req.toString().c_str());
 
     if( !expResponse ) {
-        return send( req );
+        send( req );
+        return true;
     }
 
     bool res = false;

@@ -117,7 +117,10 @@ namespace direct_bt {
             State validateState();
 
             void l2capReaderThreadImpl();
+
             std::shared_ptr<const AttPDUMsg> receiveNext();
+            void send(const AttPDUMsg & msg);
+            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
@@ -142,9 +145,6 @@ namespace direct_bt {
             bool connect();
             bool disconnect();
             bool isOpen() const { return Disconnected < state && l2cap.isOpen(); }
-
-            bool send(const AttPDUMsg & msg);
-            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
 
             uint16_t getServerMTU() const { return serverMTU; }
             uint16_t getUsedMTU()  const { return usedMTU; }
