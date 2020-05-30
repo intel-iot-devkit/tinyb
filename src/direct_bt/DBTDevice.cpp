@@ -345,6 +345,8 @@ void DBTDevice::notifyDisconnected() {
 }
 
 void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason) {
+    DBG_PRINT("DBTDevice::disconnect: disconnectManager %d, gattHandler %d, hciConnHandle %d",
+            disconnectManager, (nullptr != gattHandler), (0 != hciConnHandle));
     disconnectGATT();
 
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
@@ -359,18 +361,18 @@ void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason) {
         DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not open: %s", toString().c_str());
     } else {
         if( !hciComm->disconnect(hciConnHandle, reason) ) {
-            DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", _connHandle, errno, strerror(errno));
+            DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle, errno, strerror(errno));
         }
     }
     hciConnHandle = 0;
 
+skip_hci_disconnect:
     if( disconnectManager ) {
-        // mngr.disconnect also sends DISCONNECT
+        // Also issue mngr.disconnect on non-HCI connect (whitelist),
+        // which will also send the DISCONNECT event.
         DBTManager & mngr = adapter.getManager();
         mngr.disconnect(adapter.dev_id, address, addressType, reason);
     }
-
-skip_hci_disconnect:
     adapter.removeConnectedDevice(*this);
 }
 
