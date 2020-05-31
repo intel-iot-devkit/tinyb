@@ -130,7 +130,9 @@ namespace direct_bt {
         LIMIT_REACHED = 0x43,
         OPERATION_CANCELLED_BY_HOST = 0x44,
         PACKET_TOO_LONG = 0x45,
-        INTERNAL_FAILURE = 0xff
+
+        INTERNAL_FAILURE = 0xfe,
+        UNKNOWN = 0xff
     };
     std::string getHCIErrorCodeString(const HCIErrorCode ec);
 
@@ -232,7 +234,7 @@ namespace direct_bt {
             /**
              * Disconnect an established connection.
              */
-            bool disconnect(const uint16_t conn_handle, const uint8_t reason=static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION));
+            bool disconnect(const uint16_t conn_handle, const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION);
 
         private:
             static inline void set_bit(int nr, void *addr)

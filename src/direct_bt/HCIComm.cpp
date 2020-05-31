@@ -118,7 +118,8 @@ namespace direct_bt {
         X(LIMIT_REACHED) \
         X(OPERATION_CANCELLED_BY_HOST) \
         X(PACKET_TOO_LONG) \
-        X(INTERNAL_FAILURE)
+        X(INTERNAL_FAILURE) \
+        X(UNKNOWN)
 
 #define HCI_ERROR_CODE_CASE_TO_STRING(V) case HCIErrorCode::V: return #V;
 
@@ -506,11 +507,12 @@ done:
 	return HCIErrorCode::SUCCESS;
 }
 
-bool HCIComm::disconnect(const uint16_t le_conn_handle, const uint8_t reason)
+bool HCIComm::disconnect(const uint16_t le_conn_handle, const HCIErrorCode reason)
 {
     /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command */
     const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("hci_disconnect: handle 0x%x, reason 0x%x", le_conn_handle, reason);
+    DBG_PRINT("hci_disconnect: handle 0x%x, reason 0x%x (%s)",
+              le_conn_handle, static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str());
     if( 0 > _dd ) {
         return true;
     }
@@ -522,7 +524,7 @@ bool HCIComm::disconnect(const uint16_t le_conn_handle, const uint8_t reason)
 
 	bzero(&cp, sizeof(cp));
 	cp.handle = le_conn_handle;
-	cp.reason = reason;
+	cp.reason = static_cast<uint8_t>(reason);
 
     HCIErrorCode res = send_req( hci_opcode_pack(OGF_LINK_CTL, HCI_OP_DISCONNECT), &cp, sizeof(cp),
                                  HCI_EV_DISCONN_COMPLETE, &rp, sizeof(rp) );

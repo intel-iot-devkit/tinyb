@@ -282,7 +282,7 @@ namespace direct_bt {
 
             bool disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                            const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
+                            const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION );
 
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type);
             std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name);

@@ -611,7 +611,7 @@ uint16_t DBTManager::create_connection(const int dev_id,
 
 bool DBTManager::disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
-                            const uint8_t reason) {
+                            const HCIErrorCode reason) {
     bool bres = false;
 
     if( !ioErrorCause ) {

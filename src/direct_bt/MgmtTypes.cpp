@@ -334,3 +334,50 @@ std::shared_ptr<AdapterInfo> MgmtEvtAdapterInfo::toAdapterInfo() const {
             getCurrentSetting(), getDevClass(),
             getName(), getShortName()) );
 }
+
+std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReason mgmtReason) {
+    switch(mgmtReason) {
+        case DisconnectReason::TIMEOUT: return "TIMEOUT";
+        case DisconnectReason::LOCAL_HOST: return "LOCAL_HOST";
+        case DisconnectReason::REMOTE: return "REMOTE";
+        case DisconnectReason::AUTH_FAILURE: return "AUTH_FAILURE";
+
+        case DisconnectReason::UNKNOWN:
+        default:
+            return "UNKNOWN";
+    }
+    return "Unknown DisconnectReason";
+}
+
+MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIErrorCode hciReason) {
+    switch (hciReason) {
+        case HCIErrorCode::CONNECTION_TIMEOUT:
+            return DisconnectReason::TIMEOUT;
+        case HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION:
+        case HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_LOW_RESOURCES:
+        case HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF:
+            return DisconnectReason::REMOTE;
+        case HCIErrorCode::CONNECTION_TERMINATED_BY_LOCAL_HOST:
+            return DisconnectReason::LOCAL_HOST;
+        case HCIErrorCode::AUTHENTICATION_FAILURE:
+            return DisconnectReason::AUTH_FAILURE;
+
+        case HCIErrorCode::INTERNAL_FAILURE:
+        case HCIErrorCode::UNKNOWN:
+        default:
+            return DisconnectReason::UNKNOWN;
+
+    }
+}
+HCIErrorCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReason) {
+    switch(mgmtReason) {
+        case DisconnectReason::TIMEOUT: return HCIErrorCode::CONNECTION_TIMEOUT;
+        case DisconnectReason::LOCAL_HOST: return HCIErrorCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
+        case DisconnectReason::REMOTE: return HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION;
+        case DisconnectReason::AUTH_FAILURE: return HCIErrorCode::AUTHENTICATION_FAILURE;
+
+        case DisconnectReason::UNKNOWN:
+        default:
+            return HCIErrorCode::UNKNOWN;
+    }
+}

@@ -79,7 +79,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
     return false;
 }
 
-int DBTAdapter::disconnectAllDevices(const uint8_t reason) {
+int DBTAdapter::disconnectAllDevices(const HCIErrorCode reason) {
     std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
     const int count = devices.size();
     for (auto it = devices.begin(); it != devices.end(); ++it) {
@@ -601,7 +601,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
-                    l->deviceDisconnected(device, event.getReason(), event.getTimestamp());
+                    l->deviceDisconnected(device, event.getHCIReason(), event.getTimestamp());
                 }
             } catch (std::exception &e) {
                 ERR_PRINT("DBTAdapter::EventCB:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",

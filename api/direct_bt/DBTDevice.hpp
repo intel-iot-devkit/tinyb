@@ -87,7 +87,7 @@ namespace direct_bt {
             void notifyConnected();
 
             void disconnect(const bool sentFromManager, const bool ioErrorCause,
-                            const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
+                            const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION );
 
         public:
             const uint64_t ts_creation;
@@ -227,7 +227,7 @@ namespace direct_bt {
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
              */
-            void disconnect(const uint8_t reason=static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION) ) {
+            void disconnect(const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION ) {
                 disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
             }
 

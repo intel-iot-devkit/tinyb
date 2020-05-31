@@ -357,9 +357,10 @@ void DBTDevice::notifyDisconnected() {
     isConnected = false;
 }
 
-void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const uint8_t reason) {
-    DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, gattHandler %d, hciConnHandle %d",
-            isConnected.load(), sentFromManager, ioErrorCause, (nullptr != gattHandler), (0 != hciConnHandle));
+void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const HCIErrorCode reason) {
+    DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %d",
+            isConnected.load(), sentFromManager, ioErrorCause, static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str(),
+            (nullptr != gattHandler), (0 != hciConnHandle));
     disconnectGATT();
 
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor

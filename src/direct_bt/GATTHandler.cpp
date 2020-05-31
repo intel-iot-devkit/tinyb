@@ -337,9 +337,9 @@ bool GATTHandler::disconnect(const bool ioErrorCause) {
     if( nullptr != device ) {
         // Cleanup device resources, proper connection state
         // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
-        const uint8_t reason = ioErrorCause ?
-                               static_cast<uint8_t>(HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF) :
-                               static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION);
+        const HCIErrorCode reason = ioErrorCause ?
+                               HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF :
+                               HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION;
         device->disconnect(false /* sentFromManager */, ioErrorCause, reason);
     }
 

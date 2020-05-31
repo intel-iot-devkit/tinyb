@@ -174,7 +174,7 @@ namespace direct_bt {
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const uint8_t reason);
+            friend void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIErrorCode reason);
             friend uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
                     uint16_t interval, uint16_t window,
                     uint16_t min_interval, uint16_t max_interval,
@@ -184,7 +184,7 @@ namespace direct_bt {
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             bool removeConnectedDevice(const DBTDevice & device);
-            int disconnectAllDevices(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
+            int disconnectAllDevices(const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION );
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);

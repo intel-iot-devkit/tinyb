@@ -914,10 +914,35 @@ namespace direct_bt {
     class MgmtEvtDeviceDisconnected : public MgmtEvent
     {
         public:
+            enum class DisconnectReason : uint8_t {
+                UNKNOWN        = 0x00,
+                TIMEOUT        = 0x01,
+                LOCAL_HOST     = 0x02,
+                REMOTE         = 0x03,
+                AUTH_FAILURE   = 0x04
+            };
+            static std::string getDisconnectReasonString(DisconnectReason mgmtReason);
+
+            /**
+             * BlueZ Kernel Mgmt has reduced information by HCIErrorCode -> DisconnectReason,
+             * now the inverse surely can't repair this loss.
+             * <p>
+             * See getDisconnectReason(HCIErrorCode) below for the mentioned mapping.
+             * </p>
+             */
+            static HCIErrorCode getHCIReason(DisconnectReason mgmtReason);
+
+            /**
+             * BlueZ Kernel Mgmt mapping of HCI disconnect reason, which reduces some information.
+             */
+            static DisconnectReason getDisconnectReason(HCIErrorCode hciReason);
+
+        private:
+            const HCIErrorCode hciRootReason;
 
         protected:
             std::string baseString() const override {
-                const HCIErrorCode reason = getReason();
+                const HCIErrorCode reason = getHCIReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
                        ", reason "+uint8HexString(static_cast<uint8_t>(reason))+" ("+getHCIErrorCodeString(reason)+")";
@@ -925,22 +950,34 @@ namespace direct_bt {
 
         public:
             MgmtEvtDeviceDisconnected(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len)
+            : MgmtEvent(buffer, buffer_len), hciRootReason(HCIErrorCode::UNKNOWN)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
-            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, uint8_t reason)
-            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1)
+            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, HCIErrorCode hciRootReason)
+            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciRootReason(hciRootReason)
             {
+                DisconnectReason disconnectReason = getDisconnectReason(hciRootReason);
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, reason);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
             }
 
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
-            HCIErrorCode getReason() const { return static_cast<HCIErrorCode>(pdu.get_uint8(MGMT_HEADER_SIZE+7)); }
+            DisconnectReason getReason() const { return static_cast<DisconnectReason>(pdu.get_uint8(MGMT_HEADER_SIZE+7)); }
+
+            /** Return the root reason in non reduced HCIErrorCode space, if available. Otherwise this value will be HCIErrorCode::UNKNOWN. */
+            HCIErrorCode getHCIRootReason() const { return hciRootReason; }
+
+            /** Returns either the getHCIRootReason() if not HCIErrorCode::UNKNOWN, or the translated DisconnectReason. */
+            HCIErrorCode getHCIReason() const {
+                if( HCIErrorCode::UNKNOWN != hciRootReason ) {
+                    return hciRootReason;
+                }
+                return getHCIReason(getReason());
+            }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }
