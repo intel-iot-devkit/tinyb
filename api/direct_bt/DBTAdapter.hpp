@@ -105,18 +105,25 @@ namespace direct_bt {
             /**
              * An already discovered DBTDevice has been updated.
              * @param device the updated device
-             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              * @param updateMask the update mask of changed data
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) = 0;
+            virtual void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) = 0;
 
             /**
-             * DBTDevice's connection status has changed.
+             * DBTDevice got connected
              * @param device the device which connection state has changed
-             * @param connected if {@code true} the device has been connected, otherwise disconnected
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) = 0;
+            virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+
+            /**
+             * DBTDevice got disconnected
+             * @param device the device which connection state has changed
+             * @param reason the HCIErrorCode reason for disconnection
+             * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
+             */
+            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIErrorCode reason, const uint64_t timestamp) = 0;
 
             virtual ~AdapterStatusListener() {}
 
@@ -175,8 +182,8 @@ namespace direct_bt {
             friend uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
 
-            void addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
-            void removeConnectedDevice(const DBTDevice & device);
+            bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
+            bool removeConnectedDevice(const DBTDevice & device);
             int disconnectAllDevices(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 

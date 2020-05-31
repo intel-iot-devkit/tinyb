@@ -39,6 +39,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.HCIErrorCode;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -61,7 +62,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
-        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+        public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             synchronized(userCallbackLock) {
                 if( updateMask.isSet( EIRDataTypeSet.DataType.RSSI ) && null != userRSSINotificationsCB ) {
                     userRSSINotificationsCB.run(getRSSI());
@@ -72,18 +73,35 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
-            if( DBTDevice.this.connected != connected ) {
-                DBTDevice.this.connected = connected;
+        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+            if( !connected ) {
+                connected = true;
                 synchronized(userCallbackLock) {
                     if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(connected);
+                        userConnectedNotificationsCB.run(Boolean.TRUE);
                     }
-                    if( connected && !servicesResolved ) {
+                    if( !servicesResolved ) {
                         servicesResolved = true;
                         if( null != userServicesResolvedNotificationsCB ) {
                             userServicesResolvedNotificationsCB.run(Boolean.TRUE);
                         }
+                    }
+                }
+            }
+        }
+        @Override
+        public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+            if( connected ) {
+                connected = false;
+                synchronized(userCallbackLock) {
+                    if( servicesResolved ) {
+                        servicesResolved = false;
+                        if( null != userServicesResolvedNotificationsCB ) {
+                            userServicesResolvedNotificationsCB.run(Boolean.FALSE);
+                        }
+                    }
+                    if( null != userConnectedNotificationsCB ) {
+                        userConnectedNotificationsCB.run(Boolean.FALSE);
                     }
                 }
             }

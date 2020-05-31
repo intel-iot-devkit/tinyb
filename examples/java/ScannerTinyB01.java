@@ -41,6 +41,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.HCIErrorCode;
 
 public class ScannerTinyB01 {
     static {
@@ -155,19 +156,20 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+            public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
                 final boolean matches = device.getAddress().equals(waitForDevice);
                 System.err.println("****** UPDATED: "+updateMask+" of "+device+" - match "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
             }
 
             @Override
-            public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
+            public void deviceConnected(final BluetoothDevice device, final long timestamp) {
                 final boolean matches = device.getAddress().equals(waitForDevice);
-                System.err.println("****** CONNECTION: connected "+connected+": "+device+" - matches "+matches);
-                System.err.println("Status Adapter:");
-                System.err.println(device.getAdapter().toString());
+                System.err.println("****** CONNECTED: "+device+" - matches "+matches);
+            }
+
+            @Override
+            public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+                System.err.println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
             }
         };
         adapter.addStatusListener(statusListener, null);

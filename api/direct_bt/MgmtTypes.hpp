@@ -917,9 +917,10 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
+                const HCIErrorCode reason = getReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", reason "+std::to_string(getReason());
+                       ", reason "+uint8HexString(static_cast<uint8_t>(reason))+" ("+getHCIErrorCodeString(reason)+")";
             }
 
         public:
@@ -939,7 +940,7 @@ namespace direct_bt {
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
-            uint8_t getReason() const { return pdu.get_uint8(MGMT_HEADER_SIZE+7); }
+            HCIErrorCode getReason() const { return static_cast<HCIErrorCode>(pdu.get_uint8(MGMT_HEADER_SIZE+7)); }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }

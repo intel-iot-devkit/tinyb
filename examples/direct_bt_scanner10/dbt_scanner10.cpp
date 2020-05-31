@@ -42,6 +42,8 @@ static int64_t timestamp_t0;
 
 static bool USE_WHITELIST = false;
 
+static bool SHOW_UPDATE_EVENTS = false;
+
 static EUI48 waitForDevice = EUI48_ANY_DEVICE;
 
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device);
@@ -133,18 +135,15 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
     }
 
-    void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
-        fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
+    void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
+        if( SHOW_UPDATE_EVENTS ) {
+            fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
+        }
         (void)timestamp;
     }
 
-    void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         (void)timestamp;
-
-        if( !connected ) {
-            fprintf(stderr, "****** DISCONNECTED: %s\n", device->toString(true).c_str());
-            return;
-        }
 
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevice == EUI48_ANY_DEVICE ||
@@ -158,6 +157,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         } else {
             fprintf(stderr, "****** CONNECTED-1: NOP %s\n", device->toString(true).c_str());
         }
+    }
+    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIErrorCode reason, const uint64_t timestamp) override {
+        fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s): %s\n",
+                static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str(), device->toString(true).c_str());
+        (void)timestamp;
     }
 
     std::string toString() const override {
@@ -315,6 +319,8 @@ int main(int argc, char *argv[])
     for(int i=1; i<argc; i++) {
         if( !strcmp("-wait", argv[i]) ) {
             waitForEnter = true;
+        } else if( !strcmp("-show_update_events", argv[i]) ) {
+            SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
@@ -330,7 +336,7 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)*'");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events]'");
 
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);

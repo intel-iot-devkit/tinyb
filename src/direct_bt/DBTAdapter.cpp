@@ -51,30 +51,32 @@ extern "C" {
 
 using namespace direct_bt;
 
-void DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) {
+bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ++it) {
         if ( *device == **it ) {
             DBG_PRINT("DBTAdapter::addConnectedDevice: Device already connected: %s", device->toString().c_str());
-            return;
+            return false;
         }
     }
     connectedDevices.push_back(device);
     DBG_PRINT("DBTAdapter::addConnectedDevice: Device connected: %s", device->toString().c_str());
+    return true;
 }
 
-void DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
+bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
         if ( &device == (*it).get() ) { // compare actual device address
             it = connectedDevices.erase(it);
             DBG_PRINT("DBTAdapter::removeConnectedDevice: Device disconnected: %s", device.toString().c_str());
-            return;
+            return true;
         } else {
             ++it;
         }
     }
     DBG_PRINT("DBTAdapter::removeConnectedDevice: Device not connected: %s", device.toString().c_str());
+    return false;
 }
 
 int DBTAdapter::disconnectAllDevices(const uint8_t reason) {
@@ -509,7 +511,7 @@ void DBTAdapter::sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice>
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*device) ) {
-                l->deviceUpdated(device, timestamp, updateMask);
+                l->deviceUpdated(device, updateMask, timestamp);
             }
         } catch (std::exception &e) {
             ERR_PRINT("DBTAdapter::sendDeviceUpdated-CBs (%s) %d/%zd: %s of %s: Caught exception %s",
@@ -552,28 +554,34 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     }
     if( nullptr != device ) {
         EIRDataType updateMask = device->update(ad_report);
+        if( addConnectedDevice(device) ) { // track device, if not done yet
+            if( 0 == new_connect ) {
+                new_connect = 4; // was removed for whatever reason
+            }
+        }
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
             dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
-        if( 0 < new_connect ) {
-            addConnectedDevice(device); // track it
-        }
-        device->notifyConnected();
-        int i=0;
-        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-            try {
-                if( l->matchDevice(*device) ) {
-                    if( EIRDataType::NONE != updateMask ) {
-                        l->deviceUpdated(device, ad_report.getTimestamp(), updateMask);
+        if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
+            device->notifyConnected();
+            int i=0;
+            for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+                try {
+                    if( l->matchDevice(*device) ) {
+                        if( EIRDataType::NONE != updateMask ) {
+                            l->deviceUpdated(device, updateMask, ad_report.getTimestamp());
+                        }
+                        if( 0 < new_connect ) {
+                            l->deviceConnected(device, event.getTimestamp());
+                        }
                     }
-                    l->deviceConnectionChanged(device, true, event.getTimestamp());
+                } catch (std::exception &e) {
+                    ERR_PRINT("DBTAdapter::EventCB:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                            i+1, statusListenerList.size(),
+                            l->toString().c_str(), device->toString().c_str(), e.what());
                 }
-            } catch (std::exception &e) {
-                ERR_PRINT("DBTAdapter::EventCB:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
-                        i+1, statusListenerList.size(),
-                        l->toString().c_str(), device->toString().c_str(), e.what());
-            }
-            i++;
-        });
+                i++;
+            });
+        }
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s,\n    %s\n    -> Device not tracked nor discovered",
                 dev_id, event.toString().c_str(), ad_report.toString().c_str());
@@ -593,7 +601,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
-                    l->deviceConnectionChanged(device, false, event.getTimestamp());
+                    l->deviceDisconnected(device, event.getReason(), event.getTimestamp());
                 }
             } catch (std::exception &e) {
                 ERR_PRINT("DBTAdapter::EventCB:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",

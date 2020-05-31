@@ -24,8 +24,19 @@
  */
 package org.tinyb;
 
+/**
+ * Bit mask of '{@link BluetoothAdapter} setting' data fields,
+ * indicating a set of related data.
+ *
+ * @since 2.0.0
+ */
 public class AdapterSettings {
 
+    /**
+     * Bits representing '{@link BluetoothAdapter} setting' data fields.
+     *
+     * @since 2.0.0
+     */
      public enum SettingType {
         NONE               (         0),
         POWERED            (0x00000001),

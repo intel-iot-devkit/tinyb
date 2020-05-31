@@ -33,7 +33,7 @@ package org.tinyb;
 public class EIRDataTypeSet {
 
     /**
-     * Bits representing of 'Extended Inquiry Response' (EIR) data fields.
+     * Bits representing 'Extended Inquiry Response' (EIR) data fields.
      *
      * @since 2.0.0
      */

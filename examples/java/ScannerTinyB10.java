@@ -45,6 +45,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.HCIErrorCode;
 import org.tinyb.HCIWhitelistConnectType;
 
 public class ScannerTinyB10 {
@@ -60,6 +61,8 @@ public class ScannerTinyB10 {
 
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
+
+    boolean SHOW_UPDATE_EVENTS = false;
 
     int factory = 0;
 
@@ -111,19 +114,14 @@ public class ScannerTinyB10 {
         }
 
         @Override
-        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
-            System.err.println("****** UPDATED: "+updateMask+" of "+device);
+        public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+            if( SHOW_UPDATE_EVENTS ) {
+                System.err.println("****** UPDATED: "+updateMask+" of "+device);
+            }
         }
 
         @Override
-        public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
-            System.err.println("****** CONNECTION: connected "+connected+": "+device);
-
-            if( !connected ) {
-                System.err.println("****** DISCONNECTED: "+device.toString());
-                return;
-            }
-
+        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
                   ( waitForDevice.equals(device.getAddress()) && !devicesProcessed.contains(waitForDevice) )
@@ -142,6 +140,11 @@ public class ScannerTinyB10 {
             } else {
                 System.err.println("****** CONNECTED-1: NOP %s" + device.toString());
             }
+        }
+
+        @Override
+        public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+            System.err.println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
         }
     };
 
@@ -329,6 +332,8 @@ public class ScannerTinyB10 {
 
                 if( arg.equals("-wait") ) {
                     waitForEnter = true;
+                } else if( arg.equals("-show_update_events") ) {
+                    test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
@@ -343,7 +348,7 @@ public class ScannerTinyB10 {
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
         }
 
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);

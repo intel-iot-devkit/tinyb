@@ -72,16 +72,17 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
         (void)timestamp;
     }
-    void deviceUpdated(std::shared_ptr<DBTDevice> device, const uint64_t timestamp, const EIRDataType updateMask) override {
+    void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
-        fprintf(stderr, "Status Adapter:\n");
-        fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
         (void)timestamp;
     }
-    void deviceConnectionChanged(std::shared_ptr<DBTDevice> device, const bool connected, const uint64_t timestamp) override {
-        fprintf(stderr, "****** CONNECTION: connected %d: %s\n", connected, device->toString(true).c_str());
-        fprintf(stderr, "Status Adapter:\n");
-        fprintf(stderr, "%s\n", device->getAdapter().toString().c_str());
+    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+        fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
+        (void)timestamp;
+    }
+    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIErrorCode reason, const uint64_t timestamp) override {
+        fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s): %s\n",
+                static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str(), device->toString(true).c_str());
         (void)timestamp;
     }
 

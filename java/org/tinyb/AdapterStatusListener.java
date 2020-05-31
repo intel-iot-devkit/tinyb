@@ -46,6 +46,7 @@ package org.tinyb;
  * Since the listener receiver maintains a unique set of listener instances without duplicates,
  * this restriction is more esoteric.
  * </p>
+ * @since 2.0.0
  */
 public abstract class AdapterStatusListener {
     @SuppressWarnings("unused")
@@ -82,16 +83,23 @@ public abstract class AdapterStatusListener {
     /**
      * An already discovered {@link BluetoothDevice} has been updated.
      * @param device the updated device
-     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      * @param updateMask the update mask of changed data
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) { }
+    public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
 
     /**
-     * {@link BluetoothDevice}'s connection status has changed.
+     * {@link BluetoothDevice} got connected.
      * @param device the device which connection state has changed
-     * @param connected if {@code true} the device has been connected, otherwise disconnected
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) { }
+    public void deviceConnected(final BluetoothDevice device, final long timestamp) { }
+
+    /**
+     * {@link BluetoothDevice} got disconnected.
+     * @param device the device which connection state has changed
+     * @param reason the {@link HCIErrorCode} reason for disconnection
+     * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
+     */
+    public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) { }
 };

@@ -41,6 +41,7 @@ import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
+import org.tinyb.HCIErrorCode;
 import org.tinyb.HCIWhitelistConnectType;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.TransportType;
@@ -417,7 +418,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceUpdated(final BluetoothDevice device, final long timestamp, final EIRDataTypeSet updateMask) {
+        public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.UPDATED: "+updateMask+" of "+device+" on "+device.getAdapter());
             }
@@ -425,9 +426,16 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceConnectionChanged(final BluetoothDevice device, final boolean connected, final long timestamp) {
+        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.CONNECTION: connected "+connected+": "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.StatusListener.CONNECTED: "+device+" on "+device.getAdapter());
+            }
+        }
+
+        @Override
+        public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Adapter.StatusListener.DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
             }
         }
     };

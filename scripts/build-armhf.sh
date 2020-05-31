@@ -19,9 +19,7 @@ doit() {
     cd build-armhf
     cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-armhf -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON ..
     #cmake -DCMAKE_INSTALL_PREFIX=$rootdir/dist-armhf -DBUILDJAVA=ON -DBUILDEXAMPLES=ON -DBUILD_TESTING=ON -DDEBUG=ON ..
-    make
-    make test
-    make install
+    make install test
     cp -a examples/* $rootdir/dist-armhf/bin
 
     cd $rootdir
