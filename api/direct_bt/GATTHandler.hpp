@@ -85,6 +85,9 @@ namespace direct_bt {
 
                 /** 3s poll timeout for l2cap reader thread */
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
+                /** 500ms timeout for l2cap command replies */
+                L2CAP_COMMAND_REPLY_TIMEOUT = 500,
+
                 ATTPDU_RING_CAPACITY = 256
             };
 
@@ -97,7 +100,7 @@ namespace direct_bt {
             POctets rbuffer;
 
             L2CAPComm l2cap;
-            const int timeoutMS;
+            const int replyTimeoutMS;
             std::atomic<State> state;
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
@@ -130,8 +133,10 @@ namespace direct_bt {
              */
             uint16_t exchangeMTU(const uint16_t clientMaxMTU=ClientMaxMTU);
 
+            bool disconnect(const bool ioErrorCause);
+
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int timeoutMS = Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = Defaults::L2CAP_COMMAND_REPLY_TIMEOUT);
 
             ~GATTHandler();
 
@@ -143,7 +148,9 @@ namespace direct_bt {
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              */
             bool connect();
-            bool disconnect();
+            bool disconnect() {
+                return disconnect(false /* ioErrorCause */);
+            }
             bool isOpen() const { return Disconnected < state && l2cap.isOpen(); }
 
             uint16_t getServerMTU() const { return serverMTU; }

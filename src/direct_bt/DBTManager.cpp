@@ -165,7 +165,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     // Ringbuffer read is thread safe
     int retry = 3;
     while( 0 < retry ) {
-        std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(MGMT_READER_THREAD_POLL_TIMEOUT);
+        std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(MGMT_COMMAND_REPLY_TIMEOUT);
         // std::shared_ptr<MgmtEvent> res = receiveNext();
         if( nullptr == res ) {
             errno = ETIMEDOUT;
@@ -607,14 +607,19 @@ uint16_t DBTManager::create_connection(const int dev_id,
     return 0;
 }
 
-bool DBTManager::disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason) {
-    MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
-    std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+bool DBTManager::disconnect(const bool ioErrorCause,
+                            const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint8_t reason) {
     bool bres = false;
-    if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
-        const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
-        if( MgmtStatus::SUCCESS == res1.getStatus() ) {
-            bres = true;
+
+    if( !ioErrorCause ) {
+        MgmtDisconnectCmd req(dev_id, peer_bdaddr, peer_mac_type);
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req);
+        if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
+            const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
+            if( MgmtStatus::SUCCESS == res1.getStatus() ) {
+                bres = true;
+            }
         }
     }
     // explicit disconnected event anyways

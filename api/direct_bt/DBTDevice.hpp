@@ -50,6 +50,7 @@ namespace direct_bt {
     class DBTDevice : public DBTObject
     {
         friend DBTAdapter; // managing us: ctor and update(..) during discovery
+        friend GATTHandler; // may issue detailed disconnect(..)
 
         private:
             static const int to_connect_ms = 5000;
@@ -67,7 +68,7 @@ namespace direct_bt {
             std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
-
+            std::atomic<bool> isConnected;
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             bool addService(std::shared_ptr<uuid_t> const &uuid);
@@ -81,7 +82,10 @@ namespace direct_bt {
 
             void releaseSharedInstance() const;
             void notifyDisconnected();
-            void disconnect(const bool disconnectManager, const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
+            void notifyConnected();
+
+            void disconnect(const bool sentFromManager, const bool ioErrorCause,
+                            const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
 
         public:
             const uint64_t ts_creation;
@@ -222,7 +226,7 @@ namespace direct_bt {
              * </p>
              */
             void disconnect(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */) {
-                disconnect(true /* disconnectManager */, reason);
+                disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
             }
 
             /**
@@ -251,7 +255,7 @@ namespace direct_bt {
              * May return nullptr if not connected or failure.
              * </p>
              */
-            std::shared_ptr<GATTHandler> connectGATT(int timeoutMS=GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+            std::shared_ptr<GATTHandler> connectGATT(int replyTimeoutMS=GATTHandler::Defaults::L2CAP_COMMAND_REPLY_TIMEOUT);
 
             /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
             std::shared_ptr<GATTHandler> getGATTHandler();

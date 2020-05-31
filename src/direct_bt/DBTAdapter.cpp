@@ -557,6 +557,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         if( 0 < new_connect ) {
             addConnectedDevice(device); // track it
         }
+        device->notifyConnected();
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {

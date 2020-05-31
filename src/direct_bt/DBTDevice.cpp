@@ -45,6 +45,7 @@ using namespace direct_bt;
 DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
+    isConnected = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw IllegalArgumentException("DBTDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
     }
@@ -119,7 +120,8 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+
-            "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+" ms, rssi "+std::to_string(getRSSI())+
+            "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+
+            " ms, connected "+std::to_string(isConnected)+", rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
@@ -339,40 +341,66 @@ uint16_t DBTDevice::connectDefault()
     }
 }
 
-void DBTDevice::notifyDisconnected() {
-    DBG_PRINT("DBTDevice::notifyDisconnected: disconnecting ...");
-    disconnect(false); // coming from manager disconnect, but ensure cleaning up!
+void DBTDevice::notifyConnected() {
+    DBG_PRINT("DBTDevice::notifyConnected: %s", toString().c_str());
+    isConnected = true;
 }
 
-void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason) {
-    DBG_PRINT("DBTDevice::disconnect: disconnectManager %d, gattHandler %d, hciConnHandle %d",
-            disconnectManager, (nullptr != gattHandler), (0 != hciConnHandle));
+void DBTDevice::notifyDisconnected() {
+    DBG_PRINT("DBTDevice::notifyDisconnected: %s", toString().c_str());
+    try {
+        // coming from manager disconnect, ensure cleaning up!
+        disconnect(true /* sentFromManager */, false /* ioErrorCause */);
+    } catch (std::exception &e) {
+        ERR_PRINT("Exception caught on %s: %s", toString().c_str(), e.what());
+    }
+    isConnected = false;
+}
+
+void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const uint8_t reason) {
+    DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, gattHandler %d, hciConnHandle %d",
+            isConnected.load(), sentFromManager, ioErrorCause, (nullptr != gattHandler), (0 != hciConnHandle));
     disconnectGATT();
 
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.getHCI();
 
+    if( !isConnected ) {
+        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: Not connected: %s", toString().c_str());
+        goto exit;
+    }
+    isConnected = false;
+
+    if( ioErrorCause ) {
+        DBG_PRINT("DBTDevice::disconnect: Skip HCI disconnect: IO Error: %s", toString().c_str());
+        goto skip_hci_disconnect;
+    }
+
     if( 0 == hciConnHandle ) {
-        DBG_PRINT("DBTDevice::disconnect: HCI not connected");
+        DBG_PRINT("DBTDevice::disconnect: Skip HCI disconnect: HCI not connected: %s", toString().c_str());
         goto skip_hci_disconnect;
     }
 
     if( nullptr == hciComm || !hciComm->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Adapter's HCIComm not open: %s", toString().c_str());
-    } else {
-        if( !hciComm->disconnect(hciConnHandle, reason) ) {
-            DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle, errno, strerror(errno));
-        }
+        DBG_PRINT("DBTDevice::disconnect: Skip HCI disconnect: HCI not Open: %s", toString().c_str());
+        goto skip_hci_disconnect;
     }
-    hciConnHandle = 0;
+
+    if( !hciComm->disconnect(hciConnHandle, reason) ) {
+        DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle, errno, strerror(errno));
+    }
 
 skip_hci_disconnect:
-    if( disconnectManager ) {
+    hciConnHandle = 0;
+
+    if( !sentFromManager ) {
         // Also issue mngr.disconnect on non-HCI connect (whitelist),
         // which will also send the DISCONNECT event.
         DBTManager & mngr = adapter.getManager();
-        mngr.disconnect(adapter.dev_id, address, addressType, reason);
+        mngr.disconnect(ioErrorCause, adapter.dev_id, address, addressType, reason);
     }
+
+exit:
     adapter.removeConnectedDevice(*this);
 }
 
@@ -381,7 +409,7 @@ void DBTDevice::remove() {
     releaseSharedInstance();
 }
 
-std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
+std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int replyTimeoutMS) {
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
         throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
@@ -394,7 +422,7 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int timeoutMS) {
         }
         gattHandler = nullptr;
     }
-    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, timeoutMS));
+    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, replyTimeoutMS));
     if( !gattHandler->connect() ) {
         DBG_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;

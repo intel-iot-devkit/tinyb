@@ -192,7 +192,10 @@ bool L2CAPComm::disconnect() {
     if( 0 != _tid_connect ) {
         pthread_t tid_self = pthread_self();
         if( tid_self != _tid_connect ) {
-            pthread_kill(_tid_connect, SIGALRM);
+            int kerr;
+            if( 0 != ( kerr = pthread_kill(_tid_connect, SIGALRM) ) ) {
+                ERR_PRINT("L2CAP::disconnect: pthread_kill %p FAILED: %d", (void*)_tid_connect, kerr);
+            }
         }
     }
 

@@ -60,6 +60,7 @@ extern "C" {
 
 #include "GATTHandler.hpp"
 
+#include "HCIComm.hpp"
 #include "DBTTypes.hpp"
 #include "DBTDevice.hpp"
 
@@ -97,7 +98,7 @@ GATTHandler::State GATTHandler::validateState() {
             //        ", l2cap[open "+std::to_string(b)+", state "+l2cap->getStateString()+"]", E_FILE_LINE);
             ERR_PRINT("Inconsistent open state: GattHandler[open %d, %s], l2cap[open [%d, %d], state %s]: %s",
                     a, getStateString().c_str(), b, c, l2cap.getStateString().c_str(), deviceString.c_str());
-            disconnect(); // state -> Disconnected
+            disconnect(true /* ioErrorCause */); // state -> Disconnected
         }
     }
     return state;
@@ -169,6 +170,7 @@ bool GATTHandler::getSendIndicationConfirmation() {
 }
 
 void GATTHandler::l2capReaderThreadImpl() {
+    bool ioErrorCause = false;
     l2capReaderShallStop = false;
     l2capReaderRunning = true;
     INFO_PRINT("l2capReaderThreadImpl Started");
@@ -182,7 +184,7 @@ void GATTHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), timeoutMS);
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), L2CAP_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
@@ -247,17 +249,18 @@ void GATTHandler::l2capReaderThreadImpl() {
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
             ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
             l2capReaderShallStop = true;
+            ioErrorCause = true;
         }
     }
 
     INFO_PRINT("l2capReaderThreadImpl Ended");
     l2capReaderRunning = false;
-    disconnect();
+    disconnect(ioErrorCause);
 }
 
-GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int timeoutMS)
+GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int replyTimeoutMS)
 : device(device), deviceString(device->getAddressString()), rbuffer(ClientMaxMTU),
-  l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), timeoutMS(timeoutMS),
+  l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), replyTimeoutMS(replyTimeoutMS),
   state(Disconnected), attPDURing(ATTPDU_RING_CAPACITY),
   l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
@@ -265,7 +268,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int tim
 
 GATTHandler::~GATTHandler() {
     eventListenerList.clear();
-    disconnect();
+    disconnect(false /* ioErrorCause */);
 }
 
 bool GATTHandler::connect() {
@@ -295,13 +298,13 @@ bool GATTHandler::connect() {
     usedMTU = std::min((int)ClientMaxMTU, (int)serverMTU);
     if( 0 == serverMTU ) {
         ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", deviceString.c_str());
-        disconnect();
+        disconnect(false /* ioErrorCause */);
         return false;
     }
     return true;
 }
 
-bool GATTHandler::disconnect() {
+bool GATTHandler::disconnect(const bool ioErrorCause) {
     DBG_PRINT("GATTHandler::disconnect: GattHandler[%s], l2cap[%s], connected %d, device-value %d",
                 getStateString().c_str(), l2cap.getStateString().c_str(),
                 (Disconnected < state), (nullptr != device));
@@ -321,7 +324,10 @@ bool GATTHandler::disconnect() {
     if( l2capReaderRunning ) {
         l2capReaderShallStop = true;
         if( !is_l2capReader && 0 != tid_l2capReader ) {
-            pthread_kill(tid_l2capReader, SIGALRM);
+            int kerr;
+            if( 0 != ( kerr = pthread_kill(tid_l2capReader, SIGALRM) ) ) {
+                ERR_PRINT("GATTHandler::disconnect: pthread_kill %p FAILED: %d", (void*)tid_l2capReader, kerr);
+            }
         }
     }
 
@@ -329,7 +335,12 @@ bool GATTHandler::disconnect() {
     state = Disconnected;
 
     if( nullptr != device ) {
-        device->disconnect(); // cleanup device resources, proper connection state
+        // Cleanup device resources, proper connection state
+        // Intentionally giving the POWER_OFF reason for the device in case of ioErrorCause!
+        const uint8_t reason = ioErrorCause ?
+                               static_cast<uint8_t>(HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF) :
+                               static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION);
+        device->disconnect(false /* sentFromManager */, ioErrorCause, reason);
     }
 
     DBG_PRINT("GATTHandler::disconnect End");
@@ -353,14 +364,14 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     if( 0 > res ) {
         ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
         state = Error;
-        disconnect(); // state -> Disconnected
+        disconnect(true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( res != msg.pdu.getSize() ) {
         ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %d: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
         state = Error;
-        disconnect(); // state -> Disconnected
+        disconnect(true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
     }
@@ -374,14 +385,14 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         ERR_PRINT("GATTHandler::send: nullptr result (timeout): req %s to %s", msg.toString().c_str(), deviceString.c_str());
-        disconnect();
+        disconnect(true /* ioErrorCause */);
         throw BluetoothException("GATTHandler::send: nullptr result (timeout): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }
 
 std::shared_ptr<const AttPDUMsg> GATTHandler::receiveNext() {
-    return attPDURing.getBlocking(timeoutMS);
+    return attPDURing.getBlocking(replyTimeoutMS);
 }
 
 uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {

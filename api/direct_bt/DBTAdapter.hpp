@@ -167,7 +167,7 @@ namespace direct_bt {
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend void DBTDevice::disconnect(const bool disconnectManager, const uint8_t reason);
+            friend void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const uint8_t reason);
             friend uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
                     uint16_t interval, uint16_t window,
                     uint16_t min_interval, uint16_t max_interval,

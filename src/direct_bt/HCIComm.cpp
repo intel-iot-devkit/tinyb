@@ -370,7 +370,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
 #else
             while ((n = poll(&p, 1, _timeoutMS)) < 0) {
 #endif
-			    ERR_PRINT("hci_send_req: poll");
+			    ERR_PRINT("HCIComm::send_req(dev_id %d, channel %d): poll: res %d", dev_id, channel, n);
 				if (errno == EAGAIN || errno == EINTR) {
 					continue;
 				}
@@ -392,7 +392,7 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
 		int len;
 
 		while ((len = ::read(_dd, buf, sizeof(buf))) < 0) {
-		    ERR_PRINT("hci_send_req: read: res %d", len);
+		    ERR_PRINT("HCIComm::send_req(dev_id %d, channel %d): read: res %d", dev_id, channel, len);
 			if (errno == EAGAIN || errno == EINTR) {
 				continue;
 			}
@@ -453,29 +453,6 @@ HCIErrorCode HCIComm::send_req(const uint16_t opcode, const void *command, const
                 const int rlen = MIN(len, response_len);
                 memcpy(response, ptr, rlen);
                 DBG_PRINT("hci_send_req: HCI_EV_CMD_COMPLETE: copied %d bytes: %s",
-                        rlen, bytesHexString((uint8_t*)ptr, 0, rlen, false /* lsbFirst */, true /* leading0X */).c_str());
-                goto done;
-		    }
-		case HCI_EV_REMOTE_NAME: {
-                DBG_PRINT("hci_send_req: HCI_EV_REMOTE_NAME: event 0x%X (equal %d), exp_event 0x%X, r-len %d/%d",
-                          hdr->evt, exp_event, (hdr->evt == exp_event), response_len, len);
-
-                if (hdr->evt != exp_event) {
-                    continue; // next packet
-                }
-
-                const hci_ev_remote_name *rn = static_cast<const hci_ev_remote_name *>(static_cast<const void *>( ptr ));
-                const hci_cp_remote_name_req *cp = static_cast<const hci_cp_remote_name_req *>(command);
-
-                if ( rn->bdaddr != cp->bdaddr ) {
-                    DBG_PRINT("hci_send_req: HCI_EV_REMOTE_NAME: address mismatch: cmd %s != req %s",
-                              cp->bdaddr.toString().c_str(), rn->bdaddr.toString().c_str());
-                    continue; // next packet
-                }
-
-                const int rlen = MIN(len, response_len);
-                memcpy(response, ptr, rlen);
-                DBG_PRINT("hci_send_req: HCI_EV_REMOTE_NAME: copied %d bytes: %s",
                         rlen, bytesHexString((uint8_t*)ptr, 0, rlen, false /* lsbFirst */, true /* leading0X */).c_str());
                 goto done;
 		    }

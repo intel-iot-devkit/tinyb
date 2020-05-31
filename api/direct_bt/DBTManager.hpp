@@ -106,6 +106,8 @@ namespace direct_bt {
 
                 /** 3s poll timeout for mgmt reader thread */
                 MGMT_READER_THREAD_POLL_TIMEOUT = 3000,
+                /** 1s timeout for mgmt command replies */
+                MGMT_COMMAND_REPLY_TIMEOUT = 1000,
                 MGMTEVT_RING_CAPACITY = 256
             };
 
@@ -280,7 +282,9 @@ namespace direct_bt {
                                        const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
                                        const uint8_t initiator_filter=0);
 
-            bool disconnect(const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type, const uint8_t reason=0);
+            bool disconnect(const bool ioErrorCause,
+                            const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                            const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */);
 
             std::shared_ptr<ConnectionInfo> getConnectionInfo(const int dev_id, const EUI48 &address, const BDAddressType address_type);
             std::shared_ptr<NameAndShortName> setLocalName(const int dev_id, const std::string & name, const std::string & short_name);

@@ -46,6 +46,7 @@
 namespace direct_bt {
 
     enum HCIDefaults : int {
+        /** 3s poll timeout for HCI readout */
         HCI_TO_SEND_REQ_POLL_MS = 3000
     };
 
