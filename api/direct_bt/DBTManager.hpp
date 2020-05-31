@@ -248,7 +248,7 @@ namespace direct_bt {
              */
             bool uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                 const uint16_t latency=0x0000, const uint16_t timeout=0x0C80);
+                                 const uint16_t latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
@@ -278,9 +278,7 @@ namespace direct_bt {
                                        const BDAddressType own_mac_type=BDADDR_LE_PUBLIC,
                                        const uint16_t interval=0x0004, const uint16_t window=0x0004,
                                        const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                       const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80,
-                                       const uint16_t min_ce_length=0x0001, const uint16_t max_ce_length=0x0001,
-                                       const uint8_t initiator_filter=0);
+                                       const uint16_t latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
             bool disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,

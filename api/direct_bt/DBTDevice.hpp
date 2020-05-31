@@ -37,6 +37,8 @@
 #include "DBTTypes.hpp"
 
 #include "HCIIoctl.hpp"
+#include "HCIComm.hpp"
+
 #include "GATTHandler.hpp"
 
 namespace direct_bt {
@@ -180,7 +182,7 @@ namespace direct_bt {
                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                const uint16_t interval=0x0004, const uint16_t window=0x0004,
                                const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                               const uint16_t latency=0x0000, const uint16_t supervision_timeout=0x0C80);
+                               const uint16_t latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
@@ -225,7 +227,7 @@ namespace direct_bt {
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
              */
-            void disconnect(const uint8_t reason=0x13 /* HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION */) {
+            void disconnect(const uint8_t reason=static_cast<uint8_t>(HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION) ) {
                 disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
             }
 

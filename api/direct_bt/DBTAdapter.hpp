@@ -321,7 +321,7 @@ namespace direct_bt {
             bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
                                       const HCIWhitelistConnectType ctype,
                                       const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                      const uint16_t latency=0x0000, const uint16_t timeout=0x0C80);
+                                      const uint16_t latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */

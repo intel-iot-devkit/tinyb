@@ -586,11 +586,13 @@ uint16_t DBTManager::create_connection(const int dev_id,
                         const BDAddressType own_mac_type,
                         const uint16_t interval, const uint16_t window,
                         const uint16_t min_interval, const uint16_t max_interval,
-                        const uint16_t latency, const uint16_t supervision_timeout,
-                        const uint16_t min_ce_length, const uint16_t max_ce_length,
-                        const uint8_t initiator_filter) {
+                        const uint16_t latency, const uint16_t supervision_timeout) {
     // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
     DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
+    const uint16_t min_ce_length=0x0001;
+    const uint16_t max_ce_length=0x0001;
+    const uint8_t initiator_filter=0;
+
     (void)dev_id;
     (void)peer_bdaddr;
     (void)peer_mac_type;
