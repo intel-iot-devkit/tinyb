@@ -58,10 +58,10 @@ namespace direct_bt {
     };
 
     enum MgmtConstU16 : uint16_t {
-        INDEX_NONE          = 0xFFFF,
+        MGMT_INDEX_NONE          = 0xFFFF,
         /* Net length, guaranteed to be null-terminated */
-        MAX_NAME_LENGTH        = 248+1,
-        MAX_SHORT_NAME_LENGTH  =  10+1
+        MGMT_MAX_NAME_LENGTH        = 248+1,
+        MGMT_MAX_SHORT_NAME_LENGTH  =  10+1
     };
 
 
@@ -197,7 +197,7 @@ namespace direct_bt {
             }
 
             virtual std::string baseString() const {
-                return "opcode="+uint8HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+uint16HexString(getDevID());
+                return "opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+" "+getOpcodeString()+", devID "+uint16HexString(getDevID());
             }
             virtual std::string valueString() const {
                 const int psz = getParamSize();
@@ -410,13 +410,13 @@ namespace direct_bt {
 
         public:
             MgmtSetLocalNameCmd(const uint16_t dev_id, const std::string & name, const std::string & short_name)
-            : MgmtCommand(MgmtOpcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
+            : MgmtCommand(MgmtOpcode::SET_LOCAL_NAME, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
-                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
             const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
+            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
     };
 
     struct MgmtConnParam {
@@ -1074,7 +1074,7 @@ namespace direct_bt {
             }
 
         public:
-            static int namesDataSize() { return MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+            static int namesDataSize() { return MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
             static int getRequiredSize() { return MGMT_HEADER_SIZE + namesDataSize(); }
 
             MgmtEvtLocalNameChanged(const uint8_t* buffer, const int buffer_len)
@@ -1084,14 +1084,14 @@ namespace direct_bt {
                 pdu.check_range(0, getRequiredSize());
             }
             MgmtEvtLocalNameChanged(const uint16_t dev_id, const std::string & name, const std::string & short_name)
-            : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH)
+            : MgmtEvent(Opcode::LOCAL_NAME_CHANGED, dev_id, MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH)
             {
-                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MAX_NAME_LENGTH, true);
-                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MAX_NAME_LENGTH, short_name, MgmtConstU16::MAX_SHORT_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE, name, MgmtConstU16::MGMT_MAX_NAME_LENGTH, true);
+                pdu.put_string(MGMT_HEADER_SIZE+MgmtConstU16::MGMT_MAX_NAME_LENGTH, short_name, MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH, true);
             }
 
             const std::string getName() const { return pdu.get_string(MGMT_HEADER_SIZE); }
-            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MAX_NAME_LENGTH); }
+            const std::string getShortName() const { return pdu.get_string(MGMT_HEADER_SIZE + MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
             std::shared_ptr<NameAndShortName> toNameAndShortName() const;
     };
@@ -1107,7 +1107,7 @@ namespace direct_bt {
             }
 
         public:
-            static int getRequiredSize() { return MGMT_HEADER_SIZE + 3 + 20 + MgmtConstU16::MAX_NAME_LENGTH + MgmtConstU16::MAX_SHORT_NAME_LENGTH; }
+            static int getRequiredSize() { return MGMT_HEADER_SIZE + 3 + 20 + MgmtConstU16::MGMT_MAX_NAME_LENGTH + MgmtConstU16::MGMT_MAX_SHORT_NAME_LENGTH; }
 
             MgmtEvtAdapterInfo(const uint8_t* buffer, const int buffer_len)
             : MgmtEvtCmdComplete(buffer, buffer_len)
@@ -1124,7 +1124,7 @@ namespace direct_bt {
                                                   | ( pdu.get_uint8(getDataOffset()+18) << 8 )
                                                   | ( pdu.get_uint8(getDataOffset()+19) << 16 ); }
             std::string getName() const { return pdu.get_string(getDataOffset()+20); }
-            std::string getShortName() const { return pdu.get_string(getDataOffset()+20+MgmtConstU16::MAX_NAME_LENGTH); }
+            std::string getShortName() const { return pdu.get_string(getDataOffset()+20+MgmtConstU16::MGMT_MAX_NAME_LENGTH); }
 
             std::shared_ptr<AdapterInfo> toAdapterInfo() const;
 

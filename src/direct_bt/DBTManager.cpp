@@ -264,7 +264,7 @@ DBTManager::DBTManager(const BTMode btMode)
     bool ok = true;
     // Mandatory
     {
-        MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_VERSION, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;
@@ -284,7 +284,7 @@ DBTManager::DBTManager(const BTMode btMode)
     }
     // Optional
     {
-        MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_COMMANDS, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto next1;
@@ -313,7 +313,7 @@ next1:
 
     // Mandatory
     {
-        MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::INDEX_NONE);
+        MgmtCommand req0(MgmtOpcode::READ_INDEX_LIST, MgmtConstU16::MGMT_INDEX_NONE);
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
         if( nullptr == res ) {
             goto fail;

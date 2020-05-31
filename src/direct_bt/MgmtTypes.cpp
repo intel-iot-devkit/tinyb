@@ -318,7 +318,7 @@ std::shared_ptr<NameAndShortName> MgmtEvtCmdComplete::toNameAndShortName() const
 
     const uint8_t *data = getData();
     std::string name = std::string( (const char*) ( data ) );
-    std::string short_name = std::string( (const char*) ( data + MgmtConstU16::MAX_NAME_LENGTH ) );
+    std::string short_name = std::string( (const char*) ( data + MgmtConstU16::MGMT_MAX_NAME_LENGTH ) );
 
     return std::shared_ptr<NameAndShortName>(new NameAndShortName(name, short_name) );
 }
