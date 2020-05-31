@@ -41,7 +41,7 @@ static const std::string _adapterSettingsClazzCtorArgs("(I)V");
 static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
 static const std::string _hciErrorCodeClassName("org/tinyb/HCIErrorCode");
-static const std::string _hciErrorCodeClazzGetArgs("(I)Lorg/tinyb/HCIErrorCode;");
+static const std::string _hciErrorCodeClazzGetArgs("(B)Lorg/tinyb/HCIErrorCode;");
 static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;ILjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
@@ -334,7 +334,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         env->SetLongField(jdevice, deviceClazzTSUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
 
-        jobject hciErrorCode = env->CallStaticObjectMethod(hciErrorCodeClazzRef->getClass(), hciErrorCodeClazzGet, (jint)static_cast<uint8_t>(reason));
+        jobject hciErrorCode = env->CallStaticObjectMethod(hciErrorCodeClazzRef->getClass(), hciErrorCodeClazzGet, (jbyte)static_cast<uint8_t>(reason));
         java_exception_check_and_throw(env, E_FILE_LINE);
         JNIGlobalRef::check(hciErrorCode, E_FILE_LINE);
 
