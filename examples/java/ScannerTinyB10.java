@@ -91,10 +91,9 @@ public class ScannerTinyB10 {
                 System.err.println("****** FOUND__-2: Skip non public LE "+device.toString());
                 return;
             }
-            if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                ( waitForDevice.equals(device.getAddress()) &&
-                  !devicesProcessed.contains(waitForDevice) &&
-                  !devicesInProcessing.contains(waitForDevice)
+            if( !devicesInProcessing.contains( device.getAddress() ) &&
+                ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
+                  ( waitForDevice.equals(device.getAddress()) && !devicesProcessed.contains(waitForDevice) )
                 ) )
             {
                 System.err.println("****** FOUND__-0: Connecting "+device.toString());
@@ -125,10 +124,9 @@ public class ScannerTinyB10 {
                 return;
             }
 
-            if( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                ( waitForDevice.equals(device.getAddress()) &&
-                  !devicesProcessed.contains(waitForDevice) &&
-                  !devicesInProcessing.contains(waitForDevice)
+            if( !devicesInProcessing.contains( device.getAddress() ) &&
+                ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
+                  ( waitForDevice.equals(device.getAddress()) && !devicesProcessed.contains(waitForDevice) )
                 ) )
             {
                 System.err.println("****** CONNECTED-0: Processing "+device.toString());

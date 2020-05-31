@@ -120,10 +120,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             fprintf(stderr, "****** FOUND__-2: Skip non public LE %s\n", device->toString(true).c_str());
             return;
         }
-        if( waitForDevice == EUI48_ANY_DEVICE ||
-            ( waitForDevice == device->address &&
-              !isDeviceProcessed(waitForDevice) &&
-              !isDeviceProcessing(waitForDevice)
+        if( !isDeviceProcessing( device->getAddress() ) &&
+            ( waitForDevice == EUI48_ANY_DEVICE ||
+              ( waitForDevice == device->getAddress() && !isDeviceProcessed(waitForDevice) )
             ) )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
@@ -147,10 +146,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             return;
         }
 
-        if( waitForDevice == EUI48_ANY_DEVICE ||
-            ( waitForDevice == device->address &&
-              !isDeviceProcessed(waitForDevice) &&
-              !isDeviceProcessing(waitForDevice)
+        if( !isDeviceProcessing( device->getAddress() ) &&
+            ( waitForDevice == EUI48_ANY_DEVICE ||
+              ( waitForDevice == device->getAddress() && !isDeviceProcessed(waitForDevice) )
             ) )
         {
             fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
@@ -299,6 +297,7 @@ exit:
         device->getAdapter().startDiscovery( true );
     }
     removeFromDevicesProcessing(device->getAddress());
+
     fprintf(stderr, "****** Processing Device: End: Success %d on %s\n", success, device->toString().c_str());
     if( success ) {
         addToDevicesProcessed(device->getAddress());
@@ -329,6 +328,8 @@ int main(int argc, char *argv[])
             USE_WHITELIST = true;
         }
     }
+    fprintf(stderr, "pid %d\n", getpid());
+
     fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)*'");
 
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
