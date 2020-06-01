@@ -659,9 +659,9 @@ bool HCIComm::le_enable_scan(const HCIAddressType own_type,
 HCIErrorCode HCIComm::le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
                                      const HCIAddressType peer_mac_type,
                                      const HCIAddressType own_mac_type,
-                                     const uint16_t interval, const uint16_t window,
-                                     const uint16_t min_interval, const uint16_t max_interval,
-                                     const uint16_t latency, const uint16_t supervision_timeout)
+                                     const uint16_t le_scan_interval, const uint16_t le_scan_window,
+                                     const uint16_t conn_interval_min, const uint16_t conn_interval_max,
+                                     const uint16_t conn_latency, const uint16_t supervision_timeout)
 {
 
     /** BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command */
@@ -682,15 +682,15 @@ HCIErrorCode HCIComm::le_create_conn(uint16_t * handle_return, const EUI48 &peer
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
 
 	bzero((void*)&cp, sizeof(cp));
-	cp.scan_interval = cpu_to_le(interval);
-	cp.scan_window = cpu_to_le(window);
+	cp.scan_interval = cpu_to_le(le_scan_interval);
+	cp.scan_window = cpu_to_le(le_scan_window);
 	cp.filter_policy = initiator_filter;
 	cp.peer_addr_type = peer_mac_type;
 	cp.peer_addr = peer_bdaddr;
 	cp.own_address_type = own_mac_type;
-	cp.conn_interval_min = cpu_to_le(min_interval);
-	cp.conn_interval_max = cpu_to_le(max_interval);
-	cp.conn_latency = cpu_to_le(latency);
+	cp.conn_interval_min = cpu_to_le(conn_interval_min);
+	cp.conn_interval_max = cpu_to_le(conn_interval_max);
+	cp.conn_latency = cpu_to_le(conn_latency);
 	cp.supervision_timeout = cpu_to_le(supervision_timeout);
 	cp.min_ce_len = cpu_to_le(min_ce_length);
 	cp.max_ce_len = cpu_to_le(max_ce_length);

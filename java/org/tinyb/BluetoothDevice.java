@@ -88,20 +88,20 @@ public interface BluetoothDevice extends BluetoothObject
      * Set window to the same value as the interval, enables continuous scanning.
      * </p>
      *
-     * @param interval default value 0x0004
-     * @param window default value 0x0004
-     * @param min_interval default value 0x000F
-     * @param max_interval default value 0x000F
-     * @param latency default value 0x0000
-     * @param timeout default value 0x0C80
+     * @param le_scan_interval default value 0x0004
+     * @param le_scan_window default value 0x0004
+     * @param conn_interval_min default value 0x000F
+     * @param conn_interval_max default value 0x000F
+     * @param conn_latency default value 0x0000
+     * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
      * @return {@code true} if successful, otherwise {@code false}.
      *
      * @see #connect()
      * @since 2.0.0
      */
-    public boolean connect(final short interval, final short window,
-                           final short min_interval, final short max_interval,
-                           final short latency, final short timeout);
+    public boolean connect(final short le_scan_interval, final short le_scan_window,
+                           final short conn_interval_min, final short conn_interval_max,
+                           final short conn_latency, final short timeout);
 
 
     /** Connects a specific profile available on the device, given by UUID

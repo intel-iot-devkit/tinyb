@@ -317,11 +317,20 @@ namespace direct_bt {
              * <p>
              * Method will reject duplicate devices, in which case it should be removed first.
              * </p>
+             *
+             * @param address
+             * @param address_type
+             * @param ctype
+             * @param conn_interval_min default value 0x000F
+             * @param conn_interval_max default value 0x000F
+             * @param conn_latency default value 0x0000
+             * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
+             * @return
              */
             bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
                                       const HCIWhitelistConnectType ctype,
-                                      const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                      const uint16_t latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                                      const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
+                                      const uint16_t conn_latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */

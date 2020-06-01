@@ -177,12 +177,22 @@ namespace direct_bt {
              * <p>
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
+             *
+             * @param peer_mac_type
+             * @param own_mac_type
+             * @param le_scan_interval default value 0x0004
+             * @param le_scan_window default value 0x0004
+             * @param conn_interval_min default value 0x000F
+             * @param conn_interval_max default value 0x000F
+             * @param conn_latency default value 0x0000
+             * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
+             * @return
              */
             uint16_t connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                               const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                               const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                               const uint16_t latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                               const uint16_t le_scan_interval=0x0004, const uint16_t le_scan_window=0x0004,
+                               const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
+                               const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.

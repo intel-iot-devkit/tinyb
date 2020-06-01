@@ -227,16 +227,16 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
 }
 
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
-                                      const uint16_t min_interval, const uint16_t max_interval,
-                                      const uint16_t latency, const uint16_t timeout) {
+                                      const uint16_t conn_interval_min, const uint16_t conn_interval_max,
+                                      const uint16_t conn_latency, const uint16_t timeout) {
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
         return false;
     }
 
-    if( !mgmt.uploadConnParam(dev_id, address, address_type, min_interval, max_interval, latency, timeout) ) {
+    if( !mgmt.uploadConnParam(dev_id, address, address_type, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: uploadConnParam(dev_id %d, address %s, interval[%u..%u], latency %u, timeout %u): Failed",
-                dev_id, address.toString().c_str(), min_interval, max_interval, latency, timeout);
+                dev_id, address.toString().c_str(), conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
     return mgmt.addDeviceToWhitelist(dev_id, address, address_type, ctype);
 }

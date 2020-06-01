@@ -141,14 +141,14 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype,
-                                        final short min_interval, final short max_interval,
-                                        final short latency, final short timeout) {
+                                        final short conn_interval_min, final short conn_interval_max,
+                                        final short conn_latency, final short timeout) {
         return addDeviceToWhitelist(address, address_type.value, ctype.value,
-                                    min_interval, max_interval, latency, timeout);
+                                    conn_interval_min, conn_interval_max, conn_latency, timeout);
     }
     private native boolean addDeviceToWhitelist(final String address, final int address_type, final int ctype,
-                                        final short min_interval, final short max_interval,
-                                        final short latency, final short timeout);
+                                        final short conn_interval_min, final short conn_interval_max,
+                                        final short conn_latency, final short timeout);
 
     @Override
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,

@@ -88,10 +88,10 @@ public interface BluetoothAdapter extends BluetoothObject
      * @param address
      * @param address_type
      * @param ctype
-     * @param min_interval default value 0x000F
-     * @param max_interval default value 0x000F
-     * @param latency default value 0x0000
-     * @param timeout default value 0x0C80
+     * @param conn_interval_min default value 0x000F
+     * @param conn_interval_max default value 0x000F
+     * @param conn_latency default value 0x0000
+     * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
      * @return {@code true} if successful, otherwise {@code false}.
      *
      * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType)
@@ -99,8 +99,8 @@ public interface BluetoothAdapter extends BluetoothObject
      */
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype,
-                                        final short min_interval, final short max_interval,
-                                        final short latency, final short timeout);
+                                        final short conn_interval_min, final short conn_interval_max,
+                                        final short conn_latency, final short timeout);
 
     /**
      * Add the given device to the adapter's autoconnect whitelist.

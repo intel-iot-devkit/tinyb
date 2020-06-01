@@ -279,12 +279,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private native boolean connectImpl() throws BluetoothException;
 
     @Override
-    public boolean connect(final short interval, final short window,
-                           final short min_interval, final short max_interval,
-                           final short latency, final short timeout) {
+    public boolean connect(final short le_scan_interval, final short le_scan_window,
+                           final short conn_interval_min, final short conn_interval_max,
+                           final short conn_latency, final short timeout) {
         boolean res = false;
         if( !connected ) {
-            res = connectImpl(interval, window, min_interval, max_interval, latency, timeout);
+            res = connectImpl(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, timeout);
             if( res ) {
                 connected = true;
                 if( null != userConnectedNotificationsCB ) {
@@ -301,9 +301,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
         return res;
     }
-    private native boolean connectImpl(final short interval, final short window,
-                                       final short min_interval, final short max_interval,
-                                       final short latency, final short timeout);
+    private native boolean connectImpl(final short le_scan_interval, final short le_scan_window,
+                                       final short conn_interval_min, final short conn_interval_max,
+                                       final short conn_latency, final short timeout);
 
     /* DBT Java callbacks */
 

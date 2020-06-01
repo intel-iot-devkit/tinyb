@@ -240,9 +240,9 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
 }
 
 uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
-        uint16_t interval, uint16_t window,
-        uint16_t min_interval, uint16_t max_interval,
-        uint16_t latency, uint16_t supervision_timeout)
+        uint16_t le_scan_interval, uint16_t le_scan_window,
+        uint16_t conn_interval_min, uint16_t conn_interval_max,
+        uint16_t conn_latency, uint16_t supervision_timeout)
 {
     if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
@@ -271,8 +271,8 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
     }
     HCIErrorCode status = hciComm->le_create_conn(&hciConnHandle, address,
                                                   peer_mac_type, own_mac_type,
-                                                  interval, window, min_interval, max_interval,
-                                                  latency, supervision_timeout);
+                                                  le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
+                                                  conn_latency, supervision_timeout);
     if( HCIErrorCode::COMMAND_DISALLOWED == status ) {
         WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d %s on %s",
                 static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());

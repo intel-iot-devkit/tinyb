@@ -220,9 +220,9 @@ namespace direct_bt {
             HCIErrorCode le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
                                         const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                         const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                        const uint16_t interval=0x0004, const uint16_t window=0x0004,
-                                        const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                        const uint16_t latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                                        const uint16_t le_scan_interval=0x0004, const uint16_t le_scan_window=0x0004,
+                                        const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
+                                        const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
             /**
              * Establish a connection to the given BREDR (non LE).
