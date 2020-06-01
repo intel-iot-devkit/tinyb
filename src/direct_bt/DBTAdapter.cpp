@@ -588,6 +588,26 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     }
     return true;
 }
+
+void DBTAdapter::performDeviceConnected(std::shared_ptr<DBTDevice> device, uint64_t timestamp) {
+    DBG_PRINT("DBTAdapter::performDeviceConnected(dev_id %d): %s", dev_id, device->toString().c_str());
+    addConnectedDevice(device); // track it
+    device->notifyConnected();
+    int i=0;
+    for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+        try {
+            if( l->matchDevice(*device) ) {
+                l->deviceConnected(device, timestamp);
+            }
+        } catch (std::exception &e) {
+            ERR_PRINT("DBTAdapter::performDeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                    i+1, statusListenerList.size(),
+                    l->toString().c_str(), device->toString().c_str(), e.what());
+        }
+        i++;
+    });
+}
+
 bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());

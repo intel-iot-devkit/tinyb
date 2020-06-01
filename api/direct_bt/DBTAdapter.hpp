@@ -204,7 +204,7 @@ namespace direct_bt {
             void startDiscoveryBackground();
 
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
-
+            void performDeviceConnected(std::shared_ptr<DBTDevice> device, uint64_t timestamp);
 
         public:
             const int dev_id;
