@@ -180,17 +180,17 @@ namespace direct_bt {
              *
              * @param peer_mac_type
              * @param own_mac_type
-             * @param le_scan_interval default value 0x0004
-             * @param le_scan_window default value 0x0004
-             * @param conn_interval_min default value 0x000F
-             * @param conn_interval_max default value 0x000F
-             * @param conn_latency default value 0x0000
+             * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
+             * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
+             * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
+             * @param conn_latency slave latency in units of connection events, default value 0
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
              * @return
              */
             uint16_t connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                               const uint16_t le_scan_interval=0x0004, const uint16_t le_scan_window=0x0004,
+                               const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
                                const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
                                const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
 
