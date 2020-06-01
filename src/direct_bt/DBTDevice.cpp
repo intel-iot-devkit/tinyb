@@ -249,10 +249,6 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         return 0;
     }
 
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
-    }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.openHCI();
     if( nullptr == hciComm || !hciComm->isOpen() ) {
@@ -273,6 +269,18 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
                                                   peer_mac_type, own_mac_type,
                                                   le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                                   conn_latency, supervision_timeout);
+#if 0
+    if( HCIErrorCode::CONNECTION_ALREADY_EXISTS == status ) {
+        INFO_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
+                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), toString().c_str());
+        std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+        if( nullptr == sharedInstance ) {
+            throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
+        }
+        adapter.performDeviceConnected(sharedInstance, getCurrentMilliseconds());
+        return 0;
+    }
+#endif
     if( HCIErrorCode::COMMAND_DISALLOWED == status ) {
         WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d %s on %s",
                 static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
@@ -283,7 +291,6 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
                 static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
-    adapter.addConnectedDevice(sharedInstance);
 
     return hciConnHandle;
 }
@@ -293,10 +300,6 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
     if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
         return 0;
-    }
-    std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-    if( nullptr == sharedInstance ) {
-        throw InternalError("DBTDevice::connectBREDR: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIComm> hciComm = adapter.openHCI();
@@ -321,7 +324,6 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
                 static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
-    adapter.addConnectedDevice(sharedInstance);
 
     return hciConnHandle;
 }
