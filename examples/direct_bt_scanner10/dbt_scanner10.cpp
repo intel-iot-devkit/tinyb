@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events]'");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events]'\n");
 
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);
