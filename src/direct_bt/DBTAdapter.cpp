@@ -552,39 +552,35 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         addSharedDevice(device);
         new_connect = 3;
     }
-    if( nullptr != device ) {
-        EIRDataType updateMask = device->update(ad_report);
-        if( addConnectedDevice(device) ) { // track device, if not done yet
-            if( 0 == new_connect ) {
-                new_connect = 4; // was removed for whatever reason
-            }
+
+    EIRDataType updateMask = device->update(ad_report);
+    if( addConnectedDevice(device) ) { // track device, if not done yet
+        if( 0 == new_connect ) {
+            new_connect = 4; // unknown reason...
         }
-        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
-            dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
-        if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
-            device->notifyConnected();
-            int i=0;
-            for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
-                try {
-                    if( l->matchDevice(*device) ) {
-                        if( EIRDataType::NONE != updateMask ) {
-                            l->deviceUpdated(device, updateMask, ad_report.getTimestamp());
-                        }
-                        if( 0 < new_connect ) {
-                            l->deviceConnected(device, event.getTimestamp());
-                        }
+    }
+    DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
+        dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+    if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
+        device->notifyConnected();
+        int i=0;
+        for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
+            try {
+                if( l->matchDevice(*device) ) {
+                    if( EIRDataType::NONE != updateMask ) {
+                        l->deviceUpdated(device, updateMask, ad_report.getTimestamp());
                     }
-                } catch (std::exception &e) {
-                    ERR_PRINT("DBTAdapter::EventCB:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
-                            i+1, statusListenerList.size(),
-                            l->toString().c_str(), device->toString().c_str(), e.what());
+                    if( 0 < new_connect ) {
+                        l->deviceConnected(device, event.getTimestamp());
+                    }
                 }
-                i++;
-            });
-        }
-    } else {
-        DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d): %s,\n    %s\n    -> Device not tracked nor discovered",
-                dev_id, event.toString().c_str(), ad_report.toString().c_str());
+            } catch (std::exception &e) {
+                ERR_PRINT("DBTAdapter::EventCB:DeviceConnected-CBs %d/%zd: %s of %s: Caught exception %s",
+                        i+1, statusListenerList.size(),
+                        l->toString().c_str(), device->toString().c_str(), e.what());
+            }
+            i++;
+        });
     }
     return true;
 }
