@@ -942,10 +942,12 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                const HCIErrorCode reason = getHCIReason();
+                const DisconnectReason reason1 = getReason();
+                const HCIErrorCode reason2 = getHCIReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", reason "+uint8HexString(static_cast<uint8_t>(reason))+" ("+getHCIErrorCodeString(reason)+")";
+                       ", reason[mgmt["+uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
+                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIErrorCodeString(reason2)+")]]";
             }
 
         public:
