@@ -84,6 +84,9 @@ namespace direct_bt {
                     throw IndexOutOfBoundsException(i, count, _size, E_FILE_LINE);
                 }
             }
+            inline bool is_range_valid(const int i, const int count) const {
+                return 0 <= i && i+count <= _size;
+            }
             int getSize() const { return _size; }
 
             uint8_t get_uint8(const int i) const {

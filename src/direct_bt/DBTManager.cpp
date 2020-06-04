@@ -106,8 +106,9 @@ void DBTManager::mgmtReaderThreadImpl() {
         }
     }
 
-    INFO_PRINT("DBTManager::reader: Ended");
+    INFO_PRINT("DBTManager::reader: Ended. Ring has %d entries flushed", mgmtEventRing.getSize());
     mgmtReaderRunning = false;
+    mgmtEventRing.clear();
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {

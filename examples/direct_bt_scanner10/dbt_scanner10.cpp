@@ -101,9 +101,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         fprintf(stderr, "****** SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                adapterSettingsToString(oldmask).c_str(),
-                adapterSettingsToString(newmask).c_str(),
-                adapterSettingsToString(changedmask).c_str());
+                getAdapterSettingsString(oldmask).c_str(),
+                getAdapterSettingsString(newmask).c_str(),
+                getAdapterSettingsString(changedmask).c_str());
         fprintf(stderr, "Status DBTAdapter:\n");
         fprintf(stderr, "%s\n", a.toString().c_str());
         (void)timestamp;
@@ -137,7 +137,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         if( SHOW_UPDATE_EVENTS ) {
-            fprintf(stderr, "****** UPDATED: %s of %s\n", eirDataMaskToString(updateMask).c_str(), device->toString(true).c_str());
+            fprintf(stderr, "****** UPDATED: %s of %s\n", getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
         }
         (void)timestamp;
     }

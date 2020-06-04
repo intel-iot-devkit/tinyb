@@ -309,6 +309,24 @@ namespace direct_bt {
         return littleEndian ? le_to_cpu(*p) : be_to_cpu(*p);
     }
 
+    inline void set_bit_uint32(const int nr, uint32_t &mask)
+    {
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        mask |= 1 << (nr & 31);
+    }
+
+    inline void clear_bit_uint32(const int nr, uint32_t &mask)
+    {
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        mask |= ~(1 << (nr & 31));
+    }
+
+    inline uint32_t test_bit_uint32(const int nr, const uint32_t mask)
+    {
+        if( nr > 31 ) { throw IndexOutOfBoundsException(nr, 32, 32, E_FILE_LINE); }
+        return mask & (1 << (nr & 31));
+    }
+
     /**
      * Returns a C++ String taken from buffer with maximum length of min(max_len, max_len).
      * <p>
@@ -377,7 +395,7 @@ namespace direct_bt {
      * Otherwise orders MSB left -> LSB right, usual for readable integer values.
      * </p>
      */
-    std::string bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X);
+    std::string bytesHexString(const uint8_t * bytes, const int offset, const int length, const bool lsbFirst, const bool leading0X=true);
 
     std::string int32SeparatedString(const int32_t v, const char separator=',');
     std::string uint32SeparatedString(const uint32_t v, const char separator=',');

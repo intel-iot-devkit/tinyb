@@ -39,7 +39,7 @@
 
 #include "DBTDevice.hpp"
 
-#include "HCIComm.hpp"
+#include "HCIHandler.hpp"
 #include "DBTManager.hpp"
 
 namespace direct_bt {
@@ -157,7 +157,7 @@ namespace direct_bt {
             NameAndShortName localName;
             ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
 
-            std::shared_ptr<HCIComm> hciComm;
+            std::shared_ptr<HCIHandler> hci;
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
@@ -207,6 +207,7 @@ namespace direct_bt {
             void performDeviceConnected(std::shared_ptr<DBTDevice> device, uint64_t timestamp);
 
         public:
+            const BTMode btMode;
             const int dev_id;
 
             /**
@@ -289,18 +290,18 @@ namespace direct_bt {
             DBTManager& getManager() const { return mgmt; }
 
             /**
-             * Returns a reference to the already opened HCIComm
-             * or the newly opened HCIComm instance, otherwise nullptr if no success.
+             * Returns a reference to the already opened HCIHandler
+             * or the newly opened HCIHandler instance, otherwise nullptr if no success.
              */
-            std::shared_ptr<HCIComm> openHCI();
+            std::shared_ptr<HCIHandler> openHCI();
 
             /**
-             * Returns the {@link #openHCI()} HCIComm or {@code nullptr} if closed.
+             * Returns the {@link #openHCI()} HCIHandler or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCIComm> getHCI() const;
+            std::shared_ptr<HCIHandler> getHCI() const;
 
             /**
-             * Closes the HCIComm instance
+             * Closes the HCIHandler instance
              */
             bool closeHCI();
 
@@ -330,7 +331,7 @@ namespace direct_bt {
             bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
                                       const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                      const uint16_t conn_latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                                      const uint16_t conn_latency=0x0000, const uint16_t timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
 
             /** Remove the given device from the adapter's autoconnect whitelist. */

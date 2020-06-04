@@ -253,8 +253,9 @@ void GATTHandler::l2capReaderThreadImpl() {
         }
     }
 
-    INFO_PRINT("l2capReaderThreadImpl Ended");
+    INFO_PRINT("l2capReaderThreadImpl Ended. Ring has %d entries flushed", attPDURing.getSize());
     l2capReaderRunning = false;
+    attPDURing.clear();
     disconnect(ioErrorCause);
 }
 
@@ -381,7 +382,7 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     send( msg );
 
     // Ringbuffer read is thread safe
-    std::shared_ptr<const AttPDUMsg> res = receiveNext();
+    std::shared_ptr<const AttPDUMsg> res = attPDURing.getBlocking(replyTimeoutMS);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
         ERR_PRINT("GATTHandler::send: nullptr result (timeout): req %s to %s", msg.toString().c_str(), deviceString.c_str());
@@ -389,10 +390,6 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
         throw BluetoothException("GATTHandler::send: nullptr result (timeout): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
-}
-
-std::shared_ptr<const AttPDUMsg> GATTHandler::receiveNext() {
-    return attPDURing.getBlocking(replyTimeoutMS);
 }
 
 uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {

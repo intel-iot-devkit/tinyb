@@ -192,7 +192,7 @@ namespace direct_bt {
                                const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
                                const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                               const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                               const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.

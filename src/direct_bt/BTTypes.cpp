@@ -106,6 +106,15 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
+std::string direct_bt::BTModeString(const BTMode v) {
+    switch(v) {
+        case BTMode::BT_MODE_DUAL: return "BT_MODE_DUAL";
+        case BTMode::BT_MODE_BREDR: return "BT_MODE_BREDR";
+        case BTMode::BT_MODE_LE: return "BT_MODE_LE";
+    }
+    return "Unknown BT_MODE";
+}
+
 #define APPEARANCECAT_ENUM(X) \
     X(UNKNOWN) \
     X(GENERIC_PHONE) \
@@ -168,7 +177,7 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
 
 #define APPEARANCE_CASE_TO_STRING(V) case AppearanceCat::V: return #V;
 
-std::string direct_bt::AppearanceCatToString(const AppearanceCat v) {
+std::string direct_bt::getAppearanceCatString(const AppearanceCat v) {
     switch(v) {
         APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
@@ -217,7 +226,7 @@ std::string ManufactureSpecificData::toString() const {
     X(EIRDataType,DEVICE_ID) \
     X(EIRDataType,SERVICE_UUID)
 
-std::string direct_bt::eirDataBitToString(const EIRDataType bit) {
+std::string direct_bt::getEIRDataBitString(const EIRDataType bit) {
     switch(bit) {
     EIRDATATYPE_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -225,7 +234,7 @@ std::string direct_bt::eirDataBitToString(const EIRDataType bit) {
     return "Unknown EIRDataType Bit";
 }
 
-std::string direct_bt::eirDataMaskToString(const EIRDataType mask) {
+std::string direct_bt::getEIRDataMaskString(const EIRDataType mask) {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -233,7 +242,7 @@ std::string direct_bt::eirDataMaskToString(const EIRDataType mask) {
         const EIRDataType settingBit = static_cast<EIRDataType>( one << i );
         if( EIRDataType::NONE != ( mask & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append(eirDataBitToString(settingBit));
+            out.append(getEIRDataBitString(settingBit));
             has_pre = true;
         }
     }
@@ -276,7 +285,7 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
 }
 
 std::string EInfoReport::eirDataMaskToString() const {
-    return std::string("DataSet"+ direct_bt::eirDataMaskToString(eir_data_mask) );
+    return std::string("DataSet"+ direct_bt::getEIRDataMaskString(eir_data_mask) );
 }
 std::string EInfoReport::toString() const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
@@ -286,7 +295,7 @@ std::string EInfoReport::toString() const {
                     ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+
-                    ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+
+                    ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
                     "), hash["+hash.toString()+
                     "], randomizer["+randomizer.toString()+
                     "], device-id[source "+uint16HexString(did_source, true)+

@@ -138,7 +138,7 @@ public class ScannerTinyB10 {
                 deviceProcessingTask.setDaemon(true); // detach thread
                 deviceProcessingTask.start();
             } else {
-                System.err.println("****** CONNECTED-1: NOP %s" + device.toString());
+                System.err.println("****** CONNECTED-1: NOP " + device.toString());
             }
         }
 

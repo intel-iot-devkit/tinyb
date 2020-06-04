@@ -43,6 +43,7 @@ namespace direct_bt {
         BT_MODE_BREDR       = 2,
         BT_MODE_LE          = 3
     };
+    std::string BTModeString(const BTMode v);
 
     /**
      * HCI Whitelist connection type.
@@ -315,7 +316,7 @@ namespace direct_bt {
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_POD = 5187,
         OUTDOOR_SPORTS_ACTIVITY_LOCATION_AND_NAVIGATION_POD = 5188
     };
-    std::string AppearanceCatToString(const AppearanceCat v);
+    std::string getAppearanceCatString(const AppearanceCat v);
 
     // *************************************************
     // *************************************************
@@ -382,8 +383,8 @@ namespace direct_bt {
     }
     inline bool isEIRDataTypeSet(const EIRDataType mask, const EIRDataType bit) { return EIRDataType::NONE != ( mask & bit ); }
     inline void setEIRDataTypeSet(EIRDataType &mask, const EIRDataType bit) { mask = mask | bit; }
-    std::string eirDataBitToString(const EIRDataType bit);
-    std::string eirDataMaskToString(const EIRDataType mask);
+    std::string getEIRDataBitString(const EIRDataType bit);
+    std::string getEIRDataMaskString(const EIRDataType mask);
 
     /**
      * Collection of 'Advertising Data' (AD)

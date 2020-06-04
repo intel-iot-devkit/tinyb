@@ -124,19 +124,19 @@ bool DBTAdapter::validateDevInfo() {
 }
 
 DBTAdapter::DBTAdapter()
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
+: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) 
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(mgmt.findAdapterInfoIdx(mac))
+: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(mgmt.findAdapterInfoIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(const int dev_id) 
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), dev_id(dev_id)
+: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
@@ -177,33 +177,33 @@ void DBTAdapter::setBondable(bool value) {
     mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
 }
 
-std::shared_ptr<HCIComm> DBTAdapter::openHCI()
+std::shared_ptr<HCIHandler> DBTAdapter::openHCI()
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
 
     if( !valid ) {
         return nullptr;
     }
-    if( nullptr != hciComm ) {
-        if( hciComm->isOpen() ) {
+    if( nullptr != hci ) {
+        if( hci->isOpen() ) {
             DBG_PRINT("DBTAdapter::openHCI: Already open");
-            return hciComm;
+            return hci;
         }
-        hciComm = nullptr;
+        hci = nullptr;
     }
-    HCIComm *s = new HCIComm(dev_id, HCI_CHANNEL_RAW, HCIDefaults::HCI_TO_SEND_REQ_POLL_MS);
+    HCIHandler *s = new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT);
     if( !s->isOpen() ) {
         delete s;
-        ERR_PRINT("Could not open HCIComm: %s", toString().c_str());
+        ERR_PRINT("Could not open HCIHandler: %s of %s", s->toString().c_str(), toString().c_str());
         return nullptr;
     }
-    hciComm = std::shared_ptr<HCIComm>( s );
-    return hciComm;
+    hci = std::shared_ptr<HCIHandler>( s );
+    return hci;
 }
 
-std::shared_ptr<HCIComm> DBTAdapter::getHCI() const {
+std::shared_ptr<HCIHandler> DBTAdapter::getHCI() const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_hci); // RAII-style acquire and relinquish via destructor
-    return hciComm;
+    return hci;
 }
 
 bool DBTAdapter::closeHCI()
@@ -211,13 +211,13 @@ bool DBTAdapter::closeHCI()
     const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
 
     DBG_PRINT("DBTAdapter::closeHCI: ...");
-    if( nullptr == hciComm || !hciComm->isOpen() ) {
+    if( nullptr == hci || !hci->isOpen() ) {
         DBG_PRINT("DBTAdapter::closeHCI: Not open");
         return false;
     }
     disconnectAllDevices(); // FIXME ????
-    hciComm->close();
-    hciComm = nullptr;
+    hci->close();
+    hci = nullptr;
     DBG_PRINT("DBTAdapter::closeHCI: XXX");
     return true;
 }
@@ -423,7 +423,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac) cons
 }
 
 std::string DBTAdapter::toString() const {
-    std::string out("Adapter["+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
+    std::string out("Adapter["+BTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
     if(devices.size() > 0 ) {
         out.append("\n");

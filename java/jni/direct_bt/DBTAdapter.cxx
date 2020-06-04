@@ -616,9 +616,9 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
                         device->toString().c_str());
             }
 
-            std::shared_ptr<direct_bt::HCIComm> hci = adapter->openHCI();
+            std::shared_ptr<direct_bt::HCIHandler> hci = adapter->openHCI();
             if( nullptr == hci ) {
-                throw BluetoothException("Couldn't get or open adapter's HCIComm "+adapter->toString(), E_FILE_LINE);
+                throw BluetoothException("Couldn't get or open adapter's HCI "+adapter->toString(), E_FILE_LINE);
             }
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);

@@ -368,7 +368,7 @@ std::string PeriphalPreferredConnectionParameters::toString() const {
 }
 
 std::string GenericAccess::toString() const {
-    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+AppearanceCatToString(appearance)+"), "+
+    return "'"+deviceName+"'[appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+"), "+
             prefConnParam.toString()+"]";
 }
 

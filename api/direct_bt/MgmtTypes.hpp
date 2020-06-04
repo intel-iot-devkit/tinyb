@@ -39,6 +39,8 @@
 
 #include "DBTTypes.hpp"
 
+#include "FunctionDef.hpp"
+
 namespace direct_bt {
 
     class MgmtException : public RuntimeException {
@@ -747,7 +749,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", settings="+adapterSettingsToString(getSettings());
+                return MgmtEvent::baseString()+", settings="+getAdapterSettingsString(getSettings());
             }
 
         public:
@@ -1142,7 +1144,7 @@ namespace direct_bt {
             std::string valueString() const override {
                 return getAddress().toString()+", version "+std::to_string(getVersion())+
                         ", manuf "+std::to_string(getManufacturer())+
-                        ", settings[sup "+adapterSettingsToString(getSupportedSetting())+", cur "+adapterSettingsToString(getCurrentSetting())+
+                        ", settings[sup "+getAdapterSettingsString(getSupportedSetting())+", cur "+getAdapterSettingsString(getCurrentSetting())+
                         "], name '"+getName()+"', shortName '"+getShortName()+"'";
             }
 
@@ -1169,6 +1171,43 @@ namespace direct_bt {
             std::shared_ptr<AdapterInfo> toAdapterInfo() const;
 
     };
+
+    typedef FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
+
+    class MgmtAdapterEventCallback {
+        private:
+            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
+            int dev_id;
+            /** MgmtEventCallback instance */
+            MgmtEventCallback callback;
+
+        public:
+            MgmtAdapterEventCallback(int _dev_id, const MgmtEventCallback & _callback)
+            : dev_id(_dev_id), callback(_callback) {}
+
+            MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) = default;
+            MgmtAdapterEventCallback(MgmtAdapterEventCallback &&o) = default;
+            MgmtAdapterEventCallback& operator=(const MgmtAdapterEventCallback &o) = default;
+            MgmtAdapterEventCallback& operator=(MgmtAdapterEventCallback &&o) = default;
+
+            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
+            int getDevID() const { return dev_id; }
+
+            /** MgmtEventCallback reference */
+            MgmtEventCallback& getCallback() { return callback; }
+
+            bool operator==(const MgmtAdapterEventCallback& rhs) const
+            { return dev_id == rhs.dev_id && callback == rhs.callback; }
+
+            bool operator!=(const MgmtAdapterEventCallback& rhs) const
+            { return !(*this == rhs); }
+
+            std::string toString() const {
+                return "MgmtAdapterEventCallback[dev_id "+std::to_string(dev_id)+", "+callback.toString()+"]";
+            }
+    };
+
+    typedef std::vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
 
 } // namespace direct_bt
 

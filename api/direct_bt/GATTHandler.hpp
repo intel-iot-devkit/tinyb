@@ -88,7 +88,7 @@ namespace direct_bt {
                 /** 500ms timeout for l2cap command replies */
                 L2CAP_COMMAND_REPLY_TIMEOUT = 500,
 
-                ATTPDU_RING_CAPACITY = 256
+                ATTPDU_RING_CAPACITY = 128
             };
 
             static std::string getStateString(const State state);
@@ -121,7 +121,6 @@ namespace direct_bt {
 
             void l2capReaderThreadImpl();
 
-            std::shared_ptr<const AttPDUMsg> receiveNext();
             void send(const AttPDUMsg & msg);
             std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
 

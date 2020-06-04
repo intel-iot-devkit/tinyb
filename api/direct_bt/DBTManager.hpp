@@ -42,46 +42,8 @@
 #include "JavaUplink.hpp"
 #include "MgmtTypes.hpp"
 #include "LFRingbuffer.hpp"
-#include "FunctionDef.hpp"
 
 namespace direct_bt {
-
-    typedef FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
-
-    class MgmtAdapterEventCallback {
-        private:
-            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
-            int dev_id;
-            /** MgmtEventCallback instance */
-            MgmtEventCallback callback;
-
-        public:
-            MgmtAdapterEventCallback(int _dev_id, const MgmtEventCallback & _callback)
-            : dev_id(_dev_id), callback(_callback) {}
-
-            MgmtAdapterEventCallback(const MgmtAdapterEventCallback &o) = default;
-            MgmtAdapterEventCallback(MgmtAdapterEventCallback &&o) = default;
-            MgmtAdapterEventCallback& operator=(const MgmtAdapterEventCallback &o) = default;
-            MgmtAdapterEventCallback& operator=(MgmtAdapterEventCallback &&o) = default;
-
-            /** Unique adapter index filter or <code>-1</code> to listen for all adapter. */
-            int getDevID() const { return dev_id; }
-
-            /** MgmtEventCallback reference */
-            MgmtEventCallback& getCallback() { return callback; }
-
-            bool operator==(const MgmtAdapterEventCallback& rhs) const
-            { return dev_id == rhs.dev_id && callback == rhs.callback; }
-
-            bool operator!=(const MgmtAdapterEventCallback& rhs) const
-            { return !(*this == rhs); }
-
-            std::string toString() const {
-                return "MgmtAdapterEventCallback[dev_id "+std::to_string(dev_id)+", "+callback.toString()+"]";
-            }
-    };
-
-    typedef std::vector<MgmtAdapterEventCallback> MgmtAdapterEventCallbackList;
 
     /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
@@ -108,7 +70,7 @@ namespace direct_bt {
                 MGMT_READER_THREAD_POLL_TIMEOUT = 3000,
                 /** 1s timeout for mgmt command replies */
                 MGMT_COMMAND_REPLY_TIMEOUT = 1000,
-                MGMTEVT_RING_CAPACITY = 256
+                MGMTEVT_RING_CAPACITY = 128
             };
 
             static const pid_t pidSelf;
@@ -200,7 +162,9 @@ namespace direct_bt {
                 return comm.isOpen();
             }
 
-            std::string toString() const override { return "MgmtHandler["+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]"; }
+            std::string toString() const override {
+                return "MgmtHandler["+BTModeString(btMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
+            }
 
             /** retrieve information gathered at startup */
 
@@ -257,7 +221,7 @@ namespace direct_bt {
              */
             bool uploadConnParam(const int dev_id, const EUI48 &address, const BDAddressType address_type,
                                  const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                                 const uint16_t conn_latency=0x0000, const uint16_t timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                                 const uint16_t conn_latency=0x0000, const uint16_t timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
@@ -287,7 +251,7 @@ namespace direct_bt {
                                        const BDAddressType own_mac_type=BDADDR_LE_PUBLIC,
                                        const uint16_t interval=0x0004, const uint16_t window=0x0004,
                                        const uint16_t min_interval=0x000F, const uint16_t max_interval=0x000F,
-                                       const uint16_t latency=0x0000, const uint16_t supervision_timeout=HCI_LE_CONN_TIMEOUT_MS/10);
+                                       const uint16_t latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
             bool disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,

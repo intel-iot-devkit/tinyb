@@ -167,8 +167,8 @@ namespace direct_bt {
     }
     inline bool isAdapterSettingSet(const AdapterSetting mask, const AdapterSetting bit) { return AdapterSetting::NONE != ( mask & bit ); }
     inline void setAdapterSettingSet(AdapterSetting &mask, const AdapterSetting bit) { mask = mask | bit; }
-    std::string adapterSettingBitToString(const AdapterSetting settingBit);
-    std::string adapterSettingsToString(const AdapterSetting settingBitMask);
+    std::string getAdapterSettingBitString(const AdapterSetting settingBit);
+    std::string getAdapterSettingsString(const AdapterSetting settingBitMask);
 
     class AdapterInfo
     {
@@ -226,7 +226,7 @@ namespace direct_bt {
             std::string toString() const {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+
                         ", manuf "+std::to_string(manufacturer)+
-                        ", settings[sup "+adapterSettingsToString(supported_setting)+", cur "+adapterSettingsToString(current_setting)+
+                        ", settings[sup "+getAdapterSettingsString(supported_setting)+", cur "+getAdapterSettingsString(current_setting)+
                         "], name '"+name+"', shortName '"+short_name+"']";
             }
     };

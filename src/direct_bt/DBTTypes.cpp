@@ -72,7 +72,7 @@ using namespace direct_bt;
     X(AdapterSetting,STATIC_ADDRESS) \
     X(AdapterSetting,PHY_CONFIGURATION)
 
-std::string direct_bt::adapterSettingBitToString(const AdapterSetting settingBit) {
+std::string direct_bt::getAdapterSettingBitString(const AdapterSetting settingBit) {
     switch(settingBit) {
         SETTING_ENUM(CASE2_TO_STRING)
         default: ; // fall through intended
@@ -80,7 +80,7 @@ std::string direct_bt::adapterSettingBitToString(const AdapterSetting settingBit
     return "Unknown Setting Bit";
 }
 
-std::string direct_bt::adapterSettingsToString(const AdapterSetting settingMask) {
+std::string direct_bt::getAdapterSettingsString(const AdapterSetting settingMask) {
     const uint32_t one = 1;
     bool has_pre = false;
     std::string out("[");
@@ -88,7 +88,7 @@ std::string direct_bt::adapterSettingsToString(const AdapterSetting settingMask)
         const AdapterSetting settingBit = static_cast<AdapterSetting>( one << i );
         if( AdapterSetting::NONE != ( settingMask & settingBit ) ) {
             if( has_pre ) { out.append(", "); }
-            out.append(adapterSettingBitToString(settingBit));
+            out.append(getAdapterSettingBitString(settingBit));
             has_pre = true;
         }
     }
