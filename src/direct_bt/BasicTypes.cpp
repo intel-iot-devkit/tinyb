@@ -347,7 +347,7 @@ std::string direct_bt::trimCopy(const std::string &_s) {
 
 static uint32_t dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value);
 
-std::string direct_bt::getUTF8String(const uint8_t *buffer, const size_t buffer_size) {
+std::string direct_bt::decodeUTF8String(const uint8_t *buffer, const size_t buffer_size) {
     uint32_t codepoint;
     uint32_t state = UTF8_ACCEPT;
     size_t byte_count;

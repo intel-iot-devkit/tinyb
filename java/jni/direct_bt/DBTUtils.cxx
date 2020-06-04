@@ -33,7 +33,7 @@
 #include "helper_base.hpp"
 #include "helper_dbt.hpp"
 
-jstring Java_org_tinyb_BluetoothUtils_getUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
+jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
     (void)clazz;
 
     const int buffer_size = env->GetArrayLength(jbuffer);
@@ -51,7 +51,7 @@ jstring Java_org_tinyb_BluetoothUtils_getUTF8String(JNIEnv *env, jclass clazz, j
     if( NULL == buffer_ptr ) {
         throw direct_bt::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
     }
-    std::string sres = direct_bt::getUTF8String(buffer_ptr+offset, size);
+    std::string sres = direct_bt::decodeUTF8String(buffer_ptr+offset, size);
 
     return from_string_to_jstring(env, sres);
 }

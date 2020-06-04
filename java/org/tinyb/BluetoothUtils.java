@@ -79,7 +79,11 @@ public class BluetoothUtils {
      * In case a non UTF-8 character has been detected,
      * the content will be cut off and the decoding loop ends.
      * </p>
+     * <p>
+     * Method utilizes a finite state machine detecting variable length UTF-8 codes.
+     * See <a href="http://bjoern.hoehrmann.de/utf-8/decoder/dfa/">Bjoern Hoehrmann's site</a> for details.
+     * </p>
      */
-    public static native String getUTF8String(final byte[] buffer, final int offset, final int size);
+    public static native String decodeUTF8String(final byte[] buffer, final int offset, final int size);
 
 }

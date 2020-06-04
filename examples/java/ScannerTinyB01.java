@@ -309,7 +309,7 @@ public class ScannerTinyB01 {
                             final List<String> properties = Arrays.asList(serviceChar.getFlags());
                             if( properties.contains("read") ) {
                                 final byte[] value = serviceChar.readValue();
-                                final String svalue = BluetoothUtils.getUTF8String(value, 0, value.length);
+                                final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
                                 System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
                                         i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
                             }

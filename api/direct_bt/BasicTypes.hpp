@@ -414,8 +414,12 @@ namespace direct_bt {
      * In case a non UTF-8 character has been detected,
      * the content will be cut off and the decoding loop ends.
      * </p>
+     * <p>
+     * Method utilizes a finite state machine detecting variable length UTF-8 codes.
+     * See Bjoern Hoehrmann's site <http://bjoern.hoehrmann.de/utf-8/decoder/dfa/> for details.
+     * </p>
      */
-    std::string getUTF8String(const uint8_t *buffer, const size_t buffer_size);
+    std::string decodeUTF8String(const uint8_t *buffer, const size_t buffer_size);
 
 } // namespace direct_bt
 
