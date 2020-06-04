@@ -120,10 +120,10 @@ namespace direct_bt {
             /**
              * DBTDevice got disconnected
              * @param device the device which connection state has changed
-             * @param reason the HCIErrorCode reason for disconnection
+             * @param reason the HCIStatusCode reason for disconnection
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIErrorCode reason, const uint64_t timestamp) = 0;
+            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint64_t timestamp) = 0;
 
             virtual ~AdapterStatusListener() {}
 
@@ -174,7 +174,7 @@ namespace direct_bt {
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIErrorCode reason);
+            friend void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
             friend uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
                     uint16_t interval, uint16_t window,
                     uint16_t min_interval, uint16_t max_interval,
@@ -184,7 +184,7 @@ namespace direct_bt {
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             bool removeConnectedDevice(const DBTDevice & device);
-            int disconnectAllDevices(const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION );
+            int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);

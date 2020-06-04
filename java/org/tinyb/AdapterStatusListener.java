@@ -98,8 +98,8 @@ public abstract class AdapterStatusListener {
     /**
      * {@link BluetoothDevice} got disconnected.
      * @param device the device which connection state has changed
-     * @param reason the {@link HCIErrorCode} reason for disconnection
+     * @param reason the {@link HCIStatusCode} reason for disconnection
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) { }
+    public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) { }
 };

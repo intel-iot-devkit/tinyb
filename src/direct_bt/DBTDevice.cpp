@@ -265,14 +265,14 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         DBTManager & mngr = adapter.getManager();
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
-    HCIErrorCode status = hci->le_create_conn(&hciConnHandle, address,
+    HCIStatusCode status = hci->le_create_conn(&hciConnHandle, address,
                                               peer_mac_type, own_mac_type,
                                               le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                               conn_latency, supervision_timeout);
 #if 0
-    if( HCIErrorCode::CONNECTION_ALREADY_EXISTS == status ) {
+    if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
         INFO_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
-                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), toString().c_str());
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), toString().c_str());
         std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
         if( nullptr == sharedInstance ) {
             throw InternalError("DBTDevice::connectLE: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
@@ -281,14 +281,14 @@ uint16_t DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_m
         return 0;
     }
 #endif
-    if( HCIErrorCode::COMMAND_DISALLOWED == status ) {
+    if( HCIStatusCode::COMMAND_DISALLOWED == status ) {
         WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
-    if ( HCIErrorCode::SUCCESS != status ) {
+    if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
 
@@ -318,10 +318,10 @@ uint16_t DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_o
         mngr.create_connection(adapter.dev_id, address, addressType);
     }
 
-    HCIErrorCode status = hci->create_conn(&hciConnHandle, address, pkt_type, clock_offset, role_switch);
-    if ( HCIErrorCode::SUCCESS != status ) {
+    HCIStatusCode status = hci->create_conn(&hciConnHandle, address, pkt_type, clock_offset, role_switch);
+    if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIErrorCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
         return 0;
     }
 
@@ -359,9 +359,9 @@ void DBTDevice::notifyDisconnected() {
     isConnected = false;
 }
 
-void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const HCIErrorCode reason) {
+void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const HCIStatusCode reason) {
     DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %d",
-            isConnected.load(), sentFromManager, ioErrorCause, static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str(),
+            isConnected.load(), sentFromManager, ioErrorCause, static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), (0 != hciConnHandle));
     disconnectGATT();
 
@@ -389,7 +389,7 @@ void DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, 
         goto skip_hci_disconnect;
     }
 
-    if( HCIErrorCode::SUCCESS != hci->disconnect(hciConnHandle, reason) ) {
+    if( HCIStatusCode::SUCCESS != hci->disconnect(hciConnHandle, reason) ) {
         DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle, errno, strerror(errno));
     }
 

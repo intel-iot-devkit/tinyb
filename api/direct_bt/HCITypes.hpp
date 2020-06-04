@@ -95,7 +95,7 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 1, Part F Controller Error Codes: 2 Error code descriptions
      * </p>
      */
-    enum class HCIErrorCode : uint8_t {
+    enum class HCIStatusCode : uint8_t {
         SUCCESS = 0x00,
         UNKNOWN_HCI_COMMAND = 0x01,
         UNKNOWN_CONNECTION_IDENTIFIER = 0x02,
@@ -167,10 +167,10 @@ namespace direct_bt {
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
     };
-    inline uint8_t number(const HCIErrorCode rhs) {
+    inline uint8_t number(const HCIStatusCode rhs) {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getHCIErrorCodeString(const HCIErrorCode ec);
+    std::string getHCIStatusCodeString(const HCIStatusCode ec);
 
     enum class HCIConstU8 : uint8_t {
         /** HCIPacketType::COMMAND header size including HCIPacketType */
@@ -474,7 +474,7 @@ namespace direct_bt {
     class HCIDisconnectCmd : public HCICommand
     {
         public:
-            HCIDisconnectCmd(const uint16_t handle, HCIErrorCode reason)
+            HCIDisconnectCmd(const uint16_t handle, HCIStatusCode reason)
             : HCICommand(HCIOpcode::DISCONNECT, 3)
             {
                 pdu.put_uint16(number(HCIConstU8::COMMAND_HDR_SIZE),handle);
@@ -597,7 +597,7 @@ namespace direct_bt {
     };
 
     /**
-     * Generic HCIEvent wrapper for any HCI IOCTL 'command complete' alike event struct having a HCIErrorCode uint8_t status field.
+     * Generic HCIEvent wrapper for any HCI IOCTL 'command complete' alike event struct having a HCIStatusCode uint8_t status field.
      * @tparam hcistruct the template typename, e.g. 'hci_ev_conn_complete' for 'struct hci_ev_conn_complete'
      */
     template<typename hcistruct>
@@ -615,7 +615,7 @@ namespace direct_bt {
                        pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+sizeof(hcistruct));
             }
             const hcistruct * getStruct() const { return (const hcistruct *)(getParam()); }
-            HCIErrorCode getStatus() const { return static_cast<HCIErrorCode>( getStruct()->status ); }
+            HCIStatusCode getStatus() const { return static_cast<HCIStatusCode>( getStruct()->status ); }
     };
 
 
@@ -633,9 +633,9 @@ namespace direct_bt {
         protected:
             std::string baseString() const override {
                 return HCIEvent::baseString()+
-                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIErrorCodeString(getStatus())+
+                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
                         ", handle "+std::to_string(getHandle())+
-                        ", reason "+uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIErrorCodeString(getReason());
+                        ", reason "+uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIStatusCodeString(getReason());
             }
 
         public:
@@ -646,9 +646,9 @@ namespace direct_bt {
                 pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+4);
             }
 
-            HCIErrorCode getStatus() const { return static_cast<HCIErrorCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            HCIStatusCode getStatus() const { return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
             uint16_t getHandle() const { return pdu.get_uint16(number(HCIConstU8::EVENT_HDR_SIZE)+1); }
-            HCIErrorCode getReason() const { return static_cast<HCIErrorCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)+3) ); }
+            HCIStatusCode getReason() const { return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)+3) ); }
 
             bool validate(const HCICommand & cmd) const override {
                 return cmd.getOpcode() == HCIOpcode::DISCONNECT;
@@ -696,12 +696,12 @@ namespace direct_bt {
 
             uint8_t getReturnParamSize() const { return getParamSize() - 3; }
             const uint8_t* getReturnParam() const { return pdu.get_ptr(number(HCIConstU8::EVENT_HDR_SIZE)+3); }
-            HCIErrorCode getReturnStatus(const int returnParamOffset=0) const {
+            HCIStatusCode getReturnStatus(const int returnParamOffset=0) const {
                 const uint8_t returnParamSize = getReturnParamSize();
                 if( returnParamSize < returnParamOffset + 1 /* status size */ ) {
-                    return HCIErrorCode::UNKNOWN;
+                    return HCIStatusCode::UNKNOWN;
                 }
-                return static_cast<HCIErrorCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE) + 3 + returnParamOffset) );
+                return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE) + 3 + returnParamOffset) );
             }
 
             bool validate(const HCICommand & cmd) const override {
@@ -725,7 +725,7 @@ namespace direct_bt {
                 return HCIEvent::baseString()+", opcode="+uint16HexString(static_cast<uint16_t>(getOpcode()))+
                         " "+getHCIOpcodeString(getOpcode())+
                         ", ncmd "+std::to_string(getNumCommandPackets())+
-                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIErrorCodeString(getStatus());
+                        ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus());
             }
 
         public:
@@ -736,7 +736,7 @@ namespace direct_bt {
                 pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+4);
             }
 
-            HCIErrorCode getStatus() const { return static_cast<HCIErrorCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+            HCIStatusCode getStatus() const { return static_cast<HCIStatusCode>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
 
             /**
              * The Number of HCI Command packets which are allowed to be sent to the Controller from the Host.
@@ -789,7 +789,7 @@ namespace direct_bt {
     };
 
     /**
-     * Generic HCIMetaEvent wrapper for any HCI IOCTL 'command complete' alike meta event struct having a HCIErrorCode uint8_t status field.
+     * Generic HCIMetaEvent wrapper for any HCI IOCTL 'command complete' alike meta event struct having a HCIStatusCode uint8_t status field.
      * @tparam hcistruct the template typename, e.g. 'hci_ev_le_conn_complete' for 'struct hci_ev_le_conn_complete'
      */
     template<typename hcistruct>
@@ -807,7 +807,7 @@ namespace direct_bt {
                        pdu.is_range_valid(0, number(HCIConstU8::EVENT_HDR_SIZE)+1+sizeof(hcistruct));
             }
             const hcistruct * getStruct() const { return (const hcistruct *)( pdu.get_ptr(number(HCIConstU8::EVENT_HDR_SIZE)+1) ); }
-            HCIErrorCode getStatus() const { return static_cast<HCIErrorCode>( getStruct()->status ); }
+            HCIStatusCode getStatus() const { return static_cast<HCIStatusCode>( getStruct()->status ); }
     };
 
 } // namespace direct_bt

@@ -79,7 +79,7 @@ bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
     return false;
 }
 
-int DBTAdapter::disconnectAllDevices(const HCIErrorCode reason) {
+int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
     std::vector<std::shared_ptr<DBTDevice>> devices(connectedDevices); // copy!
     const int count = devices.size();
     for (auto it = devices.begin(); it != devices.end(); ++it) {

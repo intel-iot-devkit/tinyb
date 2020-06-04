@@ -79,9 +79,9 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         fprintf(stderr, "****** CONNECTED: %s\n", device->toString(true).c_str());
         (void)timestamp;
     }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIErrorCode reason, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint64_t timestamp) override {
         fprintf(stderr, "****** DISCONNECTED: Reason 0x%X (%s): %s\n",
-                static_cast<uint8_t>(reason), getHCIErrorCodeString(reason).c_str(), device->toString(true).c_str());
+                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(), device->toString(true).c_str());
         (void)timestamp;
     }
 

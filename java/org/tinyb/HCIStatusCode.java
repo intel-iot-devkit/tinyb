@@ -31,7 +31,7 @@ package org.tinyb;
  * </p>
  * @since 2.0.0
  */
-public enum HCIErrorCode {
+public enum HCIStatusCode {
         SUCCESS((byte) 0x00),
         UNKNOWN_HCI_COMMAND((byte) 0x01),
         UNKNOWN_CONNECTION_IDENTIFIER((byte) 0x02),
@@ -105,7 +105,7 @@ public enum HCIErrorCode {
     public final byte value;
 
     /**
-     * Maps the specified name to a constant of HCIErrorCode.
+     * Maps the specified name to a constant of HCIStatusCode.
      * <p>
      * Implementation simply returns {@link #valueOf(String)}.
      * This maps the constant names itself to their respective constant.
@@ -115,18 +115,18 @@ public enum HCIErrorCode {
      * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
      *                                  as described above.
      */
-    public static HCIErrorCode get(final String name) throws IllegalArgumentException {
+    public static HCIStatusCode get(final String name) throws IllegalArgumentException {
         return valueOf(name);
     }
 
     /**
-     * Maps the specified integer value to a constant of HCIErrorCode.
+     * Maps the specified integer value to a constant of HCIStatusCode.
      * @param value the integer value to be mapped to a constant of this enum type.
      * @return the corresponding constant of this enum type.
      * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
      *                                  as described above.
      */
-    public static HCIErrorCode get(final byte value) throws IllegalArgumentException {
+    public static HCIStatusCode get(final byte value) throws IllegalArgumentException {
         switch( value ) {
             case (byte) 0x00: return SUCCESS;
             case (byte) 0x01: return UNKNOWN_HCI_COMMAND;
@@ -201,7 +201,7 @@ public enum HCIErrorCode {
         throw new IllegalArgumentException("Unsupported value "+value);
     }
 
-    HCIErrorCode(final byte v) {
+    HCIStatusCode(final byte v) {
         value = v;
     }
 }

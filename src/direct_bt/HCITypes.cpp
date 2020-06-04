@@ -50,7 +50,7 @@ extern "C" {
 
 namespace direct_bt {
 
-#define HCI_ERROR_CODE(X) \
+#define HCI_STATUS_CODE(X) \
         X(SUCCESS) \
         X(UNKNOWN_HCI_COMMAND) \
         X(UNKNOWN_CONNECTION_IDENTIFIER) \
@@ -121,14 +121,14 @@ namespace direct_bt {
         X(INTERNAL_FAILURE) \
         X(UNKNOWN)
 
-#define HCI_ERROR_CODE_CASE_TO_STRING(V) case HCIErrorCode::V: return #V;
+#define HCI_STATUS_CODE_CASE_TO_STRING(V) case HCIStatusCode::V: return #V;
 
-std::string getHCIErrorCodeString(const HCIErrorCode ec) {
+std::string getHCIStatusCodeString(const HCIStatusCode ec) {
     switch(ec) {
-    HCI_ERROR_CODE(HCI_ERROR_CODE_CASE_TO_STRING)
+    HCI_STATUS_CODE(HCI_STATUS_CODE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown HCIErrorCode";
+    return "Unknown HCIStatusCode";
 }
 
 std::string getHCIPacketTypeString(const HCIPacketType op) {

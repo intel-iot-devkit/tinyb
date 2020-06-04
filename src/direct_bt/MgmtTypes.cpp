@@ -349,35 +349,35 @@ std::string MgmtEvtDeviceDisconnected::getDisconnectReasonString(DisconnectReaso
     return "Unknown DisconnectReason";
 }
 
-MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIErrorCode hciReason) {
+MgmtEvtDeviceDisconnected::DisconnectReason MgmtEvtDeviceDisconnected::getDisconnectReason(HCIStatusCode hciReason) {
     switch (hciReason) {
-        case HCIErrorCode::CONNECTION_TIMEOUT:
+        case HCIStatusCode::CONNECTION_TIMEOUT:
             return DisconnectReason::TIMEOUT;
-        case HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION:
-        case HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_LOW_RESOURCES:
-        case HCIErrorCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF:
+        case HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION:
+        case HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_LOW_RESOURCES:
+        case HCIStatusCode::REMOTE_DEVICE_TERMINATED_CONNECTION_POWER_OFF:
             return DisconnectReason::REMOTE;
-        case HCIErrorCode::CONNECTION_TERMINATED_BY_LOCAL_HOST:
+        case HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST:
             return DisconnectReason::LOCAL_HOST;
-        case HCIErrorCode::AUTHENTICATION_FAILURE:
+        case HCIStatusCode::AUTHENTICATION_FAILURE:
             return DisconnectReason::AUTH_FAILURE;
 
-        case HCIErrorCode::INTERNAL_FAILURE:
-        case HCIErrorCode::UNKNOWN:
+        case HCIStatusCode::INTERNAL_FAILURE:
+        case HCIStatusCode::UNKNOWN:
         default:
             return DisconnectReason::UNKNOWN;
 
     }
 }
-HCIErrorCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReason) {
+HCIStatusCode MgmtEvtDeviceDisconnected::getHCIReason(DisconnectReason mgmtReason) {
     switch(mgmtReason) {
-        case DisconnectReason::TIMEOUT: return HCIErrorCode::CONNECTION_TIMEOUT;
-        case DisconnectReason::LOCAL_HOST: return HCIErrorCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
-        case DisconnectReason::REMOTE: return HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION;
-        case DisconnectReason::AUTH_FAILURE: return HCIErrorCode::AUTHENTICATION_FAILURE;
+        case DisconnectReason::TIMEOUT: return HCIStatusCode::CONNECTION_TIMEOUT;
+        case DisconnectReason::LOCAL_HOST: return HCIStatusCode::CONNECTION_TERMINATED_BY_LOCAL_HOST;
+        case DisconnectReason::REMOTE: return HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION;
+        case DisconnectReason::AUTH_FAILURE: return HCIStatusCode::AUTHENTICATION_FAILURE;
 
         case DisconnectReason::UNKNOWN:
         default:
-            return HCIErrorCode::UNKNOWN;
+            return HCIStatusCode::UNKNOWN;
     }
 }

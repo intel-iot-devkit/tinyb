@@ -45,7 +45,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
-import org.tinyb.HCIErrorCode;
+import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 
 public class ScannerTinyB10 {
@@ -143,7 +143,7 @@ public class ScannerTinyB10 {
         }
 
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
             System.err.println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
         }
     };

@@ -926,39 +926,39 @@ namespace direct_bt {
             static std::string getDisconnectReasonString(DisconnectReason mgmtReason);
 
             /**
-             * BlueZ Kernel Mgmt has reduced information by HCIErrorCode -> DisconnectReason,
+             * BlueZ Kernel Mgmt has reduced information by HCIStatusCode -> DisconnectReason,
              * now the inverse surely can't repair this loss.
              * <p>
-             * See getDisconnectReason(HCIErrorCode) below for the mentioned mapping.
+             * See getDisconnectReason(HCIStatusCode) below for the mentioned mapping.
              * </p>
              */
-            static HCIErrorCode getHCIReason(DisconnectReason mgmtReason);
+            static HCIStatusCode getHCIReason(DisconnectReason mgmtReason);
 
             /**
              * BlueZ Kernel Mgmt mapping of HCI disconnect reason, which reduces some information.
              */
-            static DisconnectReason getDisconnectReason(HCIErrorCode hciReason);
+            static DisconnectReason getDisconnectReason(HCIStatusCode hciReason);
 
         private:
-            const HCIErrorCode hciRootReason;
+            const HCIStatusCode hciRootReason;
 
         protected:
             std::string baseString() const override {
                 const DisconnectReason reason1 = getReason();
-                const HCIErrorCode reason2 = getHCIReason();
+                const HCIStatusCode reason2 = getHCIReason();
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
                        ", reason[mgmt["+uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
-                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIErrorCodeString(reason2)+")]]";
+                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]";
             }
 
         public:
             MgmtEvtDeviceDisconnected(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len), hciRootReason(HCIErrorCode::UNKNOWN)
+            : MgmtEvent(buffer, buffer_len), hciRootReason(HCIStatusCode::UNKNOWN)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
-            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, HCIErrorCode hciRootReason)
+            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, HCIStatusCode hciRootReason)
             : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciRootReason(hciRootReason)
             {
                 DisconnectReason disconnectReason = getDisconnectReason(hciRootReason);
@@ -972,12 +972,12 @@ namespace direct_bt {
 
             DisconnectReason getReason() const { return static_cast<DisconnectReason>(pdu.get_uint8(MGMT_HEADER_SIZE+7)); }
 
-            /** Return the root reason in non reduced HCIErrorCode space, if available. Otherwise this value will be HCIErrorCode::UNKNOWN. */
-            HCIErrorCode getHCIRootReason() const { return hciRootReason; }
+            /** Return the root reason in non reduced HCIStatusCode space, if available. Otherwise this value will be HCIStatusCode::UNKNOWN. */
+            HCIStatusCode getHCIRootReason() const { return hciRootReason; }
 
-            /** Returns either the getHCIRootReason() if not HCIErrorCode::UNKNOWN, or the translated DisconnectReason. */
-            HCIErrorCode getHCIReason() const {
-                if( HCIErrorCode::UNKNOWN != hciRootReason ) {
+            /** Returns either the getHCIRootReason() if not HCIStatusCode::UNKNOWN, or the translated DisconnectReason. */
+            HCIStatusCode getHCIReason() const {
+                if( HCIStatusCode::UNKNOWN != hciRootReason ) {
                     return hciRootReason;
                 }
                 return getHCIReason(getReason());

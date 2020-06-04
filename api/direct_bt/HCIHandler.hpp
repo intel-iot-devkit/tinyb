@@ -104,17 +104,17 @@ namespace direct_bt {
             std::shared_ptr<HCIEvent> sendWithCmdStatusReply(HCICommand &req, HCICommandStatusEvent **res);
 
             template<typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processCmdCompleteCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIErrorCode *status);
+            std::shared_ptr<HCIEvent> processCmdCompleteCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status);
 
             template<typename hci_command_struct, typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processStructCommand(HCIOpcode opc, hci_command_struct &cp,
                                                            HCIEventType evc, const hci_cmd_event_struct **res,
-                                                           HCIErrorCode *status);
+                                                           HCIStatusCode *status);
 
             template<typename hci_command_struct, typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processStructCommand(HCIOpcode opc, hci_command_struct &cp,
                                                            HCIMetaEventType mec, const hci_cmd_event_struct **res,
-                                                           HCIErrorCode *status);
+                                                           HCIStatusCode *status);
 
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
@@ -141,7 +141,7 @@ namespace direct_bt {
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command
              */
-            HCIErrorCode reset();
+            HCIStatusCode reset();
 
             /**
              * Establish a connection to the given LE peer.
@@ -168,7 +168,7 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
              * @return
              */
-            HCIErrorCode le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
+            HCIStatusCode le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
                                         const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                         const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                         const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
@@ -181,7 +181,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
              * </p>
              */
-            HCIErrorCode create_conn(uint16_t * handle_return, const EUI48 &bdaddr,
+            HCIStatusCode create_conn(uint16_t * handle_return, const EUI48 &bdaddr,
                                      const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
                                      const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
@@ -191,7 +191,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              */
-            HCIErrorCode disconnect(const uint16_t conn_handle, const HCIErrorCode reason=HCIErrorCode::REMOTE_USER_TERMINATED_CONNECTION);
+            HCIStatusCode disconnect(const uint16_t conn_handle, const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     };
 
 } // namespace direct_bt

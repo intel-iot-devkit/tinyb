@@ -39,7 +39,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
-import org.tinyb.HCIErrorCode;
+import org.tinyb.HCIStatusCode;
 
 public class DBTDevice extends DBTObject implements BluetoothDevice
 {
@@ -90,7 +90,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIErrorCode reason, final long timestamp) {
+        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
             if( connected ) {
                 connected = false;
                 synchronized(userCallbackLock) {
