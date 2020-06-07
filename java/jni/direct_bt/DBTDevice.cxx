@@ -213,7 +213,9 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *en
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
-            throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+            // OK to have GATTHandler being shutdown @ disable
+            DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
+            return false;
         }
 
         if( ! gatt->removeCharacteristicListener(pre) ) {
@@ -233,9 +235,10 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
         std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
         if( nullptr == gatt ) {
-            throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
+            // OK to have GATTHandler being shutdown @ disable
+            DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
+            return 0;
         }
-
         return gatt->removeAllCharacteristicListener();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
