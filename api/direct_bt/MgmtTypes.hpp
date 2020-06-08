@@ -1053,10 +1053,8 @@ namespace direct_bt {
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
      */
-    class MgmtEvtDeviceWhitelistRemoved : public MgmtEvent
+    class MgmtEvtAdressInfoMeta : public MgmtEvent
     {
-        public:
-
         protected:
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
@@ -1064,10 +1062,10 @@ namespace direct_bt {
             }
 
         public:
-            MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const int buffer_len)
+            MgmtEvtAdressInfoMeta(const Opcode opc, const uint8_t* buffer, const int buffer_len)
             : MgmtEvent(buffer, buffer_len)
             {
-                checkOpcode(getOpcode(), Opcode::DEVICE_WHITELIST_REMOVED);
+                checkOpcode(getOpcode(), opc);
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -1080,28 +1078,56 @@ namespace direct_bt {
     /**
      * mgmt_addr_info { EUI48, uint8_t type },
      */
-    class MgmtEvtDeviceUnpaired : public MgmtEvent
+    class MgmtEvtDeviceWhitelistRemoved : public MgmtEvtAdressInfoMeta
     {
         public:
+            MgmtEvtDeviceWhitelistRemoved(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvtAdressInfoMeta(Opcode::DEVICE_WHITELIST_REMOVED, buffer, buffer_len)
+            { }
+    };
 
-        protected:
-            std::string baseString() const override {
-                return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType());
-            }
-
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtDeviceUnpaired : public MgmtEvtAdressInfoMeta
+    {
         public:
             MgmtEvtDeviceUnpaired(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len)
-            {
-                checkOpcode(getOpcode(), Opcode::DEVICE_UNPAIRED);
-            }
-            const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
-            BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
+            : MgmtEvtAdressInfoMeta(Opcode::DEVICE_UNPAIRED, buffer, buffer_len)
+            { }
+    };
 
-            int getDataOffset() const override { return MGMT_HEADER_SIZE+7; }
-            int getDataSize() const override { return getParamSize()-7; }
-            const uint8_t* getData() const override { return getDataSize()>0 ? pdu.get_ptr(getDataOffset()) : nullptr; }
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtDeviceBlocked : public MgmtEvtAdressInfoMeta
+    {
+        public:
+            MgmtEvtDeviceBlocked(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvtAdressInfoMeta(Opcode::DEVICE_BLOCKED, buffer, buffer_len)
+            { }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtDeviceUnblocked : public MgmtEvtAdressInfoMeta
+    {
+        public:
+            MgmtEvtDeviceUnblocked(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvtAdressInfoMeta(Opcode::DEVICE_UNBLOCKED, buffer, buffer_len)
+            { }
+    };
+
+    /**
+     * mgmt_addr_info { EUI48, uint8_t type },
+     */
+    class MgmtEvtUserPasskeyRequest: public MgmtEvtAdressInfoMeta
+    {
+        public:
+            MgmtEvtUserPasskeyRequest(const uint8_t* buffer, const int buffer_len)
+            : MgmtEvtAdressInfoMeta(Opcode::USER_PASSKEY_REQUEST, buffer, buffer_len)
+            { }
     };
 
     /**

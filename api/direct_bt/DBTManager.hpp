@@ -116,11 +116,14 @@ namespace direct_bt {
             bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDevicePinCodeRequestCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e);
             void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
         public:
