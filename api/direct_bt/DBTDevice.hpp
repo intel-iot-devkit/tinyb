@@ -79,9 +79,6 @@ namespace direct_bt {
             EIRDataType update(EInfoReport const & data);
             EIRDataType update(GenericAccess const &data, const uint64_t timestamp);
 
-            /** Returns the shared pointer of this instance managed by the adapter. */
-            std::shared_ptr<DBTDevice> getSharedInstance() const;
-
             void releaseSharedInstance() const;
             void notifyDisconnected();
             void notifyConnected();
@@ -109,6 +106,9 @@ namespace direct_bt {
 
             /** Returns the managing adapter */
             DBTAdapter & getAdapter() const { return adapter; }
+
+            /** Returns the shared pointer of this instance managed by the adapter. */
+            std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             /**
              * Returns the timestamp in monotonic milliseconds when this device instance has been created, either via discovery or direct connection.
