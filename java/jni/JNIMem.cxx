@@ -96,6 +96,11 @@ void JNIEnvContainer::detach() {
     needsDetach = false;
 }
 
+JNIGlobalRef::JNIGlobalRef() {
+    this->object = nullptr;
+    DBG_PRINT("JNIGlobalRef::def_ctor nullptr");
+}
+
 JNIGlobalRef::JNIGlobalRef(jobject object) {
     if( nullptr == object ) {
         throw direct_bt::RuntimeException("JNIGlobalRef ctor null jobject", E_FILE_LINE);

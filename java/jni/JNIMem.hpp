@@ -83,6 +83,9 @@ public:
         }
     }
 
+    /* Creates a GlobalRef using a nullptr for API convenience, lazy assignment. */
+    JNIGlobalRef();
+
     /* Creates a GlobalRef from an object passed to it */
     JNIGlobalRef(jobject object);
 
