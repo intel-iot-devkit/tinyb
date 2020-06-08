@@ -145,10 +145,9 @@ DBTAdapter::~DBTAdapter() {
     DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     keepDiscoveringAlive = false;
     {
-        int count;
-        if( 6 != ( count = mgmt.removeMgmtEventCallback(dev_id) ) ) {
-            ERR_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING) not 6 but %d", count);
-        }
+        int count = mgmt.removeMgmtEventCallback(dev_id);
+        DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
+        (void)count;
     }
     statusListenerList.clear();
 
