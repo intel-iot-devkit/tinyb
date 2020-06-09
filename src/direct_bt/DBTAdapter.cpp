@@ -303,6 +303,7 @@ int DBTAdapter::removeAllStatusListener() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCIAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
         return true;
     }
@@ -322,6 +323,7 @@ void DBTAdapter::startDiscoveryBackground() {
 }
 
 void DBTAdapter::stopDiscovery() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     keepDiscoveringAlive = false;
     if( ScanType::SCAN_TYPE_NONE == currentScanType ) {
         return;

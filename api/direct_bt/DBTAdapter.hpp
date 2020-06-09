@@ -168,6 +168,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
+            std::recursive_mutex mtx_discovery;
 
             bool validateDevInfo();
 
