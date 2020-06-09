@@ -127,6 +127,7 @@ L2CAPComm::State L2CAPComm::connect() {
 
     sockaddr_l2 req;
     int err, res;
+    int to_retry_count=0; // ETIMEDOUT retry count
 
     _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */, blocking);
     if( 0 > _dd ) {
@@ -146,31 +147,45 @@ L2CAPComm::State L2CAPComm::connect() {
     req.l2_cid = cpu_to_le(cid);
     req.l2_bdaddr_type = pubaddr ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
 
-    // may block if O_NONBLOCK has not been specified in open_dev(..)
-    res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
+    while( !interruptFlag ) {
+        // may block if O_NONBLOCK has not been specified in open_dev(..)
+        res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
 
-    tid_connect = 0;
+        DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
+                res, errno, strerror(errno), device->getAddress().toString().c_str());
 
-    DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
-            res, errno, strerror(errno), device->getAddress().toString().c_str());
+        if( !res )
+        {
+            state = State::Connected;
+            break; // done
 
-    if( !res )
-    {
-        state = Connected;
+        } else if( EINPROGRESS == errno ) {
+            // non-blocking connection in progress (O_NONBLOCK), check via select / poll later
+            state = State::Connecting;
+            break; // done
 
-    } else if( EINPROGRESS == errno ) {
-        // non-blocking connection in progress (O_NONBLOCK), check via select / poll later
-        state = Connecting;
+        } else if( ETIMEDOUT == errno ) {
+            to_retry_count++;
+            if( to_retry_count < number(Defaults::L2CAP_CONNECT_MAX_RETRY) ) {
+                INFO_PRINT("L2CAPComm::connect: timeout, retry %d", to_retry_count);
+                continue;
+            } else {
+                ERR_PRINT("L2CAPComm::connect: timeout, retried %d", to_retry_count);
+                goto failure; // exit
+            }
 
-    } else  {
-        // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
-        ERR_PRINT("L2CAPComm::connect: connect failed");
-        goto failure;
+        } else  {
+            // EALREADY == errno || ENETUNREACH == errno || EHOSTUNREACH == errno || ..
+            ERR_PRINT("L2CAPComm::connect: connect failed");
+            goto failure; // exit
+        }
     }
+    tid_connect = 0;
 
     return state;
 
 failure:
+    tid_connect = 0;
     err = errno;
     disconnect();
     errno = err;

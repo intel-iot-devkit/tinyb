@@ -60,6 +60,11 @@ namespace direct_bt {
 
             static std::string getStateString(const State state);
 
+            enum class Defaults : int {
+                L2CAP_CONNECT_MAX_RETRY = 3
+            };
+            static inline int number(const Defaults d) { return static_cast<int>(d); }
+
         private:
             static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr, const bool blocking);
             static int l2cap_close_dev(int dd);
