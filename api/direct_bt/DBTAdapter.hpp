@@ -155,7 +155,8 @@ namespace direct_bt {
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
             NameAndShortName localName;
-            ScanType currentScanType = ScanType::SCAN_TYPE_NONE;
+            std::atomic<ScanType> currentScanType; // = ScanType::SCAN_TYPE_NONE
+            std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             std::shared_ptr<HCIHandler> hci;
             std::vector<std::shared_ptr<DBTDevice>> connectedDevices;
@@ -167,7 +168,6 @@ namespace direct_bt {
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
-            std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             bool validateDevInfo();
 
@@ -415,6 +415,20 @@ namespace direct_bt {
              * @return true if no error, otherwise false.
              */
             void stopDiscovery();
+
+            /**
+             * Returns the discovering state the adapter. It can be modified through startDiscovery(..) and stopDiscovery().
+             */
+            ScanType getDiscoveringScanType() const {
+                return currentScanType;
+            }
+
+            /**
+             * Returns the discovering state the adapter. It can be modified through startDiscovery(..) and stopDiscovery().
+             */
+            bool getDiscovering() const {
+                return ScanType::SCAN_TYPE_NONE != currentScanType;
+            }
 
             /**
              * Returns discovered devices from the last discovery.

@@ -106,6 +106,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac) c
 // *************************************************
 
 bool DBTAdapter::validateDevInfo() {
+    currentScanType = ScanType::SCAN_TYPE_NONE;
     keepDiscoveringAlive = false;
 
     if( !mgmt.isOpen() || 0 > dev_id ) {
@@ -302,6 +303,9 @@ int DBTAdapter::removeAllStatusListener() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCIAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
+    if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
+        return true;
+    }
     (void)own_mac_type;
     (void)le_scan_interval;
     (void)le_scan_window;
@@ -318,8 +322,11 @@ void DBTAdapter::startDiscoveryBackground() {
 }
 
 void DBTAdapter::stopDiscovery() {
-    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
     keepDiscoveringAlive = false;
+    if( ScanType::SCAN_TYPE_NONE == currentScanType ) {
+        return;
+    }
+    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
     if( mgmt.stopDiscovery(dev_id, currentScanType) ) {
         currentScanType = ScanType::SCAN_TYPE_NONE;
     }
@@ -441,6 +448,10 @@ bool DBTAdapter::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
         dev_id, keepDiscoveringAlive.load(), e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     const bool enabled = event.getEnabled();
+    if( !enabled && !keepDiscoveringAlive ) {
+        // Only update currentScanType:=false IF keepAlive==false!
+        currentScanType = ScanType::SCAN_TYPE_NONE;
+    }
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {

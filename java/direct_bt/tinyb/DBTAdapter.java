@@ -429,6 +429,10 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
             }
+            if( !enabled && keepAlive ) {
+                // Don't update isDiscovering:=false and don't notify user IF keepAlive!
+                return;
+            }
             if( isDiscovering.compareAndSet(!enabled, enabled) ) {
                 synchronized(userCallbackLock) {
                     if( null != userDiscoveringNotificationCB ) {
