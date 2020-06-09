@@ -171,6 +171,7 @@ public interface BluetoothManager
       * @return TRUE if discovery was successfully enabled
       * @deprecated since 2.0.0, use {@link #startDiscovery(boolean)}.
       */
+    @Deprecated
     public boolean startDiscovery() throws BluetoothException;
 
     /**

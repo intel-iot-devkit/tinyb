@@ -476,9 +476,9 @@ bool DBTAdapter::mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e) {
     AdapterSetting old_setting = adapterInfo->getCurrentSetting();
     AdapterSetting changes = adapterInfo->setCurrentSetting(event.getSettings());
     DBG_PRINT("DBTAdapter::EventCB:NewSettings: %s -> %s, changes %s",
-            adapterSettingsToString(old_setting).c_str(),
-            adapterSettingsToString(adapterInfo->getCurrentSetting()).c_str(),
-            adapterSettingsToString(changes).c_str() );
+            getAdapterSettingsString(old_setting).c_str(),
+            getAdapterSettingsString(adapterInfo->getCurrentSetting()).c_str(),
+            getAdapterSettingsString(changes).c_str() );
 
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -570,7 +570,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
         }
     }
     DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
-        dev_id, new_connect, eirDataMaskToString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
     if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
         device->notifyConnected();
         int i=0;

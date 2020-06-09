@@ -461,7 +461,7 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
         const uint64_t ts = getCurrentMilliseconds();
         EIRDataType updateMask = update(*gattGenericAccess, ts);
         DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
-            eirDataMaskToString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+            getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
             if( nullptr == sharedInstance ) {
