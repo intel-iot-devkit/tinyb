@@ -52,15 +52,6 @@ namespace direct_bt {
      * </p>
      */
     class DBTManager : public JavaUplink {
-        private:
-            struct WhitelistElem {
-                int dev_id;
-                EUI48 address;
-                BDAddressType address_type;
-                HCIWhitelistConnectType ctype;
-            };
-            std::vector<std::shared_ptr<WhitelistElem>> whitelist;
-
         public:
             enum Defaults : int {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
@@ -76,6 +67,14 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
+            struct WhitelistElem {
+                int dev_id;
+                EUI48 address;
+                BDAddressType address_type;
+                HCIWhitelistConnectType ctype;
+            };
+            std::vector<std::shared_ptr<WhitelistElem>> whitelist;
+
             const BTMode btMode;
             POctets rbuffer;
             HCIComm comm;
