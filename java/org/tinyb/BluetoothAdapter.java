@@ -142,6 +142,9 @@ public interface BluetoothAdapter extends BluetoothObject
      * Turns on device discovery if it is disabled.
      * @param keepAlive if {@code true}, indicates that discovery shall be restarted
      *        if stopped by the underlying Bluetooth implementation (BlueZ, ..).
+     *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
+     *        and {@link #stopDiscovery()} is the recommended workflow
+     *        for a reliable discovery process.
      * @return TRUE if discovery was successfully enabled
      * @throws BluetoothException
      * @since 2.0.0

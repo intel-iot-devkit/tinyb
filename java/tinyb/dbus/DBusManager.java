@@ -104,6 +104,11 @@ public class DBusManager implements BluetoothManager
     public native boolean startDiscovery() throws BluetoothException;
 
     @Override
+    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
+        return startDiscovery(); // FIXME keepAlive
+    }
+
+    @Override
     public native boolean stopDiscovery() throws BluetoothException;
 
     @Override

@@ -382,10 +382,14 @@ namespace direct_bt {
              * <p>
              * if {@code keepAlive} is {@code  true}, discovery state will be re-enabled
              * in case the underlying Bluetooth implementation (BlueZ, ..) disabled it.
-             * Default is {@code false}.
+             * Default is {@code true}.
              * </p>
              * <p>
-             * Default parameter values are chosen for using public address resolution
+             * Using startDiscovery(keepAlive=true) and stopDiscovery()
+             * is the recommended workflow for a reliable discovery process.
+             * </p>
+             * <p>
+             * Remaining default parameter values are chosen for using public address resolution
              * and usual discovery intervals etc.
              * </p>
              * <p>
@@ -394,9 +398,14 @@ namespace direct_bt {
              * <p>
              * Also clears previous discovered devices via removeDiscoveredDevices().
              * </p>
+             * @param keepAlive
+             * @param own_mac_type
+             * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
+             * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             * @return
              */
-            bool startDiscovery(bool keepAlive=false, HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                                uint16_t interval=0x0004, uint16_t window=0x0004);
+            bool startDiscovery(const bool keepAlive=true, const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                                const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48);
 
             /**
              * Closes the discovery session.

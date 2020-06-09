@@ -299,12 +299,12 @@ int DBTAdapter::removeAllStatusListener() {
     return count;
 }
 
-bool DBTAdapter::startDiscovery(bool keepAlive, HCIAddressType own_mac_type,
-                                uint16_t interval, uint16_t window)
+bool DBTAdapter::startDiscovery(const bool keepAlive, const HCIAddressType own_mac_type,
+                                const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
     (void)own_mac_type;
-    (void)interval;
-    (void)window;
+    (void)le_scan_interval;
+    (void)le_scan_window;
 
     DBG_PRINT("DBTAdapter::startDiscovery: keepAlive %d ...", keepAlive);
     removeDiscoveredDevices();

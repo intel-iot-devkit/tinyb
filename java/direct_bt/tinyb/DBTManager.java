@@ -255,7 +255,10 @@ public class DBTManager implements BluetoothManager
     public BluetoothAdapter getDefaultAdapter() { return adapters.get(defaultAdapterIndex); }
 
     @Override
-    public boolean startDiscovery() throws BluetoothException { return getDefaultAdapter().startDiscovery(); }
+    public boolean startDiscovery() throws BluetoothException { return startDiscovery(true); }
+
+    @Override
+    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException { return getDefaultAdapter().startDiscovery(keepAlive); }
 
     @Override
     public boolean stopDiscovery() throws BluetoothException { return getDefaultAdapter().stopDiscovery(); }
