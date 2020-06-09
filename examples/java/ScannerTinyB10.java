@@ -51,6 +51,7 @@ import org.tinyb.HCIWhitelistConnectType;
 public class ScannerTinyB10 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
+        System.setProperty("org.tinyb.debug", "false");
     }
 
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";

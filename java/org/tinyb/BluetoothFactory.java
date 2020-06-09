@@ -93,12 +93,17 @@ public class BluetoothFactory {
     public static final String getImplVersion() { return ImplVersion; }
     private static String ImplVersion;
 
-    static final boolean VERBOSE;
+    public static final boolean VERBOSE;
+    public static final boolean DEBUG;
 
     static {
         {
             final String v = System.getProperty("org.tinyb.verbose", "false");
             VERBOSE = Boolean.valueOf(v);
+        }
+        {
+            final String v = System.getProperty("org.tinyb.debug", "false");
+            DEBUG = Boolean.valueOf(v);
         }
     }
 

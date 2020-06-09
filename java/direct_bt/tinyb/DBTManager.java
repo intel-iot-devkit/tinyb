@@ -34,6 +34,7 @@ import java.util.List;
 import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
+import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
@@ -41,7 +42,7 @@ import org.tinyb.BluetoothType;
 
 public class DBTManager implements BluetoothManager
 {
-    protected static final boolean DEBUG = false;
+    protected static final boolean DEBUG = BluetoothFactory.DEBUG;
 
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
