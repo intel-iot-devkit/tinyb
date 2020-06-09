@@ -569,6 +569,9 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
             new_connect = 4; // unknown reason...
         }
     }
+    if( 0 < new_connect ) {
+        device->ts_last_discovery = ad_report.getTimestamp();
+    }
     DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
         dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
     if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
@@ -678,6 +681,8 @@ bool DBTAdapter::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
         //
         EIRDataType updateMask = dev->update(ad_report);
         addDiscoveredDevice(dev); // re-add to discovered devices!
+        dev->ts_last_discovery = ad_report.getTimestamp();
+
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {

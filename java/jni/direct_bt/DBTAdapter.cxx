@@ -82,7 +82,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID hciErrorCodeClazzGet;
     JNIGlobalRef deviceClazzRef;
     jmethodID deviceClazzCtor;
-    jfieldID deviceClazzTSUpdateField;
+    jfieldID deviceClazzTSLastDiscoveryField;
+    jfieldID deviceClazzTSLastUpdateField;
     JNIGlobalRef listenerObjRef;
     jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDiscoveringChanged = nullptr;
@@ -173,10 +174,15 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         if( nullptr == deviceClazzCtor ) {
             throw InternalError("DBTDevice::java_class ctor not found: "+DBTDevice::java_class()+".<init>"+_deviceClazzCtorArgs, E_FILE_LINE);
         }
-        deviceClazzTSUpdateField = env->GetFieldID(deviceClazzRef.getClass(), "ts_update", "J");
+        deviceClazzTSLastDiscoveryField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_discovery", "J");
         java_exception_check_and_throw(env, E_FILE_LINE);
-        if( nullptr == deviceClazzTSUpdateField ) {
-            throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_update", E_FILE_LINE);
+        if( nullptr == deviceClazzTSLastDiscoveryField ) {
+            throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_last_discovery", E_FILE_LINE);
+        }
+        deviceClazzTSLastUpdateField = env->GetFieldID(deviceClazzRef.getClass(), "ts_last_update", "J");
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == deviceClazzTSLastUpdateField ) {
+            throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_last_update", E_FILE_LINE);
         }
 
         mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
@@ -274,6 +280,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             jdevice = JavaGlobalObj::GetObject(jDeviceRef);
         }
+        env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
+        java_exception_check_and_throw(env, E_FILE_LINE);
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceFound, jdevice, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
@@ -283,7 +291,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         DBG_PRINT("****** JNI Adapter Device UPDATED: %s of %s\n", direct_bt::getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
         std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
         JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-        env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSUpdateField, (jlong)timestamp);
+        env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSLastUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         jobject eirDataTypeSet = env->NewObject(eirDataTypeSetClazzRef.getClass(), eirDataTypeSetClazzCtor, (jint)updateMask);
@@ -317,7 +325,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
             jdevice = JavaGlobalObj::GetObject(jDeviceRef);
         }
-        env->SetLongField(jdevice, deviceClazzTSUpdateField, (jlong)timestamp);
+        env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
         env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -330,7 +340,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
         JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
         jobject jdevice = JavaGlobalObj::GetObject(jDeviceRef);
-        env->SetLongField(jdevice, deviceClazzTSUpdateField, (jlong)timestamp);
+        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
 
         jobject hciErrorCode = env->CallStaticObjectMethod(hciErrorCodeClazzRef.getClass(), hciErrorCodeClazzGet, (jbyte)static_cast<uint8_t>(reason));

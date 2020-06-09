@@ -140,12 +140,31 @@ public interface BluetoothDevice extends BluetoothObject
     List<BluetoothGattService> getServices();
 
     /**
-     * Returns the timestamp in monotonic milliseconds when this device instance has been created, either via discovery or direct connection.
+     * Returns the timestamp in monotonic milliseconds when this device instance has been created,
+     * either via its initial discovery or its initial direct connection.
      *
      * @see BluetoothUtils#getCurrentMilliseconds()
      * @since 2.0.0
      */
     long getCreationTimestamp();
+
+    /**
+     * Returns the timestamp in monotonic milliseconds when this device instance has
+     * discovered or connected directly the last time.
+     *
+     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @since 2.0.0
+     */
+    long getLastDiscoveryTimestamp();
+
+    /**
+     * Returns the timestamp in monotonic milliseconds when this device instance underlying data
+     * has been updated the last time.
+     *
+     * @see BluetoothUtils#getCurrentMilliseconds()
+     * @since 2.0.0
+     */
+    long getLastUpdateTimestamp();
 
     /** Returns the hardware address of this device.
       * @return The hardware address of this device.

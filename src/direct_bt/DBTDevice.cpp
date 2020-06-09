@@ -45,6 +45,7 @@ using namespace direct_bt;
 DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
+    ts_last_discovery = ts_creation;
     isConnected = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw IllegalArgumentException("DBTDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
@@ -120,8 +121,8 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     const uint64_t t0 = getCurrentMilliseconds();
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+
-            "'], age "+std::to_string(t0-ts_creation)+" ms, lup "+std::to_string(t0-ts_update)+
-            " ms, connected "+std::to_string(isConnected)+", rssi "+std::to_string(getRSSI())+
+            "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
+            "]ms, connected "+std::to_string(isConnected)+", rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
@@ -143,7 +144,7 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
 
     EIRDataType res = EIRDataType::NONE;
-    ts_update = data.getTimestamp();
+    ts_last_update = data.getTimestamp();
     if( data.isSet(EIRDataType::BDADDR) ) {
         if( data.getAddress() != this->address ) {
             WARN_PRINT("DBTDevice::update:: BDADDR update not supported: %s for %s",
@@ -202,7 +203,7 @@ EIRDataType DBTDevice::update(GenericAccess const &data, const uint64_t timestam
     const std::lock_guard<std::recursive_mutex> lock(mtx_data); // RAII-style acquire and relinquish via destructor
 
     EIRDataType res = EIRDataType::NONE;
-    ts_update = timestamp;
+    ts_last_update = timestamp;
     if( 0 == name.length() || data.deviceName.length() > name.length() ) {
         name = data.deviceName;
         setEIRDataTypeSet(res, EIRDataType::NAME);

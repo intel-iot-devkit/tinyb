@@ -55,10 +55,9 @@ namespace direct_bt {
         friend GATTHandler; // may issue detailed disconnect(..)
 
         private:
-            static const int to_connect_ms = 5000;
-
             DBTAdapter & adapter;
-            uint64_t ts_update;
+            uint64_t ts_last_discovery;
+            uint64_t ts_last_update;
             std::string name;
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
@@ -111,13 +110,30 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> getSharedInstance() const;
 
             /**
-             * Returns the timestamp in monotonic milliseconds when this device instance has been created, either via discovery or direct connection.
+             * Returns the timestamp in monotonic milliseconds when this device instance has been created,
+             * either via its initial discovery or its initial direct connection.
              * @see BasicTypes::getCurrentMilliseconds()
              */
             uint64_t getCreationTimestamp() const { return ts_creation; }
 
-            uint64_t getUpdateTimestamp() const { return ts_update; }
-            uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_update; }
+            /**
+             * Returns the timestamp in monotonic milliseconds when this device instance has
+             * discovered or connected directly the last time.
+             * @see BasicTypes::getCurrentMilliseconds()
+             */
+            uint64_t getLastDiscoveryTimestamp() const { return ts_last_discovery; }
+
+            /**
+             * Returns the timestamp in monotonic milliseconds when this device instance underlying data
+             * has been updated the last time.
+             * @see BasicTypes::getCurrentMilliseconds()
+             */
+            uint64_t getLastUpdateTimestamp() const { return ts_last_update; }
+
+            /**
+             * @see getLastUpdateTimestamp()
+             */
+            uint64_t getLastUpdateAge(const uint64_t ts_now) const { return ts_now - ts_last_update; }
 
             EUI48 const & getAddress() const { return address; }
             std::string getAddressString() const { return address.toString(); }

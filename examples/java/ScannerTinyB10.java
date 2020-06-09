@@ -198,7 +198,7 @@ public class ScannerTinyB10 {
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
             {
                 final long td15 = t5 - t1; // connected -> gatt-complete
-                final long tdc5 = t5 - device.getCreationTimestamp(); // discovered to gatt-complete
+                final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
                 final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
                 System.err.println(System.lineSeparator()+System.lineSeparator());
                 System.err.println("GATT primary-services completed\n");

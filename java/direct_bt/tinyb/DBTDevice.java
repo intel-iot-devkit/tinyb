@@ -51,7 +51,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final BluetoothAddressType addressType;
     private final String name;
     private final long ts_creation;
-    long ts_update;
+    long ts_last_discovery;
+    long ts_last_update;
 
     private final Object userCallbackLock = new Object();
 
@@ -185,7 +186,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         this.addressType = BluetoothAddressType.get(intAddressType);
         this.name = name;
         this.ts_creation = ts_creation;
-        ts_update = ts_creation;
+        ts_last_discovery = ts_creation;
+        ts_last_update = ts_creation;
         appearance = 0;
         initImpl();
         this.adapter.addStatusListener(statusListener, this); // only for this device
@@ -230,6 +232,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public final long getCreationTimestamp() { return ts_creation; }
+
+    @Override
+    public final long getLastDiscoveryTimestamp() { return ts_last_discovery; }
+
+    @Override
+    public final long getLastUpdateTimestamp() { return ts_last_update; }
 
     @Override
     public DBTAdapter getAdapter() {

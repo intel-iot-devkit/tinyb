@@ -48,6 +48,12 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public final long getCreationTimestamp() { return ts_creation; }
 
     @Override
+    public final long getLastDiscoveryTimestamp() { return ts_creation; } // FIXME
+
+    @Override
+    public final long getLastUpdateTimestamp() { return ts_creation; } // FIXME
+
+    @Override
     public native BluetoothType getBluetoothType();
     @Override
     public native DBusDevice clone();

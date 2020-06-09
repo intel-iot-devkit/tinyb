@@ -181,7 +181,7 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDevice();
         const int64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
-                (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
+                (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
         }
@@ -195,7 +195,7 @@ class MyGATTEventListener : public SpecificGATTCharacteristicListener {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDevice();
         const int64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
-                confirmationSent, (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
+                confirmationSent, (tR-timestamp), (tR-dev->getLastDiscoveryTimestamp()), dev->toString().c_str());
         if( nullptr != charDecl ) {
             fprintf(stderr, "****** decl %s\n", charDecl->toString().c_str());
             if( _TEMPERATURE_MEASUREMENT == *charDecl->value_type ) {
@@ -241,7 +241,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
         const uint64_t t5 = getCurrentMilliseconds();
         {
             const uint64_t td15 = t5 - t1; // connected -> gatt-complete
-            const uint64_t tdc5 = t5 - device->getCreationTimestamp(); // discovered to gatt-complete
+            const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
             const uint64_t td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
             fprintf(stderr, "\n\n\n");
             fprintf(stderr, "GATT primary-services completed\n");
