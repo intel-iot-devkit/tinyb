@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
-                            POctets value(GATTHandler::ClientMaxMTU, 0);
+                            POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
                             if( serviceChar.readValue(value) ) {
                                 std::string sval = decodeUTF8String(value.get_ptr(), value.getSize());
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s ('%s')\n", (int)i, (int)j, value.toString().c_str(), sval.c_str());

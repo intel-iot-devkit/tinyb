@@ -267,7 +267,7 @@ namespace direct_bt {
              * May return nullptr if not connected or failure.
              * </p>
              */
-            std::shared_ptr<GATTHandler> connectGATT(int replyTimeoutMS=GATTHandler::Defaults::L2CAP_COMMAND_REPLY_TIMEOUT);
+            std::shared_ptr<GATTHandler> connectGATT(int replyTimeoutMS=GATTHandler::number(GATTHandler::Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
 
             /** Returns already opened GATTHandler, see connectGATT(..) and disconnectGATT(). */
             std::shared_ptr<GATTHandler> getGATTHandler();

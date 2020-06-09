@@ -110,7 +110,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env
         GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
-        POctets res(GATTHandler::ClientMaxMTU, 0);
+        POctets res(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
         if( !characteristic->readValue(res) ) {
             ERR_PRINT("Characteristic readValue failed: %s", characteristic->toString().c_str());
             return env->NewByteArray((jsize)0);

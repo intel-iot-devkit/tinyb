@@ -64,24 +64,12 @@ namespace direct_bt {
      */
     class GATTHandler {
         public:
-            enum State : int {
-                Error       = -1,
-                Disconnected = 0,
-                Connecting = 1,
-                Connected = 2,
-                RequestInProgress = 3,
-                DiscoveringCharacteristics = 4,
-                GetClientCharaceristicConfiguration = 5,
-                WaitWriteResponse = 6,
-                WaitReadResponse = 7
-            };
-
-            enum Defaults : int {
+            enum class Defaults : int {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
-                ClientMaxMTU = 512,
+                MAX_ATT_MTU = 512,
 
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
-                DEFAULT_MIN_ATT_MTU = 23,
+                MIN_ATT_MTU = 23,
 
                 /** 3s poll timeout for l2cap reader thread */
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
@@ -90,8 +78,7 @@ namespace direct_bt {
 
                 ATTPDU_RING_CAPACITY = 128
             };
-
-            static std::string getStateString(const State state);
+            static inline int number(const Defaults d) { return static_cast<int>(d); }
 
        private:
             std::shared_ptr<DBTDevice> device;
@@ -101,7 +88,7 @@ namespace direct_bt {
 
             L2CAPComm l2cap;
             const int replyTimeoutMS;
-            std::atomic<State> state;
+            std::atomic<L2CAPComm::State> state;
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
             std::atomic<pthread_t> l2capReaderThreadId;
@@ -117,7 +104,7 @@ namespace direct_bt {
             uint16_t usedMTU;
             std::vector<GATTServiceRef> services;
 
-            State validateState();
+            L2CAPComm::State validateState();
 
             void l2capReaderThreadImpl();
 
@@ -130,17 +117,17 @@ namespace direct_bt {
              * Returns the server-mtu if successful, otherwise 0.
              * </p>
              */
-            uint16_t exchangeMTU(const uint16_t clientMaxMTU=ClientMaxMTU);
+            uint16_t exchangeMTU(const uint16_t clientMaxMTU=number(Defaults::MAX_ATT_MTU));
 
             bool disconnect(const bool ioErrorCause);
 
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = Defaults::L2CAP_COMMAND_REPLY_TIMEOUT);
+            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
 
             ~GATTHandler();
 
-            State getState() const { return state; }
-            std::string getStateString() const { return getStateString(state); }
+            L2CAPComm::State getState() const { return state; }
+            std::string getStateString() const { return L2CAPComm::getStateString(state); }
 
             /**
              * After successful l2cap connection, the MTU will be exchanged.
@@ -150,7 +137,7 @@ namespace direct_bt {
             bool disconnect() {
                 return disconnect(false /* ioErrorCause */);
             }
-            bool isOpen() const { return Disconnected < state && l2cap.isOpen(); }
+            bool isOpen() const { return L2CAPComm::State::Disconnected < state && l2cap.isOpen(); }
 
             uint16_t getServerMTU() const { return serverMTU; }
             uint16_t getUsedMTU()  const { return usedMTU; }

@@ -104,11 +104,11 @@ int L2CAPComm::l2cap_close_dev(int dd)
     X(Connecting) \
     X(Connected)
 
-#define CASE_TO_STRING(V) case V: return #V;
+#define STATE_CASE_TO_STRING(V) case State::V: return #V;
 
 std::string L2CAPComm::getStateString(const State state) {
     switch(state) {
-        STATE_ENUM(CASE_TO_STRING)
+        STATE_ENUM(STATE_CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown State";
@@ -123,6 +123,7 @@ L2CAPComm::State L2CAPComm::connect() {
     if( 0 <= _dd ) {
         return state; // already open
     }
+    state = State::Disconnected;
 
     sockaddr_l2 req;
     int err, res;
@@ -173,18 +174,18 @@ failure:
     err = errno;
     disconnect();
     errno = err;
-    state = Error;
+    state = State::Error;
     return state;
 }
 
 bool L2CAPComm::disconnect() {
     if( 0 > _dd ) {
         DBG_PRINT("L2CAPComm::disconnect: Not connected");
-        state = Disconnected;
+        state = State::Disconnected;
         return false;
     }
     DBG_PRINT("L2CAPComm::disconnect: Start dd %d", _dd.load());
-    interruptReadFlag = true;
+    interruptFlag = true;
 
     // interrupt L2CAP ::connect(..), avoiding prolonged hang
     pthread_t _tid_connect = tid_connect;
@@ -201,7 +202,8 @@ bool L2CAPComm::disconnect() {
 
     l2cap_close_dev(_dd);
     _dd = -1;
-    state = Disconnected;
+    state = State::Disconnected;
+    interruptFlag = false;
     DBG_PRINT("L2CAPComm::disconnect: End dd %d", _dd.load());
     return true;
 }
@@ -214,15 +216,14 @@ int L2CAPComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
     if( 0 == capacity ) {
         goto done;
     }
-    interruptReadFlag = false;
 
     if( timeoutMS ) {
         struct pollfd p;
         int n;
 
         p.fd = _dd; p.events = POLLIN;
-        while ( !interruptReadFlag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
-            if ( !interruptReadFlag && ( errno == EAGAIN || errno == EINTR ) ) {
+        while ( !interruptFlag && (n = poll(&p, 1, timeoutMS)) < 0 ) {
+            if ( !interruptFlag && ( errno == EAGAIN || errno == EINTR ) ) {
                 // cont temp unavail or interruption
                 continue;
             }
@@ -246,7 +247,7 @@ done:
     return len;
 
 errout:
-    state = Error;
+    state = State::Error;
     return -1;
 
 }
@@ -271,7 +272,7 @@ done:
     return len;
 
 errout:
-    state = Error;
+    state = State::Error;
     return -1;
 }
 

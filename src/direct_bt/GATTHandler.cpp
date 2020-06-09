@@ -66,29 +66,10 @@ extern "C" {
 
 using namespace direct_bt;
 
-#define STATE_ENUM(X) \
-    X(Error) \
-    X(Disconnected) \
-    X(Connecting) \
-    X(Connected) \
-    X(RequestInProgress) \
-    X(DiscoveringCharacteristics) \
-    X(GetClientCharaceristicConfiguration) \
-    X(WaitWriteResponse) \
-    X(WaitReadResponse)
-
 #define CASE_TO_STRING(V) case V: return #V;
 
-std::string GATTHandler::getStateString(const State state) {
-    switch(state) {
-        STATE_ENUM(CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown State";
-}
-
-GATTHandler::State GATTHandler::validateState() {
-    const bool a = Disconnected < state;
+L2CAPComm::State GATTHandler::validateState() {
+    const bool a = L2CAPComm::State::Disconnected < state;
     const bool b = l2cap.isOpen();
     const bool c = L2CAPComm::State::Disconnected < l2cap.getState();
     if( a || b || c ) {
@@ -177,14 +158,14 @@ void GATTHandler::l2capReaderThreadImpl() {
 
     while( !l2capReaderShallStop ) {
         int len;
-        if( Disconnected >= validateState() ) {
+        if( L2CAPComm::State::Disconnected >= validateState() ) {
             // not open
             ERR_PRINT("GATTHandler::l2capReaderThread: Not connected -> Stop");
             l2capReaderShallStop = true;
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), L2CAP_READER_THREAD_POLL_TIMEOUT);
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), number(Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT));
         if( 0 < len ) {
             const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
@@ -260,11 +241,11 @@ void GATTHandler::l2capReaderThreadImpl() {
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int replyTimeoutMS)
-: device(device), deviceString(device->getAddressString()), rbuffer(ClientMaxMTU),
+: device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), replyTimeoutMS(replyTimeoutMS),
-  state(Disconnected), attPDURing(ATTPDU_RING_CAPACITY),
+  state(L2CAPComm::State::Disconnected), attPDURing(number(Defaults::ATTPDU_RING_CAPACITY)),
   l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
-  serverMTU(DEFAULT_MIN_ATT_MTU), usedMTU(DEFAULT_MIN_ATT_MTU)
+  serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 { }
 
 GATTHandler::~GATTHandler() {
@@ -273,14 +254,14 @@ GATTHandler::~GATTHandler() {
 }
 
 bool GATTHandler::connect() {
-    if( Disconnected < validateState() ) {
+    if( L2CAPComm::State::Disconnected < validateState() ) {
         // already open
         DBG_PRINT("GATTHandler.connect: Already open");
         return true;
     }
-    state = static_cast<GATTHandler::State>(l2cap.connect());
+    state = l2cap.connect();
 
-    if( Disconnected >= validateState() ) {
+    if( L2CAPComm::State::Disconnected >= validateState() ) {
         DBG_PRINT("GATTHandler.connect: Could not connect");
         return false;
     }
@@ -295,8 +276,8 @@ bool GATTHandler::connect() {
     // as l2capReaderThread may end due to I/O errors.
     l2capReaderThread.detach();
 
-    serverMTU = exchangeMTU(ClientMaxMTU); // First point of failure if device exposes no GATT functionality
-    usedMTU = std::min((int)ClientMaxMTU, (int)serverMTU);
+    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU)); // First point of failure if device exposes no GATT functionality
+    usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
     if( 0 == serverMTU ) {
         ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", deviceString.c_str());
         disconnect(false /* ioErrorCause */);
@@ -310,7 +291,7 @@ bool GATTHandler::disconnect(const bool ioErrorCause) {
                 getStateString().c_str(), l2cap.getStateString().c_str(),
                 (Disconnected < state), (nullptr != device));
 
-    if( Disconnected >= state ) {
+    if( L2CAPComm::State::Disconnected >= state ) {
         // not open
         l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         return false;
@@ -333,7 +314,7 @@ bool GATTHandler::disconnect(const bool ioErrorCause) {
     }
 
     l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
-    state = Disconnected;
+    state = L2CAPComm::State::Disconnected;
 
     if( nullptr != device ) {
         // Cleanup device resources, proper connection state
@@ -345,11 +326,11 @@ bool GATTHandler::disconnect(const bool ioErrorCause) {
     }
 
     DBG_PRINT("GATTHandler::disconnect End");
-    return Disconnected == validateState();
+    return L2CAPComm::State::Disconnected == validateState();
 }
 
 void GATTHandler::send(const AttPDUMsg & msg) {
-    if( Disconnected >= validateState() ) {
+    if( L2CAPComm::State::Disconnected >= validateState() ) {
         // not open
         throw IllegalStateException("GATTHandler::send: Not connected: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
@@ -364,14 +345,14 @@ void GATTHandler::send(const AttPDUMsg & msg) {
     const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
         ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
-        state = Error;
+        state = L2CAPComm::State::Error;
         disconnect(true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write error: req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     if( res != msg.pdu.getSize() ) {
         ERR_PRINT("GATTHandler::send: l2cap write count error, %d != %d: %s -> disconnect: %s",
                 res, msg.pdu.getSize(), msg.toString().c_str(), deviceString.c_str());
-        state = Error;
+        state = L2CAPComm::State::Error;
         disconnect(true /* ioErrorCause */); // state -> Disconnected
         throw BluetoothException("GATTHandler::send: l2cap write count error, "+std::to_string(res)+" != "+std::to_string(res)
                                  +": "+msg.toString()+" -> disconnect: "+deviceString, E_FILE_LINE);
@@ -396,8 +377,8 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
-    if( clientMaxMTU > ClientMaxMTU ) {
-        throw IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(ClientMaxMTU), E_FILE_LINE);
+    if( clientMaxMTU > number(Defaults::MAX_ATT_MTU) ) {
+        throw IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
     }
     const AttExchangeMTU req(clientMaxMTU);
 
@@ -859,7 +840,7 @@ static const uuid16_t _PNP_ID(GattCharacteristicType::PNP_ID);
 
 std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCharacteristicRef> & genericAccessCharDeclList) {
     std::shared_ptr<GenericAccess> res = nullptr;
-    POctets value(GATTHandler::ClientMaxMTU, 0);
+    POctets value(number(Defaults::MAX_ATT_MTU), 0);
     std::string deviceName = "";
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
     PeriphalPreferredConnectionParameters * prefConnParam = nullptr;
@@ -902,7 +883,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTSer
 
 std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTCharacteristicRef> & characteristicDeclList) {
     std::shared_ptr<DeviceInformation> res = nullptr;
-    POctets value(GATTHandler::ClientMaxMTU, 0);
+    POctets value(number(Defaults::MAX_ATT_MTU), 0);
 
     POctets systemID(8, 0);
     std::string modelNumber;

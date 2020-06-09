@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
             //
             const uint64_t t4 = getCurrentMilliseconds();
             // let's check further for full GATT
-            std::shared_ptr<GATTHandler> gatt = device->connectGATT(GATTHandler::Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT);
+            std::shared_ptr<GATTHandler> gatt = device->connectGATT(GATTHandler::number(GATTHandler::Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
             if( nullptr != gatt ) {
                 fprintf(stderr, "GATT usedMTU %d (server) -> %d (used)\n", gatt->getServerMTU(), gatt->getUsedMTU());
 
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
                         GATTCharacteristic & serviceChar = *serviceCharacteristics.at(j);
                         fprintf(stderr, "  [%2.2d.%2.2d] Decla: %s\n", (int)i, (int)j, serviceChar.toString().c_str());
                         if( serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Read) ) {
-                            POctets value(GATTHandler::ClientMaxMTU, 0);
+                            POctets value(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
                             if( gatt->readCharacteristicValue(serviceChar, value) ) {
                                 fprintf(stderr, "  [%2.2d.%2.2d] Value: %s\n", (int)i, (int)j, value.toString().c_str());
                             }

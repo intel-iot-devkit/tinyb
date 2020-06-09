@@ -51,7 +51,7 @@ namespace direct_bt {
 
     class L2CAPComm {
         public:
-            enum State : int {
+            enum class State : int {
                 Error        = -1,
                 Disconnected =  0,
                 Connecting   =  1,
@@ -71,13 +71,13 @@ namespace direct_bt {
             const bool blocking;
             std::atomic<State> state;
             std::atomic<int> _dd; // the l2cap socket
-            std::atomic<bool> interruptReadFlag; // for forced disconnect
+            std::atomic<bool> interruptFlag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
 
         public:
             L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true, const bool blocking=true)
             : device(device), psm(psm), cid(cid), pubaddr(pubaddr), blocking(blocking),
-              state(Disconnected), _dd(-1), interruptReadFlag(false), tid_connect(0) {}
+              state(State::Disconnected), _dd(-1), interruptFlag(false), tid_connect(0) {}
             ~L2CAPComm() { disconnect(); }
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
