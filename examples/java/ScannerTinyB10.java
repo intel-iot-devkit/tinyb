@@ -179,8 +179,9 @@ public class ScannerTinyB10 {
     }
 
     private void processConnectedDevice(final BluetoothDevice device) {
-
         System.err.println("****** Processing Device: Start " + device.toString());
+        device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
+
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
         boolean success = false;
 

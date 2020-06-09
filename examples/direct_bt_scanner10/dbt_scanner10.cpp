@@ -224,6 +224,7 @@ static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
 
 static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Processing Device: Start %s\n", device->toString().c_str());
+    device->getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
     const uint64_t t1 = getCurrentMilliseconds();
     bool success = false;
 
