@@ -35,7 +35,7 @@
 // #define SHOW_LE_ADVERTISING 1
 
 // #define PERF_PRINT_ON 1
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -122,7 +122,7 @@ bool HCIHandler::sendCommand(HCICommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
     TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
-        ERR_PRINT("HCIHandler::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
+        ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s", req.toString().c_str());
         return false;
     }
     return true;
@@ -151,63 +151,88 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryC
 }
 
 std::shared_ptr<HCIEvent> HCIHandler::sendWithReply(HCICommand &req) {
-    if( !sendCommand(req) ) {
-        return nullptr;
+    if( pass_replies_only_filter ) {
+        hci_ufilter filter = filter_mask;
+        HCIComm::filter_set_opcode(number(req.getOpcode()), &filter);
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter, sizeof(filter)) < 0) {
+            ERR_PRINT("HCIHandler::sendWithReply.0: setsockopt");
+            return nullptr;
+        }
     }
     int retryCount = 0;
-    return getNextReply(req, retryCount);
+    std::shared_ptr<HCIEvent> ev = nullptr;
+
+    if( !sendCommand(req) ) {
+        goto exit;
+    }
+    ev = getNextReply(req, retryCount);
+
+exit:
+    if( pass_replies_only_filter ) {
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+            ERR_PRINT("HCIHandler::sendWithReply.X: setsockopt");
+        }
+    }
+    return ev;
 }
 
 std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
     *res = nullptr;
+
+    if( pass_replies_only_filter ) {
+        hci_ufilter filter = filter_mask;
+        HCIComm::filter_set_opcode(number(req.getOpcode()), &filter);
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter, sizeof(filter)) < 0) {
+            ERR_PRINT("HCIHandler::sendWithCmdCompleteReply.0: setsockopt");
+            return nullptr;
+        }
+    }
+    int retryCount = 0;
+    std::shared_ptr<HCIEvent> ev = nullptr;
+
     if( !sendCommand(req) ) {
-        return nullptr;
+        goto exit;
     }
 
-    int retryCount = 0;
-
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        std::shared_ptr<HCIEvent> ev = getNextReply(req, retryCount);
+        ev = getNextReply(req, retryCount);
         if( nullptr == ev ) {
-            return nullptr;  // timeout
-        } else if( !ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
+            break;  // timeout, leave loop
+        } else if( ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
+            // gotcha, leave loop
+            *res = static_cast<HCICommandCompleteEvent*>(ev.get());
+            break;
+        } else if( ev->isEvent(HCIEventType::CMD_STATUS) ) {
+            // pending command .. wait for result
+            HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
+            HCIStatusCode status = ev_cs->getStatus();
+            if( HCIStatusCode::SUCCESS != status ) {
+                WARN_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                        number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                        ev_cs->toString().c_str(), req.toString().c_str());
+                break; // error status, leave loop
+            }
+            retryCount++;
+            continue; // next packet
+        } else {
+            retryCount++;
             DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: !CMD_COMPLETE (drop, retry %d): res %s; req %s",
                        retryCount, ev->toString().c_str(), req.toString().c_str());
             continue; // next packet
-        } else {
-            *res = static_cast<HCICommandCompleteEvent*>(ev.get());
-            return ev;
         }
     }
-    return nullptr;  // max retry
-}
 
-std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdStatusReply(HCICommand &req, HCICommandStatusEvent **res) {
-    *res = nullptr;
-    if( !sendCommand(req) ) {
-        return nullptr;
-    }
-
-    int retryCount = 0;
-
-    while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        std::shared_ptr<HCIEvent> ev = getNextReply(req, retryCount);
-        if( nullptr == ev ) {
-            return nullptr;  // timeout
-        } else if( !ev->isEvent(HCIEventType::CMD_STATUS) ) {
-            DBG_PRINT("HCIHandler::sendWithCmdStatusReply: !CMD_STATUS (drop, retry %d): res %s; req %s",
-                       retryCount, ev->toString().c_str(), req.toString().c_str());
-            continue; // next packet
-        } else {
-            *res = static_cast<HCICommandStatusEvent*>(ev.get());
-            return ev;
+exit:
+    if( pass_replies_only_filter ) {
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+            ERR_PRINT("HCIHandler::sendWithCmdCompleteReply.X: setsockopt");
         }
     }
-    return nullptr;  // max retry
+    return ev;
 }
 
 HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int replyTimeoutMS)
-:btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
+:pass_replies_only_filter(true), btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
  comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT), replyTimeoutMS(replyTimeoutMS),
  hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
@@ -227,7 +252,9 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
 
     // Mandatory socket filter (not adapter filter!)
     {
-        hci_ufilter nf, of;
+#if 0
+        // No use for pre-existing hci_ufilter
+        hci_ufilter of;
         socklen_t olen;
 
         olen = sizeof(of);
@@ -235,35 +262,43 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
             ERR_PRINT("HCIHandler::ctor: getsockopt");
             goto fail;
         }
-        // uint16_t opcode_le16 = 0;
-        HCIComm::filter_clear(&nf);
-        HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &nf); // only EVENTs
-#if 0
-        HCIComm::filter_all_events(&nf); // all events
-#else
-        HCIComm::filter_set_event(number(HCIEventType::CONN_COMPLETE), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::DISCONN_COMPLETE), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::CMD_COMPLETE), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::CMD_STATUS), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::HARDWARE_ERROR), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::LE_META), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::DISCONN_PHY_LINK_COMPLETE), &nf);
-        HCIComm::filter_set_event(number(HCIEventType::DISCONN_LOGICAL_LINK_COMPLETE), &nf);
 #endif
-        HCIComm::filter_set_opcode(0, &nf); // all opcode
-        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &nf, sizeof(nf)) < 0) {
+        HCIComm::filter_clear(&filter_mask);
+        HCIComm::filter_set_ptype(number(HCIPacketType::EVENT),  &filter_mask); // only EVENTs
+        if( pass_replies_only_filter ) {
+            // Setup template filter mask, copied and adjusted for each reply
+            HCIComm::filter_set_event(number(HCIEventType::CMD_COMPLETE), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::CMD_STATUS), &filter_mask);
+            HCIComm::filter_set_opcode(number(HCIOpcode::RESET), &filter_mask); // listen to RESET command by default (hmm)
+        } else {
+            // Setup generic filter mask for all events
+            // HCIComm::filter_all_events(&filter_mask); // all events
+            HCIComm::filter_set_event(number(HCIEventType::CONN_COMPLETE), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::DISCONN_COMPLETE), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::CMD_COMPLETE), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::CMD_STATUS), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::HARDWARE_ERROR), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::LE_META), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::DISCONN_PHY_LINK_COMPLETE), &filter_mask);
+            HCIComm::filter_set_event(number(HCIEventType::DISCONN_LOGICAL_LINK_COMPLETE), &filter_mask);
+            HCIComm::filter_set_opcode(0, &filter_mask); // all opcode
+        }
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
             ERR_PRINT("HCIHandler::ctor: setsockopt");
             goto fail;
         }
     }
     // Mandatory own LE_META filter
     {
-        filter_clear_metaevs();
-        // filter_all_metaevs();
-        filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE);
+        uint32_t mask = 0;
+        if( !pass_replies_only_filter ) {
+            // filter_all_metaevs(mask);
+            filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
 #ifdef SHOW_LE_ADVERTISING
-        filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT);
+            filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
 #endif
+        }
+        filter_put_metaevs(mask);
     }
     {
         HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
@@ -275,7 +310,8 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
             ERR_PRINT("HCIHandler::ctor: failed READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
             goto fail;
         }
-        INFO_PRINT("HCIHandler::ctor: LOCAL_VERSION: %d.%d, manuf 0x%x, lmp %d.%d",
+        INFO_PRINT("HCIHandler: replies_only %d, LOCAL_VERSION: %d (rev %d), manuf 0x%x, lmp %d (subver %d)",
+                pass_replies_only_filter,
                 ev_lv->hci_ver, le_to_cpu(ev_lv->hci_rev), le_to_cpu(ev_lv->manufacturer),
                 ev_lv->lmp_ver, le_to_cpu(ev_lv->lmp_subver));
     }
@@ -442,13 +478,13 @@ std::shared_ptr<HCIEvent> HCIHandler::processSimpleCommand(HCIOpcode opc, const 
     HCICommandCompleteEvent * ev_cc;
     std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req0, &ev_cc);
     if( nullptr == ev ) {
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
+        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
                 getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req0.toString().c_str());
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
                 getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 ev->toString().c_str(), req0.toString().c_str());
@@ -456,7 +492,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processSimpleCommand(HCIOpcode opc, const 
     }
     const uint8_t returnParamSize = ev_cc->getReturnParamSize();
     if( returnParamSize < sizeof(hci_cmd_event_struct) ) {
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
                 getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 ev_cc->toString().c_str(), req0.toString().c_str());
@@ -464,7 +500,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processSimpleCommand(HCIOpcode opc, const 
     }
     *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());
     *status = static_cast<HCIStatusCode>((*res)->status);
-    DBG_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
+    DBG_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
             getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
             number(*status), getHCIStatusCodeString(*status).c_str(),
             ev_cc->toString().c_str(), req0.toString().c_str());
@@ -478,11 +514,21 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    if( !sendCommand(req) ) {
-        return nullptr;
+    if( pass_replies_only_filter ) {
+        hci_ufilter filter = filter_mask;
+        HCIComm::filter_set_event(number(evc), &filter_mask);
+        HCIComm::filter_set_opcode(number(req.getOpcode()), &filter);
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter, sizeof(filter)) < 0) {
+            ERR_PRINT("HCIHandler::processStructCommand.0: setsockopt");
+            return nullptr;
+        }
     }
     int retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
+
+    if( !sendCommand(req) ) {
+        goto exit;
+    }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
         ev = getNextReply(req, retryCount);
@@ -499,10 +545,12 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_
                         getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                         number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
-                return ev;
+                goto exit; // bad status, leave
             }
+            retryCount++;
             continue; // next packet
         } else {
+            retryCount++;
             continue; // next packet
         }
     }
@@ -512,22 +560,29 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_
                 getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req.toString().c_str());
-        return nullptr;
-    }
-    typedef HCIStructCmdCompleteEvt<hci_cmd_event_struct> HCIConnCompleteEvt;
-    HCIConnCompleteEvt * ev_cc = static_cast<HCIConnCompleteEvt*>(ev.get());
-    if( ev_cc->isTypeAndSizeValid(evc) ) {
-        *status = ev_cc->getStatus();
-        *res = ev_cc->getStruct();
-        DBG_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(),
-                ev_cc->toString().c_str(), req.toString().c_str());
     } else {
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req.toString().c_str());
+        typedef HCIStructCmdCompleteEvt<hci_cmd_event_struct> HCIConnCompleteEvt;
+        HCIConnCompleteEvt * ev_cc = static_cast<HCIConnCompleteEvt*>(ev.get());
+        if( ev_cc->isTypeAndSizeValid(evc) ) {
+            *status = ev_cc->getStatus();
+            *res = ev_cc->getStruct();
+            DBG_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
+                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+                    number(*status), getHCIStatusCodeString(*status).c_str(),
+                    ev_cc->toString().c_str(), req.toString().c_str());
+        } else {
+            WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+                    number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                    ev_cc->toString().c_str(), req.toString().c_str());
+        }
+    }
+
+exit:
+    if( pass_replies_only_filter ) {
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+            ERR_PRINT("HCIHandler::processStructCommand.X: setsockopt");
+        }
     }
     return ev;
 }
@@ -539,11 +594,24 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructMetaCmd(HCIStructCommand<hci_
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    if( !sendCommand(req) ) {
-        return nullptr;
+    if( pass_replies_only_filter ) {
+        hci_ufilter filter = filter_mask;
+        HCIComm::filter_set_event(number(HCIEventType::LE_META), &filter_mask);
+        HCIComm::filter_set_opcode(number(req.getOpcode()), &filter);
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter, sizeof(filter)) < 0) {
+            ERR_PRINT("HCIHandler::processStructMetaCmd.0: setsockopt");
+            return nullptr;
+        }
+        uint32_t mask=0;
+        filter_set_metaev(mec, mask);
+        filter_put_metaevs(mask);
     }
     int retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
+
+    if( !sendCommand(req) ) {
+        goto exit;
+    }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
         ev = getNextReply(req, retryCount);
@@ -556,39 +624,49 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructMetaCmd(HCIStructCommand<hci_
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
             if( HCIStatusCode::SUCCESS != ev_cs->getStatus() ) {
                 *status = ev_cs->getStatus();
-                WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
                         getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                         number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
-                return ev;
+                goto exit; // bad status, leave
             }
+            retryCount++;
             continue; // next packet
         } else {
+            retryCount++;
             continue; // next packet
         }
     }
     if( nullptr == ev ) {
         // timeout exit
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
+        WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
                 getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req.toString().c_str());
-        return nullptr;
-    }
-    typedef HCIStructCmdCompleteMetaEvt<hci_cmd_event_struct> HCIConnCompleteMetaEvt;
-    HCIConnCompleteMetaEvt * ev_cc = static_cast<HCIConnCompleteMetaEvt*>(ev.get());
-    if( ev_cc->isTypeAndSizeValid(mec) ) {
-        *status = ev_cc->getStatus();
-        *res = ev_cc->getStruct();
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(),
-                ev_cc->toString().c_str(), req.toString().c_str());
     } else {
-        WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req.toString().c_str());
+        typedef HCIStructCmdCompleteMetaEvt<hci_cmd_event_struct> HCIConnCompleteMetaEvt;
+        HCIConnCompleteMetaEvt * ev_cc = static_cast<HCIConnCompleteMetaEvt*>(ev.get());
+        if( ev_cc->isTypeAndSizeValid(mec) ) {
+            *status = ev_cc->getStatus();
+            *res = ev_cc->getStruct();
+            WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
+                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                    number(*status), getHCIStatusCodeString(*status).c_str(),
+                    ev_cc->toString().c_str(), req.toString().c_str());
+        } else {
+            WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                    number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                    ev_cc->toString().c_str(), req.toString().c_str());
+        }
+    }
+
+exit:
+    if( pass_replies_only_filter ) {
+        filter_put_metaevs(0);
+        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
+            ERR_PRINT("HCIHandler::processStructMetaCmd.X: setsockopt");
+        }
     }
     return ev;
 }

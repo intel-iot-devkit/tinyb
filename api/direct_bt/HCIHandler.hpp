@@ -76,18 +76,22 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
+            const bool pass_replies_only_filter;
             const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
             const int replyTimeoutMS;
             std::recursive_mutex mtx;
-            uint32_t metaev_filter_mask;
+            hci_ufilter filter_mask;
+            std::atomic<uint32_t> metaev_filter_mask;
 
-            inline void filter_clear_metaevs() { metaev_filter_mask=0; }
-            inline void filter_all_metaevs() { metaev_filter_mask=0xffff; }
-            inline void filter_set_metaev(HCIMetaEventType mec) { set_bit_uint32(number(mec)-1, metaev_filter_mask); }
             inline bool filter_test_metaev(HCIMetaEventType mec) { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
+            inline void filter_put_metaevs(const uint32_t mask) { metaev_filter_mask=mask; }
+
+            inline void filter_clear_metaevs(uint32_t &mask) { mask=0; }
+            inline void filter_all_metaevs(uint32_t &mask) { mask=0xffff; }
+            inline void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) { set_bit_uint32(number(mec)-1, mask); }
 
             LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
             std::atomic<pthread_t> hciReaderThreadId;
@@ -101,7 +105,6 @@ namespace direct_bt {
             std::shared_ptr<HCIEvent> sendWithReply(HCICommand &req);
 
             std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
-            std::shared_ptr<HCIEvent> sendWithCmdStatusReply(HCICommand &req, HCICommandStatusEvent **res);
 
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processSimpleCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status);
