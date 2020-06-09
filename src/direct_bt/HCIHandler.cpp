@@ -35,7 +35,7 @@
 // #define SHOW_LE_ADVERTISING 1
 
 // #define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -269,7 +269,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
         const hci_rp_read_local_version * ev_lv;
         HCIStatusCode status;
-        std::shared_ptr<HCIEvent> ev = processCmdCompleteCommand<hci_rp_read_local_version>(
+        std::shared_ptr<HCIEvent> ev = processSimpleCommand<hci_rp_read_local_version>(
                 HCIOpcode::READ_LOCAL_VERSION, &ev_lv, &status);
         if( nullptr == ev || nullptr == ev_lv ) {
             ERR_PRINT("HCIHandler::ctor: failed READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
@@ -341,30 +341,29 @@ HCIStatusCode HCIHandler::le_create_conn(uint16_t * handle_return, const EUI48 &
         ERR_PRINT("HCIHandler::le_create_conn: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    hci_cp_le_create_conn cp;
-
     const uint16_t min_ce_length = 0x0000;
     const uint16_t max_ce_length = 0x0000;
     const uint8_t initiator_filter = 0x00; // whitelist not used but peer_bdaddr*
 
-    bzero((void*)&cp, sizeof(cp));
-    cp.scan_interval = cpu_to_le(le_scan_interval);
-    cp.scan_window = cpu_to_le(le_scan_window);
-    cp.filter_policy = initiator_filter;
-    cp.peer_addr_type = peer_mac_type;
-    cp.peer_addr = peer_bdaddr;
-    cp.own_address_type = own_mac_type;
-    cp.conn_interval_min = cpu_to_le(conn_interval_min);
-    cp.conn_interval_max = cpu_to_le(conn_interval_max);
-    cp.conn_latency = cpu_to_le(conn_latency);
-    cp.supervision_timeout = cpu_to_le(supervision_timeout);
-    cp.min_ce_len = cpu_to_le(min_ce_length);
-    cp.max_ce_len = cpu_to_le(max_ce_length);
+    HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
+    hci_cp_le_create_conn * cp = req0.getWStruct();
+    bzero((void*)cp, sizeof(*cp));
+    cp->scan_interval = cpu_to_le(le_scan_interval);
+    cp->scan_window = cpu_to_le(le_scan_window);
+    cp->filter_policy = initiator_filter;
+    cp->peer_addr_type = peer_mac_type;
+    cp->peer_addr = peer_bdaddr;
+    cp->own_address_type = own_mac_type;
+    cp->conn_interval_min = cpu_to_le(conn_interval_min);
+    cp->conn_interval_max = cpu_to_le(conn_interval_max);
+    cp->conn_latency = cpu_to_le(conn_latency);
+    cp->supervision_timeout = cpu_to_le(supervision_timeout);
+    cp->min_ce_len = cpu_to_le(min_ce_length);
+    cp->max_ce_len = cpu_to_le(max_ce_length);
 
     const hci_ev_le_conn_complete * ev_cc;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processStructCommand<hci_cp_le_create_conn, hci_ev_le_conn_complete>(
-            HCIOpcode::LE_CREATE_CONN, cp, HCIMetaEventType::LE_CONN_COMPLETE, &ev_cc, &status);
+    std::shared_ptr<HCIEvent> ev = processStructMetaCmd(req0, HCIMetaEventType::LE_CONN_COMPLETE, &ev_cc, &status);
 
     if( HCIStatusCode::SUCCESS != status ) {
         return status;
@@ -386,20 +385,20 @@ HCIStatusCode HCIHandler::create_conn(uint16_t * handle_return, const EUI48 &bda
         ERR_PRINT("HCIHandler::create_conn: device not open");
         return HCIStatusCode::INTERNAL_FAILURE;
     }
-    hci_cp_create_conn cp;
 
-    bzero((void*)&cp, sizeof(cp));
-    cp.bdaddr = bdaddr;
-    cp.pkt_type = cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
-    cp.pscan_rep_mode = 0x02; /* TODO magic? */
-    cp.pscan_mode = 0x00; /* TODO magic? */
-    cp.clock_offset = cpu_to_le(clock_offset);
-    cp.role_switch = role_switch;
+    HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
+    hci_cp_create_conn * cp = req0.getWStruct();
+    bzero((void*)cp, sizeof(*cp));
+    cp->bdaddr = bdaddr;
+    cp->pkt_type = cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
+    cp->pscan_rep_mode = 0x02; /* TODO magic? */
+    cp->pscan_mode = 0x00; /* TODO magic? */
+    cp->clock_offset = cpu_to_le(clock_offset);
+    cp->role_switch = role_switch;
 
     const hci_ev_conn_complete * ev_cc;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processStructCommand<hci_cp_create_conn, hci_ev_conn_complete>(
-            HCIOpcode::CREATE_CONN, cp, HCIEventType::CONN_COMPLETE, &ev_cc, &status);
+    std::shared_ptr<HCIEvent> ev = processStructCommand(req0, HCIEventType::CONN_COMPLETE, &ev_cc, &status);
 
     if( HCIStatusCode::SUCCESS != status ) {
         return status;
@@ -419,22 +418,21 @@ HCIStatusCode HCIHandler::disconnect(const uint16_t conn_handle, const HCIStatus
     if( 0 == conn_handle ) {
         return HCIStatusCode::SUCCESS;
     }
-    hci_cp_disconnect cp;
-
-    bzero(&cp, sizeof(cp));
-    cp.handle = conn_handle;
-    cp.reason = number(reason);
+    HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
+    hci_cp_disconnect * cp = req0.getWStruct();
+    bzero(cp, sizeof(*cp));
+    cp->handle = conn_handle;
+    cp->reason = number(reason);
 
     const hci_ev_disconn_complete * ev_cc;
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processStructCommand<hci_cp_disconnect, hci_ev_disconn_complete>(
-            HCIOpcode::DISCONNECT, cp, HCIEventType::DISCONN_COMPLETE, &ev_cc, &status);
+    std::shared_ptr<HCIEvent> ev = processStructCommand(req0, HCIEventType::DISCONN_COMPLETE, &ev_cc, &status);
     return status;
 }
 
 
 template<typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processCmdCompleteCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status)
+std::shared_ptr<HCIEvent> HCIHandler::processSimpleCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
@@ -474,21 +472,20 @@ std::shared_ptr<HCIEvent> HCIHandler::processCmdCompleteCommand(HCIOpcode opc, c
 }
 
 template<typename hci_command_struct, typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_command_struct &cp,
+std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_command_struct> &req,
                                                            HCIEventType evc, const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    HCIStructCommand<hci_command_struct> req0(opc, cp);
-    if( !sendCommand(req0) ) {
+    if( !sendCommand(req) ) {
         return nullptr;
     }
     int retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req0, retryCount);
+        ev = getNextReply(req, retryCount);
         if( nullptr == ev ) {
             break; // timeout, leave loop
         } else if( ev->isEvent(evc) ) {
@@ -499,9 +496,9 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
             if( HCIStatusCode::SUCCESS != ev_cs->getStatus() ) {
                 *status = ev_cs->getStatus();
                 WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                        getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
+                        getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                         number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                        ev_cs->toString().c_str(), req0.toString().c_str());
+                        ev_cs->toString().c_str(), req.toString().c_str());
                 return ev;
             }
             continue; // next packet
@@ -512,9 +509,9 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
     if( nullptr == ev ) {
         // timeout exit
         WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                req0.toString().c_str());
+                req.toString().c_str());
         return nullptr;
     }
     typedef HCIStructCmdCompleteEvt<hci_cmd_event_struct> HCIConnCompleteEvt;
@@ -523,34 +520,33 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
         *status = ev_cc->getStatus();
         *res = ev_cc->getStruct();
         DBG_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(),
-                ev_cc->toString().c_str(), req0.toString().c_str());
+                ev_cc->toString().c_str(), req.toString().c_str());
     } else {
         WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req0.toString().c_str());
+                ev_cc->toString().c_str(), req.toString().c_str());
     }
     return ev;
 }
 
 template<typename hci_command_struct, typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_command_struct &cp,
+std::shared_ptr<HCIEvent> HCIHandler::processStructMetaCmd(HCIStructCommand<hci_command_struct> &req,
                                                            HCIMetaEventType mec, const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    HCIStructCommand<hci_command_struct> req0(opc, cp);
-    if( !sendCommand(req0) ) {
+    if( !sendCommand(req) ) {
         return nullptr;
     }
     int retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req0, retryCount);
+        ev = getNextReply(req, retryCount);
         if( nullptr == ev ) {
             break; // timeout, leave loop
         } else if( ev->isMetaEvent(mec) ) {
@@ -561,9 +557,9 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
             if( HCIStatusCode::SUCCESS != ev_cs->getStatus() ) {
                 *status = ev_cs->getStatus();
                 WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                        getHCIOpcodeString(opc).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                        getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                         number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                        ev_cs->toString().c_str(), req0.toString().c_str());
+                        ev_cs->toString().c_str(), req.toString().c_str());
                 return ev;
             }
             continue; // next packet
@@ -574,9 +570,9 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
     if( nullptr == ev ) {
         // timeout exit
         WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                req0.toString().c_str());
+                req.toString().c_str());
         return nullptr;
     }
     typedef HCIStructCmdCompleteMetaEvt<hci_cmd_event_struct> HCIConnCompleteMetaEvt;
@@ -585,14 +581,14 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIOpcode opc, hci_co
         *status = ev_cc->getStatus();
         *res = ev_cc->getStruct();
         WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(),
-                ev_cc->toString().c_str(), req0.toString().c_str());
+                ev_cc->toString().c_str(), req.toString().c_str());
     } else {
         WARN_PRINT("HCIHandler::processStructCommand %s -> %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req0.toString().c_str());
+                ev_cc->toString().c_str(), req.toString().c_str());
     }
     return ev;
 }

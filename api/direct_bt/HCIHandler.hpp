@@ -104,15 +104,15 @@ namespace direct_bt {
             std::shared_ptr<HCIEvent> sendWithCmdStatusReply(HCICommand &req, HCICommandStatusEvent **res);
 
             template<typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processCmdCompleteCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status);
+            std::shared_ptr<HCIEvent> processSimpleCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status);
 
             template<typename hci_command_struct, typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processStructCommand(HCIOpcode opc, hci_command_struct &cp,
+            std::shared_ptr<HCIEvent> processStructCommand(HCIStructCommand<hci_command_struct> &req,
                                                            HCIEventType evc, const hci_cmd_event_struct **res,
                                                            HCIStatusCode *status);
 
             template<typename hci_command_struct, typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processStructCommand(HCIOpcode opc, hci_command_struct &cp,
+            std::shared_ptr<HCIEvent> processStructMetaCmd(HCIStructCommand<hci_command_struct> &req,
                                                            HCIMetaEventType mec, const hci_cmd_event_struct **res,
                                                            HCIStatusCode *status);
 
