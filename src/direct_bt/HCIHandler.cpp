@@ -649,15 +649,15 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructMetaCmd(HCIStructCommand<hci_
         if( ev_cc->isTypeAndSizeValid(mec) ) {
             *status = ev_cc->getStatus();
             *res = ev_cc->getStruct();
-            WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
-                    number(*status), getHCIStatusCodeString(*status).c_str(),
-                    ev_cc->toString().c_str(), req.toString().c_str());
+            DBG_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
+                      getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                      number(*status), getHCIStatusCodeString(*status).c_str(),
+                      ev_cc->toString().c_str(), req.toString().c_str());
         } else {
             WARN_PRINT("HCIHandler::processStructMetaCmd %s -> %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                    getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
-                    number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                    ev_cc->toString().c_str(), req.toString().c_str());
+                      getHCIOpcodeString(req.getOpcode()).c_str(), getHCIMetaEventTypeString(mec).c_str(),
+                      number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                      ev_cc->toString().c_str(), req.toString().c_str());
         }
     }
 
