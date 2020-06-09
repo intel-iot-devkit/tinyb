@@ -27,6 +27,7 @@ package direct_bt.tinyb;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BluetoothAddressType;
@@ -56,47 +57,49 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     private final long blockedNotificationRef = 0;
     private BluetoothNotification<Boolean> userBlockedNotificationsCB = null;
-    private boolean isBlocked = false;
+    private final AtomicBoolean isBlocked = new AtomicBoolean(false);
 
     private final long pairedNotificationRef = 0;
     private BluetoothNotification<Boolean> userPairedNotificationsCB = null;
-    private boolean isPaired = false;
+    private final AtomicBoolean isPaired = new AtomicBoolean(false);
 
     private final long trustedNotificationRef = 0;
     private BluetoothNotification<Boolean> userTrustedNotificationsCB = null;
-    private boolean isTrusted = false;
+    private final AtomicBoolean isTrusted = new AtomicBoolean(false);
 
     private BluetoothNotification<Boolean> userConnectedNotificationsCB = null;
-    private boolean isConnected = false;
+    private final AtomicBoolean isConnected = new AtomicBoolean(false);
 
     private BluetoothNotification<Short> userRSSINotificationsCB = null;
     private BluetoothNotification<Map<Short, byte[]> > userManufDataNotificationsCB = null;
     private BluetoothNotification<Boolean> userServicesResolvedNotificationsCB = null;
-    private boolean servicesResolved = false;
+    private final AtomicBoolean servicesResolved = new AtomicBoolean(false);
     private short appearance = 0;
 
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
-            synchronized(userCallbackLock) {
-                if( updateMask.isSet( EIRDataTypeSet.DataType.RSSI ) && null != userRSSINotificationsCB ) {
-                    userRSSINotificationsCB.run(getRSSI());
-                }
-                if( updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA ) && null != userManufDataNotificationsCB ) {
-                    userManufDataNotificationsCB.run(getManufacturerData());
+            final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
+            final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA )
+            if( rssiUpdated || mdUpdated ) {
+                synchronized(userCallbackLock) {
+                    if( rssiUpdated && null != userRSSINotificationsCB ) {
+                        userRSSINotificationsCB.run(getRSSI());
+                    }
+                    if( mdUpdated && null != userManufDataNotificationsCB ) {
+                        userManufDataNotificationsCB.run(getManufacturerData());
+                    }
                 }
             }
         }
         @Override
         public void deviceConnected(final BluetoothDevice device, final long timestamp) {
-            if( !isConnected ) {
-                isConnected = true;
+            if( isConnected.compareAndSet(false, true) ) {
                 synchronized(userCallbackLock) {
                     if( null != userConnectedNotificationsCB ) {
                         userConnectedNotificationsCB.run(Boolean.TRUE);
                     }
-                    if( !servicesResolved ) {
-                        servicesResolved = true;
+                    if( servicesResolved.compareAndSet(false, true) ) {
                         if( null != userServicesResolvedNotificationsCB ) {
                             userServicesResolvedNotificationsCB.run(Boolean.TRUE);
                         }
@@ -106,11 +109,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
-            if( isConnected ) {
-                isConnected = false;
+            if( isConnected.compareAndSet(true, false) ) {
                 synchronized(userCallbackLock) {
-                    if( servicesResolved ) {
-                        servicesResolved = false;
+                    if( servicesResolved.compareAndSet(true, false) ) {
                         if( null != userServicesResolvedNotificationsCB ) {
                             userServicesResolvedNotificationsCB.run(Boolean.FALSE);
                         }
@@ -129,10 +130,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             if( DEBUG ) {
                 System.err.println("Device.BlockedNotification: "+isBlocked+" -> "+value+" on "+DBTDevice.this.toString());
             }
-            isBlocked = value.booleanValue();
-            synchronized(userCallbackLock) {
-                if( null != userBlockedNotificationsCB ) {
-                    userBlockedNotificationsCB.run(value);
+            final boolean _isBlocked = value.booleanValue();
+            if( isBlocked.compareAndSet(!_isBlocked, _isBlocked) ) {
+                synchronized(userCallbackLock) {
+                    if( null != userBlockedNotificationsCB ) {
+                        userBlockedNotificationsCB.run(value);
+                    }
                 }
             }
         }
@@ -144,10 +147,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             if( DEBUG ) {
                 System.err.println("Device.PairedNotification: "+isPaired+" -> "+value+" on "+DBTDevice.this.toString());
             }
-            isPaired = value.booleanValue();
-            synchronized(userCallbackLock) {
-                if( null != userPairedNotificationsCB ) {
-                    userPairedNotificationsCB.run(value);
+            final boolean _isPaired = value.booleanValue();
+            if( isPaired.compareAndSet(!_isPaired, _isPaired) ) {
+                synchronized(userCallbackLock) {
+                    if( null != userPairedNotificationsCB ) {
+                        userPairedNotificationsCB.run(value);
+                    }
                 }
             }
         }
@@ -159,10 +164,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             if( DEBUG ) {
                 System.err.println("Device.TrustedNotification: "+isTrusted+" -> "+value+" on "+DBTDevice.this.toString());
             }
-            isTrusted = value.booleanValue();
-            synchronized(userCallbackLock) {
-                if( null != userTrustedNotificationsCB ) {
-                    userTrustedNotificationsCB.run(value);
+            final boolean _isTrusted = value.booleanValue();
+            if( isTrusted.compareAndSet(!_isTrusted, _isTrusted) ) {
+                synchronized(userCallbackLock) {
+                    if( null != userTrustedNotificationsCB ) {
+                        userTrustedNotificationsCB.run(value);
+                    }
                 }
             }
         }
@@ -295,55 +302,23 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public final boolean getConnected() { return isConnected; }
+    public final boolean getConnected() { return isConnected.get(); }
 
     @Override
     public final boolean disconnect() throws BluetoothException {
-        boolean res = false;
-        if( isConnected ) {
-            res = disconnectImpl();
-            if( res ) {
-                // FIXME: Split up - may offload to other thread
-                // Currently service resolution performed in connectImpl()!
-                synchronized(userCallbackLock) {
-                    servicesResolved = false;
-                    if( null != userServicesResolvedNotificationsCB ) {
-                        userServicesResolvedNotificationsCB.run(Boolean.FALSE);
-                    }
-
-                    isConnected = false;
-                    if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(Boolean.FALSE);
-                    }
-                }
-            }
+        if( isConnected.get() ) {
+            return disconnectImpl(); // event callbacks will be generated by implementation
         }
-        return res;
+        return false;
     }
     private native boolean disconnectImpl() throws BluetoothException;
 
     @Override
     public final boolean connect() throws BluetoothException {
-        boolean res = false;
-        if( !isConnected ) {
-            res = connectImpl();
-            if( res ) {
-                synchronized(userCallbackLock) {
-                    isConnected = true;
-                    if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(Boolean.TRUE);
-                    }
-
-                    // FIXME: Split up - may offload to other thread
-                    // Currently service resolution performed in connectImpl()!
-                    servicesResolved = true;
-                    if( null != userServicesResolvedNotificationsCB ) {
-                        userServicesResolvedNotificationsCB.run(Boolean.TRUE);
-                    }
-                }
-            }
+        if( !isConnected.get() ) {
+            return connectImpl(); // event callbacks will be generated by implementation
         }
-        return res;
+        return false;
     }
     private native boolean connectImpl() throws BluetoothException;
 
@@ -351,26 +326,11 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public boolean connect(final short le_scan_interval, final short le_scan_window,
                            final short conn_interval_min, final short conn_interval_max,
                            final short conn_latency, final short timeout) {
-        boolean res = false;
-        if( !isConnected ) {
-            res = connectImpl(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, timeout);
-            if( res ) {
-                synchronized(userCallbackLock) {
-                    isConnected = true;
-                    if( null != userConnectedNotificationsCB ) {
-                        userConnectedNotificationsCB.run(Boolean.TRUE);
-                    }
-
-                    // FIXME: Split up - may offload to other thread
-                    // Currently service resolution performed in connectImpl()!
-                    servicesResolved = true;
-                    if( null != userServicesResolvedNotificationsCB ) {
-                        userServicesResolvedNotificationsCB.run(Boolean.TRUE);
-                    }
-                }
-            }
+        if( !isConnected.get() ) {
+            // event callbacks will be generated by implementation
+            return connectImpl(le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max, conn_latency, timeout);
         }
-        return res;
+        return false;
     }
     private native boolean connectImpl(final short le_scan_interval, final short le_scan_window,
                                        final short conn_interval_min, final short conn_interval_max,
@@ -423,7 +383,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public boolean getServicesResolved () { return servicesResolved; }
+    public boolean getServicesResolved () { return servicesResolved.get(); }
 
     @Override
     public short getAppearance() { return appearance; }
@@ -441,9 +401,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         }
     }
     @Override
-    public boolean getBlocked() {
-        return isBlocked;
-    }
+    public boolean getBlocked() { return isBlocked.get(); }
 
     @Override
     public void setBlocked(final boolean value) {
@@ -480,7 +438,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public boolean getPaired() { return isPaired; }
+    public boolean getPaired() { return isPaired.get(); }
 
     @Override
     public void enableTrustedNotifications(final BluetoothNotification<Boolean> callback) {
@@ -497,9 +455,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
 
     @Override
-    public boolean getTrusted() {
-        return isTrusted;
-    }
+    public boolean getTrusted() { return isTrusted.get(); }
 
     @Override
     public void setTrusted(final boolean value) {

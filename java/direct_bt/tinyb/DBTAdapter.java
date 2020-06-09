@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.tinyb.AdapterSettings;
@@ -56,18 +57,18 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     private final String address;
     private final String name;
 
-    private final Object stateLock = new Object();
     private final Object discoveredDevicesLock = new Object();
+    private final Object userCallbackLock = new Object();
 
-    private BluetoothNotification<Boolean> discoverableNotification = null;
-    private volatile boolean isDiscoverable = false;
-    private BluetoothNotification<Boolean> discoveringNotification = null;
-    private volatile boolean isDiscovering = false;
+    private BluetoothNotification<Boolean> userDiscoverableNotificationCB = null;
+    private final AtomicBoolean isDiscoverable = new AtomicBoolean(false);
+    private BluetoothNotification<Boolean> userDiscoveringNotificationCB = null;
+    private final AtomicBoolean isDiscovering = new AtomicBoolean(false);
 
-    private BluetoothNotification<Boolean> poweredNotification = null;
-    private volatile boolean isPowered = false;
-    private BluetoothNotification<Boolean> pairableNotification = null;
-    private volatile boolean isPairable = false;
+    private BluetoothNotification<Boolean> userPoweredNotificationCB = null;
+    private final AtomicBoolean isPowered = new AtomicBoolean(false);
+    private BluetoothNotification<Boolean> userPairableNotificationCB = null;
+    private final AtomicBoolean isPairable = new AtomicBoolean(false);
 
     private final List<BluetoothDevice> discoveredDevices = new ArrayList<BluetoothDevice>();
 
@@ -196,55 +197,73 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     /* Java callbacks */
 
     @Override
-    public boolean getPowered() { return isPowered; }
+    public boolean getPowered() { return isPowered.get(); }
 
     @Override
-    public synchronized void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
-        poweredNotification = callback;
+    public void enablePoweredNotifications(final BluetoothNotification<Boolean> callback) {
+        synchronized(userCallbackLock) {
+            userPoweredNotificationCB = callback;
+        }
     }
 
     @Override
-    public synchronized void disablePoweredNotifications() {
-        poweredNotification = null;
+    public void disablePoweredNotifications() {
+        synchronized(userCallbackLock) {
+            userPoweredNotificationCB = null;
+        }
     }
 
     @Override
-    public boolean getDiscoverable() { return isDiscoverable; }
+    public boolean getDiscoverable() { return isDiscoverable.get(); }
 
     @Override
-    public synchronized void enableDiscoverableNotifications(final BluetoothNotification<Boolean> callback) {
-        discoverableNotification = callback;
+    public void enableDiscoverableNotifications(final BluetoothNotification<Boolean> callback) {
+        synchronized(userCallbackLock) {
+            userDiscoverableNotificationCB = callback;
+        }
     }
 
     @Override
-    public synchronized void disableDiscoverableNotifications() {
-        discoverableNotification = null;
+    public void disableDiscoverableNotifications() {
+        synchronized(userCallbackLock) {
+            userDiscoverableNotificationCB = null;
+        }
     }
 
     @Override
-    public boolean getDiscovering() { return isDiscovering; }
-
-    @Override
-    public synchronized void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
-        discoveringNotification = callback;
+    public boolean getDiscovering() {
+        return isDiscovering.get();
     }
 
     @Override
-    public synchronized void disableDiscoveringNotifications() {
-        discoveringNotification = null;
+    public void enableDiscoveringNotifications(final BluetoothNotification<Boolean> callback) {
+        synchronized(userCallbackLock) {
+            userDiscoveringNotificationCB = callback;
+        }
     }
 
     @Override
-    public boolean getPairable() { return isPairable; }
-
-    @Override
-    public synchronized void enablePairableNotifications(final BluetoothNotification<Boolean> callback) {
-        pairableNotification = callback;
+    public void disableDiscoveringNotifications() {
+        synchronized(userCallbackLock) {
+            userDiscoveringNotificationCB = null;
+        }
     }
 
     @Override
-    public synchronized void disablePairableNotifications() {
-        pairableNotification = null;
+    public boolean getPairable() { return isPairable.get(); }
+
+    @Override
+    public void enablePairableNotifications(final BluetoothNotification<Boolean> callback) {
+        synchronized(userCallbackLock) {
+            userPairableNotificationCB = callback;
+        }
+    }
+
+    @Override
+    public void disablePairableNotifications() {
+        synchronized(userCallbackLock) {
+            userPairableNotificationCB = null;
+        }
     }
 
     @Override
@@ -287,19 +306,19 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public synchronized boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
-        removeDevices();
-        final boolean res = startDiscoveryImpl(keepAlive);
-        isDiscovering = res;
-        return res;
+    public boolean startDiscovery(final boolean keepAlive) throws BluetoothException {
+        if( !isDiscovering.get() ) {
+            removeDevices();
+            return startDiscoveryImpl(keepAlive); // event callbacks will be generated by implementation
+        }
+        return true;
     }
     private native boolean startDiscoveryImpl(boolean keepAlive) throws BluetoothException;
 
     @Override
-    public synchronized boolean stopDiscovery() throws BluetoothException {
-        if( isDiscovering ) {
-            isDiscovering = false;
-            return stopDiscoveryImpl();
+    public boolean stopDiscovery() throws BluetoothException {
+        if( isDiscovering.get() ) {
+            return stopDiscoveryImpl();  // event callbacks will be generated by implementation
         }
         return false;
     }
@@ -319,7 +338,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         final int cj = removeDiscoveredDevices();
         final int cn = removeDevicesImpl();
         if( cj != cn ) {
-            System.err.println("DBTAdapter::removeDevices: Inconsistent discovered device count: Native "+cn+", callback "+cj);
+            if( DEBUG ) {
+                System.err.println("DBTAdapter::removeDevices: Inconsistent discovered device count: Native "+cn+", callback "+cj);
+            }
         }
         return cn;
     }
@@ -368,28 +389,37 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             }
             {
                 if( changedmask.isSet(AdapterSettings.SettingType.POWERED) ) {
-                    isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
-                    final BluetoothNotification<Boolean> _poweredNotification = poweredNotification;
-                    if( null != _poweredNotification ) {
-                        _poweredNotification.run(isPowered);
+                    final boolean _isPowered = newmask.isSet(AdapterSettings.SettingType.POWERED);
+                    if( isPowered.compareAndSet(!_isPowered, _isPowered) ) {
+                        synchronized(userCallbackLock) {
+                            if( null != userPoweredNotificationCB ) {
+                                userPoweredNotificationCB.run(_isPowered);
+                            }
+                        }
                     }
                 }
             }
             {
                 if( changedmask.isSet(AdapterSettings.SettingType.DISCOVERABLE) ) {
-                    isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
-                    final BluetoothNotification<Boolean> _discoverableNotification = discoverableNotification;
-                    if( null != _discoverableNotification ) {
-                        _discoverableNotification.run( isDiscoverable );
+                    final boolean _isDiscoverable = newmask.isSet(AdapterSettings.SettingType.DISCOVERABLE);
+                    if( isDiscoverable.compareAndSet(!_isDiscoverable, _isDiscoverable) ) {
+                        synchronized(userCallbackLock) {
+                            if( null != userDiscoverableNotificationCB ) {
+                                userDiscoverableNotificationCB.run( _isDiscoverable );
+                            }
+                        }
                     }
                 }
             }
             {
                 if( changedmask.isSet(AdapterSettings.SettingType.BONDABLE) ) {
-                    isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
-                    final BluetoothNotification<Boolean> _pairableNotification = pairableNotification;
-                    if( null != _pairableNotification ) {
-                        _pairableNotification.run( isPairable );
+                    final boolean _isPairable = newmask.isSet(AdapterSettings.SettingType.BONDABLE);
+                    if( isPairable.compareAndSet(!_isPairable, _isPairable) ) {
+                        synchronized(userCallbackLock) {
+                            if( null != userPairableNotificationCB ) {
+                                userPairableNotificationCB.run( _isPairable );
+                            }
+                        }
                     }
                 }
             }
@@ -399,13 +429,13 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
             }
-            if( isDiscovering != enabled ) {
-                isDiscovering = enabled;
-                if( null != discoveringNotification ) {
-                    discoveringNotification.run(enabled);
+            if( isDiscovering.compareAndSet(!enabled, enabled) ) {
+                synchronized(userCallbackLock) {
+                    if( null != userDiscoveringNotificationCB ) {
+                        userDiscoveringNotificationCB.run(enabled);
+                    }
                 }
             }
-
         }
         @Override
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
