@@ -80,7 +80,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
-            final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA )
+            final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
             if( rssiUpdated || mdUpdated ) {
                 synchronized(userCallbackLock) {
                     if( rssiUpdated && null != userRSSINotificationsCB ) {
