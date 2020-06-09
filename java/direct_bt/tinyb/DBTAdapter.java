@@ -282,8 +282,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     /* discovery */
 
     @Override
-    public synchronized boolean startDiscovery() throws BluetoothException {
-        return startDiscovery(false);
+    public boolean startDiscovery() throws BluetoothException {
+        return startDiscovery(true);
     }
 
     @Override
