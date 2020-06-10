@@ -76,6 +76,7 @@ namespace direct_bt {
                 /** 500ms timeout for l2cap command replies */
                 L2CAP_COMMAND_REPLY_TIMEOUT = 500,
 
+                /** Medium ringbuffer capacity... */
                 ATTPDU_RING_CAPACITY = 128
             };
             static inline int number(const Defaults d) { return static_cast<int>(d); }

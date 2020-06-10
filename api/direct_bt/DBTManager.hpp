@@ -57,11 +57,12 @@ namespace direct_bt {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
                 ClientMaxMTU = 512,
 
-                /** 3s poll timeout for mgmt reader thread */
-                MGMT_READER_THREAD_POLL_TIMEOUT = 3000,
-                /** 1s timeout for mgmt command replies */
-                MGMT_COMMAND_REPLY_TIMEOUT = 1000,
-                MGMTEVT_RING_CAPACITY = 128
+                /** 10s poll timeout for mgmt reader thread */
+                MGMT_READER_THREAD_POLL_TIMEOUT = 10000,
+                /** 3s timeout for mgmt command replies */
+                MGMT_COMMAND_REPLY_TIMEOUT = 3000,
+                /** Small ringbuffer capacity for synchronized commands */
+                MGMTEVT_RING_CAPACITY = 64
             };
 
             static const pid_t pidSelf;

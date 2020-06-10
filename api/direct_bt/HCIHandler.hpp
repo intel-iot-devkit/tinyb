@@ -68,7 +68,8 @@ namespace direct_bt {
                 HCI_READER_THREAD_POLL_TIMEOUT = 10000,
                 /** 3s timeout for HCI command replies. This timeout is rather longer, as it may include waiting for pending command complete. */
                 HCI_COMMAND_REPLY_TIMEOUT = 3000,
-                HCI_EVT_RING_CAPACITY = 128,
+                /** Small ringbuffer capacity for synchronized commands */
+                HCI_EVT_RING_CAPACITY = 64,
                 /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
                 HCI_READ_PACKET_MAX_RETRY = HCI_EVT_RING_CAPACITY
             };
