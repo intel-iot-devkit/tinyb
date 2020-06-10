@@ -55,9 +55,13 @@ using namespace direct_bt;
 const pid_t DBTManager::pidSelf = getpid();
 
 void DBTManager::mgmtReaderThreadImpl() {
-    mgmtReaderShallStop = false;
-    mgmtReaderRunning = true;
-    INFO_PRINT("DBTManager::reader: Started");
+    {
+        const std::lock_guard<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
+        mgmtReaderShallStop = false;
+        mgmtReaderRunning = true;
+        INFO_PRINT("DBTManager::reader: Started");
+        cv_mgmtReaderInit.notify_all();
+    }
 
     while( !mgmtReaderShallStop ) {
         int len;
@@ -258,7 +262,14 @@ DBTManager::DBTManager(const BTMode btMode)
             ERR_PRINT("DBTManager::ctor: Setting sighandler");
         }
     }
-    mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+    {
+        std::unique_lock<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
+        mgmtReaderThread = std::thread(&DBTManager::mgmtReaderThreadImpl, this);
+        while( false == mgmtReaderRunning ) {
+            cv_mgmtReaderInit.wait(lock);
+        }
+        DBG_PRINT("DBTManager::ctor: Reader Started");
+    }
 
     PERF_TS_T0();
 

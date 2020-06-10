@@ -94,6 +94,8 @@ namespace direct_bt {
             std::atomic<pthread_t> l2capReaderThreadId;
             std::atomic<bool> l2capReaderRunning;
             std::atomic<bool> l2capReaderShallStop;
+            std::mutex mtx_l2capReaderInit;
+            std::condition_variable cv_l2capReaderInit;
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             bool sendIndicationConfirmation = true;

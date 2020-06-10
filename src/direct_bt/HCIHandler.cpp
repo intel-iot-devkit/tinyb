@@ -58,9 +58,13 @@ using namespace direct_bt;
 const pid_t HCIHandler::pidSelf = getpid();
 
 void HCIHandler::hciReaderThreadImpl() {
-    hciReaderShallStop = false;
-    hciReaderRunning = true;
-    INFO_PRINT("HCIHandler::reader: Started");
+    {
+        const std::lock_guard<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
+        hciReaderShallStop = false;
+        hciReaderRunning = true;
+        INFO_PRINT("HCIHandler::reader: Started");
+        cv_hciReaderInit.notify_all();
+    }
 
     while( !hciReaderShallStop ) {
         int len;
@@ -238,15 +242,24 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
 {
     INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
     if( !comm.isOpen() ) {
-        ERR_PRINT("HCIHandler::open: Could not open hci control channel");
+        ERR_PRINT("HCIHandler::ctor: Could not open hci control channel");
         return;
     }
 
-    std::thread hciReaderThread = std::thread(&HCIHandler::hciReaderThreadImpl, this);
-    hciReaderThreadId = hciReaderThread.native_handle();
-    // Avoid 'terminate called without an active exception'
-    // as l2capReaderThread may end due to I/O errors.
-    hciReaderThread.detach();
+    {
+        std::unique_lock<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
+
+        std::thread hciReaderThread = std::thread(&HCIHandler::hciReaderThreadImpl, this);
+        hciReaderThreadId = hciReaderThread.native_handle();
+        // Avoid 'terminate called without an active exception'
+        // as l2capReaderThread may end due to I/O errors.
+        hciReaderThread.detach();
+
+        while( false == hciReaderRunning ) {
+            cv_hciReaderInit.wait(lock);
+        }
+        DBG_PRINT("HCIHandler::ctor: Reader Started");
+    }
 
     PERF_TS_T0();
 

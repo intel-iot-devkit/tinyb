@@ -83,6 +83,8 @@ namespace direct_bt {
             std::thread mgmtReaderThread;
             std::atomic<bool> mgmtReaderRunning;
             std::atomic<bool> mgmtReaderShallStop;
+            std::mutex mtx_mgmtReaderInit;
+            std::condition_variable cv_mgmtReaderInit;
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtAdapterEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtAdapterEventCallbackLists;

@@ -152,9 +152,13 @@ bool GATTHandler::getSendIndicationConfirmation() {
 
 void GATTHandler::l2capReaderThreadImpl() {
     bool ioErrorCause = false;
-    l2capReaderShallStop = false;
-    l2capReaderRunning = true;
-    INFO_PRINT("l2capReaderThreadImpl Started");
+    {
+        const std::lock_guard<std::mutex> lock(mtx_l2capReaderInit); // RAII-style acquire and relinquish via destructor
+        l2capReaderShallStop = false;
+        l2capReaderRunning = true;
+        INFO_PRINT("l2capReaderThreadImpl Started");
+        cv_l2capReaderInit.notify_all();
+    }
 
     while( !l2capReaderShallStop ) {
         int len;
@@ -270,11 +274,20 @@ bool GATTHandler::connect() {
      * We utilize DBTManager's mgmthandler_sigaction SIGALRM handler,
      * as we only can install one handler.
      */
-    std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
-    l2capReaderThreadId = l2capReaderThread.native_handle();
-    // Avoid 'terminate called without an active exception'
-    // as l2capReaderThread may end due to I/O errors.
-    l2capReaderThread.detach();
+    {
+        std::unique_lock<std::mutex> lock(mtx_l2capReaderInit); // RAII-style acquire and relinquish via destructor
+
+        std::thread l2capReaderThread = std::thread(&GATTHandler::l2capReaderThreadImpl, this);
+        l2capReaderThreadId = l2capReaderThread.native_handle();
+        // Avoid 'terminate called without an active exception'
+        // as l2capReaderThread may end due to I/O errors.
+        l2capReaderThread.detach();
+
+        while( false == l2capReaderRunning ) {
+            cv_l2capReaderInit.wait(lock);
+        }
+        DBG_PRINT("GATTHandler::connect: Reader Started");
+    }
 
     serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU)); // First point of failure if device exposes no GATT functionality
     usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);

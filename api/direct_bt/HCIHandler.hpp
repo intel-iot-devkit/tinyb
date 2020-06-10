@@ -97,6 +97,8 @@ namespace direct_bt {
             std::atomic<pthread_t> hciReaderThreadId;
             std::atomic<bool> hciReaderRunning;
             std::atomic<bool> hciReaderShallStop;
+            std::mutex mtx_hciReaderInit;
+            std::condition_variable cv_hciReaderInit;
 
             void hciReaderThreadImpl();
 
