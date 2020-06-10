@@ -105,7 +105,6 @@ namespace direct_bt {
 
             bool sendCommand(HCICommand &req);
             std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount);
-            std::shared_ptr<HCIEvent> sendWithReply(HCICommand &req);
 
             std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
 

@@ -154,32 +154,6 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryC
     return nullptr;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::sendWithReply(HCICommand &req) {
-    if( pass_replies_only_filter ) {
-        hci_ufilter filter = filter_mask;
-        HCIComm::filter_set_opcode(number(req.getOpcode()), &filter);
-        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter, sizeof(filter)) < 0) {
-            ERR_PRINT("HCIHandler::sendWithReply.0: setsockopt");
-            return nullptr;
-        }
-    }
-    int retryCount = 0;
-    std::shared_ptr<HCIEvent> ev = nullptr;
-
-    if( !sendCommand(req) ) {
-        goto exit;
-    }
-    ev = getNextReply(req, retryCount);
-
-exit:
-    if( pass_replies_only_filter ) {
-        if (setsockopt(comm.dd(), SOL_HCI, HCI_FILTER, &filter_mask, sizeof(filter_mask)) < 0) {
-            ERR_PRINT("HCIHandler::sendWithReply.X: setsockopt");
-        }
-    }
-    return ev;
-}
-
 std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
     *res = nullptr;
 
