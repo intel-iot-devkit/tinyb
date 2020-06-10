@@ -155,6 +155,8 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryC
 }
 
 std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
     *res = nullptr;
 
     if( pass_replies_only_filter ) {
@@ -498,6 +500,8 @@ template<typename hci_command_struct, typename hci_cmd_event_struct>
 std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_command_struct> &req,
                                                            HCIEventType evc, const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
@@ -578,6 +582,8 @@ template<typename hci_command_struct, typename hci_cmd_event_struct>
 std::shared_ptr<HCIEvent> HCIHandler::processStructMetaCmd(HCIStructCommand<hci_command_struct> &req,
                                                            HCIMetaEventType mec, const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
+
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 

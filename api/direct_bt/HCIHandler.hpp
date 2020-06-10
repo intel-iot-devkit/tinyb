@@ -100,6 +100,7 @@ namespace direct_bt {
             std::atomic<bool> hciReaderShallStop;
             std::mutex mtx_hciReaderInit;
             std::condition_variable cv_hciReaderInit;
+            std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
 
             void hciReaderThreadImpl();
 

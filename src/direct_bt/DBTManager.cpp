@@ -160,8 +160,10 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 }
 
 std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
+        DBG_PRINT("DBTManager::sendWithReply.0: req %s", req.toString().c_str());
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
             ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
@@ -175,7 +177,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         // std::shared_ptr<MgmtEvent> res = receiveNext();
         if( nullptr == res ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("DBTManager::sendWithReply: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            ERR_PRINT("DBTManager::sendWithReply.X: nullptr result (timeout -> abort): req %s", req.toString().c_str());
             return nullptr;
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
@@ -184,7 +186,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
                        retry, res->toString().c_str(), req.toString().c_str());
             retry--;
         } else {
-            DBG_PRINT("DBTManager::sendWithReply: res: %s, req %s", res->toString().c_str(), req.toString().c_str());
+            DBG_PRINT("DBTManager::sendWithReply.X: res: %s, req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }
