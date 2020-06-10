@@ -101,6 +101,10 @@ public class ScannerTinyB10 {
                 ) )
             {
                 System.err.println("****** FOUND__-0: Connecting "+device.toString());
+                {
+                    final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                    System.err.println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
+                }
                 final Thread deviceConnectTask = new Thread( new Runnable() {
                     @Override
                     public void run() {
@@ -129,6 +133,10 @@ public class ScannerTinyB10 {
                 ) )
             {
                 System.err.println("****** CONNECTED-0: Processing "+device.toString());
+                {
+                    final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                    System.err.println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
+                }
                 final Thread deviceProcessingTask = new Thread( new Runnable() {
                     @Override
                     public void run() {
@@ -197,14 +205,16 @@ public class ScannerTinyB10 {
             }
             final long t5 = BluetoothUtils.getCurrentMilliseconds();
             {
-                final long td15 = t5 - t1; // connected -> gatt-complete
+                final long td01 = t1 - timestamp_t0; // adapter-init -> processing-start
+                final long td15 = t5 - t1; // get-gatt-services
                 final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
                 final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
                 System.err.println(System.lineSeparator()+System.lineSeparator());
-                System.err.println("GATT primary-services completed\n");
-                System.err.println("  connected to gatt-complete " + td15 + " ms,"+System.lineSeparator()+
-                                   "  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
-                                   "  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
+                System.err.println("PERF: GATT primary-services completed\n");
+                System.err.println("PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
+                                   "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
+                                   "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
+                                   "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
             final boolean addedCharacteristicListenerRes =
               BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);

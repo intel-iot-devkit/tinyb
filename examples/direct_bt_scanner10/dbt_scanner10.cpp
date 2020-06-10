@@ -128,6 +128,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             ) )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
+            {
+                const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                fprintf(stderr, "PERF: adapter-init -> FOUND__-0  %" PRIu64 " ms\n", td);
+            }
             std::thread dc(::connectDiscoveredDevice, device);
             dc.detach();
         } else {
@@ -151,6 +155,10 @@ class MyAdapterStatusListener : public AdapterStatusListener {
             ) )
         {
             fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
+            {
+                const uint64_t td = getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
+                fprintf(stderr, "PERF: adapter-init -> CONNECTED-0  %" PRIu64 " ms\n", td);
+            }
             addToDevicesProcessing(device->getAddress());
             std::thread dc(::processConnectedDevice, device);
             dc.detach();
@@ -240,15 +248,17 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 
         const uint64_t t5 = getCurrentMilliseconds();
         {
-            const uint64_t td15 = t5 - t1; // connected -> gatt-complete
+            const uint64_t td01 = t1 - timestamp_t0; // adapter-init -> processing-start
+            const uint64_t td15 = t5 - t1; // get-gatt-services
             const uint64_t tdc5 = t5 - device->getLastDiscoveryTimestamp(); // discovered to gatt-complete
             const uint64_t td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
             fprintf(stderr, "\n\n\n");
-            fprintf(stderr, "GATT primary-services completed\n");
-            fprintf(stderr, "  connected to gatt-complete %" PRIu64 " ms,\n"
-                            "  discovered to gatt-complete %" PRIu64 " ms (connect %" PRIu64 " ms),\n"
-                            "  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
-                            td15, tdc5, (tdc5 - td15), td05);
+            fprintf(stderr, "PERF: GATT primary-services completed\n");
+            fprintf(stderr, "PERF:  adapter-init to processing-start %" PRIu64 " ms,\n"
+                            "PERF:  get-gatt-services %" PRIu64 " ms,\n"
+                            "PERF:  discovered to gatt-complete %" PRIu64 " ms (connect %" PRIu64 " ms),\n"
+                            "PERF:  adapter-init to gatt-complete %" PRIu64 " ms\n\n",
+                            td01, td15, tdc5, (tdc5 - td15), td05);
         }
         std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
         if( nullptr != ga ) {
