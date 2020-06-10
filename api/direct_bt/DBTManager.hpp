@@ -67,6 +67,8 @@ namespace direct_bt {
             static const pid_t pidSelf;
 
         private:
+            static std::mutex mtx_singleton;
+
             struct WhitelistElem {
                 int dev_id;
                 EUI48 address;
@@ -135,6 +137,7 @@ namespace direct_bt {
              * </p>
              */
             static DBTManager& get(const BTMode btMode) {
+                const std::lock_guard<std::mutex> lock(mtx_singleton); // ensure thread safety
                 /**
                  * Thread safe starting with C++11 6.7:
                  *

@@ -53,6 +53,7 @@ extern "C" {
 using namespace direct_bt;
 
 const pid_t DBTManager::pidSelf = getpid();
+std::mutex DBTManager::mtx_singleton;
 
 void DBTManager::mgmtReaderThreadImpl() {
     {
