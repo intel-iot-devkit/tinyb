@@ -319,6 +319,7 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCIAddressType own_m
 }
 
 void DBTAdapter::startDiscoveryBackground() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     currentScanType = mgmt.startDiscovery(dev_id);
 }
 
