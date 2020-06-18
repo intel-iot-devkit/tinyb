@@ -36,6 +36,13 @@ add_custom_command(TARGET ScannerTinyB01
         COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/ScannerTinyB01.dir/ScannerTinyB01.class" "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+add_jar(ScannerTinyB02 SOURCES ScannerTinyB02.java INCLUDE_JARS "${CMAKE_CURRENT_BINARY_DIR}/../../java/tinyb2.jar" ENTRY_POINT Notification)
+
+add_custom_command(TARGET ScannerTinyB02
+        POST_BUILD
+        COMMAND cp "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/ScannerTinyB02.dir/ScannerTinyB02.class" "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
 add_jar(ScannerTinyB10 SOURCES ScannerTinyB10.java INCLUDE_JARS "${CMAKE_CURRENT_BINARY_DIR}/../../java/tinyb2.jar" ENTRY_POINT Notification)
 
 add_custom_command(TARGET ScannerTinyB10

@@ -43,7 +43,13 @@ import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 
-public class ScannerTinyB01 {
+/**
+ * Test and debugging application for certain situation.
+ * <p>
+ * Code will in 'in flux' and is not intended as an example.
+ * </p>
+ */
+public class ScannerTinyB02 {
     static {
         System.setProperty("org.tinyb.verbose", "true");
     }
@@ -58,8 +64,8 @@ public class ScannerTinyB01 {
         long t0_discovery = TO_DISCOVER;
         int factory = 0;
         int dev_id = 0; // default
-        int mode = 0;
-        int max_loops = 1;
+        int mode = 3;
+        int max_loops = 5;
         boolean forever = false;
         {
             for(int i=0; i< args.length; i++) {
@@ -208,7 +214,17 @@ public class ScannerTinyB01 {
 
                 final long t0 = BluetoothUtils.getCurrentMilliseconds();
 
-                final boolean discoveryStarted = adapter.startDiscovery(true);
+                final boolean discoveryStarted = true; // adapter.startDiscovery(true);
+                {
+                    final Thread lalaTask = new Thread( new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.startDiscovery(true);
+                        }
+                    }, "lala");
+                    lalaTask.setDaemon(true); // detach thread
+                    lalaTask.start();
+                }
 
                 System.err.println("The discovery started: " + (discoveryStarted ? "true" : "false") + " for mac "+waitForDevice+", mode "+mode);
                 if( !discoveryStarted ) {
@@ -233,9 +249,13 @@ public class ScannerTinyB01 {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
                         final List<BluetoothDevice> devices = adapter.getDevices();
+                        int i=0;
                         for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext() && !timeout; ) {
                             final BluetoothDevice d = id.next();
-                            if( EUI48_ANY_DEVICE.equals(waitForDevice) || d.getAddress().equals(waitForDevice) ) {
+                            final boolean match = EUI48_ANY_DEVICE.equals(waitForDevice) || d.getAddress().equals(waitForDevice);
+                            System.err.println("****** Has "+i+"/"+devices.size()+": match "+match+": "+d.toString());
+                            i++;
+                            if( match ) {
                                 sensor = d;
                                 break;
                             }
@@ -243,6 +263,7 @@ public class ScannerTinyB01 {
                         if( null == sensor ) {
                             final long tn = BluetoothUtils.getCurrentMilliseconds();
                             timeout = ( tn - t0 ) > t0_discovery;
+                            System.err.print(".");
                             Thread.sleep(60);
                         }
                     }
@@ -255,7 +276,17 @@ public class ScannerTinyB01 {
                 System.err.println("Found device in "+(t1-t0)+" ms: ");
                 printDevice(sensor);
 
-                adapter.stopDiscovery();
+                // adapter.stopDiscovery();
+                {
+                    final Thread lalaTask = new Thread( new Runnable() {
+                        @Override
+                        public void run() {
+                            adapter.stopDiscovery();
+                        }
+                    }, "lala");
+                    lalaTask.setDaemon(true); // detach thread
+                    lalaTask.start();
+                }
 
                 final BooleanNotification connectedNotification = new BooleanNotification("Connected", t1);
                 final BooleanNotification servicesResolvedNotification = new BooleanNotification("ServicesResolved", t1);
@@ -293,6 +324,21 @@ public class ScannerTinyB01 {
                     System.exit(-1);
                 }
 
+                if( true ) {
+                    final BluetoothDevice _sensor = sensor;
+                    final Thread lalaTask = new Thread( new Runnable() {
+                        @Override
+                        public void run() {
+                            _sensor.disconnect();
+                        }
+                    }, "lala");
+                    lalaTask.setDaemon(true); // detach thread
+                    lalaTask.start();
+
+                    // Thread.sleep(60);
+                    // sensor.connect();
+                    continue;
+                } else {
                 final List<BluetoothGattService> primServices = sensor.getServices();
                 if ( null == primServices || primServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
@@ -326,6 +372,7 @@ public class ScannerTinyB01 {
                 }
                 sensor.disconnect();
                 System.err.println("ScannerTinyB01 04 ...: "+adapter);
+                }
             }
         } catch (final Throwable t) {
             System.err.println("Caught: "+t.getMessage());
