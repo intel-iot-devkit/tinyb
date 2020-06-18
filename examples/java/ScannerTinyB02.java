@@ -56,6 +56,9 @@ public class ScannerTinyB02 {
     /** 10,000 milliseconds */
     static long TO_DISCOVER = 10000;
 
+    /** 300 milliseconds */
+    static long TO_CONNECT = 300;
+
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
     static String waitForDevice = EUI48_ANY_DEVICE;
 
@@ -308,10 +311,10 @@ public class ScannerTinyB02 {
                 synchronized( servicesResolvedNotification ) {
                     while( !servicesResolvedNotification.getValue() ) {
                         final long tn = BluetoothUtils.getCurrentMilliseconds();
-                        if( tn - t3 > 20000 ) {
-                            break; // 20s TO
+                        if( tn - t3 > TO_CONNECT ) {
+                            break;
                         }
-                        servicesResolvedNotification.wait();
+                        servicesResolvedNotification.wait(100);
                     }
                 }
                 final long t4;
@@ -321,7 +324,7 @@ public class ScannerTinyB02 {
                 } else {
                     t4 = BluetoothUtils.getCurrentMilliseconds();
                     System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
-                    System.exit(-1);
+                    // System.exit(-1);
                 }
 
                 if( true ) {

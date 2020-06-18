@@ -50,6 +50,9 @@ public class ScannerTinyB01 {
     /** 10,000 milliseconds */
     static long TO_DISCOVER = 10000;
 
+    /** 500 milliseconds */
+    static long TO_CONNECT = 500;
+
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
     static String waitForDevice = EUI48_ANY_DEVICE;
 
@@ -277,10 +280,10 @@ public class ScannerTinyB01 {
                 synchronized( servicesResolvedNotification ) {
                     while( !servicesResolvedNotification.getValue() ) {
                         final long tn = BluetoothUtils.getCurrentMilliseconds();
-                        if( tn - t3 > 20000 ) {
-                            break; // 20s TO
+                        if( tn - t3 > TO_CONNECT ) {
+                            break;
                         }
-                        servicesResolvedNotification.wait();
+                        servicesResolvedNotification.wait(100);
                     }
                 }
                 final long t4;
