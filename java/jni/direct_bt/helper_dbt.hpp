@@ -52,6 +52,10 @@ namespace direct_bt {
     };
     extern DirectBTJNISettings directBTJNISettings;
 
+    /**
+     * Implementation for JavaAnonObj,
+     * by simply wrapping a JNIGlobalRef instance.
+     */
     class JavaGlobalObj : public JavaAnonObj {
         private:
             JNIGlobalRef javaObjectRef;
@@ -77,7 +81,11 @@ namespace direct_bt {
                 return true;
             }
             JavaGlobalObj(jobject obj) : javaObjectRef(obj) { }
-            ~JavaGlobalObj() override { }
+
+            JavaGlobalObj(const JavaGlobalObj &o) noexcept = default;
+            JavaGlobalObj(JavaGlobalObj &&o) noexcept = default;
+            JavaGlobalObj& operator=(const JavaGlobalObj &o) noexcept = default;
+            JavaGlobalObj& operator=(JavaGlobalObj &&o) noexcept = default;
 
             std::string toString() const override {
                 const uint64_t ref = (uint64_t)(void*)javaObjectRef.getObject();

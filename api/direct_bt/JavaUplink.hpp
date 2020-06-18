@@ -33,15 +33,27 @@ namespace direct_bt {
 
     #define JAVA_DBT_PACKAGE "direct_bt/tinyb/"
 
+    /**
+     * Pure virtual JavaAnonObj, hiding Java JNI details from API,
+     * to be implemented by JNI module.
+     * <p>
+     * One implementation is JavaGlobalObj within the JNI module,
+     * wrapping a JNIGlobalRef instance.
+     * </p>
+     */
     class JavaAnonObj {
         public:
             virtual ~JavaAnonObj() { }
             virtual std::string toString() const { return "JavaAnonObj[???]"; }
 
             /** Clears the java reference, i.e. nulling it, without deleting the global reference via JNI. */
-            virtual void clear() { }
+            virtual void clear() = 0;
     };
 
+    /**
+     * Sharing the anonymous Java object (JavaAnonObj),
+     * i.e. exposing the Java object uplink to the C++ implementation.
+     */
     class JavaUplink {
         private:
             std::shared_ptr<JavaAnonObj> javaObjectRef;
