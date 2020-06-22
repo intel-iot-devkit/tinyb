@@ -232,6 +232,9 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
 
     setMode(dev_id, MgmtOpcode::SET_CONNECTABLE, 0);
     setMode(dev_id, MgmtOpcode::SET_FAST_CONNECTABLE, 0);
+
+    removeDeviceFromWhitelist(dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
+
     setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
 
 fail:
@@ -559,15 +562,25 @@ bool DBTManager::addDeviceToWhitelist(const int dev_id, const EUI48 &address, co
 }
 
 int DBTManager::removeAllDevicesFromWhitelist() {
+#if 0
     std::vector<std::shared_ptr<WhitelistElem>> whitelist_copy = whitelist;
     int count = 0;
-    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: Start %zd elements", whitelist_copy.size());
+    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.A: Start %zd elements", whitelist_copy.size());
 
     for(auto it = whitelist_copy.begin(); it != whitelist_copy.end(); ++it) {
         std::shared_ptr<WhitelistElem> wle = *it;
         removeDeviceFromWhitelist(wle->dev_id, wle->address, wle->address_type);
         count++;
     }
+#else
+    int count = whitelist.size();
+    DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist.B: Start %d elements", count);
+    whitelist.clear();
+    for (auto it = adapterInfos.begin(); it != adapterInfos.end(); it++) {
+        removeDeviceFromWhitelist((*it)->dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
+    }
+#endif
+
     DBG_PRINT("DBTManager::removeAllDevicesFromWhitelist: End: Removed %d elements, remaining %zd elements",
             count, whitelist.size());
     return count;
