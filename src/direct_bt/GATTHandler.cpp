@@ -302,7 +302,7 @@ bool GATTHandler::connect() {
 bool GATTHandler::disconnect(const bool ioErrorCause) {
     DBG_PRINT("GATTHandler::disconnect: GattHandler[%s], l2cap[%s], connected %d, device-value %d",
                 getStateString().c_str(), l2cap.getStateString().c_str(),
-                (Disconnected < state), (nullptr != device));
+                (L2CAPComm::State::Disconnected < state), (nullptr != device));
 
     if( L2CAPComm::State::Disconnected >= state ) {
         // not open
