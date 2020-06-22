@@ -262,7 +262,9 @@ done:
     return len;
 
 errout:
-    state = State::Error;
+    if( errno != ETIMEDOUT ) {
+        state = State::Error;
+    }
     return -1;
 
 }
