@@ -108,6 +108,7 @@ namespace direct_bt {
         HCIADDR_UNDEFINED = 0xff
     };
 
+    BDAddressType getBDAddressType(const HCIAddressType hciAddrType);
     std::string getBDAddressTypeString(const BDAddressType op);
 
 } // namespace direct_bt

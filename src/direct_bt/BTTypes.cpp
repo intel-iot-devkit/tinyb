@@ -46,6 +46,14 @@ using namespace direct_bt;
 #define CASE_TO_STRING(V) case V: return #V;
 #define CASE2_TO_STRING(U,V) case U::V: return #V;
 
+BDAddressType direct_bt::getBDAddressType(const HCIAddressType hciAddrType) {
+    switch(hciAddrType) {
+        case HCIADDR_LE_PUBLIC: return BDADDR_LE_PUBLIC;
+        case HCIADDR_LE_RANDOM: return BDADDR_LE_RANDOM;
+        default: return BDADDR_UNDEFINED;
+    }
+}
+
 std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
     switch(type) {
     CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
