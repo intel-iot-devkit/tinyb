@@ -149,7 +149,7 @@ public interface BluetoothDevice extends BluetoothObject
      * In case the device is no more reachable, disconnect will be initiated due to the occurring IO error.
      * </p>
      *
-     * @return {@code true} if successful, otherwise false in case no GATT services exists etc.
+     * @return {@code true} if successful or not implemented, otherwise false in case GATT connection failed.
      * @since 2.0.0
      */
     boolean pingGATT();
