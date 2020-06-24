@@ -85,6 +85,7 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> device;
             const std::string deviceString;
             std::recursive_mutex mtx_write;
+            std::recursive_mutex mtx_command;
             POctets rbuffer;
 
             L2CAPComm l2cap;

@@ -399,7 +399,7 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
         throw IllegalArgumentException("clientMaxMTU "+std::to_string(clientMaxMTU)+" > ClientMaxMTU "+std::to_string(number(Defaults::MAX_ATT_MTU)), E_FILE_LINE);
     }
     const AttExchangeMTU req(clientMaxMTU);
-
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
     uint16_t mtu = 0;
@@ -445,6 +445,7 @@ GATTCharacteristicRef GATTHandler::findCharacterisicsByValueHandle(const uint16_
 }
 
 std::vector<GATTServiceRef> & GATTHandler::discoverCompletePrimaryServices() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     if( !discoverPrimaryServices(services) ) {
         return services;
     }
@@ -466,7 +467,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
      * in the Read by Type Group Response is 0xFFFF.
      */
     const uuid16_t groupType = uuid16_t(GattAttributeType::PRIMARY_SERVICE);
-
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
     bool done=false;
@@ -526,6 +527,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
      * </p>
      */
     const uuid16_t characteristicTypeReq = uuid16_t(GattAttributeType::CHARACTERISTIC);
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("GATT discoverCharacteristics Service: %s", service->toString().c_str());
 
     PERF_TS_T0();
@@ -590,6 +592,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
      * </p>
      */
     DBG_PRINT("GATT discoverDescriptors Service: %s", service->toString().c_str());
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
     bool done=false;
@@ -683,6 +686,7 @@ bool GATTHandler::readCharacteristicValue(const GATTCharacteristic & decl, POcte
 bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLength) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.3 Read Long Characteristic Value */
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF2_TS_T0();
 
     bool done=false;
@@ -791,6 +795,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
         WARN_PRINT("GATT writeValue size <= 0, no-op: %s", value.toString().c_str());
         return false;
     }
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
     // TODO: Long Value!
     PERF2_TS_T0();
@@ -863,6 +868,8 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
     AppearanceCat appearance = AppearanceCat::UNKNOWN;
     PeriphalPreferredConnectionParameters * prefConnParam = nullptr;
 
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
         if( _GENERIC_ACCESS != *charDecl.service->type ) {
@@ -900,8 +907,9 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTSer
 }
 
 bool GATTHandler::ping() {
-    std::shared_ptr<GenericAccess> res = nullptr;
-    for(size_t i=0; i<services.size() && nullptr == res; i++) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
+    for(size_t i=0; i<services.size(); i++) {
         std::vector<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
         POctets value(32, 0);
 
@@ -934,6 +942,8 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
     POctets regulatoryCertDataList(128, 0);
     PnP_ID * pnpID = nullptr;
     bool found = false;
+
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *characteristicDeclList.at(i);
