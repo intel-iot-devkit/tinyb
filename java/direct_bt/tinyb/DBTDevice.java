@@ -508,7 +508,18 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public native boolean remove() throws BluetoothException;
 
     @Override
-    public native List<BluetoothGattService> getServices();
+    public List<BluetoothGattService> getServices() {
+        try {
+            return getServicesImpl();
+        } catch (final Throwable t) {
+            if(DEBUG) {
+                System.err.println("Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString());
+                t.printStackTrace();
+            }
+        }
+        return null;
+    }
+    private native List<BluetoothGattService> getServicesImpl();
 
     /* property accessors: */
 

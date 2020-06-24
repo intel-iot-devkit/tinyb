@@ -329,7 +329,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_connectImpl__SSSSSS(JNIEnv *env, jobjec
 
 static const std::string _serviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTDevice;ZLjava/lang/String;SS)V");
 
-jobject Java_direct_1bt_tinyb_DBTDevice_getServices(JNIEnv *env, jobject obj) {
+jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
