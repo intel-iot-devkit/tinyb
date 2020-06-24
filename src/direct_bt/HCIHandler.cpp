@@ -188,9 +188,9 @@ void HCIHandler::hciReaderThreadImpl() {
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
                 if( hciEventRing.isFull() ) {
-                    std::shared_ptr<HCIEvent> ev = hciEventRing.get();
-                    INFO_PRINT("HCIHandler::reader: Drop (oldest, ring full) %s",
-                            ( nullptr != ev ) ? ev->toString().c_str() : "nil");
+                    const int dropCount = hciEventRing.capacity()/2;
+                    hciEventRing.drop(dropCount);
+                    INFO_PRINT("HCIHandler::reader: Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
                 }
                 DBG_PRINT("HCIHandler::reader: CmdResult %s", event->toString().c_str());
                 hciEventRing.putBlocking( event );
