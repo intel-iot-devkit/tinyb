@@ -46,6 +46,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 : adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
 {
     ts_last_discovery = ts_creation;
+    hciConnHandle = 0;
     isConnected = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw IllegalArgumentException("DBTDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
@@ -245,12 +246,14 @@ bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_t
         uint16_t conn_interval_min, uint16_t conn_interval_max,
         uint16_t conn_latency, uint16_t supervision_timeout)
 {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
     if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
         return false;
     }
 
-    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIHandler> hci = adapter.openHCI();
     if( nullptr == hci || !hci->isOpen() ) {
         ERR_PRINT("DBTDevice::connectLE: Opening adapter's HCI failed: %s", toString().c_str());
@@ -297,11 +300,13 @@ bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_t
 
 bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
     if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
         return false;
     }
-    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIHandler> hci = adapter.openHCI();
     if( nullptr == hci || !hci->isOpen() ) {
         ERR_PRINT("DBTDevice::connectBREDR: Opening adapter's HCI failed: %s", toString().c_str());
@@ -364,6 +369,8 @@ void DBTDevice::notifyDisconnected() {
 }
 
 bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const HCIStatusCode reason) {
+    const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
     DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %d",
             isConnected.load(), sentFromManager, ioErrorCause, static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), (0 != hciConnHandle));
@@ -371,7 +378,7 @@ bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, 
 
     bool res = false;
 
-    const std::lock_guard<std::recursive_mutex> lock(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
 
     if( !isConnected ) {
@@ -395,8 +402,8 @@ bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, 
         goto skip_hci_disconnect;
     }
 
-    if( HCIStatusCode::SUCCESS != hci->disconnect(hciConnHandle, address, addressType, reason) ) {
-        DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle, errno, strerror(errno));
+    if( HCIStatusCode::SUCCESS != hci->disconnect(hciConnHandle.load(), address, addressType, reason) ) {
+        DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle.load(), errno, strerror(errno));
     } else {
         res = true;
     }

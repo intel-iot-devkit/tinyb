@@ -62,11 +62,12 @@ namespace direct_bt {
             int8_t rssi = 127; // The core spec defines 127 as the "not available" value
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
-            uint16_t hciConnHandle = 0;
+            std::atomic<uint16_t> hciConnHandle;
             std::shared_ptr<ManufactureSpecificData> msd = nullptr;
             std::vector<std::shared_ptr<uuid_t>> services;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
             std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
+            std::recursive_mutex mtx_connect;
             std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
             std::atomic<bool> isConnected;
