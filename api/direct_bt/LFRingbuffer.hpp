@@ -34,6 +34,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <algorithm>
 
 #include "BasicTypes.hpp"
 
@@ -186,6 +187,24 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
                 }
             }
             return r;
+        }
+
+        int dropImpl (const int count) {
+            // locks ringbuffer completely (read/write), hence no need for local copy nor wait/sync etc
+            std::unique_lock<std::mutex> lockMultiRead(syncMultiRead); // RAII-style acquire and relinquish via destructor
+            std::unique_lock<std::mutex> lockMultiWrite(syncMultiWrite); // ditto
+
+            const int dropCount = std::min(count, size.load());
+            if( 0 == dropCount ) {
+                return 0;
+            }
+            for(int i=0; i<dropCount; i++) {
+                readPos = (readPos + 1) % capacityPlusOne;
+                // T r = array[localReadPos];
+                array[readPos] = nullelem;
+                size--;
+            }
+            return dropCount;
         }
 
         bool putImpl(const T &e, const bool sameRef, const bool blocking, const int timeoutMS) /* throws InterruptedException */ {
@@ -371,6 +390,10 @@ template <typename T, std::nullptr_t nullelem> class LFRingbuffer : public Ringb
 
         T peekBlocking(const int timeoutMS=0) override /* throws InterruptedException */ {
             return getImpl(true, true, timeoutMS);
+        }
+
+        int drop(const int count) override {
+            return dropImpl(count);
         }
 
         bool put(const T & e) override {

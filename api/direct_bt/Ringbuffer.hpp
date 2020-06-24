@@ -137,6 +137,16 @@ template <class T> class Ringbuffer {
         virtual T peekBlocking(const int timeoutMS=0) /* throws InterruptedException */ = 0;
 
         /**
+         * Drops up to {@code count} oldest enqueued elements.
+         * <p>
+         * Method is non blocking and returns immediately;.
+         * </p>
+         * @param count maximum number of elements to drop from ringbuffer.
+         * @return actual number of dropped elements.
+         */
+        virtual int drop(const int count) = 0;
+
+        /**
          * Enqueues the given element.
          * <p>
          * Returns true if successful, otherwise false in case buffer is full.
