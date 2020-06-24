@@ -80,9 +80,9 @@ namespace direct_bt {
 
             void releaseSharedInstance() const;
             void notifyDisconnected();
-            void notifyConnected();
+            void notifyConnected(const uint16_t handle);
 
-            void disconnect(const bool sentFromManager, const bool ioErrorCause,
+            bool disconnect(const bool sentFromManager, const bool ioErrorCause,
                             const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
 
         public:
@@ -181,7 +181,11 @@ namespace direct_bt {
              * If this device's addressType is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM, 0 is being returned.
              * </p>
              * <p>
-             * Returns the new connection handle or 0 if not successful.
+             * Returns true if the command has been accepted, otherwise false.
+             * </p>
+             * <p>
+             * The actual new connection handle will be delivered asynchronous and
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
              * </p>
              * <p>
              * The device is tracked by the managing adapter.
@@ -204,11 +208,11 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
              * @return
              */
-            uint16_t connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                               const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                               const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
-                               const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                               const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+            bool connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                           const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+                           const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
+                           const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
+                           const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
@@ -216,14 +220,18 @@ namespace direct_bt {
              * If this device's addressType is not BDADDR_BREDR, 0 is being returned.
              * </p>
              * <p>
-             * Returns the new connection handle or 0 if not successful.
+             * Returns true if the command has been accepted, otherwise false.
+             * </p>
+             * <p>
+             * The actual new connection handle will be delivered asynchronous and
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
              * </p>
              * <p>
              * The device is tracked by the managing adapter.
              * </p>
              */
-            uint16_t connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                                  const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+            bool connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                              const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
             /**
              * Establish a default HCI connection to this device, using certain default parameter.
@@ -232,13 +240,17 @@ namespace direct_bt {
              * either a BREDR (BDADDR_BREDR) or LE (BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM) connection is attempted.
              * </p>
              * <p>
-             * Returns the new connection handle or 0 if not successful.
+             * Returns true if the command has been accepted, otherwise false.
+             * </p>
+             * <p>
+             * The actual new connection handle will be delivered asynchronous and
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
              * </p>
              * <p>
              * The device is tracked by the managing adapter.
              * </p>
              */
-            uint16_t connectDefault();
+            bool connectDefault();
 
 
             /** Return the HCI connection handle to the LE or BREDR peer, 0 if not connected. */
@@ -247,14 +259,22 @@ namespace direct_bt {
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
              * <p>
-             * The device will be removed from the managing adapter's connected devices.
+             * Returns true if the command has been accepted, otherwise false.
+             * </p>
+             * <p>
+             * The actual disconnect event will be delivered asynchronous and
+             * the connection event can be caught via AdapterStatusListener::deviceDisconnected(..).
+             * </p>
+             * <p>
+             * The device will be removed from the managing adapter's connected devices
+             * when AdapterStatusListener::deviceDisconnected(..) has been received.
              * </p>
              * <p>
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
              */
-            void disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
-                disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
+            bool disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
+                return disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
             }
 
             /**

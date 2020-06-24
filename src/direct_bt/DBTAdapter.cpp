@@ -198,6 +198,8 @@ std::shared_ptr<HCIHandler> DBTAdapter::openHCI()
         return nullptr;
     }
     hci = std::shared_ptr<HCIHandler>( s );
+    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedCB));
+    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedCB));
     return hci;
 }
 
@@ -577,8 +579,10 @@ bool DBTAdapter::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
     }
     DBG_PRINT("DBTAdapter::EventCB:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
         dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+
+    device->notifyConnected(event.getHCIHandle());
+
     if( EIRDataType::NONE != updateMask || 0 < new_connect ) {
-        device->notifyConnected();
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
