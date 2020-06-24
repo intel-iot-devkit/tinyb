@@ -97,31 +97,21 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
-#define STATE_ENUM(X) \
-    X(Error) \
-    X(Disconnected) \
-    X(Connected)
-
-#define STATE_CASE_TO_STRING(V) case State::V: return #V;
-
-std::string L2CAPComm::getStateString(const State state) {
-    switch(state) {
-        STATE_ENUM(STATE_CASE_TO_STRING)
-        default: ; // fall through intended
-    }
-    return "Unknown State";
-}
-
-L2CAPComm::State L2CAPComm::connect() {
+bool L2CAPComm::connect() {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
-
-    DBG_PRINT("L2CAPComm::connect: Start dd %d, %s, psm %u, cid %u, pubDevice %d",
-            _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
-
-    if( 0 <= _dd ) {
-        return state; // already open
+    bool expConn = false; // C++11, exp as value since C++20
+    if( !isConnected.compare_exchange_strong(expConn, true) ) {
+        // already connected
+        DBG_PRINT("L2CAPComm::connect: Already connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+                getStateString(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+        if( 0 > _dd ) {
+            throw InternalError("connected but _dd "+std::to_string(_dd.load())+" < 0", E_FILE_LINE);
+        }
+        return true;
     }
-    state = State::Disconnected;
+    hasIOError = false;
+    DBG_PRINT("L2CAPComm::connect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+            getStateString(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
 
     sockaddr_l2 req;
     int err, res;
@@ -154,7 +144,6 @@ L2CAPComm::State L2CAPComm::connect() {
 
         if( !res )
         {
-            state = State::Connected;
             break; // done
 
         } else if( ETIMEDOUT == errno ) {
@@ -175,24 +164,29 @@ L2CAPComm::State L2CAPComm::connect() {
     }
     tid_connect = 0;
 
-    return state;
+    return true;
 
 failure:
     tid_connect = 0;
     err = errno;
     disconnect();
     errno = err;
-    state = State::Error;
-    return state;
+    return false;
 }
 
 bool L2CAPComm::disconnect() {
-    if( 0 > _dd ) {
-        DBG_PRINT("L2CAPComm::disconnect: Not connected");
-        state = State::Disconnected;
+    bool expConn = true; // C++11, exp as value since C++20
+    if( !isConnected.compare_exchange_strong(expConn, false) ) {
+        DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+                getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+        if( 0 <= _dd ) {
+            throw InternalError("!connected but _dd "+std::to_string(_dd.load())+" >= 0", E_FILE_LINE);
+        }
         return false;
     }
-    DBG_PRINT("L2CAPComm::disconnect: Start dd %d", _dd.load());
+    hasIOError = false;
+    DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+            getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
     interruptFlag = true;
 
     // interrupt L2CAP ::connect(..), avoiding prolonged hang
@@ -210,7 +204,6 @@ bool L2CAPComm::disconnect() {
 
     l2cap_close_dev(_dd);
     _dd = -1;
-    state = State::Disconnected;
     interruptFlag = false;
     DBG_PRINT("L2CAPComm::disconnect: End dd %d", _dd.load());
     return true;
@@ -256,7 +249,7 @@ done:
 
 errout:
     if( errno != ETIMEDOUT ) {
-        state = State::Error;
+        hasIOError = true;
     }
     return -1;
 
@@ -282,7 +275,7 @@ done:
     return len;
 
 errout:
-    state = State::Error;
+    hasIOError = true;
     return -1;
 }
 

@@ -89,7 +89,8 @@ namespace direct_bt {
 
             L2CAPComm l2cap;
             const int replyTimeoutMS;
-            std::atomic<L2CAPComm::State> state;
+            std::atomic<bool> isConnected; // reflects state
+            std::atomic<bool> hasIOError;  // reflects state
 
             LFRingbuffer<std::shared_ptr<const AttPDUMsg>, nullptr> attPDURing;
             std::atomic<pthread_t> l2capReaderThreadId;
@@ -107,7 +108,7 @@ namespace direct_bt {
             uint16_t usedMTU;
             std::vector<GATTServiceRef> services;
 
-            L2CAPComm::State validateState();
+            bool validateConnected();
 
             void l2capReaderThreadImpl();
 
@@ -127,8 +128,9 @@ namespace direct_bt {
 
             ~GATTHandler();
 
-            L2CAPComm::State getState() const { return state; }
-            std::string getStateString() const { return L2CAPComm::getStateString(state); }
+            bool getIsConnected() const { return isConnected; }
+            bool getHasIOError() const { return hasIOError; }
+            std::string getStateString() const { return L2CAPComm::getStateString(isConnected, hasIOError); }
 
             /**
              * After successful l2cap connection, the MTU will be exchanged.
@@ -144,7 +146,7 @@ namespace direct_bt {
              */
             bool disconnect(const bool disconnectDevice, const bool ioErrorCause);
 
-            bool isOpen() const { return L2CAPComm::State::Disconnected < state && l2cap.isOpen(); }
+            bool isOpen() const { return isConnected && l2cap.isOpen(); }
 
             uint16_t getServerMTU() const { return serverMTU; }
             uint16_t getUsedMTU()  const { return usedMTU; }

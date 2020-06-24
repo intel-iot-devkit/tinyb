@@ -51,18 +51,14 @@ namespace direct_bt {
 
     class L2CAPComm {
         public:
-            enum class State : int {
-                Error        = -1,
-                Disconnected =  0,
-                Connected    =  1,
-            };
-
-            static std::string getStateString(const State state);
-
             enum class Defaults : int {
                 L2CAP_CONNECT_MAX_RETRY = 3
             };
             static inline int number(const Defaults d) { return static_cast<int>(d); }
+
+            static std::string getStateString(bool isConnected, bool hasIOError) {
+                return "State[connected "+std::to_string(isConnected)+", ioError "+std::to_string(hasIOError)+"]";
+            }
 
         private:
             static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr);
@@ -72,24 +68,26 @@ namespace direct_bt {
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;
-            std::atomic<State> state;
             std::atomic<int> _dd; // the l2cap socket
+            std::atomic<bool> isConnected; // reflects state
+            std::atomic<bool> hasIOError;  // reflects state
             std::atomic<bool> interruptFlag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
 
         public:
             L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true)
             : device(device), psm(psm), cid(cid), pubaddr(pubaddr),
-              state(State::Disconnected), _dd(-1), interruptFlag(false), tid_connect(0) {}
+              _dd(-1), isConnected(false), hasIOError(false), interruptFlag(false), tid_connect(0) {}
             ~L2CAPComm() { disconnect(); }
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
 
-            State getState() const { return state; }
-            std::string getStateString() const { return getStateString(state); }
+            bool getIsConnected() const { return isConnected; }
+            bool getHasIOError() const { return hasIOError; }
+            std::string getStateString() const { return getStateString(isConnected, hasIOError); }
 
             /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
-            State connect();
+            bool connect();
 
             bool disconnect();
 
