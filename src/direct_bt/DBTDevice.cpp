@@ -496,7 +496,7 @@ bool DBTDevice::pingGATT() {
         connectGATT();
         if( nullptr == gattHandler || !gattHandler->isOpen() ) {
             ERR_PRINT("DBTDevice::getServices: connectGATT failed");
-            return std::vector<std::shared_ptr<GATTService>>();
+            return false;
         }
     }
     std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
