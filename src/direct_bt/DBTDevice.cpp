@@ -495,7 +495,7 @@ void DBTDevice::disconnectGATT() {
     if( nullptr != gattHandler ) {
         DBG_PRINT("DBTDevice::disconnectGATT: Disconnecting...");
         // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
-        gattHandler->disconnect();
+        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
         gattHandler = nullptr;
     }
 }

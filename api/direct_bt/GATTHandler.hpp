@@ -122,8 +122,6 @@ namespace direct_bt {
              */
             uint16_t exchangeMTU(const uint16_t clientMaxMTU=number(Defaults::MAX_ATT_MTU));
 
-            bool disconnect(const bool ioErrorCause);
-
         public:
             GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
 
@@ -137,9 +135,15 @@ namespace direct_bt {
              * See getServerMTU() and getUsedMTU(), the latter is in use.
              */
             bool connect();
-            bool disconnect() {
-                return disconnect(false /* ioErrorCause */);
-            }
+
+            /**
+             * Disconnect this GATTHandler and optionally the associated device
+             * @param disconnectDevice if true, associated device will also be disconnected, otherwise not.
+             * @param ioErrorCause if true, reason for disconnection is an IO error
+             * @return true if successful, otherwise false
+             */
+            bool disconnect(const bool disconnectDevice, const bool ioErrorCause);
+
             bool isOpen() const { return L2CAPComm::State::Disconnected < state && l2cap.isOpen(); }
 
             uint16_t getServerMTU() const { return serverMTU; }
