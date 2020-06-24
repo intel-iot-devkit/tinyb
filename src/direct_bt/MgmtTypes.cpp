@@ -181,6 +181,7 @@ std::string direct_bt::getMgmtOpcodeString(const MgmtOpcode op) {
 // *************************************************
 
 #define MGMT_EV_OPCODE_ENUM(X) \
+    X(INVALID) \
     X(CMD_COMPLETE) \
     X(CMD_STATUS) \
     X(CONTROLLER_ERROR) \

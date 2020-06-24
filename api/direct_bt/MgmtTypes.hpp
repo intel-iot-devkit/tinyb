@@ -512,6 +512,7 @@ namespace direct_bt {
     {
         public:
             enum class Opcode : uint16_t {
+                INVALID                    = 0x0000,
                 CMD_COMPLETE               = 0x0001,
                 CMD_STATUS                 = 0x0002,
                 CONTROLLER_ERROR           = 0x0003,
