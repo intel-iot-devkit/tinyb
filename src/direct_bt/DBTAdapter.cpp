@@ -375,6 +375,22 @@ bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
     return true;
 }
 
+bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+    for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
+        if ( &device == (*it).get() ) { // compare actual device address
+            it = discoveredDevices.erase(it);
+            DBG_PRINT("DBTAdapter::removeDiscoveredDevice: Device discovered: %s", device.toString().c_str());
+            return true;
+        } else {
+            ++it;
+        }
+    }
+    DBG_PRINT("DBTAdapter::removeDiscoveredDevice: Device not discovered: %s", device.toString().c_str());
+    return false;
+}
+
+
 int DBTAdapter::removeDiscoveredDevices() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     int res = discoveredDevices.size();
@@ -627,6 +643,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
             }
             i++;
         });
+        removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
     } else {
         DBG_PRINT("DBTAdapter::EventCB:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
             dev_id, event.toString().c_str());

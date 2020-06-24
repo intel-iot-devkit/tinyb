@@ -189,6 +189,7 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
+            bool removeDiscoveredDevice(const DBTDevice & device);
 
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device);
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device);
