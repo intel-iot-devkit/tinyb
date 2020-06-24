@@ -54,8 +54,7 @@ namespace direct_bt {
             enum class State : int {
                 Error        = -1,
                 Disconnected =  0,
-                Connecting   =  1,
-                Connected    =  2,
+                Connected    =  1,
             };
 
             static std::string getStateString(const State state);
@@ -66,22 +65,21 @@ namespace direct_bt {
             static inline int number(const Defaults d) { return static_cast<int>(d); }
 
         private:
-            static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr, const bool blocking);
+            static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr);
             static int l2cap_close_dev(int dd);
 
             std::shared_ptr<DBTDevice> device;
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;
-            const bool blocking;
             std::atomic<State> state;
             std::atomic<int> _dd; // the l2cap socket
             std::atomic<bool> interruptFlag; // for forced disconnect
             std::atomic<pthread_t> tid_connect;
 
         public:
-            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true, const bool blocking=true)
-            : device(device), psm(psm), cid(cid), pubaddr(pubaddr), blocking(blocking),
+            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true)
+            : device(device), psm(psm), cid(cid), pubaddr(pubaddr),
               state(State::Disconnected), _dd(-1), interruptFlag(false), tid_connect(0) {}
             ~L2CAPComm() { disconnect(); }
 

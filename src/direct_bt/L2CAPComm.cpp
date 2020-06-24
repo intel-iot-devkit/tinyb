@@ -52,14 +52,13 @@ extern "C" {
 
 using namespace direct_bt;
 
-int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter, const bool blocking) {
+int L2CAPComm::l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddrAdapter) {
     sockaddr_l2 a;
     int dd, err;
 
     // Create a loose L2CAP socket
     dd = ::socket(AF_BLUETOOTH, // AF_BLUETOOTH == PF_BLUETOOTH
-                  blocking ? SOCK_SEQPACKET : SOCK_SEQPACKET | SOCK_NONBLOCK,
-                  BTPROTO_L2CAP);
+                  SOCK_SEQPACKET, BTPROTO_L2CAP);
 
     if( 0 > dd ) {
         ERR_PRINT("L2CAPComm::l2cap_open_dev: socket failed");
@@ -101,7 +100,6 @@ int L2CAPComm::l2cap_close_dev(int dd)
 #define STATE_ENUM(X) \
     X(Error) \
     X(Disconnected) \
-    X(Connecting) \
     X(Connected)
 
 #define STATE_CASE_TO_STRING(V) case State::V: return #V;
@@ -129,7 +127,7 @@ L2CAPComm::State L2CAPComm::connect() {
     int err, res;
     int to_retry_count=0; // ETIMEDOUT retry count
 
-    _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */, blocking);
+    _dd = l2cap_open_dev(device->getAdapter().getAddress(), psm, cid, true /* pubaddrAdapter */);
     if( 0 > _dd ) {
         goto failure; // open failed
     }
@@ -148,7 +146,7 @@ L2CAPComm::State L2CAPComm::connect() {
     req.l2_bdaddr_type = pubaddr ? BDADDR_LE_PUBLIC : BDADDR_LE_RANDOM;
 
     while( !interruptFlag ) {
-        // may block if O_NONBLOCK has not been specified in open_dev(..)
+        // blocking
         res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
 
         DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
@@ -157,11 +155,6 @@ L2CAPComm::State L2CAPComm::connect() {
         if( !res )
         {
             state = State::Connected;
-            break; // done
-
-        } else if( EINPROGRESS == errno ) {
-            // non-blocking connection in progress (O_NONBLOCK), check via select / poll later
-            state = State::Connecting;
             break; // done
 
         } else if( ETIMEDOUT == errno ) {
