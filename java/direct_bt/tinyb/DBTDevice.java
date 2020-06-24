@@ -521,6 +521,20 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     }
     private native List<BluetoothGattService> getServicesImpl();
 
+    @Override
+    public boolean pingGATT() {
+        try {
+            return pingGATTImpl();
+        } catch (final Throwable t) {
+            if(DEBUG) {
+                System.err.println("Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString());
+                t.printStackTrace();
+            }
+        }
+        return false;
+    }
+    private native boolean pingGATTImpl();
+
     /* property accessors: */
 
     @Override

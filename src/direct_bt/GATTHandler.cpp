@@ -899,6 +899,27 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTSer
 	return res;
 }
 
+bool GATTHandler::ping() {
+    std::shared_ptr<GenericAccess> res = nullptr;
+    for(size_t i=0; i<services.size() && nullptr == res; i++) {
+        std::vector<GATTCharacteristicRef> & genericAccessCharDeclList = services.at(i)->characteristicList;
+        POctets value(32, 0);
+
+        for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
+            const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
+            if( _GENERIC_ACCESS != *charDecl.service->type ) {
+                continue;
+            }
+            if( _APPEARANCE == *charDecl.value_type ) {
+                if( readCharacteristicValue(charDecl, value.resize(0)) ) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector<GATTCharacteristicRef> & characteristicDeclList) {
     std::shared_ptr<DeviceInformation> res = nullptr;
     POctets value(number(Defaults::MAX_ATT_MTU), 0);

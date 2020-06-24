@@ -378,6 +378,19 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
     return nullptr;
 }
 
+jboolean Java_direct_1bt_tinyb_DBTDevice_pingGATTImpl(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+
+        return device->pingGATT() ? JNI_TRUE : JNI_FALSE;
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jstring Java_direct_1bt_tinyb_DBTDevice_getIcon(JNIEnv *env, jobject obj)
 {
     try {

@@ -105,6 +105,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     @Override
     public native List<BluetoothGattService> getServices();
 
+    @Override
+    public boolean pingGATT() { return false; } // FIXME
+
     /* D-Bus property accessors: */
 
     @Override

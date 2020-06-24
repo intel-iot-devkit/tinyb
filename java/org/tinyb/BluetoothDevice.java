@@ -140,6 +140,21 @@ public interface BluetoothDevice extends BluetoothObject
     List<BluetoothGattService> getServices();
 
     /**
+     * Issues a GATT ping to the device, validating whether it is still reachable.
+     * <p>
+     * This method could be periodically utilized to shorten the underlying OS disconnect period
+     * after turning the device off, which lies within 7-13s.
+     * </p>
+     * <p>
+     * In case the device is no more reachable, disconnect will be initiated due to the occurring IO error.
+     * </p>
+     *
+     * @return {@code true} if successful, otherwise false in case no GATT services exists etc.
+     * @since 2.0.0
+     */
+    boolean pingGATT();
+
+    /**
      * Returns the timestamp in monotonic milliseconds when this device instance has been created,
      * either via its initial discovery or its initial direct connection.
      *

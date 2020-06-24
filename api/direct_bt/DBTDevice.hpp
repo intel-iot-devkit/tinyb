@@ -326,6 +326,23 @@ namespace direct_bt {
             std::shared_ptr<GenericAccess> getGATTGenericAccess();
 
             /**
+             * Issues a GATT ping to the device, validating whether it is still reachable.
+             * <p>
+             * This method could be periodically utilized to shorten the underlying OS disconnect period
+             * after turning the device off, which lies within 7-13s.
+             * </p>
+             * <p>
+             * In case the device is no more reachable, the GATTHandler will initiate disconnect due to the occurring IO error.
+             * will issue a disconnect.
+             * </p>
+             * <p>
+             * See {@link #getGATTServices()} regarding GATT initialization.
+             * </p>
+             * @return {@code true} if successful, otherwise false in case no GATT services exists etc.
+             */
+            bool pingGATT();
+
+            /**
              * Explicit disconnecting an open GATTHandler, which is usually performed via disconnect()
              * <p>
              * Implementation will also discard the GATTHandler reference.

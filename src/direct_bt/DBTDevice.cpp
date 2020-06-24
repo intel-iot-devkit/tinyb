@@ -490,6 +490,25 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
     return gattServices;
 }
 
+bool DBTDevice::pingGATT() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    if( nullptr == gattHandler || !gattHandler->isOpen() ) {
+        connectGATT();
+        if( nullptr == gattHandler || !gattHandler->isOpen() ) {
+            ERR_PRINT("DBTDevice::getServices: connectGATT failed");
+            return std::vector<std::shared_ptr<GATTService>>();
+        }
+    }
+    std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
+    if( gattServices.size() == 0 ) { // discover services
+        gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
+        if( gattServices.size() == 0 ) { // nothing discovered
+            return false;
+        }
+    }
+    return gattHandler->ping();
+}
+
 std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
     return gattGenericAccess;
