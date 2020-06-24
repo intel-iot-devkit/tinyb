@@ -87,8 +87,9 @@ void DBTManager::mgmtReaderThreadImpl() {
                 mgmtEventRing.putBlocking( event );
             } else {
                 // issue a callback
+                const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
                 const int dev_id = event->getDevID();
-                MgmtAdapterEventCallbackList mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
+                MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
                 int invokeCount = 0;
                 for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
                     if( 0 > it->getDevID() || dev_id == it->getDevID() ) {

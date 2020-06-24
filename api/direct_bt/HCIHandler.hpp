@@ -53,6 +53,33 @@
  */
 namespace direct_bt {
 
+    class HCIHandleBDAddr {
+        public:
+            uint16_t handle;
+            EUI48 address;
+            BDAddressType addressType;
+
+        public:
+            HCIHandleBDAddr(const uint16_t handle, const EUI48 &address, const BDAddressType addressType)
+            : handle(handle), address(address), addressType(addressType) {}
+
+            HCIHandleBDAddr(const HCIHandleBDAddr &o) = default;
+            HCIHandleBDAddr(HCIHandleBDAddr &&o) = default;
+            HCIHandleBDAddr& operator=(const HCIHandleBDAddr &o) = default;
+            HCIHandleBDAddr& operator=(HCIHandleBDAddr &&o) = default;
+
+            bool operator==(const HCIHandleBDAddr& rhs) const
+            { return handle == rhs.handle; }
+
+            bool operator!=(const HCIHandleBDAddr& rhs) const
+            { return !(*this == rhs); }
+
+            std::string toString() const {
+                return "HCIHandleBDAddr[handle "+uint16HexString(handle)+
+                       ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
+            }
+    };
+
     /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)
      * <p>
@@ -75,9 +102,10 @@ namespace direct_bt {
             };
 
             static const pid_t pidSelf;
+            static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
+            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev);
 
         private:
-            const bool pass_replies_only_filter;
             const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;
@@ -90,9 +118,9 @@ namespace direct_bt {
             inline bool filter_test_metaev(HCIMetaEventType mec) { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
             inline void filter_put_metaevs(const uint32_t mask) { metaev_filter_mask=mask; }
 
-            inline void filter_clear_metaevs(uint32_t &mask) { mask=0; }
-            inline void filter_all_metaevs(uint32_t &mask) { mask=0xffff; }
-            inline void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) { set_bit_uint32(number(mec)-1, mask); }
+            inline static void filter_clear_metaevs(uint32_t &mask) { mask=0; }
+            inline static void filter_all_metaevs(uint32_t &mask) { mask=0xffff; }
+            inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) { set_bit_uint32(number(mec)-1, mask); }
 
             LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
             std::atomic<pthread_t> hciReaderThreadId;
@@ -101,6 +129,18 @@ namespace direct_bt {
             std::mutex mtx_hciReaderInit;
             std::condition_variable cv_hciReaderInit;
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
+
+            std::vector<HCIHandleBDAddr> disconnectHandleAddrList;
+            std::recursive_mutex mtx_disconnectHandleAddrList;
+
+            /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
+            std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
+            std::recursive_mutex mtx_callbackLists;
+            inline void checkMgmtEventCallbackListsIndex(const MgmtEvent::Opcode opc) const {
+                if( static_cast<uint16_t>(opc) >= mgmtEventCallbackLists.size() ) {
+                    throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), 1, mgmtEventCallbackLists.size(), E_FILE_LINE);
+                }
+            }
 
             void hciReaderThreadImpl();
 
@@ -112,18 +152,22 @@ namespace direct_bt {
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processSimpleCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status);
 
-            template<typename hci_command_struct, typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processStructCommand(HCIStructCommand<hci_command_struct> &req,
-                                                           HCIEventType evc, const hci_cmd_event_struct **res,
-                                                           HCIStatusCode *status);
+            template<typename hci_command_struct>
+            std::shared_ptr<HCIEvent> processStructCommand(HCIStructCommand<hci_command_struct> &req, HCIStatusCode *status);
 
-            template<typename hci_command_struct, typename hci_cmd_event_struct>
-            std::shared_ptr<HCIEvent> processStructMetaCmd(HCIStructCommand<hci_command_struct> &req,
-                                                           HCIMetaEventType mec, const hci_cmd_event_struct **res,
-                                                           HCIStatusCode *status);
+            template<typename hci_cmd_event_struct>
+            const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status);
+
+            template<typename hci_cmd_event_struct>
+            const hci_cmd_event_struct* getMetaReplyStruct(std::shared_ptr<HCIEvent> event, HCIMetaEventType mec, HCIStatusCode *status);
 
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
+
+            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e);
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
         public:
             HCIHandler(const BTMode btMode, const uint16_t dev_id, const int replyTimeoutMS=Defaults::HCI_COMMAND_REPLY_TIMEOUT);
@@ -162,7 +206,6 @@ namespace direct_bt {
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
              *
-             * @param handle_return
              * @param peer_bdaddr
              * @param peer_mac_type
              * @param own_mac_type
@@ -174,7 +217,7 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
              * @return
              */
-            HCIStatusCode le_create_conn(uint16_t * handle_return, const EUI48 &peer_bdaddr,
+            HCIStatusCode le_create_conn(const EUI48 &peer_bdaddr,
                                         const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                         const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
                                         const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
@@ -187,7 +230,7 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
              * </p>
              */
-            HCIStatusCode create_conn(uint16_t * handle_return, const EUI48 &bdaddr,
+            HCIStatusCode create_conn(const EUI48 &bdaddr,
                                      const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
                                      const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
@@ -197,7 +240,22 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              */
-            HCIStatusCode disconnect(const uint16_t conn_handle, const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+            HCIStatusCode disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+                                     const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
+
+            /** MgmtEventCallback handling  */
+
+            /**
+             * Appends the given MgmtEventCallback to the named MgmtEvent::Opcode list,
+             * if it is not present already (opcode + callback).
+             */
+            void addMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            /** Returns count of removed given MgmtEventCallback from the named MgmtEvent::Opcode list. */
+            int removeMgmtEventCallback(const MgmtEvent::Opcode opc, const MgmtEventCallback &cb);
+            /** Removes all MgmtEventCallbacks from the to the named MgmtEvent::Opcode list. */
+            void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
+            /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
+            void clearAllMgmtEventCallbacks();
     };
 
 } // namespace direct_bt

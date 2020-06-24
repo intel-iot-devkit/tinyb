@@ -852,22 +852,36 @@ namespace direct_bt {
      */
     class MgmtEvtDeviceConnected : public MgmtEvent
     {
-        public:
+        private:
+            uint16_t hci_conn_handle;
 
         protected:
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
                        ", flags="+uint32HexString(getFlags(), true)+
-                       ", eir-size "+std::to_string(getEIRSize());
+                       ", eir-size "+std::to_string(getEIRSize())+
+                       ", hci_handle "+uint16HexString(hci_conn_handle);
             }
 
         public:
             MgmtEvtDeviceConnected(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len)
+            : MgmtEvent(buffer, buffer_len), hci_conn_handle(0)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_CONNECTED);
             }
+            MgmtEvtDeviceConnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const uint16_t hci_conn_handle)
+            : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+4+2), hci_conn_handle(hci_conn_handle)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint32(MGMT_HEADER_SIZE+6+1, 0); // flags
+                pdu.put_uint16(MGMT_HEADER_SIZE+6+1+4, 0); // eir-len
+            }
+
+            /** Returns the HCI connection handle, assuming creation occurred via HCIHandler */
+            uint16_t getHCIHandle() const { return hci_conn_handle; }
+
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
@@ -885,25 +899,37 @@ namespace direct_bt {
      */
     class MgmtEvtDeviceConnectFailed : public MgmtEvent
     {
-        public:
+        private:
+            const HCIStatusCode hciRootStatus;
 
         protected:
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", status "+uint8HexString(static_cast<uint8_t>(getStatus()))+" "+getMgmtStatusString(getStatus());
+                       ", status[mgmt["+uint8HexString(static_cast<uint8_t>(getStatus()))+" ("+getMgmtStatusString(getStatus())+")]"+
+                       ", hci["+uint8HexString(static_cast<uint8_t>(hciRootStatus))+" ("+getHCIStatusCodeString(hciRootStatus)+")]]";
             }
 
         public:
             MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len)
+            : MgmtEvent(buffer, buffer_len), hciRootStatus(HCIStatusCode::UNKNOWN)
             {
                 checkOpcode(getOpcode(), Opcode::CONNECT_FAILED);
+            }
+            MgmtEvtDeviceConnectFailed(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode status)
+            : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+1), hciRootStatus(status)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, address);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(MgmtStatus::CONNECT_FAILED));
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(MGMT_HEADER_SIZE+7) ); }
+
+            /** Return the root reason in non reduced HCIStatusCode space, if available. Otherwise this value will be HCIStatusCode::UNKNOWN. */
+            HCIStatusCode getHCIRootStatus() const { return hciRootStatus; }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }
@@ -1200,6 +1226,7 @@ namespace direct_bt {
     };
 
     typedef FunctionDef<bool, std::shared_ptr<MgmtEvent>> MgmtEventCallback;
+    typedef std::vector<MgmtEventCallback> MgmtEventCallbackList;
 
     class MgmtAdapterEventCallback {
         private:
