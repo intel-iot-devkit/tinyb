@@ -419,9 +419,7 @@ skip_hci_disconnect:
     }
 
 exit:
-    if( res ) {
-        adapter.removeConnectedDevice(*this);
-    }
+    adapter.removeConnectedDevice(*this);
     return res;
 }
 
