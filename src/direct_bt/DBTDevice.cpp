@@ -371,7 +371,7 @@ void DBTDevice::notifyDisconnected() {
 bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause, const HCIStatusCode reason) {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    DBG_PRINT("DBTDevice::disconnect: isConnected %d, sentFromManager %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %d",
+    INFO_PRINT("DBTDevice::disconnect: Start: isConnected %d, sentFromManager %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %d",
             isConnected.load(), sentFromManager, ioErrorCause, static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), (0 != hciConnHandle));
     disconnectGATT();
@@ -420,6 +420,7 @@ skip_hci_disconnect:
 
 exit:
     adapter.removeConnectedDevice(*this);
+    INFO_PRINT("DBTDevice::disconnect: End: isConnected %d, sentFromManager %d, ioError %d", isConnected.load(), sentFromManager, ioErrorCause);
     return res;
 }
 
@@ -516,10 +517,11 @@ std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
 
 void DBTDevice::disconnectGATT() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    INFO_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=gattHandler));
     if( nullptr != gattHandler ) {
-        DBG_PRINT("DBTDevice::disconnectGATT: Disconnecting...");
         // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
         gattHandler = nullptr;
     }
+    INFO_PRINT("DBTDevice::disconnectGATT: End");
 }
