@@ -97,7 +97,7 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
-L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true)
+L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr)
 : device(device), deviceString(device->getAddressString()), psm(psm), cid(cid), pubaddr(pubaddr),
   _dd(-1), isConnected(false), hasIOError(false), interruptFlag(false), tid_connect(0)
 { }
