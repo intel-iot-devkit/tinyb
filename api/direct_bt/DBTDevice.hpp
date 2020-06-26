@@ -156,7 +156,13 @@ namespace direct_bt {
             /** Return shared ManufactureSpecificData as recognized at discovery, pre GATT discovery. */
             std::shared_ptr<ManufactureSpecificData> const getManufactureSpecificData() const;
 
-            /** Return a list of services as recognized at discovery, pre GATT discovery. */
+            /**
+             * Return a list of advertised services as recognized at discovery, pre GATT discovery.
+             * <p>
+             * To receive a complete list of GATT services including characteristics etc,
+             * use {@link #getGATTServices()}.
+             * </p>
+             */
             std::vector<std::shared_ptr<uuid_t>> getServices() const;
 
             /** Returns index >= 0 if found, otherwise -1 */
@@ -311,7 +317,7 @@ namespace direct_bt {
 
             /**
              * Returns a list of shared GATTService available on this device if successful,
-             * otherwise returns an empty list.
+             * otherwise returns an empty list if an error occurred.
              * <p>
              * If this method has been called for the first time or no services has been detected yet,
              * a list of GATTService will be discovered.

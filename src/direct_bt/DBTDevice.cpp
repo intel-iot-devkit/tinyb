@@ -457,38 +457,43 @@ std::shared_ptr<GATTHandler> DBTDevice::getGATTHandler() {
 
 std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-        connectGATT();
+    try {
         if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-            ERR_PRINT("DBTDevice::getServices: connectGATT failed");
-            return std::vector<std::shared_ptr<GATTService>>();
-        }
-    }
-    std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
-    if( gattServices.size() > 0 ) { // reuse previous discovery result
-        return gattServices;
-    }
-    gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
-    if( gattServices.size() == 0 ) { // nothing discovered
-        return gattServices;
-    }
-    // discovery success, retrieve and parse GenericAccess
-    gattGenericAccess = gattHandler->getGenericAccess(gattServices);
-    if( nullptr != gattGenericAccess ) {
-        const uint64_t ts = getCurrentMilliseconds();
-        EIRDataType updateMask = update(*gattGenericAccess, ts);
-        DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
-            getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
-        if( EIRDataType::NONE != updateMask ) {
-            std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
-            if( nullptr == sharedInstance ) {
-                ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
-            } else {
-                adapter.sendDeviceUpdated("getGATTServices", sharedInstance, ts, updateMask);
+            connectGATT();
+            if( nullptr == gattHandler || !gattHandler->isOpen() ) {
+                ERR_PRINT("DBTDevice::getServices: connectGATT failed");
+                return std::vector<std::shared_ptr<GATTService>>();
             }
         }
+        std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
+        if( gattServices.size() > 0 ) { // reuse previous discovery result
+            return gattServices;
+        }
+        gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
+        if( gattServices.size() == 0 ) { // nothing discovered
+            return gattServices;
+        }
+        // discovery success, retrieve and parse GenericAccess
+        gattGenericAccess = gattHandler->getGenericAccess(gattServices);
+        if( nullptr != gattGenericAccess ) {
+            const uint64_t ts = getCurrentMilliseconds();
+            EIRDataType updateMask = update(*gattGenericAccess, ts);
+            DBG_PRINT("DBTDevice::getGATTServices: updated %s:\n    %s\n    -> %s",
+                getEIRDataMaskString(updateMask).c_str(), gattGenericAccess->toString().c_str(), toString().c_str());
+            if( EIRDataType::NONE != updateMask ) {
+                std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
+                if( nullptr == sharedInstance ) {
+                    ERR_PRINT("DBTDevice::getGATTServices: Device unknown to adapter and not tracked: %s", toString().c_str());
+                } else {
+                    adapter.sendDeviceUpdated("getGATTServices", sharedInstance, ts, updateMask);
+                }
+            }
+        }
+        return gattServices;
+    } catch (std::exception &e) {
+        WARN_PRINT("DBTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
     }
-    return gattServices;
+    return std::vector<std::shared_ptr<GATTService>>();
 }
 
 bool DBTDevice::pingGATT() {
