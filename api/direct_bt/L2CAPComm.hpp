@@ -65,6 +65,7 @@ namespace direct_bt {
             static int l2cap_close_dev(int dd);
 
             std::shared_ptr<DBTDevice> device;
+            const std::string deviceString;
             const uint16_t psm;
             const uint16_t cid;
             const bool pubaddr;
@@ -75,10 +76,7 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_connect;
 
         public:
-            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true)
-            : device(device), psm(psm), cid(cid), pubaddr(pubaddr),
-              _dd(-1), isConnected(false), hasIOError(false), interruptFlag(false), tid_connect(0) {}
-            ~L2CAPComm() { disconnect(); }
+            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true);
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
 

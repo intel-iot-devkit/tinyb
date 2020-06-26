@@ -97,18 +97,23 @@ int L2CAPComm::l2cap_close_dev(int dd)
 // *************************************************
 // *************************************************
 
+L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true)
+: device(device), deviceString(device->getAddressString()), psm(psm), cid(cid), pubaddr(pubaddr),
+  _dd(-1), isConnected(false), hasIOError(false), interruptFlag(false), tid_connect(0)
+{ }
+
 bool L2CAPComm::connect() {
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
     bool expConn = false; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
         // already connected
         DBG_PRINT("L2CAPComm::connect: Already connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
         return true;
     }
     hasIOError = false;
     DBG_PRINT("L2CAPComm::connect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
 
     sockaddr_l2 req;
     int err, res;
@@ -134,7 +139,7 @@ bool L2CAPComm::connect() {
         res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
 
         DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
-                  res, errno, strerror(errno), device->getAddress().toString().c_str());
+                  res, errno, strerror(errno), deviceString.c_str().c_str());
 
         if( !res )
         {
@@ -172,12 +177,12 @@ bool L2CAPComm::disconnect() {
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         INFO_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
         return false;
     }
     hasIOError = false;
     INFO_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), device->getAddress().toString().c_str(), psm, cid, pubaddr);
+              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
     interruptFlag = true;
 
     // interrupt L2CAP ::connect(..), avoiding prolonged hang
