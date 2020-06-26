@@ -322,7 +322,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         std::thread hciReaderThread = std::thread(&HCIHandler::hciReaderThreadImpl, this);
         hciReaderThreadId = hciReaderThread.native_handle();
         // Avoid 'terminate called without an active exception'
-        // as l2capReaderThread may end due to I/O errors.
+        // as hciReaderThreadImpl may end due to I/O errors.
         hciReaderThread.detach();
 
         while( false == hciReaderRunning ) {
