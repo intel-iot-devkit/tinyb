@@ -60,6 +60,8 @@ public class ScannerTinyB10 {
 
     long timestamp_t0;
 
+    boolean MULTI_MEASUREMENTS = true;
+    boolean KEEP_CONNECTED = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
 
@@ -97,8 +99,11 @@ public class ScannerTinyB10 {
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                  ( waitForDevice.equals(device.getAddress()) && !devicesProcessed.contains(waitForDevice) )
-                ) )
+                  ( waitForDevice.equals(device.getAddress()) &&
+                    ( MULTI_MEASUREMENTS || !devicesProcessed.contains(waitForDevice) )
+                  )
+                )
+              )
             {
                 System.err.println("****** FOUND__-0: Connecting "+device.toString());
                 {
@@ -129,8 +134,11 @@ public class ScannerTinyB10 {
         public void deviceConnected(final BluetoothDevice device, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                  ( waitForDevice.equals(device.getAddress()) && !devicesProcessed.contains(waitForDevice) )
-                ) )
+                  ( waitForDevice.equals(device.getAddress()) &&
+                    ( MULTI_MEASUREMENTS || !devicesProcessed.contains(waitForDevice) )
+                  )
+                )
+              )
             {
                 System.err.println("****** CONNECTED-0: Processing "+device.toString());
                 {
@@ -248,17 +256,28 @@ public class ScannerTinyB10 {
         } catch (final Throwable t ) {
             System.err.println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
-        } finally {
-            device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+        }
+        if( KEEP_CONNECTED ) {
+            while( device.pingGATT() ) {
+                try {
+                    Thread.sleep(1000);
+                } catch (final InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            System.err.println("****** Processing Device: pingGATT failed");
+        }
 
-            if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
-                device.getAdapter().startDiscovery( true );
-            }
-            devicesInProcessing.remove(device.getAddress());
-            System.err.println("****** Processing Device: End: Success " + success + " on " + device.toString());
-            if( success ) {
-                devicesProcessed.add(device.getAddress());
-            }
+        device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+        device.remove();
+
+        if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
+            device.getAdapter().startDiscovery( true );
+        }
+        devicesInProcessing.remove(device.getAddress());
+        System.err.println("****** Processing Device: End: Success " + success + " on " + device.toString());
+        if( success ) {
+            devicesProcessed.add(device.getAddress());
         }
     }
 
@@ -318,7 +337,10 @@ public class ScannerTinyB10 {
         }
 
         while( !done ) {
-            if( !waitForDevice.equals(EUI48_ANY_DEVICE) && devicesProcessed.contains(waitForDevice) ) {
+            if( !waitForDevice.equals(EUI48_ANY_DEVICE) &&
+                !MULTI_MEASUREMENTS && devicesProcessed.contains(waitForDevice)
+              )
+            {
                 System.err.println("****** WaitForDevice processed "+waitForDevice);
                 done = true;
             }
@@ -355,14 +377,20 @@ public class ScannerTinyB10 {
                     System.err.println("Whitelist + "+addr);
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;
+                } else if( arg.equals("-disconnect") ) {
+                    test.KEEP_CONNECTED = false;
+                } else if( arg.equals("-single") ) {
+                    test.MULTI_MEASUREMENTS = false;
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     test.factory = Integer.valueOf(args[++i]).intValue();
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
         }
 
+        System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
+        System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
         System.err.println("dev_id "+test.dev_id);
         System.err.println("waitForDevice: "+test.waitForDevice);

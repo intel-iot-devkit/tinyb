@@ -40,6 +40,10 @@ using namespace direct_bt;
 
 static int64_t timestamp_t0;
 
+static bool MULTI_MEASUREMENTS = true;
+
+static bool KEEP_CONNECTED = true;
+
 static bool USE_WHITELIST = false;
 
 static bool SHOW_UPDATE_EVENTS = false;
@@ -124,8 +128,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         }
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevice == EUI48_ANY_DEVICE ||
-              ( waitForDevice == device->getAddress() && !isDeviceProcessed(waitForDevice) )
-            ) )
+              ( waitForDevice == device->getAddress() &&
+                ( MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+              )
+            )
+          )
         {
             fprintf(stderr, "****** FOUND__-0: Connecting %s\n", device->toString(true).c_str());
             {
@@ -151,8 +158,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevice == EUI48_ANY_DEVICE ||
-              ( waitForDevice == device->getAddress() && !isDeviceProcessed(waitForDevice) )
-            ) )
+              ( waitForDevice == device->getAddress() &&
+                ( MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+              )
+            )
+          )
         {
             fprintf(stderr, "****** CONNECTED-0: Processing %s\n", device->toString(true).c_str());
             {
@@ -306,7 +316,15 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
+    if( KEEP_CONNECTED ) {
+        while( device->pingGATT() ) {
+            sleep(1);
+        }
+        fprintf(stderr, "****** Processing Device: pingGATT failed");
+    }
+
     device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+    device->remove();
 
     if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
         device->getAdapter().startDiscovery( true );
@@ -343,12 +361,18 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
             whitelist.push_back( wlmac );
             USE_WHITELIST = true;
+        } else if( !strcmp("-disconnect", argv[i]) ) {
+            KEEP_CONNECTED = false;
+        } else if( !strcmp("-single", argv[i]) ) {
+            MULTI_MEASUREMENTS = false;
         }
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-wl <device_address>)* [-show_update_events]'\n");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-single] (-wl <device_address>)* [-show_update_events]'\n");
 
+    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
+    fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
@@ -388,7 +412,10 @@ int main(int argc, char *argv[])
     }
 
     while( !done ) {
-        if( waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) ) {
+        if( waitForDevice != EUI48_ANY_DEVICE &&
+            !MULTI_MEASUREMENTS && isDeviceProcessed(waitForDevice)
+          )
+        {
             fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
             done = true;
         }
