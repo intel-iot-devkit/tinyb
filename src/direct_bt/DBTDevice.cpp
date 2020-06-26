@@ -493,21 +493,26 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
 
 bool DBTDevice::pingGATT() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-        connectGATT();
+    try {
         if( nullptr == gattHandler || !gattHandler->isOpen() ) {
-            ERR_PRINT("DBTDevice::getServices: connectGATT failed");
-            return false;
+            connectGATT();
+            if( nullptr == gattHandler || !gattHandler->isOpen() ) {
+                ERR_PRINT("DBTDevice::getServices: connectGATT failed");
+                return false;
+            }
         }
-    }
-    std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
-    if( gattServices.size() == 0 ) { // discover services
-        gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
-        if( gattServices.size() == 0 ) { // nothing discovered
-            return false;
+        std::vector<std::shared_ptr<GATTService>> & gattServices = gattHandler->getServices(); // reference of the GATTHandler's list
+        if( gattServices.size() == 0 ) { // discover services
+            gattServices = gattHandler->discoverCompletePrimaryServices(); // same reference of the GATTHandler's list
+            if( gattServices.size() == 0 ) { // nothing discovered
+                return false;
+            }
         }
+        return gattHandler->ping();
+    } catch (std::exception &e) {
+        INFO_PRINT("DBTDevice::pingGATT: Potential disconnect, exception: '%s' on %s", e.what(), toString().c_str());
     }
-    return gattHandler->ping();
+    return false;
 }
 
 std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
