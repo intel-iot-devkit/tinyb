@@ -67,3 +67,14 @@ jstring direct_bt::fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType
             return from_string_to_jstring(env, jStringEmpty);
     }
 }
+
+JavaGlobalObj::~JavaGlobalObj() {
+    jobject obj = javaObjectRef.getObject();
+    if( nullptr == obj || nullptr == mNotifyDeleted ) {
+        return;
+    }
+    JNIEnv *env = *jni_env;
+    env->CallVoidMethod(obj, mNotifyDeleted);
+    java_exception_check_and_throw(env, E_FILE_LINE);
+}
+

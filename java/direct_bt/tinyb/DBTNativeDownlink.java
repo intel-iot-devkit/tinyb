@@ -64,8 +64,18 @@ public abstract class DBTNativeDownlink
             return;
         }
         isValid = false;
-        clearNativeJavaObject(nativeInstance);
+        deleteNativeJavaObject(nativeInstance);
         deleteImpl();
+        nativeInstance = 0;
+    }
+
+    /**
+     * Called from native JavaUplink dtor -> JavaGlobalObj dtor,
+     * i.e. native instance destructed in native land.
+     */
+    private synchronized void notifyDeleted() {
+        // System.err.println("***** notifyDeleted: "+getClass().getSimpleName()+": valid "+isValid+" -> false, handle 0x"+Long.toHexString(nativeInstance)+" -> null");
+        isValid = false;
         nativeInstance = 0;
     }
 
@@ -79,5 +89,5 @@ public abstract class DBTNativeDownlink
     protected abstract void deleteImpl();
 
     private native void initNativeJavaObject(final long nativeInstance);
-    private native void clearNativeJavaObject(final long nativeInstance);
+    private native void deleteNativeJavaObject(final long nativeInstance);
 }

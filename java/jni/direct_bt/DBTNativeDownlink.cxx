@@ -40,7 +40,20 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
 {
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj) );
+        if( nullptr == javaUplink ) {
+            throw InternalError("NativeInstance JavaUplink is NULL", E_FILE_LINE);
+        }
+        jclass javaClazz = search_class(env, obj);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == javaClazz ) {
+            throw InternalError("DBTNativeDownlink class not found", E_FILE_LINE);
+        }
+        jmethodID  mNotifyDeleted = search_method(env, javaClazz, "notifyDeleted", "()V", false);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == mNotifyDeleted ) {
+            throw InternalError("DBTNativeDownlink class has no notifyDeleted() method, for "+javaUplink->toString(), E_FILE_LINE);
+        }
+        std::shared_ptr<JavaGlobalObj> jobjRef( new JavaGlobalObj(obj, mNotifyDeleted) );
         javaUplink->setJavaObject( jobjRef );
         JavaGlobalObj::check(javaUplink->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
@@ -49,12 +62,15 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
     }
 }
 
-void Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
+void Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
     (void)obj;
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_clearNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
+        if( nullptr == javaUplink ) {
+            throw InternalError("NativeInstance JavaUplink is NULL", E_FILE_LINE);
+        }
+        DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
         javaUplink->setJavaObject(nullptr);
     } catch(...) {
         rethrow_and_raise_java_exception(env);

@@ -267,7 +267,7 @@ bool GATTHandler::connect() {
         return true;
     }
     hasIOError = false;
-    INFO_PRINT("GATTHandler::connect: Start: GattHandler[%s], l2cap[%s]: %s",
+    DBG_PRINT("GATTHandler::connect: Start: GattHandler[%s], l2cap[%s]: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
     if( !l2cap.connect() || !validateConnected() ) {

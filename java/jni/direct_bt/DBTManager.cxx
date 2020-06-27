@@ -45,7 +45,7 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolea
         DBTManager *manager = &DBTManager::get(BTMode::BT_MODE_LE); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj) ) );
+        manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj, nullptr) ) );
         JavaGlobalObj::check(manager->getJavaObject(), E_FILE_LINE);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTManager_init: Manager %s", manager->toString().c_str());
     } catch(...) {

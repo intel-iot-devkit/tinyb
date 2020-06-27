@@ -59,6 +59,7 @@ namespace direct_bt {
     class JavaGlobalObj : public JavaAnonObj {
         private:
             JNIGlobalRef javaObjectRef;
+            jmethodID  mNotifyDeleted;
 
         public:
             static inline void check(const std::shared_ptr<JavaAnonObj> & shref, const char* file, int line) {
@@ -80,12 +81,15 @@ namespace direct_bt {
                 }
                 return true;
             }
-            JavaGlobalObj(jobject obj) : javaObjectRef(obj) { }
+            JavaGlobalObj(jobject obj, jmethodID mNotifyDeleted)
+            : javaObjectRef(obj), mNotifyDeleted(mNotifyDeleted) { }
 
             JavaGlobalObj(const JavaGlobalObj &o) noexcept = default;
             JavaGlobalObj(JavaGlobalObj &&o) noexcept = default;
             JavaGlobalObj& operator=(const JavaGlobalObj &o) noexcept = default;
             JavaGlobalObj& operator=(JavaGlobalObj &&o) noexcept = default;
+
+            virtual ~JavaGlobalObj();
 
             std::string toString() const override {
                 const uint64_t ref = (uint64_t)(void*)javaObjectRef.getObject();
@@ -112,7 +116,6 @@ namespace direct_bt {
                 return static_cast<JavaGlobalObj*>(shref.get())->getClass();
             }
     };
-
 
     jclass search_class(JNIEnv *env, JavaUplink &object);
 
