@@ -308,14 +308,14 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         // not connected
-        INFO_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-                    disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
+                  disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         return false;
     }
     hasIOError = false;
-    INFO_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
-                disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+    DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
+              disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
 
     l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
 
@@ -344,7 +344,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         device->disconnect(false /* sentFromManager */, ioErrorCause, reason);
     }
 
-    INFO_PRINT("GATTHandler::disconnect: End: %s", deviceString.c_str());
+    DBG_PRINT("GATTHandler::disconnect: End: %s", deviceString.c_str());
     return true;
 }
 

@@ -309,7 +309,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
             }
         }
         // FIXME sleep 1s for potential callbacks ..
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         success = true;
     } catch ( std::exception & e ) {
         fprintf(stderr, "****** Processing Device: Exception caught for %s: %s\n", device->toString().c_str(), e.what());
@@ -318,20 +318,23 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 exit:
     if( KEEP_CONNECTED ) {
         while( device->pingGATT() ) {
-            sleep(1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         fprintf(stderr, "****** Processing Device: pingGATT failed");
     }
 
     device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+    while( device->getConnected() ) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     device->remove();
 
-    if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
+    removeFromDevicesProcessing(device->getAddress());
+    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %d\n",
+            success, device->toString().c_str(), devicesInProcessing.size());
+    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
         device->getAdapter().startDiscovery( true );
     }
-    removeFromDevicesProcessing(device->getAddress());
-
-    fprintf(stderr, "****** Processing Device: End: Success %d on %s\n", success, device->toString().c_str());
     if( success ) {
         addToDevicesProcessed(device->getAddress());
     }

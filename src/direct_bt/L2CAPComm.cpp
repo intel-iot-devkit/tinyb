@@ -176,12 +176,12 @@ failure:
 bool L2CAPComm::disconnect() {
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
-        INFO_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+        DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
                   getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
         return false;
     }
     hasIOError = false;
-    INFO_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
+    DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
               getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
     interruptFlag = true;
 
@@ -201,7 +201,7 @@ bool L2CAPComm::disconnect() {
     l2cap_close_dev(_dd);
     _dd = -1;
     interruptFlag = false;
-    INFO_PRINT("L2CAPComm::disconnect: End: dd %d", _dd.load());
+    DBG_PRINT("L2CAPComm::disconnect: End: dd %d", _dd.load());
     return true;
 }
 

@@ -269,13 +269,21 @@ public class ScannerTinyB10 {
         }
 
         device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
+        while( device.getConnected() ) {
+            try {
+                Thread.sleep(100);
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         device.remove();
 
-        if( !USE_WHITELIST && 1 >= devicesInProcessing.size() ) {
+        devicesInProcessing.remove(device.getAddress());
+        System.err.println("****** Processing Device: End: Success " + success +
+                           " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
             device.getAdapter().startDiscovery( true );
         }
-        devicesInProcessing.remove(device.getAddress());
-        System.err.println("****** Processing Device: End: Success " + success + " on " + device.toString());
         if( success ) {
             devicesProcessed.add(device.getAddress());
         }

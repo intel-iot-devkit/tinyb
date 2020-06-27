@@ -178,6 +178,7 @@ namespace direct_bt {
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
             friend bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
+            friend void DBTDevice::remove();
             friend bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
                     uint16_t interval, uint16_t window,
                     uint16_t min_interval, uint16_t max_interval,
@@ -198,12 +199,15 @@ namespace direct_bt {
             void removeSharedDevice(const DBTDevice & device);
             std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac);
 
-            bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvLocalNameChangedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvLocalNameChangedMgmt(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e);
+
+            bool mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e);
+            bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e);
 
             void startDiscoveryBackground();
 

@@ -621,35 +621,6 @@ bool DBTManager::removeDeviceFromWhitelist(const int dev_id, const EUI48 &addres
     return false;
 }
 
-uint16_t DBTManager::create_connection(const int dev_id,
-                        const EUI48 &peer_bdaddr,
-                        const BDAddressType peer_mac_type,
-                        const BDAddressType own_mac_type,
-                        const uint16_t interval, const uint16_t window,
-                        const uint16_t min_interval, const uint16_t max_interval,
-                        const uint16_t latency, const uint16_t supervision_timeout) {
-    // MgmtUint8Cmd req(MgmtOpcode::, dev_id, scanType);
-    DBG_PRINT("DBTManager::le_create_conn: %s", peer_bdaddr.toString().c_str());
-    const uint16_t min_ce_length=0x0001;
-    const uint16_t max_ce_length=0x0001;
-    const uint8_t initiator_filter=0;
-
-    (void)dev_id;
-    (void)peer_bdaddr;
-    (void)peer_mac_type;
-    (void)own_mac_type;
-    (void)interval;
-    (void)window;
-    (void)min_interval;
-    (void)max_interval;
-    (void)latency;
-    (void)supervision_timeout;
-    (void)min_ce_length;
-    (void)max_ce_length;
-    (void)initiator_filter;
-    return 0;
-}
-
 bool DBTManager::disconnect(const bool ioErrorCause,
                             const int dev_id, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                             const HCIStatusCode reason) {

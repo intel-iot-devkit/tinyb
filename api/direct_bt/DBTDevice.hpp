@@ -71,6 +71,7 @@ namespace direct_bt {
             std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
             std::atomic<bool> isConnected;
+            std::atomic<bool> isConnectIssued;
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             bool addService(std::shared_ptr<uuid_t> const &uuid);
@@ -83,7 +84,7 @@ namespace direct_bt {
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 
-            bool disconnect(const bool sentFromManager, const bool ioErrorCause,
+            bool disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
                             const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
 
         public:
@@ -181,6 +182,11 @@ namespace direct_bt {
              * </p>
              */
             std::shared_ptr<ConnectionInfo> getConnectionInfo();
+
+            /**
+             * Return true if the device has been successfully connected, otherwise false.
+             */
+            bool getConnected() { return isConnected.load(); }
 
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
@@ -281,19 +287,24 @@ namespace direct_bt {
              * </p>
              */
             bool disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
-                return disconnect(false /* sentFromManager */, false /* ioErrorCause */, reason);
+                return disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, reason);
             }
 
             /**
              * Disconnects this device via disconnect(..) and
-             * removes its shared reference from the Adapter, not the discovered devices.
+             * removes its shared reference from the Adapter altogether,
+             * i.e. shared-devices, discovered-devices and connected-devices.
              * <p>
              * This method shall be issued to ensure no device reference will
-             * be leaked in a long lived adapter, as only the discovered devices
-             * are being flushed with a new discovery.
+             * be leaked in a long lived adapter,
+             * as only the connected-devices are removed at disconnect
+             * and the discovered-devices removed with a new discovery.
              * </p>
              * <p>
              * After calling this method, the device shall no more being used.
+             * </p>
+             * <p>
+             * This method is automatically called @ destructor.
              * </p>
              */
             void remove();
