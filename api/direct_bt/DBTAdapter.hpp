@@ -150,7 +150,9 @@ namespace direct_bt {
     {
         private:
             /** Returns index >= 0 if found, otherwise -1 */
-            static int findDevice(std::vector<std::shared_ptr<DBTDevice>> const & devices, EUI48 const & mac);
+            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
+            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
+            std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device);
 
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
@@ -186,15 +188,15 @@ namespace direct_bt {
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             bool removeConnectedDevice(const DBTDevice & device);
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac) const;
+            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac);
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
             bool removeDiscoveredDevice(const DBTDevice & device);
 
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device);
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device);
-            void releaseSharedDevice(const DBTDevice & device);
-            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac) const;
+            void removeSharedDevice(const DBTDevice & device);
+            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac);
 
             bool mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewSettingsCB(std::shared_ptr<MgmtEvent> e);
@@ -447,7 +449,7 @@ namespace direct_bt {
             int removeDiscoveredDevices();
 
             /** Returns shared DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac) const;
+            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac);
 
             std::string toString() const override;
     };
