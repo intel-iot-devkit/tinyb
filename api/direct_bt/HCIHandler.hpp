@@ -53,32 +53,33 @@
  */
 namespace direct_bt {
 
-    class HCIHandleBDAddr {
+    class HCIConnection {
         public:
             uint16_t handle;
             EUI48 address;
             BDAddressType addressType;
 
         public:
-            HCIHandleBDAddr(const uint16_t handle, const EUI48 &address, const BDAddressType addressType)
+            HCIConnection(const uint16_t handle, const EUI48 &address, const BDAddressType addressType)
             : handle(handle), address(address), addressType(addressType) {}
 
-            HCIHandleBDAddr(const HCIHandleBDAddr &o) = default;
-            HCIHandleBDAddr(HCIHandleBDAddr &&o) = default;
-            HCIHandleBDAddr& operator=(const HCIHandleBDAddr &o) = default;
-            HCIHandleBDAddr& operator=(HCIHandleBDAddr &&o) = default;
+            HCIConnection(const HCIConnection &o) = default;
+            HCIConnection(HCIConnection &&o) = default;
+            HCIConnection& operator=(const HCIConnection &o) = default;
+            HCIConnection& operator=(HCIConnection &&o) = default;
 
-            bool operator==(const HCIHandleBDAddr& rhs) const
-            { return handle == rhs.handle; }
+            bool operator==(const HCIConnection& rhs) const
+            { return handle == rhs.handle && address == rhs.address; }
 
-            bool operator!=(const HCIHandleBDAddr& rhs) const
+            bool operator!=(const HCIConnection& rhs) const
             { return !(*this == rhs); }
 
             std::string toString() const {
-                return "HCIHandleBDAddr[handle "+uint16HexString(handle)+
+                return "HCIConnection[handle "+uint16HexString(handle)+
                        ", address="+address.toString()+", addressType "+getBDAddressTypeString(addressType)+"]";
             }
     };
+    typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
 
     /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)
@@ -102,10 +103,10 @@ namespace direct_bt {
             };
 
             static const pid_t pidSelf;
-            static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
-            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev);
 
         private:
+            static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
+
             const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;
@@ -130,8 +131,14 @@ namespace direct_bt {
             std::condition_variable cv_hciReaderInit;
             std::recursive_mutex mtx_sendReply; // for sendWith*Reply, process*Command, ..
 
-            std::vector<HCIHandleBDAddr> disconnectHandleAddrList;
-            std::recursive_mutex mtx_disconnectHandleAddrList;
+            std::vector<HCIConnectionRef> connectionList;
+            std::recursive_mutex mtx_connectionList;
+            void addTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle);
+            HCIConnectionRef setTrackerConnectionHandle(const EUI48 & address, const uint16_t handle);
+            HCIConnectionRef findTrackerConnection(const EUI48 & address);
+            HCIConnectionRef findTrackerConnection(const uint16_t handle);
+            HCIConnectionRef removeTrackerConnection(const uint16_t handle);
+            bool removeTrackerConnection(const EUI48 & address);
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;
@@ -141,6 +148,7 @@ namespace direct_bt {
                     throw IndexOutOfBoundsException(static_cast<uint16_t>(opc), 1, mgmtEventCallbackLists.size(), E_FILE_LINE);
                 }
             }
+            std::shared_ptr<MgmtEvent> translate(std::shared_ptr<HCIEvent> ev);
 
             void hciReaderThreadImpl();
 
@@ -240,7 +248,8 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              */
-            HCIStatusCode disconnect(const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
+            HCIStatusCode disconnect(const bool ioErrorCause,
+                                     const uint16_t conn_handle, const EUI48 &peer_bdaddr, const BDAddressType peer_mac_type,
                                      const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
 
             /** MgmtEventCallback handling  */

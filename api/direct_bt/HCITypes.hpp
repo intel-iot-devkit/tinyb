@@ -659,7 +659,7 @@ namespace direct_bt {
             std::string baseString() const override {
                 return HCIEvent::baseString()+
                         ", status "+uint8HexString(static_cast<uint8_t>(getStatus()), true)+" "+getHCIStatusCodeString(getStatus())+
-                        ", handle "+std::to_string(getHandle())+
+                        ", handle "+uint16HexString(getHandle())+
                         ", reason "+uint8HexString(static_cast<uint8_t>(getReason()), true)+" "+getHCIStatusCodeString(getReason());
             }
 

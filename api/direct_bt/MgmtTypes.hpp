@@ -866,7 +866,7 @@ namespace direct_bt {
 
         public:
             MgmtEvtDeviceConnected(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len), hci_conn_handle(0)
+            : MgmtEvent(buffer, buffer_len), hci_conn_handle(0xffff)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_CONNECTED);
             }
@@ -900,24 +900,24 @@ namespace direct_bt {
     class MgmtEvtDeviceConnectFailed : public MgmtEvent
     {
         private:
-            const HCIStatusCode hciRootStatus;
+            const HCIStatusCode hciStatus;
 
         protected:
             std::string baseString() const override {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
                        ", status[mgmt["+uint8HexString(static_cast<uint8_t>(getStatus()))+" ("+getMgmtStatusString(getStatus())+")]"+
-                       ", hci["+uint8HexString(static_cast<uint8_t>(hciRootStatus))+" ("+getHCIStatusCodeString(hciRootStatus)+")]]";
+                       ", hci["+uint8HexString(static_cast<uint8_t>(hciStatus))+" ("+getHCIStatusCodeString(hciStatus)+")]]";
             }
 
         public:
             MgmtEvtDeviceConnectFailed(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len), hciRootStatus(HCIStatusCode::UNKNOWN)
+            : MgmtEvent(buffer, buffer_len), hciStatus(HCIStatusCode::UNKNOWN)
             {
                 checkOpcode(getOpcode(), Opcode::CONNECT_FAILED);
             }
             MgmtEvtDeviceConnectFailed(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, const HCIStatusCode status)
-            : MgmtEvent(Opcode::DEVICE_CONNECTED, dev_id, 6+1+1), hciRootStatus(status)
+            : MgmtEvent(Opcode::CONNECT_FAILED, dev_id, 6+1+1), hciStatus(status)
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
@@ -929,7 +929,7 @@ namespace direct_bt {
             MgmtStatus getStatus() const { return static_cast<MgmtStatus>( pdu.get_uint8(MGMT_HEADER_SIZE+7) ); }
 
             /** Return the root reason in non reduced HCIStatusCode space, if available. Otherwise this value will be HCIStatusCode::UNKNOWN. */
-            HCIStatusCode getHCIRootStatus() const { return hciRootStatus; }
+            HCIStatusCode getHCIStatus() const { return hciStatus; }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }
@@ -967,7 +967,8 @@ namespace direct_bt {
             static DisconnectReason getDisconnectReason(HCIStatusCode hciReason);
 
         private:
-            const HCIStatusCode hciRootReason;
+            const HCIStatusCode hciReason;
+            const uint16_t hci_conn_handle;
 
         protected:
             std::string baseString() const override {
@@ -976,19 +977,21 @@ namespace direct_bt {
                 return MgmtEvent::baseString()+", address="+getAddress().toString()+
                        ", addressType "+getBDAddressTypeString(getAddressType())+
                        ", reason[mgmt["+uint8HexString(static_cast<uint8_t>(reason1))+" ("+getDisconnectReasonString(reason1)+")]"+
-                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]";
+                       ", hci["+uint8HexString(static_cast<uint8_t>(reason2))+" ("+getHCIStatusCodeString(reason2)+")]]"+
+                       ", hci_handle "+uint16HexString(hci_conn_handle);
             }
 
         public:
             MgmtEvtDeviceDisconnected(const uint8_t* buffer, const int buffer_len)
-            : MgmtEvent(buffer, buffer_len), hciRootReason(HCIStatusCode::UNKNOWN)
+            : MgmtEvent(buffer, buffer_len), hciReason(HCIStatusCode::UNKNOWN), hci_conn_handle(0xffff)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_DISCONNECTED);
             }
-            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType, HCIStatusCode hciRootReason)
-            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciRootReason(hciRootReason)
+            MgmtEvtDeviceDisconnected(const uint16_t dev_id, const EUI48 &address, const BDAddressType addressType,
+                                      HCIStatusCode hciReason, const uint16_t hci_conn_handle)
+            : MgmtEvent(Opcode::DEVICE_DISCONNECTED, dev_id, 6+1+1), hciReason(hciReason), hci_conn_handle(hci_conn_handle)
             {
-                DisconnectReason disconnectReason = getDisconnectReason(hciRootReason);
+                DisconnectReason disconnectReason = getDisconnectReason(hciReason);
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6+1, static_cast<uint8_t>(disconnectReason));
@@ -999,16 +1002,16 @@ namespace direct_bt {
 
             DisconnectReason getReason() const { return static_cast<DisconnectReason>(pdu.get_uint8(MGMT_HEADER_SIZE+7)); }
 
-            /** Return the root reason in non reduced HCIStatusCode space, if available. Otherwise this value will be HCIStatusCode::UNKNOWN. */
-            HCIStatusCode getHCIRootReason() const { return hciRootReason; }
-
-            /** Returns either the getHCIRootReason() if not HCIStatusCode::UNKNOWN, or the translated DisconnectReason. */
+            /** Returns either the HCI reason if given, or the translated DisconnectReason. */
             HCIStatusCode getHCIReason() const {
-                if( HCIStatusCode::UNKNOWN != hciRootReason ) {
-                    return hciRootReason;
+                if( HCIStatusCode::UNKNOWN != hciReason ) {
+                    return hciReason;
                 }
                 return getHCIReason(getReason());
             }
+
+            /** Returns the disconnected HCI connection handle, assuming creation occurred via HCIHandler */
+            uint16_t getHCIHandle() const { return hci_conn_handle; }
 
             int getDataOffset() const override { return MGMT_HEADER_SIZE+8; }
             int getDataSize() const override { return getParamSize()-8; }

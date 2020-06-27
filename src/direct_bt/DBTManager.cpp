@@ -118,13 +118,20 @@ void DBTManager::mgmtReaderThreadImpl() {
 }
 
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     const int dev_id = event->getDevID();
     const MgmtEvent::Opcode opc = event->getOpcode();
-    MgmtAdapterEventCallbackList mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
+    MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
     int invokeCount = 0;
     for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
         if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
-            it->getCallback().invoke(event);
+            try {
+                it->getCallback().invoke(event);
+            } catch (std::exception &e) {
+                ERR_PRINT("DBTManager::sendMgmtEvent-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
+                        invokeCount+1, mgmtEventCallbackList.size(),
+                        it->toString().c_str(), e.what());
+            }
             invokeCount++;
         }
     }
@@ -372,6 +379,7 @@ next1:
     }
 
     if( ok ) {
+#ifdef VERBOSE_ON
         addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
@@ -386,6 +394,7 @@ next1:
         addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
         addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
+#endif
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -655,10 +664,11 @@ bool DBTManager::disconnect(const bool ioErrorCause,
                 bres = true;
             }
         }
+    } else {
+        // explicit disconnected event anyways
+        MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, 0xffff);
+        sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     }
-    // explicit disconnected event anyways
-    MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason);
-    sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     return bres;
 }
 
