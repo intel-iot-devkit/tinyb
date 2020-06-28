@@ -56,7 +56,7 @@ public class ScannerTinyB10 {
 
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
-    String waitForDevice = EUI48_ANY_DEVICE;
+    final List<String> waitForDevices = new ArrayList<String>();
 
     long timestamp_t0;
 
@@ -98,9 +98,9 @@ public class ScannerTinyB10 {
                 return;
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&
-                ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                  ( waitForDevice.equals(device.getAddress()) &&
-                    ( MULTI_MEASUREMENTS || !devicesProcessed.contains(waitForDevice) )
+                ( waitForDevices.isEmpty() ||
+                  ( waitForDevices.contains(device.getAddress()) &&
+                    ( MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
                   )
                 )
               )
@@ -133,9 +133,9 @@ public class ScannerTinyB10 {
         @Override
         public void deviceConnected(final BluetoothDevice device, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
-                ( waitForDevice.equals(EUI48_ANY_DEVICE) ||
-                  ( waitForDevice.equals(device.getAddress()) &&
-                    ( MULTI_MEASUREMENTS || !devicesProcessed.contains(waitForDevice) )
+                ( waitForDevices.isEmpty() ||
+                  ( waitForDevices.contains(device.getAddress()) &&
+                    ( MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
                   )
                 )
               )
@@ -345,11 +345,11 @@ public class ScannerTinyB10 {
         }
 
         while( !done ) {
-            if( !waitForDevice.equals(EUI48_ANY_DEVICE) &&
-                !MULTI_MEASUREMENTS && devicesProcessed.contains(waitForDevice)
+            if( !waitForDevices.isEmpty() &&
+                !MULTI_MEASUREMENTS && devicesProcessed.containsAll(waitForDevices)
               )
             {
-                System.err.println("****** WaitForDevice processed "+waitForDevice);
+                System.err.println("****** WaitForDevice processed "+Arrays.toString(waitForDevices.toArray()));
                 done = true;
             }
             try {
@@ -379,7 +379,7 @@ public class ScannerTinyB10 {
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
-                    test.waitForDevice = args[++i];
+                    test.waitForDevices.add(args[++i]);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
                     final String addr = args[++i];
                     System.err.println("Whitelist + "+addr);
@@ -394,14 +394,14 @@ public class ScannerTinyB10 {
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
         }
 
         System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
         System.err.println("dev_id "+test.dev_id);
-        System.err.println("waitForDevice: "+test.waitForDevice);
+        System.err.println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
 
         if( waitForEnter ) {
             System.err.println("Press ENTER to continue\n");

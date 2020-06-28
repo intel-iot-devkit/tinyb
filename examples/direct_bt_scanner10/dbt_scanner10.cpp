@@ -330,7 +330,7 @@ exit:
     device->remove();
 
     removeFromDevicesProcessing(device->getAddress());
-    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %d\n",
+    fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
             success, device->toString().c_str(), devicesInProcessing.size());
     if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
         device->getAdapter().startDiscovery( true );
