@@ -149,7 +149,12 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
     public final short getHandle() { return handle; }
 
     @Override
-    public final String toString() { return toStringImpl(); }
+    public final String toString() {
+        if( !isValid() ) {
+            return "Descriptor" + "\u271D" + "[handle 0x"+Integer.toHexString(handle)+"]";
+        }
+        return toStringImpl();
+    }
 
     /* Native method calls: */
 

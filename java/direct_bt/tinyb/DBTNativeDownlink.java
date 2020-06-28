@@ -74,9 +74,9 @@ public abstract class DBTNativeDownlink
      * i.e. native instance destructed in native land.
      */
     private synchronized void notifyDeleted() {
-        // System.err.println("***** notifyDeleted: "+getClass().getSimpleName()+": valid "+isValid+" -> false, handle 0x"+Long.toHexString(nativeInstance)+" -> null");
         isValid = false;
         nativeInstance = 0;
+        // System.err.println("***** notifyDeleted: "+getClass().getSimpleName()+": valid "+isValid+" -> false, handle 0x"+Long.toHexString(nativeInstance)+" -> null: "+toString());
     }
 
     /**

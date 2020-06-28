@@ -297,7 +297,12 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     public final int getClientCharacteristicsConfigIndex() { return clientCharacteristicsConfigIndex; }
 
     @Override
-    public final String toString() { return toStringImpl(); }
+    public final String toString() {
+        if( !isValid() ) {
+            return "Characteristic" + "\u271D" + "[handle 0x"+Integer.toHexString(handle)+"]";
+        }
+        return toStringImpl();
+    }
 
     /* Native method calls: */
 

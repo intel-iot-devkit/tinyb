@@ -268,7 +268,12 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     }
 
     @Override
-    public String toString() { return toStringImpl(); }
+    public String toString() {
+        if( !isValid() ) {
+            return "Adapter" + "\u271D" + "["+address+", '"+name+"']";
+        }
+        return toStringImpl();
+    }
 
     /* Native callbacks */
 

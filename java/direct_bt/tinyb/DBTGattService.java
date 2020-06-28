@@ -114,7 +114,12 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
     public final short getHandleEnd() { return handleEnd; }
 
     @Override
-    public final String toString() { return toStringImpl(); }
+    public final String toString() {
+        if( !isValid() ) {
+            return "Service" + "\u271D" + "[handles [0x"+Integer.toHexString(handleStart)+".."+Integer.toHexString(handleEnd)+"]]";
+        }
+        return toStringImpl();
+    }
 
     /* Native method calls: */
 

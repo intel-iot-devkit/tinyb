@@ -474,7 +474,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public native boolean getLegacyPairing();
 
     @Override
-    public final String toString() { return toStringImpl(); }
+    public final String toString() {
+        if( !isValid() ) {
+            // Device✝[0x112233445566, 'adevice']
+            return "Device" + "\u271D" + "["+address+", '"+name+"']";
+        }
+        return toStringImpl();
+    }
 
     /* DBT native callbacks */
 
