@@ -71,6 +71,19 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
     }
     return nullptr;
 }
+
+int DBTAdapter::countDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac) {
+    int count = 0;
+    const size_t size = devices.size();
+    for (size_t i = 0; i < size; i++) {
+        std::shared_ptr<DBTDevice> & e = devices[i];
+        if ( mac == e->getAddress() ) {
+            count++;
+        }
+    }
+    return count;
+}
+
 std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) {
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
@@ -699,13 +712,20 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     ad_report.setRSSI( deviceFoundEvent.getRSSI() );
     ad_report.read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
 
-    std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
+    // std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
+    std::shared_ptr<DBTDevice> dev;
+    int devCount;
+    {
+        const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
+        dev = findDiscoveredDevice(ad_report.getAddress());
+        devCount = countDevice(discoveredDevices, ad_report.getAddress());
+    }
     if( nullptr != dev ) {
         //
         // existing device
         //
         EIRDataType updateMask = dev->update(ad_report);
-        INFO_PRINT("DBTAdapter::EventCB:SharedDeviceFound.1: Old Discovered %s", dev->getAddressString().c_str());
+        INFO_PRINT("DBTAdapter::EventCB:DeviceFound.1: Old Discovered %s, count %d", dev->getAddressString().c_str(), devCount);
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, ad_report.getTimestamp(), updateMask);
         }
@@ -723,7 +743,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
         EIRDataType updateMask = dev->update(ad_report);
         addDiscoveredDevice(dev); // re-add to discovered devices!
         dev->ts_last_discovery = ad_report.getTimestamp();
-        DBG_PRINT("DBTAdapter::EventCB:SharedDeviceFound.2: Old Shared %s", dev->getAddressString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceFound.2: Old Shared %s", dev->getAddressString().c_str());
 
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -732,7 +752,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
                     l->deviceFound(dev, ad_report.getTimestamp());
                 }
             } catch (std::exception &e) {
-                ERR_PRINT("DBTAdapter::EventCB:SharedDeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+                ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
                         l->toString().c_str(), dev->toString().c_str(), e.what());
             }
@@ -750,7 +770,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
-    DBG_PRINT("DBTAdapter::EventCB:SharedDeviceFound.3: All New %s", dev->getAddressString().c_str());
+    DBG_PRINT("DBTAdapter::EventCB:DeviceFound.3: All New %s", dev->getAddressString().c_str());
 
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -759,7 +779,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
                 l->deviceFound(dev, ad_report.getTimestamp());
             }
         } catch (std::exception &e) {
-            ERR_PRINT("DBTAdapter::EventCB:NewDeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+            ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
                     i+1, statusListenerList.size(),
                     l->toString().c_str(), dev->toString().c_str(), e.what());
         }

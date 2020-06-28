@@ -152,6 +152,7 @@ namespace direct_bt {
             /** Returns index >= 0 if found, otherwise -1 */
             static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
             static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
+            static int countDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
             std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device);
 
             DBTManager& mgmt;
