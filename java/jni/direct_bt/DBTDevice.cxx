@@ -355,8 +355,12 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
         std::function<jobject(JNIEnv*, jclass, jmethodID, GATTService*)> ctor_service =
                 [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTService *service)->jobject {
                     // prepare adapter ctor
-                    JavaGlobalObj::check(service->device->getJavaObject(), E_FILE_LINE);
-                    jobject jdevice = JavaGlobalObj::GetObject(service->device->getJavaObject());
+                    std::shared_ptr<DBTDevice> device = service->getDevice();
+                    if( nullptr == device ) {
+                        throw IllegalStateException("Service's DBTDevice destructed: "+service->toString(), E_FILE_LINE);
+                    }
+                    JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+                    jobject jdevice = JavaGlobalObj::GetObject(device->getJavaObject());
                     const jboolean isPrimary = service->isPrimary;
                     const jstring uuid = from_string_to_jstring(env,
                             directBTJNISettings.getUnifyUUID128Bit() ? service->type->toUUID128String() :

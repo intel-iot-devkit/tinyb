@@ -76,8 +76,12 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
         std::function<jobject(JNIEnv*, jclass, jmethodID, GATTCharacteristic *)> ctor_char =
                 [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTCharacteristic *characteristic)->jobject {
                     // prepare adapter ctor
-                    JavaGlobalObj::check(characteristic->service->getJavaObject(), E_FILE_LINE);
-                    jobject jservice = JavaGlobalObj::GetObject(characteristic->service->getJavaObject());
+                    std::shared_ptr<GATTService> service = characteristic->getService();
+                    if( nullptr == service ) {
+                        throw IllegalStateException("Characteristic's GATTService destructed: "+characteristic->toString(), E_FILE_LINE);
+                    }
+                    JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
+                    jobject jservice = JavaGlobalObj::GetObject(service->getJavaObject());
 
                     std::vector<std::unique_ptr<std::string>> props = GATTCharacteristic::getPropertiesStringList(characteristic->properties);
                     unsigned int props_size = props.size();

@@ -39,10 +39,6 @@
 
 using namespace direct_bt;
 
-std::shared_ptr<DBTDevice> GATTCharacteristic::getDevice() {
-    return service->device;
-}
-
 #define CHAR_DECL_PROPS_ENUM(X) \
         X(Broadcast,broadcast) \
         X(Read,read) \
@@ -66,6 +62,14 @@ std::shared_ptr<DBTDevice> GATTCharacteristic::getDevice() {
  */
 
 #define CASE_TO_STRING2(V,S) case V: return #S;
+
+std::shared_ptr<DBTDevice> GATTCharacteristic::getDevice() const {
+    std::shared_ptr<GATTService> s = getService();
+    if( nullptr != s ) {
+        return s->getDevice();
+    }
+    return nullptr;
+}
 
 std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) {
     switch(prop) {
@@ -106,14 +110,23 @@ std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStrin
 }
 
 std::string GATTCharacteristic::toString() const {
-    const std::shared_ptr<const uuid_t> & service_uuid = service->type;
-    const uint16_t service_handle_end = service->endHandle;
+    std::shared_ptr<const uuid_t> service_uuid;
+    uint16_t service_handle_end = 0xffff;
+    GATTServiceRef serviceRef = getService();
+    std::string service_uuid_str = "";
     std::string service_name = "";
     std::string char_name = "";
     std::string desc_str = ", descr[ ";
-    if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
-        const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
-        service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+
+    if( nullptr != serviceRef ) {
+        service_uuid = serviceRef->type;
+        service_uuid_str = service_uuid->toString();
+        service_handle_end = serviceRef->endHandle;
+
+        if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
+            const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
+            service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+        }
     }
     if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
@@ -126,7 +139,7 @@ std::string GATTCharacteristic::toString() const {
     desc_str += " ]";
     return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
            ", value[type 0x"+value_type->toString()+", handle "+uint16HexString(value_handle)+char_name+desc_str+
-           "], service[type 0x"+service_uuid->toString()+
+           "], service[type 0x"+service_uuid_str+
            ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
            service_name+" ]";
 }

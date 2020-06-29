@@ -72,6 +72,10 @@ namespace direct_bt {
      * </p>
      */
     class GATTCharacteristic : public JavaUplink {
+        private:
+            /* Characteristics's Service back-reference */
+            std::weak_ptr<GATTService> wbr_service;
+
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
             enum PropertyBitVal : uint8_t {
@@ -94,9 +98,6 @@ namespace direct_bt {
 
             static std::string getPropertiesString(const PropertyBitVal properties);
             static std::vector<std::unique_ptr<std::string>> getPropertiesStringList(const PropertyBitVal properties);
-
-            /* Characteristics's Service back-reference */
-            GATTServiceRef service;
 
             /**
              * Characteristics's Service Handle - key to service's handle range, retrieved from Characteristics data.
@@ -136,7 +137,7 @@ namespace direct_bt {
 
             GATTCharacteristic(const GATTServiceRef & service, const uint16_t service_handle, const uint16_t handle,
                                    const PropertyBitVal properties, const uint16_t value_handle, std::shared_ptr<const uuid_t> value_type)
-            : service(service), service_handle(service_handle), handle(handle),
+            : wbr_service(service), service_handle(service_handle), handle(handle),
               properties(properties), value_handle(value_handle), value_type(value_type) {}
 
             std::string get_java_class() const override {
@@ -146,7 +147,9 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattCharacteristic");
             }
 
-            std::shared_ptr<DBTDevice> getDevice();
+            std::shared_ptr<GATTService> getService() const { return wbr_service.lock(); }
+
+            std::shared_ptr<DBTDevice> getDevice() const;
 
             bool hasProperties(const PropertyBitVal v) const { return v == ( properties & v ); }
 

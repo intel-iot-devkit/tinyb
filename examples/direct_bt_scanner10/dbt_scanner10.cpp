@@ -40,11 +40,13 @@ using namespace direct_bt;
 
 static int64_t timestamp_t0;
 
-static bool MULTI_MEASUREMENTS = true;
+static int MULTI_MEASUREMENTS = 8;
 
 static bool KEEP_CONNECTED = true;
+static bool REMOVE_DEVICE = true;
 
 static bool USE_WHITELIST = false;
+static std::vector<std::shared_ptr<EUI48>> WHITELIST;
 
 static bool SHOW_UPDATE_EVENTS = false;
 
@@ -129,7 +131,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevice == EUI48_ANY_DEVICE ||
               ( waitForDevice == device->getAddress() &&
-                ( MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
               )
             )
           )
@@ -159,7 +161,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         if( !isDeviceProcessing( device->getAddress() ) &&
             ( waitForDevice == EUI48_ANY_DEVICE ||
               ( waitForDevice == device->getAddress() &&
-                ( MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
+                ( 0 < MULTI_MEASUREMENTS || !isDeviceProcessed(waitForDevice) )
               )
             )
           )
@@ -249,6 +251,8 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     //
     // GATT Service Processing
     //
+    fprintf(stderr, "****** Processing Device: GATT start: %s\n", device->getAddressString().c_str());
+    device->getAdapter().printDevices();
     try {
         std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
         if( 0 == primServices.size() ) {
@@ -320,16 +324,25 @@ exit:
         while( device->pingGATT() ) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
-        fprintf(stderr, "****** Processing Device: pingGATT failed");
+        fprintf(stderr, "****** Processing Device: pingGATT failed: %s\n", device->getAddressString().c_str());
     }
 
+    fprintf(stderr, "****** Processing Device: disconnecting: %s\n", device->getAddressString().c_str());
     device->disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
     while( device->getConnected() ) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    device->remove();
+    if( REMOVE_DEVICE ) {
+        fprintf(stderr, "****** Processing Device: removing: %s\n", device->getAddressString().c_str());
+        device->remove();
+    }
+    device->getAdapter().printDevices();
 
     removeFromDevicesProcessing(device->getAddress());
+    if( 0 < MULTI_MEASUREMENTS ) {
+        MULTI_MEASUREMENTS--;
+        fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS, device->getAddressString().c_str());
+    }
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
             success, device->toString().c_str(), devicesInProcessing.size());
     if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
@@ -340,50 +353,8 @@ exit:
     }
 }
 
-
-int main(int argc, char *argv[])
-{
-    int dev_id = 0; // default
-    bool waitForEnter=false;
+void test(int dev_id) {
     bool done = false;
-    std::vector<std::shared_ptr<EUI48>> whitelist;
-
-    for(int i=1; i<argc; i++) {
-        if( !strcmp("-wait", argv[i]) ) {
-            waitForEnter = true;
-        } else if( !strcmp("-show_update_events", argv[i]) ) {
-            SHOW_UPDATE_EVENTS = true;
-        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
-            dev_id = atoi(argv[++i]);
-        } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
-            std::string macstr = std::string(argv[++i]);
-            waitForDevice = EUI48(macstr);
-        } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
-            std::string macstr = std::string(argv[++i]);
-            std::shared_ptr<EUI48> wlmac( new EUI48(macstr) );
-            fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
-            whitelist.push_back( wlmac );
-            USE_WHITELIST = true;
-        } else if( !strcmp("-disconnect", argv[i]) ) {
-            KEEP_CONNECTED = false;
-        } else if( !strcmp("-single", argv[i]) ) {
-            MULTI_MEASUREMENTS = false;
-        }
-    }
-    fprintf(stderr, "pid %d\n", getpid());
-
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-single] (-wl <device_address>)* [-show_update_events]'\n");
-
-    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
-    fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
-    fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
-    fprintf(stderr, "dev_id %d\n", dev_id);
-    fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
-
-    if( waitForEnter ) {
-        fprintf(stderr, "Press ENTER to continue\n");
-        getchar();
-    }
 
     timestamp_t0 = getCurrentMilliseconds();
 
@@ -402,10 +373,10 @@ int main(int argc, char *argv[])
     adapter.addStatusListener(std::shared_ptr<AdapterStatusListener>(new MyAdapterStatusListener()));
 
     if( USE_WHITELIST ) {
-        for (auto it = whitelist.begin(); it != whitelist.end(); ++it) {
+        for (auto it = WHITELIST.begin(); it != WHITELIST.end(); ++it) {
             std::shared_ptr<EUI48> wlmac = *it;
             bool res = adapter.addDeviceToWhitelist(*wlmac, BDAddressType::BDADDR_LE_PUBLIC, HCIWhitelistConnectType::HCI_AUTO_CONN_ALWAYS);
-            fprintf(stderr, "Added to whitelist: res %d, address %s\n", res, wlmac->toString().c_str());
+            fprintf(stderr, "Added to WHITELIST: res %d, address %s\n", res, wlmac->toString().c_str());
         }
     } else {
         if( !adapter.startDiscovery( true ) ) {
@@ -415,16 +386,70 @@ int main(int argc, char *argv[])
     }
 
     while( !done ) {
-        if( waitForDevice != EUI48_ANY_DEVICE &&
-            !MULTI_MEASUREMENTS && isDeviceProcessed(waitForDevice)
+        if( 0 == MULTI_MEASUREMENTS ||
+            ( -1 == MULTI_MEASUREMENTS && waitForDevice != EUI48_ANY_DEVICE && isDeviceProcessed(waitForDevice) )
           )
         {
-            fprintf(stderr, "****** WaitForDevice processed %s", waitForDevice.toString().c_str());
+            fprintf(stderr, "****** EOL Test MULTI_MEASUREMENTS left %d, processed %zd\n",
+                    MULTI_MEASUREMENTS, devicesProcessed.size());
+            fprintf(stderr, "****** WaitForDevice %s\n", waitForDevice.toString().c_str());
             done = true;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
-        sleep(3);
     }
-
-    return 0;
+    fprintf(stderr, "****** EOL Adapter's Devices\n");
+    adapter.printDevices();
 }
 
+int main(int argc, char *argv[])
+{
+    int dev_id = 0; // default
+    bool waitForEnter=false;
+
+    for(int i=1; i<argc; i++) {
+        if( !strcmp("-wait", argv[i]) ) {
+            waitForEnter = true;
+        } else if( !strcmp("-show_update_events", argv[i]) ) {
+            SHOW_UPDATE_EVENTS = true;
+        } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
+            dev_id = atoi(argv[++i]);
+        } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
+            std::string macstr = std::string(argv[++i]);
+            waitForDevice = EUI48(macstr);
+        } else if( !strcmp("-wl", argv[i]) && argc > (i+1) ) {
+            std::string macstr = std::string(argv[++i]);
+            std::shared_ptr<EUI48> wlmac( new EUI48(macstr) );
+            fprintf(stderr, "Whitelist + %s\n", wlmac->toString().c_str());
+            WHITELIST.push_back( wlmac );
+            USE_WHITELIST = true;
+        } else if( !strcmp("-disconnect", argv[i]) ) {
+            KEEP_CONNECTED = false;
+        } else if( !strcmp("-keepDevice", argv[i]) ) {
+            REMOVE_DEVICE = false;
+        } else if( !strcmp("-count", argv[i]) && argc > (i+1) ) {
+            MULTI_MEASUREMENTS = atoi(argv[++i]);
+        } else if( !strcmp("-single", argv[i]) ) {
+            MULTI_MEASUREMENTS = -1;
+        }
+    }
+    fprintf(stderr, "pid %d\n", getpid());
+
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events]'\n");
+
+    fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
+    fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
+    fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
+    fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
+    fprintf(stderr, "dev_id %d\n", dev_id);
+    fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
+
+    if( waitForEnter ) {
+        fprintf(stderr, "Press ENTER to continue\n");
+        getchar();
+    }
+    fprintf(stderr, "****** TEST start\n");
+    test(dev_id);
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+    fprintf(stderr, "****** TEST end\n");
+}

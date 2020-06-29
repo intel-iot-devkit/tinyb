@@ -62,10 +62,11 @@ namespace direct_bt {
      * which also may include its client config if available.
      */
     class GATTService : public JavaUplink {
-        public:
+        private:
             /* Service's Device back-reference */
-            std::shared_ptr<DBTDevice> device;
+            std::weak_ptr<DBTDevice> wbr_device;
 
+        public:
             const bool isPrimary;
 
             /**
@@ -92,7 +93,7 @@ namespace direct_bt {
 
             GATTService(const std::shared_ptr<DBTDevice> &device, const bool isPrimary,
                         const uint16_t startHandle, const uint16_t endHandle, std::shared_ptr<const uuid_t> type)
-            : device(device), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
+            : wbr_device(device), isPrimary(isPrimary), startHandle(startHandle), endHandle(endHandle), type(type), characteristicList() {
                 characteristicList.reserve(10);
             }
 
@@ -102,6 +103,8 @@ namespace direct_bt {
             static std::string java_class() {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
+
+            std::shared_ptr<DBTDevice> getDevice() const { return wbr_device.lock(); }
 
             std::string toString() const;
     };

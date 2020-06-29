@@ -60,8 +60,9 @@ public class ScannerTinyB10 {
 
     long timestamp_t0;
 
-    boolean MULTI_MEASUREMENTS = true;
+    int MULTI_MEASUREMENTS = 8;
     boolean KEEP_CONNECTED = true;
+    boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
 
@@ -100,7 +101,7 @@ public class ScannerTinyB10 {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains(device.getAddress()) &&
-                    ( MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
+                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
                   )
                 )
               )
@@ -135,7 +136,7 @@ public class ScannerTinyB10 {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains(device.getAddress()) &&
-                    ( MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
+                    ( 0 < MULTI_MEASUREMENTS || !devicesProcessed.containsAll(waitForDevices) )
                   )
                 )
               )
@@ -265,9 +266,10 @@ public class ScannerTinyB10 {
                     e.printStackTrace();
                 }
             }
-            System.err.println("****** Processing Device: pingGATT failed");
+            System.err.println("****** Processing Device: pingGATT failed: "+device.getAddress());
         }
 
+        System.err.println("****** Processing Device: disconnecting: "+device.getAddress());
         device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
         while( device.getConnected() ) {
             try {
@@ -276,9 +278,16 @@ public class ScannerTinyB10 {
                 e.printStackTrace();
             }
         }
-        device.remove();
+        if( REMOVE_DEVICE ) {
+            System.err.println("****** Processing Device: removing: "+device.getAddress());
+            device.remove();
+        }
 
         devicesInProcessing.remove(device.getAddress());
+        if( 0 < MULTI_MEASUREMENTS ) {
+            MULTI_MEASUREMENTS--;
+            System.err.println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
+        }
         System.err.println("****** Processing Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
@@ -345,23 +354,29 @@ public class ScannerTinyB10 {
         }
 
         while( !done ) {
-            if( !waitForDevices.isEmpty() &&
-                !MULTI_MEASUREMENTS && devicesProcessed.containsAll(waitForDevices)
+            if( 0 == MULTI_MEASUREMENTS ||
+                ( -1 == MULTI_MEASUREMENTS && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
               )
             {
-                System.err.println("****** WaitForDevice processed "+Arrays.toString(waitForDevices.toArray()));
+                System.err.println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+
+                                   ", processed "+devicesProcessed.size()+"/"+waitForDevices.size());
+                System.err.println("****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
+                System.err.println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
                 done = true;
+            } else {
+                try {
+                    Thread.sleep(3000);
+                } catch (final InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-            try {
-                Thread.sleep(3000);
-            } catch (final InterruptedException e) {
-                e.printStackTrace();
-            }
+            System.err.println("****** Garbage Collection.0");
+            System.gc();
+            System.err.println("****** Garbage Collection.X");
         }
 
         // All implicit via destructor or shutdown hook!
-        // adapter.close();
-        // manager.shutdown();
+        // manager.shutdown(); /* implies: adapter.close(); */
     }
 
     public static void main(final String[] args) throws InterruptedException {
@@ -387,18 +402,23 @@ public class ScannerTinyB10 {
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
+                } else if( arg.equals("-keepDevice") ) {
+                    test.REMOVE_DEVICE = false;
+                } else if( arg.equals("-count")  && args.length > (i+1) ) {
+                    test.MULTI_MEASUREMENTS = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-single") ) {
-                    test.MULTI_MEASUREMENTS = false;
+                    test.MULTI_MEASUREMENTS = -1;
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     test.factory = Integer.valueOf(args[++i]).intValue();
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
         }
 
         System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
+        System.err.println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
         System.err.println("dev_id "+test.dev_id);
         System.err.println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));

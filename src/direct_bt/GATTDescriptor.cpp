@@ -43,12 +43,19 @@ const uuid16_t GATTDescriptor::TYPE_EXT_PROP(Type::CHARACTERISTIC_EXTENDED_PROPE
 const uuid16_t GATTDescriptor::TYPE_USER_DESC(Type::CHARACTERISTIC_USER_DESCRIPTION);
 const uuid16_t GATTDescriptor::TYPE_CCC_DESC(Type::CLIENT_CHARACTERISTIC_CONFIGURATION);
 
-std::shared_ptr<DBTDevice> GATTDescriptor::getDevice() {
-    return characteristic->service->device;
+std::shared_ptr<DBTDevice> GATTDescriptor::getDevice() const {
+    std::shared_ptr<GATTCharacteristic> c = getCharacteristic();
+    if( nullptr != c ) {
+        return c->getDevice();
+    }
+    return nullptr;
 }
 
 bool GATTDescriptor::readValue(int expectedLength) {
     std::shared_ptr<DBTDevice> device = getDevice();
+    if( nullptr == device ) {
+        throw IllegalStateException("Descriptor's device already destructed: "+toString(), E_FILE_LINE);
+    }
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Descriptor's device GATTHandle not connected: "+
@@ -59,6 +66,9 @@ bool GATTDescriptor::readValue(int expectedLength) {
 
 bool GATTDescriptor::writeValue() {
     std::shared_ptr<DBTDevice> device = getDevice();
+    if( nullptr == device ) {
+        throw IllegalStateException("Descriptor's device already destructed: "+toString(), E_FILE_LINE);
+    }
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Descriptor's device GATTHandle not connected: "+

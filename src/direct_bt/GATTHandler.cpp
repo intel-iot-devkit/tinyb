@@ -245,7 +245,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int replyTimeoutMS)
-: device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
+: wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), replyTimeoutMS(replyTimeoutMS),
   isConnected(false), hasIOError(false),
   attPDURing(number(Defaults::ATTPDU_RING_CAPACITY)),
@@ -256,6 +256,7 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int rep
 GATTHandler::~GATTHandler() {
     eventListenerList.clear();
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+    services.clear();
 }
 
 bool GATTHandler::connect() {
@@ -334,6 +335,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
             }
         }
     }
+    std::shared_ptr<DBTDevice> device = getDevice();
 
     if( disconnectDevice && nullptr != device ) {
         // Cleanup device resources, proper connection state
@@ -470,6 +472,11 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
+    std::shared_ptr<DBTDevice> device = getDevice();
+    if( nullptr == device ) {
+        ERR_PRINT("GATT discoverPrimary: Device destructed: %s", deviceString.c_str());
+        return false;
+    }
     bool done=false;
     uint16_t startHandle=0x0001;
     result.clear();
@@ -872,7 +879,8 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
 
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
-        if( _GENERIC_ACCESS != *charDecl.service->type ) {
+        std::shared_ptr<GATTService> service = charDecl.getService();
+        if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
         	continue;
         }
         if( _DEVICE_NAME == *charDecl.value_type ) {
@@ -915,7 +923,8 @@ bool GATTHandler::ping() {
 
         for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
             const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
-            if( _GENERIC_ACCESS != *charDecl.service->type ) {
+            std::shared_ptr<GATTService> service = charDecl.getService();
+            if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
                 continue;
             }
             if( _APPEARANCE == *charDecl.value_type ) {
@@ -947,7 +956,8 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
 
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *characteristicDeclList.at(i);
-        if( _DEVICE_INFORMATION != *charDecl.service->type ) {
+        std::shared_ptr<GATTService> service = charDecl.getService();
+        if( nullptr == service || _DEVICE_INFORMATION != *(service->type) ) {
             continue;
         }
         found = true;

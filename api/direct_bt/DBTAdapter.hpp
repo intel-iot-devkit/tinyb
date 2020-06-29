@@ -457,6 +457,8 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac);
 
             std::string toString() const override;
+
+            void printDevices();
     };
 
 } // namespace direct_bt

@@ -28,6 +28,9 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <vector>
+#include <memory>
+
 extern "C" {
     #include <errno.h>
 }
@@ -59,5 +62,20 @@ extern "C" {
 #define WARN_PRINT(...) { fprintf(stderr, "Warning @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
 
 #define INFO_PRINT(...) { fprintf(stderr, "INFO: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+
+template<class ListElemType>
+inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
+    fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), list.size());
+    int idx = 0;
+    for (auto it = list.begin(); it != list.end(); idx++) {
+        std::shared_ptr<ListElemType> & e = *it;
+        if ( nullptr != e ) {
+            fprintf(stderr, "%s[%d]: useCount %zd, mem %p\n", prefix.c_str(), idx, e.use_count(), e.get());
+        } else {
+            fprintf(stderr, "%s[%d]: NULL\n", prefix.c_str(), idx);
+        }
+        ++it;
+    }
+}
 
 #endif /* DBT_DEBUG_HPP_ */

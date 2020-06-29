@@ -196,6 +196,16 @@ DBTAdapter::~DBTAdapter() {
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
+void DBTAdapter::printDevices() {
+    const std::lock_guard<std::recursive_mutex> lock0(mtx_connectedDevices);
+    const std::lock_guard<std::recursive_mutex> lock1(mtx_discoveredDevices);
+    const std::lock_guard<std::recursive_mutex> lock2(mtx_sharedDevices);
+
+    printSharedPtrList("SharedDevices", sharedDevices);
+    printSharedPtrList("DiscoveredDevices", discoveredDevices);
+    printSharedPtrList("ConnectedDevices", connectedDevices);
+}
+
 std::shared_ptr<NameAndShortName> DBTAdapter::setLocalName(const std::string &name, const std::string &short_name) {
     return mgmt.setLocalName(dev_id, name, short_name);
 }

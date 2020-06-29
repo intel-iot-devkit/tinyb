@@ -82,7 +82,9 @@ namespace direct_bt {
             static inline int number(const Defaults d) { return static_cast<int>(d); }
 
        private:
-            std::shared_ptr<DBTDevice> device;
+            /* GATTHandle's Device back-reference */
+            std::weak_ptr<DBTDevice> wbr_device;
+
             const std::string deviceString;
             std::recursive_mutex mtx_write;
             std::recursive_mutex mtx_command;
@@ -108,6 +110,8 @@ namespace direct_bt {
             uint16_t serverMTU;
             uint16_t usedMTU;
             std::vector<GATTServiceRef> services;
+
+            std::shared_ptr<DBTDevice> getDevice() const { return wbr_device.lock(); }
 
             bool validateConnected();
 

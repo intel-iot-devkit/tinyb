@@ -59,10 +59,11 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 }
 
 DBTDevice::~DBTDevice() {
-    DBG_PRINT("DBTDevice::dtor: ... %p %s", this, toString().c_str());
+    DBG_PRINT("DBTDevice::dtor: ... %p %s", this, getAddressString().c_str());
     remove();
     services.clear();
     msd = nullptr;
+    DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, getAddressString().c_str());
 }
 
 std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const {
@@ -398,7 +399,7 @@ exit:
 }
 
 void DBTDevice::remove() {
-    disconnect();
+    disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION);
     adapter.removeConnectedDevice(*this); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     adapter.removeDiscoveredDevice(*this); // usually done in DBTAdapter::mgmtEvDeviceDisconnectedHCI
     releaseSharedInstance();

@@ -60,6 +60,10 @@ namespace direct_bt {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      */
     class GATTDescriptor : public JavaUplink {
+        private:
+            /* Characteristic Descriptor's Characteristic back-reference */
+            std::weak_ptr<GATTCharacteristic> wbr_characteristic;
+
         public:
             static const uuid16_t TYPE_EXT_PROP;
             static const uuid16_t TYPE_USER_DESC;
@@ -95,9 +99,6 @@ namespace direct_bt {
                 CUSTOM_CHARACTERISTIC_DESCRIPTION           = 0x8888
             };
 
-            /* Characteristic Descriptor's Characteristic back-reference */
-            GATTCharacteristicRef characteristic;
-
             /** Type of descriptor */
             std::shared_ptr<const uuid_t> type;
 
@@ -114,7 +115,7 @@ namespace direct_bt {
 
             GATTDescriptor(const GATTCharacteristicRef & characteristic, const std::shared_ptr<const uuid_t> & type,
                            const uint16_t handle)
-            : characteristic(characteristic), type(type), handle(handle), value(0) {}
+            : wbr_characteristic(characteristic), type(type), handle(handle), value(0) {}
 
             std::string get_java_class() const override {
                 return java_class();
@@ -123,7 +124,9 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattDescriptor");
             }
 
-            std::shared_ptr<DBTDevice> getDevice();
+            std::shared_ptr<GATTCharacteristic> getCharacteristic() const { return wbr_characteristic.lock(); }
+
+            std::shared_ptr<DBTDevice> getDevice() const;
 
             virtual std::string toString() const {
                 return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";

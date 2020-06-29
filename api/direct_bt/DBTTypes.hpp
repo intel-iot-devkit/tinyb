@@ -65,6 +65,10 @@ namespace direct_bt {
              }
 
         public:
+            virtual ~DBTObject() {
+                valid = false;
+            }
+
             bool isValid() { return valid; }
     };
 
