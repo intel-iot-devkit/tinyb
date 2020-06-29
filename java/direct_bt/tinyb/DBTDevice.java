@@ -183,7 +183,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
                        final String address, final int intAddressType,
                        final String name, final long ts_creation)
     {
-        super(nativeInstance, compHash(address, name));
+        super(nativeInstance, address.hashCode());
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
         this.address = address;
         this.addressType = BluetoothAddressType.get(intAddressType);
@@ -234,7 +234,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             return false;
         }
         final DBTDevice other = (DBTDevice)obj;
-        return address.equals(other.address) && name.equals(other.name);
+        return address.equals(other.address);
     }
 
     @Override
