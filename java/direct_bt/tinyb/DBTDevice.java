@@ -52,8 +52,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     private final String address;
     private final BluetoothAddressType addressType;
-    private final String name;
     private final long ts_creation;
+    private volatile String name;
     long ts_last_discovery;
     long ts_last_update;
 
@@ -83,8 +83,19 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     final AdapterStatusListener statusListener = new AdapterStatusListener() {
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
+            if( DEBUG ) {
+                System.err.println("Device.StatusListener.UPDATED: "+updateMask+" of "+device);
+            }
+            final boolean nameUpdated = updateMask.isSet( EIRDataTypeSet.DataType.NAME );
             final boolean rssiUpdated = updateMask.isSet( EIRDataTypeSet.DataType.RSSI );
             final boolean mdUpdated = updateMask.isSet( EIRDataTypeSet.DataType.MANUF_DATA );
+            if( nameUpdated ) {
+                final String oldName = DBTDevice.this.name;
+                DBTDevice.this.name = getNameImpl();
+                if( DEBUG ) {
+                    System.err.println("Device.StatusListener.UPDATED: NAME: '"+oldName+"' -> '"+DBTDevice.this.name+"'");
+                }
+            }
             if( rssiUpdated || mdUpdated ) {
                 synchronized(userCallbackLock) {
                     if( rssiUpdated && null != userRSSINotificationsCB ) {
@@ -187,8 +198,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
         this.address = address;
         this.addressType = BluetoothAddressType.get(intAddressType);
-        this.name = name;
         this.ts_creation = ts_creation;
+        this.name = name;
         ts_last_discovery = ts_creation;
         ts_last_update = ts_creation;
         appearance = 0;
@@ -257,6 +268,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public String getName() { return name; }
+
+    private native String getNameImpl();
 
     @Override
     public BluetoothType getBluetoothType() { return class_type(); }

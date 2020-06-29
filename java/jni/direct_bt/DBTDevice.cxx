@@ -146,6 +146,17 @@ void Java_direct_1bt_tinyb_DBTDevice_initImpl(JNIEnv *env, jobject obj)
     }
 }
 
+jstring Java_direct_1bt_tinyb_DBTDevice_getNameImpl(JNIEnv *env, jobject obj) {
+    try {
+        DBTDevice *nativePtr = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
+        return from_string_to_jstring(env, nativePtr->getName());
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return nullptr;
+}
+
 jstring Java_direct_1bt_tinyb_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     try {
         DBTDevice *nativePtr = getInstance<DBTDevice>(env, obj);
