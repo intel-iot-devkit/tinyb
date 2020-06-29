@@ -335,10 +335,6 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
 
-        std::shared_ptr<GATTHandler> gatt = device->connectGATT();
-        if( nullptr == gatt || !gatt->isOpen() ) {
-            return nullptr;
-        }
         std::vector<GATTServiceRef> services = device->getGATTServices(); // implicit GATT connect and discovery if required incl GenericAccess retrieval
         if( services.size() > 0 ) {
             std::shared_ptr<GenericAccess> ga = device->getGATTGenericAccess();
@@ -347,6 +343,8 @@ jobject Java_direct_1bt_tinyb_DBTDevice_getServicesImpl(JNIEnv *env, jobject obj
                 java_exception_check_and_throw(env, E_FILE_LINE);
                 DBG_PRINT("DBTDevice.getServices(): GenericAccess: %s", ga->toString().c_str());
             }
+        } else {
+            return nullptr;
         }
 
         // DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,

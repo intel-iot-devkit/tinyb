@@ -88,7 +88,8 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
         stopDiscovery();
 
-        for(final Iterator<BluetoothDevice> id = discoveredDevices.iterator(); id.hasNext(); ) {
+        final List<BluetoothDevice> devices = getDevices();
+        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext(); ) {
             final BluetoothDevice d = id.next();
             d.close();
         }

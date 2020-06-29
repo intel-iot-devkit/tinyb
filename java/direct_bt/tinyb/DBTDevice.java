@@ -222,6 +222,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         final DBTAdapter a = getAdapter();
         if( null != a ) {
             a.removeStatusListener(statusListener);
+            a.removeDiscoveredDevice(this);
         }
         super.close();
     }
@@ -535,11 +536,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      */
     @Override
     public final boolean remove() throws BluetoothException {
-        final DBTAdapter a = getAdapter();
-        if( null != a ) {
-            a.removeDiscoveredDevice(this);
-        }
-        return removeImpl();
+        close(); // -> super.close() -> delete() -> deleteImpl() -> DBTDevice::remove()
+        // return removeImpl();
+        return true;
     }
     private native boolean removeImpl() throws BluetoothException;
 
@@ -591,6 +590,12 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public native short getTxPower ();
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Native implementation calls DBTDevice::remove()
+     * </p>
+     */
     @Override
     protected native void deleteImpl();
 

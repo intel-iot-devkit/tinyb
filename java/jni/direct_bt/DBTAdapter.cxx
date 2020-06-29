@@ -262,23 +262,24 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         JNIEnv *env = *jni_env;
         DBG_PRINT("****** JNI Adapter Device FOUND__: %s\n", device->toString(true).c_str());
         jobject jdevice;
-        std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-        if( JavaGlobalObj::isValid(jDeviceRef) ) {
+        std::shared_ptr<JavaAnonObj> jDeviceRef0 = device->getJavaObject();
+        if( JavaGlobalObj::isValid(jDeviceRef0) ) {
             // Reuse Java instance
-            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef0);
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
             const jstring addr = from_string_to_jstring(env, device->getAddressString());
             const jstring name = from_string_to_jstring(env, device->getName());
             java_exception_check_and_throw(env, E_FILE_LINE);
-            jobject jDevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
+            jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
                     (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
             java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(jDevice, E_FILE_LINE);
-            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
+            std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef1);
+            env->DeleteLocalRef(tmp_jdevice);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -307,23 +308,24 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         DBG_PRINT("****** JNI Adapter Device CONNECTED: %s\n", device->toString(true).c_str());
 
         jobject jdevice;
-        std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-        if( JavaGlobalObj::isValid(jDeviceRef) ) {
+        std::shared_ptr<JavaAnonObj> jDeviceRef0 = device->getJavaObject();
+        if( JavaGlobalObj::isValid(jDeviceRef0) ) {
             // Reuse Java instance
-            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef0);
         } else {
             // New Java instance
             // Device(final long nativeInstance, final Adapter adptr, final String address, final int intAddressType, final String name)
             const jstring addr = from_string_to_jstring(env, device->getAddressString());
             const jstring name = from_string_to_jstring(env, device->getName());
             java_exception_check_and_throw(env, E_FILE_LINE);
-            jobject jDevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
+            jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
                     (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
             java_exception_check_and_throw(env, E_FILE_LINE);
-            JNIGlobalRef::check(jDevice, E_FILE_LINE);
-            std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
-            JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
-            jdevice = JavaGlobalObj::GetObject(jDeviceRef);
+            JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
+            std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
+            JavaGlobalObj::check(jDeviceRef1, E_FILE_LINE);
+            jdevice = JavaGlobalObj::GetObject(jDeviceRef1);
+            env->DeleteLocalRef(tmp_jdevice);
         }
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         java_exception_check_and_throw(env, E_FILE_LINE);

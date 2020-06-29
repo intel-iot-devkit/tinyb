@@ -49,11 +49,6 @@ import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 
 public class ScannerTinyB10 {
-    static {
-        System.setProperty("org.tinyb.verbose", "true");
-        System.setProperty("org.tinyb.debug", "false");
-    }
-
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
@@ -370,9 +365,6 @@ public class ScannerTinyB10 {
                     e.printStackTrace();
                 }
             }
-            System.err.println("****** Garbage Collection.0");
-            System.gc();
-            System.err.println("****** Garbage Collection.X");
         }
 
         // All implicit via destructor or shutdown hook!
@@ -408,6 +400,9 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-single") ) {
                     test.MULTI_MEASUREMENTS = -1;
+                } else if( arg.equals("-debug") ) {
+                    System.setProperty("org.tinyb.verbose", "true");
+                    System.setProperty("org.tinyb.debug", "true");
                 } else if( arg.equals("-factory") && args.length > (i+1) ) {
                     test.factory = Integer.valueOf(args[++i]).intValue();
                 }
