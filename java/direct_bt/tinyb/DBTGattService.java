@@ -25,6 +25,7 @@
 
 package direct_bt.tinyb;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 import org.tinyb.BluetoothDevice;
@@ -35,7 +36,9 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattService extends DBTObject implements BluetoothGattService
 {
-    /* pp */ final DBTDevice device;
+    /** Service's device weak back-reference */
+    final WeakReference<DBTDevice> wbr_device;
+
     private final boolean isPrimary;
     private final String type_uuid;
     private final short handleStart;
@@ -46,7 +49,7 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
                            final String type_uuid, final short handleStart, final short handleEnd)
     {
         super(nativeInstance, compHash(handleStart, handleEnd));
-        this.device = device;
+        this.wbr_device = new WeakReference<DBTDevice>(device);
         this.isPrimary = isPrimary;
         this.type_uuid = type_uuid;
         this.handleStart = handleStart;
@@ -89,7 +92,7 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
     }
 
     @Override
-    public final BluetoothDevice getDevice() { return device; }
+    public final BluetoothDevice getDevice() { return wbr_device.get(); }
 
     @Override
     public final boolean getPrimary() { return isPrimary; }

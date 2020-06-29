@@ -63,7 +63,7 @@ namespace direct_bt {
      */
     class GATTService : public JavaUplink {
         private:
-            /* Service's Device back-reference */
+            /** Service's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;
 
         public:

@@ -25,6 +25,7 @@
 
 package direct_bt.tinyb;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,7 +47,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 {
     private static final boolean DEBUG = DBTManager.DEBUG;
 
-    private final DBTAdapter adapter;
+    /** Device's adapter weak back-reference */
+    private final WeakReference<DBTAdapter> wbr_adapter;
+
     private final String address;
     private final BluetoothAddressType addressType;
     private final String name;
@@ -181,7 +184,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
                        final String name, final long ts_creation)
     {
         super(nativeInstance, compHash(address, name));
-        this.adapter = adptr;
+        this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
         this.address = address;
         this.addressType = BluetoothAddressType.get(intAddressType);
         this.name = name;
@@ -190,7 +193,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         ts_last_update = ts_creation;
         appearance = 0;
         initImpl();
-        this.adapter.addStatusListener(statusListener, this); // only for this device
+        adptr.addStatusListener(statusListener, this); // only for this device
         enableBlockedNotificationsImpl(blockedNotificationsCB);
         enablePairedNotificationsImpl(pairedNotificationsCB);
         // FIXME enableTrustedNotificationsImpl(trustedNotificationsCB);
@@ -216,7 +219,10 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         disableTrustedNotifications();
         // FIXME disableTrustedNotificationsImpl();
 
-        adapter.removeStatusListener(statusListener);
+        final DBTAdapter a = getAdapter();
+        if( null != a ) {
+            a.removeStatusListener(statusListener);
+        }
         super.close();
     }
 
@@ -240,9 +246,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final long getLastUpdateTimestamp() { return ts_last_update; }
 
     @Override
-    public DBTAdapter getAdapter() {
-        return adapter;
-    }
+    public DBTAdapter getAdapter() { return wbr_adapter.get(); }
 
     @Override
     public String getAddress() { return address; }
@@ -510,8 +514,34 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public native boolean disconnectProfile(String arg_UUID) throws BluetoothException;
 
-     @Override
-    public native boolean remove() throws BluetoothException;
+    /**
+     * {@inheritDoc}
+     * <p>
+     * Disconnects this device via disconnect(..) and
+     * removes its shared reference from the Adapter altogether.
+     * </p>
+     * <p>
+     * This method shall be issued to ensure no device reference will
+     * be leaked in a long lived adapter,
+     * as only the connected-devices are removed at disconnect
+     * and the discovered-devices removed with a new discovery.
+     * </p>
+     * <p>
+     * After calling this method, the device shall no more being used.
+     * </p>
+     * <p>
+     * This method is automatically called native @ destructor {@link #deleteImpl(long)}.
+     * </p>
+     */
+    @Override
+    public final boolean remove() throws BluetoothException {
+        final DBTAdapter a = getAdapter();
+        if( null != a ) {
+            a.removeDiscoveredDevice(this);
+        }
+        return removeImpl();
+    }
+    private native boolean removeImpl() throws BluetoothException;
 
     @Override
     public List<BluetoothGattService> getServices() {

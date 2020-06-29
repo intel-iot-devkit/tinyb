@@ -25,6 +25,7 @@
 
 package direct_bt.tinyb;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 
 import org.tinyb.BluetoothException;
@@ -34,7 +35,8 @@ import org.tinyb.BluetoothType;
 
 public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescriptor
 {
-    /** pp */ final DBTGattCharacteristic characteristic;
+    /** Descriptor's characteristic weak back-reference */
+    final WeakReference<DBTGattCharacteristic> wbr_characteristic;
 
     /** Type of Descriptor */
     private final String type_uuid;
@@ -71,7 +73,7 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
                               final String type_uuid, final short handle, final byte[] value)
     {
         super(nativeInstance, handle /* hash */);
-        this.characteristic = characteristic;
+        this.wbr_characteristic = new WeakReference<DBTGattCharacteristic>(characteristic);
         this.type_uuid = type_uuid;
         this.handle = handle;
         this.cachedValue = value;
@@ -109,7 +111,7 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
     { throw new UnsupportedOperationException(); } // FIXME
 
     @Override
-    public final DBTGattCharacteristic getCharacteristic() { return characteristic; }
+    public final DBTGattCharacteristic getCharacteristic() { return wbr_characteristic.get(); }
 
     @Override
     public final byte[] getValue() { return cachedValue; }

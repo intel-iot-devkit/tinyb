@@ -362,6 +362,11 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
             return n;
         }
     }
+    /* pp */ boolean removeDiscoveredDevice(final BluetoothDevice device) {
+        synchronized(discoveredDevicesLock) {
+            return discoveredDevices.remove(device);
+        }
+    }
 
     @Override
     public native boolean addStatusListener(final AdapterStatusListener l, final BluetoothDevice deviceMatch);

@@ -61,7 +61,7 @@ namespace direct_bt {
      */
     class GATTDescriptor : public JavaUplink {
         private:
-            /* Characteristic Descriptor's Characteristic back-reference */
+            /** Descriptor's characteristic weak back-reference */
             std::weak_ptr<GATTCharacteristic> wbr_characteristic;
 
         public:

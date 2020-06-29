@@ -73,7 +73,7 @@ namespace direct_bt {
      */
     class GATTCharacteristic : public JavaUplink {
         private:
-            /* Characteristics's Service back-reference */
+            /** Characteristics's service weak back-reference */
             std::weak_ptr<GATTService> wbr_service;
 
         public:

@@ -270,7 +270,7 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_disconnectImpl(JNIEnv *env, jobject obj
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_remove(JNIEnv *env, jobject obj)
+jboolean Java_direct_1bt_tinyb_DBTDevice_removeImpl(JNIEnv *env, jobject obj)
 {
     try {
         DBTDevice *device = getInstance<DBTDevice>(env, obj);

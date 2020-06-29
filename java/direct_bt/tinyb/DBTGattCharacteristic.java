@@ -25,6 +25,7 @@
 
 package direct_bt.tinyb;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.List;
 
@@ -42,7 +43,8 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 {
     private static final boolean DEBUG = DBTManager.DEBUG;
 
-    /* pp */ final DBTGattService service;
+    /** Characteristics's service weak back-reference */
+    final WeakReference<DBTGattService> wbr_service;
 
     /**
      * Characteristic Handle of this instance.
@@ -132,7 +134,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                                   final int clientCharacteristicsConfigIndex)
     {
         super(nativeInstance, handle /* hash */);
-        this.service = service;
+        this.wbr_service = new WeakReference<DBTGattService>(service);
         this.handle = handle;
 
         this.properties = properties;
@@ -203,7 +205,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     }
 
     @Override
-    public final BluetoothGattService getService() { return service; }
+    public final BluetoothGattService getService() { return wbr_service.get(); }
 
     @Override
     public final String[] getFlags() { return properties; }
@@ -264,17 +266,17 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                 System.err.println("GATTCharacteristicListener.addCharacteristicListener: GATT Native: "+res);
             }
         }
-        return service.device.addCharacteristicListener(listener, this);
+        return getService().getDevice().addCharacteristicListener(listener, this);
     }
 
     @Override
     public final boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
-        return service.device.removeCharacteristicListener(l);
+        return getService().getDevice().removeCharacteristicListener(l);
     }
 
     @Override
     public final int removeAllCharacteristicListener() {
-        return service.device.removeAllCharacteristicListener();
+        return getService().getDevice().removeAllCharacteristicListener();
     }
 
     /**

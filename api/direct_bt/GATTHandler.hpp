@@ -82,7 +82,7 @@ namespace direct_bt {
             static inline int number(const Defaults d) { return static_cast<int>(d); }
 
        private:
-            /* GATTHandle's Device back-reference */
+            /** GATTHandle's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;
 
             const std::string deviceString;
