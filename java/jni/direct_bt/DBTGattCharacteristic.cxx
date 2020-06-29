@@ -48,9 +48,10 @@ jstring Java_direct_1bt_tinyb_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jo
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTGattCharacteristic_deleteImpl(JNIEnv *env, jobject obj) {
+void Java_direct_1bt_tinyb_DBTGattCharacteristic_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
     try {
-        GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = castInstance<GATTCharacteristic>(nativeInstance);
         (void)characteristic;
         // No delete: Service instance owned by GATTService -> DBTDevice
     } catch(...) {

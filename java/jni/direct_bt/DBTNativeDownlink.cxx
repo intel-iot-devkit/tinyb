@@ -40,9 +40,6 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_initNativeJavaObject(JNIEnv *env, j
 {
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        if( nullptr == javaUplink ) {
-            throw InternalError("NativeInstance JavaUplink is NULL", E_FILE_LINE);
-        }
         jclass javaClazz = search_class(env, obj);
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == javaClazz ) {
@@ -67,9 +64,6 @@ void Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject(JNIEnv *env,
     (void)obj;
     try {
         JavaUplink *javaUplink = castInstance<JavaUplink>(nativeInstance);
-        if( nullptr == javaUplink ) {
-            throw InternalError("NativeInstance JavaUplink is NULL", E_FILE_LINE);
-        }
         DBG_PRINT("Java_direct_1bt_tinyb_DBTNativeDownlink_deleteNativeJavaObject %p -> %s", javaUplink, javaUplink->toString().c_str());
         javaUplink->setJavaObject(nullptr);
     } catch(...) {

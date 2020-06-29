@@ -322,6 +322,6 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     private native boolean enableValueNotificationsImpl(boolean v);
 
     @Override
-    protected native void deleteImpl();
+    protected native void deleteImpl(long nativeInstance);
 
 }

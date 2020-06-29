@@ -43,6 +43,7 @@ import org.tinyb.BluetoothType;
 public class DBTManager implements BluetoothManager
 {
     protected static final boolean DEBUG = BluetoothFactory.DEBUG;
+    protected static final boolean VERBOSE = BluetoothFactory.VERBOSE;
 
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
@@ -269,7 +270,7 @@ public class DBTManager implements BluetoothManager
     private native List<BluetoothAdapter> getAdapterListImpl();
 
     private native void initImpl(final boolean unifyUUID128Bit) throws BluetoothException;
-    private native void deleteImpl();
+    private native void deleteImpl(long nativeInstance);
     private DBTManager()
     {
         initImpl(unifyUUID128Bit);
@@ -304,7 +305,7 @@ public class DBTManager implements BluetoothManager
             a.close();
         }
         adapters.clear();
-        deleteImpl();
+        deleteImpl(nativeInstance);
     }
 
 }

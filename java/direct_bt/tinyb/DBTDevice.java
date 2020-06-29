@@ -597,7 +597,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
      * </p>
      */
     @Override
-    protected native void deleteImpl();
+    protected native void deleteImpl(long nativeInstance);
 
     @Override
     public native boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);

@@ -49,9 +49,10 @@ jstring Java_direct_1bt_tinyb_DBTGattService_toStringImpl(JNIEnv *env, jobject o
 }
 
 
-void Java_direct_1bt_tinyb_DBTGattService_deleteImpl(JNIEnv *env, jobject obj) {
+void Java_direct_1bt_tinyb_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
     try {
-        GATTService *service = getInstance<GATTService>(env, obj);
+        GATTService *service = castInstance<GATTService>(nativeInstance);
         (void)service;
         // No delete: Service instance owned by DBTDevice
     } catch(...) {

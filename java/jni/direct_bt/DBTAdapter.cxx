@@ -507,10 +507,11 @@ jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) 
     return nullptr;
 }
 
-void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
+    (void)obj;
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = castInstance<DBTAdapter>(nativeInstance);
         DBG_PRINT("Java_direct_1bt_tinyb_DBTAdapter_deleteImpl %s", adapter->toString().c_str());
         delete adapter;
     } catch(...) {

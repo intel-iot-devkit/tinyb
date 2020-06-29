@@ -303,7 +303,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     /* internal */
 
     @Override
-    protected native void deleteImpl();
+    protected native void deleteImpl(long nativeInstance);
 
     /* discovery */
 

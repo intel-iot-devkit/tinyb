@@ -131,5 +131,5 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
     private native List<BluetoothGattCharacteristic> getCharacteristicsImpl();
 
     @Override
-    protected native void deleteImpl();
+    protected native void deleteImpl(long nativeInstance);
 }

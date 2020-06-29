@@ -53,10 +53,11 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolea
     }
 }
 
-void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTManager_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
+    (void)obj;
     try {
-        DBTManager *manager = getInstance<DBTManager>(env, obj); // special: static singleton
+        DBTManager *manager = castInstance<DBTManager>(nativeInstance); // special: static singleton
         manager->close();
         manager->setJavaObject(nullptr);
         (void) manager;

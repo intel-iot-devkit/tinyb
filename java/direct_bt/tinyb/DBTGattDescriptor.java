@@ -167,5 +167,5 @@ public class DBTGattDescriptor extends DBTObject implements BluetoothGattDescrip
     private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
 
     @Override
-    protected native void deleteImpl();
+    protected native void deleteImpl(long nativeInstance);
 }

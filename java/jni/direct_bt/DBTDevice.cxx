@@ -246,10 +246,11 @@ jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env
     return 0;
 }
 
-void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj)
+void Java_direct_1bt_tinyb_DBTDevice_deleteImpl(JNIEnv *env, jobject obj, jlong nativeInstance)
 {
+    (void)obj;
     try {
-        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        DBTDevice *device = castInstance<DBTDevice>(nativeInstance);
         device->remove();
         // No delete: DBTDevice instance owned by DBTAdapter
         // However, device->remove() might issue destruction

@@ -47,9 +47,10 @@ void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj
     }
 }
 
-jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobject obj) {
+jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobject obj, jlong nativeInstance) {
+    (void)obj;
     try {
-        GATTDescriptor *nativePtr = getInstance<GATTDescriptor>(env, obj);
+        GATTDescriptor *nativePtr = castInstance<GATTDescriptor>(nativeInstance);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {

@@ -25,12 +25,15 @@
 
 package direct_bt.tinyb;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.tinyb.BluetoothFactory;
 
 public abstract class DBTNativeDownlink
 {
-    protected long nativeInstance;
-    private boolean isValid;
+    private long nativeInstance;
+    private final AtomicBoolean isValid = new AtomicBoolean(false);
+    private final Object nativeLock = new Object();
 
     static {
         BluetoothFactory.checkInitialized();
@@ -39,11 +42,11 @@ public abstract class DBTNativeDownlink
     protected DBTNativeDownlink(final long nativeInstance)
     {
         this.nativeInstance = nativeInstance;
-        isValid = true;
+        isValid.set(true);
         initNativeJavaObject(nativeInstance);
     }
 
-    protected final boolean isValid() { return isValid; }
+    protected final boolean isValid() { return isValid.get(); }
 
     @Override
     protected void finalize()
@@ -52,41 +55,62 @@ public abstract class DBTNativeDownlink
     }
 
     /**
-     * Deletes the native instance in the following order
+     * Deletes the {@code nativeInstance} in the following order
      * <ol>
-     *   <li>Removes this java reference from the native instance</li>
-     *   <li>Deletes the native instance via {@link #deleteImpl()}</li>
-     *   <li>Sets the nativeInstance := 0</li>
+     *   <li>Removes this java reference from the {@code nativeInstance}</li>
+     *   <li>Deletes the {@code nativeInstance} via {@link #deleteImpl(long)}</li>
+     *   <li>Zeros the {@code nativeInstance} reference</li>
      * </ol>
      */
-    public synchronized void delete() {
-        if (!isValid) {
-            return;
+    public final void delete() {
+        synchronized (nativeLock) {
+            if( !isValid.compareAndSet(true, false) ) {
+                if( DBTManager.DEBUG ) {
+                    System.err.println("JAVA: delete: !valid -> bail: "+getClass().getSimpleName());
+                }
+                return;
+            }
+            if( DBTManager.DEBUG ) {
+                System.err.println("JAVA: delete.0: "+getClass().getSimpleName()+": valid, handle 0x"+Long.toHexString(nativeInstance));
+            }
+            final long _nativeInstance = nativeInstance;
+            nativeInstance = 0;
+            deleteNativeJavaObject(_nativeInstance); // will issue notifyDeleted() itself!
+            deleteImpl(_nativeInstance);
+            if( DBTManager.DEBUG ) {
+                System.err.println("JAVA: delete.X: "+getClass().getSimpleName()+": handle 0x"+Long.toHexString(nativeInstance));
+            }
         }
-        isValid = false;
-        deleteNativeJavaObject(nativeInstance);
-        deleteImpl();
-        nativeInstance = 0;
     }
 
     /**
      * Called from native JavaUplink dtor -> JavaGlobalObj dtor,
      * i.e. native instance destructed in native land.
      */
-    private synchronized void notifyDeleted() {
-        isValid = false;
-        nativeInstance = 0;
-        // System.err.println("***** notifyDeleted: "+getClass().getSimpleName()+": valid "+isValid+" -> false, handle 0x"+Long.toHexString(nativeInstance)+" -> null: "+toString());
+    private final void notifyDeleted() {
+        synchronized (nativeLock) {
+            final boolean _isValid = isValid.get();
+            final long _nativeInstance = nativeInstance;
+            isValid.set(false);
+            nativeInstance = 0;
+            if( DBTManager.DEBUG ) {
+                System.err.println("JAVA: delete.notifyDeleted: "+getClass().getSimpleName()+", was: valid "+_isValid+", handle 0x"+Long.toHexString(_nativeInstance)+": "+toString());
+            }
+        }
     }
 
     /**
      * Deletes the native instance.
      * <p>
-     * Called via {@link #delete()} and at this point this java reference
-     * has been removed from the native instance.
+     * Called via {@link #delete()} and at this point
+     * <ul>
+     *  <li>this java reference has been removed from the native instance, i.e. {@code JavaUplink}'s {@code javaObjectRef = nullptr}</li>
+     *  <li>the {@link #nativeInstance} reference has been zeroed, but passed as argument for this final native deletion task.</li>
+     * </ul>
      * </p>
+     * @param nativeInstance copy of {@link #nativeInstance} reference, which has been already zeroed.
      */
-    protected abstract void deleteImpl();
+    protected abstract void deleteImpl(long nativeInstance);
 
     private native void initNativeJavaObject(final long nativeInstance);
     private native void deleteNativeJavaObject(final long nativeInstance);
