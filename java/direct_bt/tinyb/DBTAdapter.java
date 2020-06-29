@@ -109,7 +109,7 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public boolean equals(final Object obj)
     {
-        if (obj == null || !(obj instanceof DBTDevice)) {
+        if (obj == null || !(obj instanceof DBTAdapter)) {
             return false;
         }
         final DBTAdapter other = (DBTAdapter)obj;
