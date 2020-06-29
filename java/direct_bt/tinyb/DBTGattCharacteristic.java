@@ -243,9 +243,16 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public final synchronized void disableValueNotifications() {
-        final boolean res = enableValueNotificationsImpl(false);
-        if( DEBUG ) {
-            System.err.println("GATTCharacteristicListener.disableValueNotifications: GATT Native: "+res);
+        try {
+            final boolean res = enableValueNotificationsImpl(false);
+            if( DEBUG ) {
+                System.err.println("GATTCharacteristicListener.disableValueNotifications: GATT Native: "+res);
+            }
+        } catch (final Throwable t) {
+            if( DEBUG ) {
+                System.err.println("Caught "+t.getMessage());
+                t.printStackTrace();
+            }
         }
         valueNotificationCB = null;
     }
