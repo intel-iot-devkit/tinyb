@@ -48,6 +48,7 @@ public class DBTManager implements BluetoothManager
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
     private static boolean unifyUUID128Bit = true;
+    private static int DefaultAdapterIndex = 0;
 
     static {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -61,6 +62,11 @@ public class DBTManager implements BluetoothManager
                                 } }, "DBTManager_ShutdownHook" ) ) ;
                 return null;
             } } ) ;
+        {
+            final String v = System.getProperty("org.tinyb.default_adapter", "0");
+            DefaultAdapterIndex = Integer.valueOf(v);
+        }
+
     }
 
     private static synchronized void shutdownImpl(final boolean _isJVMShuttingDown) {
@@ -148,7 +154,7 @@ public class DBTManager implements BluetoothManager
     private long nativeInstance;
     private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
-    private int defaultAdapterIndex = 0;
+    private int defaultAdapterIndex = DefaultAdapterIndex;
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
