@@ -54,7 +54,8 @@ using namespace direct_bt;
 int DBTAdapter::findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac) {
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
-        if ( mac == devices[i]->getAddress() ) {
+        std::shared_ptr<DBTDevice> & e = devices[i];
+        if ( nullptr != e && mac == e->getAddress() ) {
             return i;
         }
     }
@@ -65,7 +66,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( mac == e->getAddress() ) {
+        if ( nullptr != e && mac == e->getAddress() ) {
             return e;
         }
     }
@@ -77,7 +78,7 @@ int DBTAdapter::countDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, E
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( mac == e->getAddress() ) {
+        if ( nullptr != e && mac == e->getAddress() ) {
             count++;
         }
     }
@@ -88,7 +89,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DB
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( device == *e ) {
+        if ( nullptr != e && device == *e ) {
             return e;
         }
     }
@@ -107,7 +108,7 @@ bool DBTAdapter::addConnectedDevice(const std::shared_ptr<DBTDevice> & device) {
 bool DBTAdapter::removeConnectedDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = connectedDevices.begin(); it != connectedDevices.end(); ) {
-        if ( &device == (*it).get() ) { // compare actual device address
+        if ( nullptr != *it && device == **it ) {
             it = connectedDevices.erase(it);
             return true;
         } else {
@@ -125,7 +126,9 @@ int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
     }
     const int count = devices.size();
     for (auto it = devices.begin(); it != devices.end(); ++it) {
-        (*it)->disconnect(reason); // will erase device from list via removeConnectedDevice(..) above
+        if( nullptr != *it ) {
+            (*it)->disconnect(reason); // will erase device from list via removeConnectedDevice(..) above
+        }
     }
     return count;
 }
@@ -402,7 +405,7 @@ bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
 bool DBTAdapter::removeDiscoveredDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
     for (auto it = discoveredDevices.begin(); it != discoveredDevices.end(); ) {
-        if ( &device == (*it).get() ) { // compare actual device address
+        if ( nullptr != *it && device == **it ) {
             it = discoveredDevices.erase(it);
             return true;
         } else {
@@ -438,20 +441,17 @@ bool DBTAdapter::addSharedDevice(std::shared_ptr<DBTDevice> const &device) {
 
 std::shared_ptr<DBTDevice> DBTAdapter::getSharedDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ++it) {
-        if ( &device == (*it).get() ) { // compare actual device address
-            return *it; // done
-        }
-    }
-    return nullptr;
+    return findDevice(sharedDevices, device);
 }
 
 void DBTAdapter::removeSharedDevice(const DBTDevice & device) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ++it) {
-        if ( &device == (*it).get() ) { // compare actual device address
-            sharedDevices.erase(it);
+    for (auto it = sharedDevices.begin(); it != sharedDevices.end(); ) {
+        if ( nullptr != *it && device == **it ) {
+            it = sharedDevices.erase(it);
             return; // unique set
+        } else {
+            ++it;
         }
     }
 }
@@ -468,7 +468,9 @@ std::string DBTAdapter::toString() const {
         out.append("\n");
         for(auto it = devices.begin(); it != devices.end(); it++) {
             std::shared_ptr<DBTDevice> p = *it;
-            out.append("  ").append(p->toString()).append("\n");
+            if( nullptr != p ) {
+                out.append("  ").append(p->toString()).append("\n");
+            }
         }
     }
     return out;
