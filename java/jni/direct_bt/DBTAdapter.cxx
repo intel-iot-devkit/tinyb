@@ -42,7 +42,7 @@ static const std::string _eirDataTypeSetClassName("org/tinyb/EIRDataTypeSet");
 static const std::string _eirDataTypeSetClazzCtorArgs("(I)V");
 static const std::string _hciStatusCodeClassName("org/tinyb/HCIStatusCode");
 static const std::string _hciStatusCodeClazzGetArgs("(B)Lorg/tinyb/HCIStatusCode;");
-static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;ILjava/lang/String;J)V");
+static const std::string _deviceClazzCtorArgs("(JLdirect_bt/tinyb/DBTAdapter;Ljava/lang/String;IILjava/lang/String;J)V");
 
 static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;Lorg/tinyb/AdapterSettings;J)V");
 static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;ZZJ)V");
@@ -273,7 +273,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             const jstring name = from_string_to_jstring(env, device->getName());
             java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
+                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr,
+                    device->getAddressType(), device->getBLERandomAddressType(),
+                    name, (jlong)timestamp);
             java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
@@ -319,7 +321,9 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             const jstring name = from_string_to_jstring(env, device->getName());
             java_exception_check_and_throw(env, E_FILE_LINE);
             jobject tmp_jdevice = env->NewObject(deviceClazzRef.getClass(), deviceClazzCtor,
-                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr, device->getAddressType(), name, (jlong)timestamp);
+                    (jlong)device.get(), JavaGlobalObj::GetObject(adapterObjRef), addr,
+                    device->getAddressType(), device->getBLERandomAddressType(),
+                    name, (jlong)timestamp);
             java_exception_check_and_throw(env, E_FILE_LINE);
             JNIGlobalRef::check(tmp_jdevice, E_FILE_LINE);
             std::shared_ptr<JavaAnonObj> jDeviceRef1 = device->getJavaObject();
