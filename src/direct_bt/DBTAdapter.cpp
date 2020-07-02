@@ -351,7 +351,7 @@ int DBTAdapter::removeAllStatusListener() {
     return count;
 }
 
-bool DBTAdapter::startDiscovery(const bool keepAlive, const HCIAddressType own_mac_type,
+bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor

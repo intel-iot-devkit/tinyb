@@ -179,7 +179,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
                     ERR_PRINT("HCIHandler::translate(reader): LE_CONN_COMPLETE: Null reply-struct: %s", ev->toString().c_str());
                     return nullptr;
                 }
-                const HCIAddressType hciAddrType = static_cast<HCIAddressType>(ev_cc->bdaddr_type);
+                const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
                 const BDAddressType addrType = getBDAddressType(hciAddrType);
                 HCIConnectionRef conn = setTrackerConnectionHandle(ev_cc->bdaddr, ev_cc->handle);
                 if( nullptr == conn ) {
@@ -579,8 +579,8 @@ HCIStatusCode HCIHandler::reset() {
 }
 
 HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
-                            const HCIAddressType peer_mac_type,
-                            const HCIAddressType own_mac_type,
+                            const HCILEPeerAddressType peer_mac_type,
+                            const HCILEOwnAddressType own_mac_type,
                             const uint16_t le_scan_interval, const uint16_t le_scan_window,
                             const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                             const uint16_t conn_latency, const uint16_t supervision_timeout) {
@@ -599,9 +599,9 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     cp->scan_interval = cpu_to_le(le_scan_interval);
     cp->scan_window = cpu_to_le(le_scan_window);
     cp->filter_policy = initiator_filter;
-    cp->peer_addr_type = peer_mac_type;
+    cp->peer_addr_type = static_cast<uint8_t>(peer_mac_type);
     cp->peer_addr = peer_bdaddr;
-    cp->own_address_type = own_mac_type;
+    cp->own_address_type = static_cast<uint8_t>(own_mac_type);
     cp->conn_interval_min = cpu_to_le(conn_interval_min);
     cp->conn_interval_max = cpu_to_le(conn_interval_max);
     cp->conn_latency = cpu_to_le(conn_latency);

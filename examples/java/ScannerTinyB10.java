@@ -36,6 +36,7 @@ import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BLERandomAddressType;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -89,8 +90,8 @@ public class ScannerTinyB10 {
             System.err.println("****** FOUND__: "+device.toString());
 
             if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType()
-                /** && BluetoothAddressType.BDADDR_LE_RANDOM != device.getAddressType() */ ) {
-                System.err.println("****** FOUND__-2: Skip non public LE "+device.toString());
+                && BLERandomAddressType.STATIC_PUBLIC != device.getBLERandomAddressType() ) {
+                System.err.println("****** FOUND__-2: Skip 'non public' or 'random static public' LE "+device.toString());
                 return;
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&

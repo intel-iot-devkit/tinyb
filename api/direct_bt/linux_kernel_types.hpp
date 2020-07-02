@@ -26,6 +26,8 @@
 #ifndef LINUX_KERNEL_TYPES_HPP_
 #define LINUX_KERNEL_TYPES_HPP_
 
+#include "BTAddress.hpp"
+
 typedef uint8_t  __u8;
 typedef int8_t   __s8;
 typedef uint16_t __u16;
@@ -37,7 +39,7 @@ typedef uint32_t __be32;
 typedef uint64_t __u64;
 typedef uint64_t __le64;
 typedef uint64_t __be64;
-typedef EUI48    bdaddr_t;
+typedef direct_bt::EUI48 bdaddr_t;
 #define __packed __attribute__ ((packed))
 
 #endif /* LINUX_KERNEL_TYPES_HPP_ */

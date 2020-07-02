@@ -31,6 +31,7 @@ package tinyb.dbus;
 import java.util.List;
 import java.util.Map;
 
+import org.tinyb.BLERandomAddressType;
 import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -115,6 +116,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
 
     @Override
     public BluetoothAddressType getAddressType() { return BluetoothAddressType.BDADDR_LE_PUBLIC; /* FIXME */}
+
+    @Override
+    public BLERandomAddressType getBLERandomAddressType() { return BLERandomAddressType.UNDEFINED; /* FIXME */ }
 
     @Override
     public native String getName();

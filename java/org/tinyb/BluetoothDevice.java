@@ -194,6 +194,20 @@ public interface BluetoothDevice extends BluetoothObject
      */
     BluetoothAddressType getAddressType();
 
+    /**
+     * Returns the {@link BLERandomAddressType}.
+     * <p>
+     * If {@link #getAddressType()} is {@link BluetoothAddressType#BDADDR_LE_RANDOM},
+     * method shall return a valid value other than {@link BLERandomAddressType#UNDEFINED}.
+     * </p>
+     * <p>
+     * If {@link #getAddressType()} is not {@link BluetoothAddressType#BDADDR_LE_RANDOM},
+     * method shall return {@link BLERandomAddressType#UNDEFINED}.
+     * </p>
+     * @since 2.0.0
+     */
+    BLERandomAddressType getBLERandomAddressType();
+
     /** Returns the remote friendly name of this device.
       * @return The remote friendly name of this device, or NULL if not set.
       */

@@ -124,8 +124,8 @@ class MyAdapterStatusListener : public AdapterStatusListener {
         (void)timestamp;
 
         if( BDAddressType::BDADDR_LE_PUBLIC != device->getAddressType()
-            /** && BDAddressType::BDADDR_LE_RANDOM != device->getAddressType() */ ) {
-            fprintf(stderr, "****** FOUND__-2: Skip non public LE %s\n", device->toString(true).c_str());
+            && BLERandomAddressType::STATIC_PUBLIC != device->getBLERandomAddressType() ) {
+            fprintf(stderr, "****** FOUND__-2: Skip 'non public' or 'random static public' LE %s\n", device->toString(true).c_str());
             return;
         }
         if( !isDeviceProcessing( device->getAddress() ) &&

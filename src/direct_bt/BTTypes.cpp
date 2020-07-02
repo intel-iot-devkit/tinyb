@@ -37,29 +37,81 @@
 
 using namespace direct_bt;
 
+#define CASE_TO_STRING(V) case V: return #V;
+#define CASE2_TO_STRING(U,V) case U::V: return #V;
+
+BDAddressType direct_bt::getBDAddressType(const HCILEPeerAddressType hciPeerAddrType) {
+    switch(hciPeerAddrType) {
+        case HCILEPeerAddressType::PUBLIC:
+            return BDADDR_LE_PUBLIC;
+        case HCILEPeerAddressType::RANDOM:
+            /* fall through intended */
+        case HCILEPeerAddressType::PUBLIC_IDENTITY:
+            /* fall through intended */
+        case HCILEPeerAddressType::RANDOM_STATIC_IDENTITY:
+            return BDADDR_LE_RANDOM;
+        default:
+            return BDADDR_UNDEFINED;
+    }
+}
+
+BDAddressType direct_bt::getBDAddressType(const HCILEOwnAddressType hciOwnAddrType) {
+    switch(hciOwnAddrType) {
+        case HCILEOwnAddressType::PUBLIC:
+            return BDADDR_LE_PUBLIC;
+        case HCILEOwnAddressType::RANDOM:
+            /* fall through intended */
+        case HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC:
+            /* fall through intended */
+        case HCILEOwnAddressType::RESOLVABLE_OR_RANDOM:
+            return BDADDR_LE_RANDOM;
+        default:
+            return BDADDR_UNDEFINED;
+    }
+}
+
 #define CHAR_DECL_BDADDRESSTYPE_ENUM(X) \
         X(BDADDR_BREDR) \
         X(BDADDR_LE_PUBLIC) \
         X(BDADDR_LE_RANDOM) \
         X(BDADDR_UNDEFINED)
 
-#define CASE_TO_STRING(V) case V: return #V;
-#define CASE2_TO_STRING(U,V) case U::V: return #V;
-
-BDAddressType direct_bt::getBDAddressType(const HCIAddressType hciAddrType) {
-    switch(hciAddrType) {
-        case HCIADDR_LE_PUBLIC: return BDADDR_LE_PUBLIC;
-        case HCIADDR_LE_RANDOM: return BDADDR_LE_RANDOM;
-        default: return BDADDR_UNDEFINED;
-    }
-}
-
 std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
     switch(type) {
-    CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
+        CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
     }
     return "Unknown address type";
+}
+
+#define CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(X) \
+        X(BLERandomAddressType,UNRESOLVABLE_PRIVAT) \
+        X(BLERandomAddressType,RESOLVABLE_PRIVAT) \
+        X(BLERandomAddressType,RESERVED) \
+        X(BLERandomAddressType,STATIC_PUBLIC) \
+        X(BLERandomAddressType,UNDEFINED)
+
+std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType type) {
+    switch(type) {
+        CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(CASE2_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown BLERandomAddressType type";
+}
+
+std::string direct_bt::getBLERandomAddressTypeString(const EUI48 &a) {
+    return getBLERandomAddressTypeString(a.getBLERandomAddressType());
+}
+
+BLERandomAddressType EUI48::getBLERandomAddressType() const {
+    const uint8_t high2 = ( b[5] >> 6 ) & 0x03;
+    switch( high2 ) {
+        case 0x00: return BLERandomAddressType::UNRESOLVABLE_PRIVAT;
+        case 0x01: return BLERandomAddressType::RESOLVABLE_PRIVAT;
+        case 0x02: return BLERandomAddressType::RESERVED;
+        case 0x03: return BLERandomAddressType::STATIC_PUBLIC;
+        default: return BLERandomAddressType::UNDEFINED;
+    }
 }
 
 std::string EUI48::toString() const {
@@ -98,17 +150,15 @@ EUI48::EUI48(const uint8_t * _b) {
     memcpy(b, _b, sizeof(b));
 }
 
-const EUI48 EUI48_ANY_DEVICE; // default ctor is zero bytes!
+const EUI48 direct_bt::EUI48_ANY_DEVICE; // default ctor is zero bytes!
 static uint8_t _EUI48_ALL_DEVICE[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 static uint8_t _EUI48_LOCAL_DEVICE[] = {0x00, 0x00, 0x00, 0xff, 0xff, 0xff};
-const EUI48 EUI48_ALL_DEVICE( _EUI48_ALL_DEVICE );
-const EUI48 EUI48_LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
+const EUI48 direct_bt::EUI48_ALL_DEVICE( _EUI48_ALL_DEVICE );
+const EUI48 direct_bt::EUI48_LOCAL_DEVICE( _EUI48_LOCAL_DEVICE );
 
 // *************************************************
 // *************************************************
 // *************************************************
-
-using namespace direct_bt;
 
 static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );

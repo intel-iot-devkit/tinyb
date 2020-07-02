@@ -43,7 +43,8 @@
 using namespace direct_bt;
 
 DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
-: adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()), addressType(r.getAddressType())
+: adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()),
+  addressType(r.getAddressType()), leRandomAddressType(address.getBLERandomAddressType())
 {
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
@@ -122,8 +123,12 @@ std::vector<std::shared_ptr<uuid_t>> DBTDevice::getServices() const {
 std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = getCurrentMilliseconds();
+    std::string leaddrtype = "";
+    if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
+        leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
+    }
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
-    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+
+    std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(isConnectIssued)+"/"+std::to_string(isConnected)+", "+uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
@@ -243,12 +248,48 @@ std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo() {
     return connInfo;
 }
 
-bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
-        uint16_t le_scan_interval, uint16_t le_scan_window,
-        uint16_t conn_interval_min, uint16_t conn_interval_max,
-        uint16_t conn_latency, uint16_t supervision_timeout)
+bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
+                          uint16_t conn_interval_min, uint16_t conn_interval_max,
+                          uint16_t conn_latency, uint16_t supervision_timeout)
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+
+    const HCILEOwnAddressType hci_own_mac_type = HCILEOwnAddressType::PUBLIC; // FIXME: Support non public address-type for adapter?
+
+    HCILEPeerAddressType hci_peer_mac_type;
+
+    switch( addressType ) {
+        case BDAddressType::BDADDR_LE_PUBLIC:
+            hci_peer_mac_type = HCILEPeerAddressType::PUBLIC;
+            break;
+        case BDAddressType::BDADDR_LE_RANDOM: {
+                switch( leRandomAddressType ) {
+                    case BLERandomAddressType::UNRESOLVABLE_PRIVAT:
+                        // hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        ERR_PRINT("LE Random address type '%s' not supported yet: %s",
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                        return false;
+                    case BLERandomAddressType::RESOLVABLE_PRIVAT:
+                        // hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        ERR_PRINT("LE Random address type '%s' not supported yet: %s",
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                        return false;
+                    case BLERandomAddressType::STATIC_PUBLIC:
+                        // FIXME: Even though HCI_LE_SetPrivacy_mode is advised if supported by both.
+                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM_STATIC_IDENTITY;
+                        break;
+                    default: {
+                        ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
+                                getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
+                        return false;
+                    }
+                }
+            } break;
+        default: {
+                ERR_PRINT("Can't connectLE to '%s' address type: %s", getBDAddressTypeString(addressType).c_str(), toString().c_str());
+                return false;
+            }
+    }
 
     if( 0 < hciConnHandle ) {
         ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
@@ -267,7 +308,7 @@ bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_t
     }
 
     HCIStatusCode status = hci->le_create_conn(address,
-                                              peer_mac_type, own_mac_type,
+                                              hci_peer_mac_type, hci_own_mac_type,
                                               le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                               conn_latency, supervision_timeout);
     isConnectIssued = true;
@@ -329,9 +370,9 @@ bool DBTDevice::connectDefault()
 {
     switch( addressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
-            return connectLE(HCIAddressType::HCIADDR_LE_PUBLIC);
+            /* fall through intended */
         case BDAddressType::BDADDR_LE_RANDOM:
-            return connectLE(HCIAddressType::HCIADDR_LE_RANDOM);
+            return connectLE();
         case BDAddressType::BDADDR_BREDR:
             return connectBREDR();
         default:

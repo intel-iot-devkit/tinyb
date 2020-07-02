@@ -92,6 +92,7 @@ namespace direct_bt {
             /** Device mac address */
             const EUI48 address;
             const BDAddressType addressType;
+            const BLERandomAddressType leRandomAddressType;
 
             /**
              * Releases this instance after calling {@link #remove()}.
@@ -142,6 +143,20 @@ namespace direct_bt {
             BDAddressType getAddressType() const { return addressType; }
             bool isLEAddressType() const { return BDADDR_LE_PUBLIC == addressType || BDADDR_LE_RANDOM == addressType; }
             bool isBREDRAddressType() const { return BDADDR_BREDR == addressType; }
+
+            /**
+             * Returns the {@link BLERandomAddressType}.
+             * <p>
+             * If {@link #getAddressType()} is {@link BDAddressType::BDADDR_LE_RANDOM},
+             * method shall return a valid value other than {@link BLERandomAddressType::UNDEFINED}.
+             * </p>
+             * <p>
+             * If {@link #getAddressType()} is not {@link BDAddressType::BDADDR_LE_RANDOM},
+             * method shall return {@link BLERandomAddressType::UNDEFINED}.
+             * </p>
+             * @since 2.0.0
+             */
+            BLERandomAddressType getBLERandomAddressType() const { return leRandomAddressType; }
 
             /** Return RSSI of device as recognized at discovery and connect. */
             int8_t getRSSI() const { return rssi; }
@@ -221,9 +236,7 @@ namespace direct_bt {
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
              * @return
              */
-            bool connectLE(const HCIAddressType peer_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                           const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
-                           const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
+            bool connectLE(const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
                            const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
                            const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 

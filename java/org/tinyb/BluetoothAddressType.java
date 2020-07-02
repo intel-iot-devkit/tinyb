@@ -26,37 +26,38 @@ package org.tinyb;
 
 /**
  * Bluetooth address type constants.
+ * <p>
  * See {@link #get(String)} for its string mapping.
- * <pre>
+ * </p>
+ * <p>
+ * See {@link #get(int)} for its native integer mapping.
+ * </p>
+ * <p>
  * BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.1 Public Bluetooth address
+ * </p>
+ * <pre>
  * 1) BT public address used as BD_ADDR for BR/EDR physical channel is defined in Vol 2, Part B 1.2
  * - EUI-48 or MAC (6 octets)
  *
  * 2) BT public address used as BD_ADDR for the LE physical channel is defined in Vol 6, Part B 1.3
- *
+ * </pre>
+ * <p>
  * BT Core Spec v5.2:  Vol 3, Part C Generic Access Profile (GAP): 15.1.1.2 Random Bluetooth address
+ * </p>
+ * <pre>
  * 3) BT random address used as BD_ADDR on the LE physical channel is defined in Vol 3, Part C 10.8
- *
- * +++
- *
- * For HCI LE Address-Type it is: PUBLIC: 0x00, RANDOM: 0x01
- *
- * BT Core Spec v5.2:  Vol 4, Part E Host Controller Interface (HCI) Functionality:
- *
- * > 7.8.5: LE Set Advertising Parameters command
- * -- Own_Address_Type: public: 0x00 (default), random: 0x01, resolvable-1: 0x02, resolvable-2: 0x03
- * > 7.8.10: LE Set Scan Parameters command
- * -- Own_Address_Type: public: 0x00 (default), random: 0x01, resolvable-1: 0x02, resolvable-2: 0x03
- *
- * +++
  * </pre>
  *
  * @since 2.0.0
  */
 public enum BluetoothAddressType {
+    /** Bluetooth BREDR address */
     BDADDR_BREDR      (0x00),
+    /** Bluetooth LE public address */
     BDADDR_LE_PUBLIC  (0x01),
+    /** Bluetooth LE random address, see {@link BLERandomAddressType} */
     BDADDR_LE_RANDOM  (0x02),
+    /** Undefined */
     BDADDR_UNDEFINED  (0xff);
 
     public final int value;
@@ -65,7 +66,7 @@ public enum BluetoothAddressType {
     private static String _random = "random";
 
     /**
-     * Maps the specified name to a constant of BluetoothAddressType.
+     * Maps the specified name to a constant of {@link BluetoothAddressType}.
      * <p>
      * According to BlueZ's D-Bus protocol, which is also followed by TinyB,
      * the following mappings are valid:
@@ -99,19 +100,17 @@ public enum BluetoothAddressType {
     }
 
     /**
-     * Maps the specified integer value to a constant of BluetoothAddressType.
+     * Maps the specified integer value to a constant of {@link BluetoothAddressType}.
      * @param value the integer value to be mapped to a constant of this enum type.
-     * @return the corresponding constant of this enum type.
-     * @throws IllegalArgumentException if the specified name can't be mapped to a constant of this enum type
-     *                                  as described above.
+     * @return the corresponding constant of this enum type, using {@link #BDADDR_UNDEFINED} if not supported.
      */
-    public static BluetoothAddressType get(final int value) throws IllegalArgumentException {
+    public static BluetoothAddressType get(final int value) {
         switch(value) {
             case 0x00: return BDADDR_BREDR;
             case 0x01: return BDADDR_LE_PUBLIC;
             case 0x02: return BDADDR_LE_RANDOM;
+            default: return BDADDR_UNDEFINED;
         }
-        throw new IllegalArgumentException("Unsupported value "+value);
     }
 
     BluetoothAddressType(final int v) {

@@ -180,10 +180,9 @@ namespace direct_bt {
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
             friend bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
             friend void DBTDevice::remove();
-            friend bool DBTDevice::connectLE(HCIAddressType peer_mac_type, HCIAddressType own_mac_type,
-                    uint16_t interval, uint16_t window,
-                    uint16_t min_interval, uint16_t max_interval,
-                    uint16_t latency, uint16_t supervision_timeout);
+            friend bool DBTDevice::connectLE(uint16_t interval, uint16_t window,
+                                             uint16_t min_interval, uint16_t max_interval,
+                                             uint16_t latency, uint16_t supervision_timeout);
             friend bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
 
@@ -412,7 +411,7 @@ namespace direct_bt {
              * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
              * @return
              */
-            bool startDiscovery(const bool keepAlive=true, const HCIAddressType own_mac_type=HCIAddressType::HCIADDR_LE_PUBLIC,
+            bool startDiscovery(const bool keepAlive=true, const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
                                 const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48);
 
             /**

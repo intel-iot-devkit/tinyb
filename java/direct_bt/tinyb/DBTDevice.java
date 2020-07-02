@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.tinyb.AdapterStatusListener;
+import org.tinyb.BLERandomAddressType;
 import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
@@ -52,6 +53,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     private final String address;
     private final BluetoothAddressType addressType;
+    private final BLERandomAddressType leRandomAddressType;
     private final long ts_creation;
     private volatile String name;
     long ts_last_discovery;
@@ -191,13 +193,27 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     };
 
     /* pp */ DBTDevice(final long nativeInstance, final DBTAdapter adptr,
-                       final String address, final int intAddressType,
+                       final String address,
+                       final int intAddressType, final int intBLERandomAddressType,
                        final String name, final long ts_creation)
     {
         super(nativeInstance, address.hashCode());
         this.wbr_adapter = new WeakReference<DBTAdapter>(adptr);
         this.address = address;
         this.addressType = BluetoothAddressType.get(intAddressType);
+        if( BluetoothAddressType.BDADDR_UNDEFINED == addressType ) {
+            throw new IllegalArgumentException("Unsupported given native addresstype "+intAddressType);
+        }
+        this.leRandomAddressType = BLERandomAddressType.get(intBLERandomAddressType);
+        if( BluetoothAddressType.BDADDR_LE_RANDOM == addressType ) {
+            if( BLERandomAddressType.UNDEFINED == leRandomAddressType ) {
+                throw new IllegalArgumentException("BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+intBLERandomAddressType);
+            }
+        } else {
+            if( BLERandomAddressType.UNDEFINED != leRandomAddressType ) {
+                throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+leRandomAddressType);
+            }
+        }
         this.ts_creation = ts_creation;
         this.name = name;
         ts_last_discovery = ts_creation;
@@ -265,6 +281,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public BluetoothAddressType getAddressType() { return addressType; }
+
+    @Override
+    public BLERandomAddressType getBLERandomAddressType() { return leRandomAddressType; }
 
     @Override
     public String getName() { return name; }
