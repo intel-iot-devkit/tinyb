@@ -75,8 +75,8 @@ namespace direct_bt {
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
                 /** 500ms timeout for l2cap command replies */
                 L2CAP_COMMAND_REPLY_TIMEOUT = 500,
-                /** 1500ms timeout for l2cap _initial_ command reply, long timeout. */
-                L2CAP_INITIAL_COMMAND_REPLY_TIMEOUT = 1500,
+                /** 2500ms timeout for l2cap _initial_ command reply, long timeout. */
+                L2CAP_INITIAL_COMMAND_REPLY_TIMEOUT = 2500,
 
                 /** Medium ringbuffer capacity... */
                 ATTPDU_RING_CAPACITY = 128
