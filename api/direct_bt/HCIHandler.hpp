@@ -265,6 +265,33 @@ namespace direct_bt {
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
             void clearAllMgmtEventCallbacks();
+
+            /**
+             * FIXME / TODO: Privacy Mode / Pairing / Bonding
+             *
+             * <p>
+             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5 Security architecture
+             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4 LE Security
+             * BT Core Spec v5.2: Vol 1, Part A Architecture: 5.4.5 LE Privacy feature
+             * - device privacy mode (mixed mode, also accept other peer address)
+             * - network privacy mode (only private address - default!)
+             * -> add device to resolving list, implying being added to device white list!
+             *
+             * BT Core Spec v5.2: Vol 3, Part C GAP: 10.2 LE SECURITY MODES
+             *
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.77 LE Set Privacy Mode command
+             * BT Core Spec v5.2: Vol 6 LE Adapter, Part B Link Layer Spec: 4.7 Resolving List
+             * </p>
+             * FIXME: TODO
+             *
+             * @return
+             * HCIStatusCode le_set_privacy_mode();
+             *
+             * Fills buffer with random bytes, usually 16 bytes for 128 bit key.
+             * FIXME: TODO
+             * static bool generateIRK(uint8_t *buffer, int size);
+             */
+
     };
 
 } // namespace direct_bt
