@@ -68,7 +68,6 @@ namespace direct_bt {
             const std::string deviceString;
             const uint16_t psm;
             const uint16_t cid;
-            const bool pubaddr;
             std::atomic<int> _dd; // the l2cap socket
             std::atomic<bool> isConnected; // reflects state
             std::atomic<bool> hasIOError;  // reflects state
@@ -76,7 +75,7 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_connect;
 
         public:
-            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid, const bool pubaddr=true);
+            L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid);
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
 

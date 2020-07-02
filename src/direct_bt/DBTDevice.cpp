@@ -254,29 +254,34 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    const HCILEOwnAddressType hci_own_mac_type = HCILEOwnAddressType::PUBLIC; // FIXME: Support non public address-type for adapter?
-
+    HCILEOwnAddressType hci_own_mac_type;
     HCILEPeerAddressType hci_peer_mac_type;
 
     switch( addressType ) {
         case BDAddressType::BDADDR_LE_PUBLIC:
             hci_peer_mac_type = HCILEPeerAddressType::PUBLIC;
+            hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
             break;
         case BDAddressType::BDADDR_LE_RANDOM: {
                 switch( leRandomAddressType ) {
                     case BLERandomAddressType::UNRESOLVABLE_PRIVAT:
-                        // hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        hci_own_mac_type = HCILEOwnAddressType::RANDOM;
                         ERR_PRINT("LE Random address type '%s' not supported yet: %s",
                                 getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
                         return false;
                     case BLERandomAddressType::RESOLVABLE_PRIVAT:
-                        // hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        hci_peer_mac_type = HCILEPeerAddressType::PUBLIC_IDENTITY;
+                        hci_own_mac_type = HCILEOwnAddressType::RESOLVABLE_OR_PUBLIC;
                         ERR_PRINT("LE Random address type '%s' not supported yet: %s",
                                 getBLERandomAddressTypeString(leRandomAddressType).c_str(), toString().c_str());
                         return false;
                     case BLERandomAddressType::STATIC_PUBLIC:
-                        // FIXME: Even though HCI_LE_SetPrivacy_mode is advised if supported by both.
-                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM_STATIC_IDENTITY;
+                        // FIXME: This only works for a static random address not changing at all,
+                        // i.e. between power-cycles - hence a temporary hack.
+                        // We need to use 'resolving list' and/or LE Set Privacy Mode (HCI) for all devices.
+                        hci_peer_mac_type = HCILEPeerAddressType::RANDOM;
+                        hci_own_mac_type = HCILEOwnAddressType::PUBLIC;
                         break;
                     default: {
                         ERR_PRINT("Can't connectLE to LE Random address type '%s': %s",
