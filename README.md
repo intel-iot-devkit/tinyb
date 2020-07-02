@@ -12,7 +12,7 @@ TinyB Version 2
 
 Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
 
-The TinyB project consist out of two implementations
+As of today, the TinyB Java API comprises two implementations.
 
 TinyB
 -----
@@ -27,14 +27,28 @@ Direct-BT
 *Direct-BT* provides direct Bluetooth programming without intermediate layers 
 targeting high-performance reliable Bluetooth support.
 
-By having least system and userspace dependencies and no communication overhead, Direct-BT shall be suitable for embedded device configurations besides others.
+*Direct-BT* maybe utilized via its C++ API or via the TinyB Java API.
+
+By having least system and userspace dependencies and no communication overhead, 
+Direct-BT shall be suitable for embedded device configurations besides others.
 
 *Direct-BT* is exposed via the following native libraries
 - *libdirect_bt.so* for the core C++ implementation.
 - *libjavadirect_bt.so* for the Java binding.
 
+To use *Direct-BT* in the most efficient way, 
+the BlueZ userspace daemon *bluetoothd* should be disabled.
+Using systemd this should be:
+
+```
+systemctl stop bluetooth
+systemctl disable bluetooth
+systemctl mask bluetooth
+```
+
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
 [C++ API doc of its *direct_bt* namespace](../../cpp/html/namespacedirect__bt.html#details).
+
 
 TinyB and Direct-BT
 -------------------
