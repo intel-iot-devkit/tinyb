@@ -726,18 +726,16 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
 
     // std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
     std::shared_ptr<DBTDevice> dev;
-    int devCount;
     {
         const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
         dev = findDiscoveredDevice(ad_report.getAddress());
-        devCount = countDevice(discoveredDevices, ad_report.getAddress());
     }
     if( nullptr != dev ) {
         //
         // existing device
         //
         EIRDataType updateMask = dev->update(ad_report);
-        INFO_PRINT("DBTAdapter::EventCB:DeviceFound.1: Old Discovered %s, count %d", dev->getAddressString().c_str(), devCount);
+        INFO_PRINT("DBTAdapter::EventCB:DeviceFound.1: Old Discovered %s", dev->getAddressString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, ad_report.getTimestamp(), updateMask);
         }
