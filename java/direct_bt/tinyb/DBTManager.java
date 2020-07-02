@@ -154,7 +154,7 @@ public class DBTManager implements BluetoothManager
     private long nativeInstance;
     private static DBTManager inst;
     private final List<BluetoothAdapter> adapters = new ArrayList<BluetoothAdapter>();
-    private int defaultAdapterIndex = DefaultAdapterIndex;
+    private int defaultAdapterIndex = 0;
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
@@ -284,6 +284,9 @@ public class DBTManager implements BluetoothManager
             adapters.addAll(getAdapterListImpl());
         } catch (final BluetoothException be) {
             be.printStackTrace();
+        }
+        if( adapters.size() >= DefaultAdapterIndex+1 ) {
+            defaultAdapterIndex = DefaultAdapterIndex;
         }
     }
 
