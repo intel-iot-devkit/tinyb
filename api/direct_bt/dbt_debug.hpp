@@ -65,12 +65,12 @@ extern "C" {
 
 template<class ListElemType>
 inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
-    fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), list.size());
+    fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), (size_t)list.size());
     int idx = 0;
     for (auto it = list.begin(); it != list.end(); idx++) {
         std::shared_ptr<ListElemType> & e = *it;
         if ( nullptr != e ) {
-            fprintf(stderr, "%s[%d]: useCount %zd, mem %p\n", prefix.c_str(), idx, e.use_count(), e.get());
+            fprintf(stderr, "%s[%d]: useCount %zd, mem %p\n", prefix.c_str(), idx, (size_t)e.use_count(), e.get());
         } else {
             fprintf(stderr, "%s[%d]: NULL\n", prefix.c_str(), idx);
         }

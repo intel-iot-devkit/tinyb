@@ -494,7 +494,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public final String toString() {
         if( !isValid() ) {
-            // Device✝[0x112233445566, 'adevice']
+            // UTF-8 271D = Cross
             return "Device" + "\u271D" + "["+address+", '"+name+"']";
         }
         return toStringImpl();
