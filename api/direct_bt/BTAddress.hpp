@@ -57,7 +57,7 @@ namespace direct_bt {
         BDADDR_UNDEFINED  = 0xff
     };
 
-    std::string getBDAddressTypeString(const BDAddressType op);
+    std::string getBDAddressTypeString(const BDAddressType type);
 
     /**
      * BT Core Spec v5.2:  Vol 6 LE, Part B Link Layer Specification: 1.3 Device Address
@@ -88,7 +88,7 @@ namespace direct_bt {
         /** Undefined */
         UNDEFINED           = 0xff
     };
-    std::string getBLERandomAddressTypeString(const BLERandomAddressType op);
+    std::string getBLERandomAddressTypeString(const BLERandomAddressType type);
 
     /**
      * HCI LE Address-Type is PUBLIC: 0x00, RANDOM: 0x01
@@ -107,24 +107,34 @@ namespace direct_bt {
      * </p>
      */
     enum class HCILEPeerAddressType : uint8_t {
-        PUBLIC = 0x00,/**< HCIADDR_LE_PUBLIC */
-        RANDOM = 0x01,/**< HCIADDR_LE_RANDOM */
+        /** Public Device Address */
+        PUBLIC = 0x00,
+        /** Random Device Address */
+        RANDOM = 0x01,
+        /** Public Resolved Identity Address */
         PUBLIC_IDENTITY = 0x02,
+        /** Resolved Random (Static) Identity Address */
         RANDOM_STATIC_IDENTITY = 0x03,
         UNDEFINED = 0xff /**< HCIADDR_UNDEFINED */
     };
 
     BDAddressType getBDAddressType(const HCILEPeerAddressType hciPeerAddrType);
+    std::string getHCILEPeerAddressTypeString(const HCILEPeerAddressType type);
 
     enum class HCILEOwnAddressType : uint8_t {
+        /** Public Device Address */
         PUBLIC = 0x00,
+        /** Random Device Address */
         RANDOM = 0x01,
+        /** Controller Resolved Private Address or Public Address */
         RESOLVABLE_OR_PUBLIC = 0x02,
+        /** Controller Resolved Private Address or Random Address */
         RESOLVABLE_OR_RANDOM = 0x03,
         UNDEFINED = 0xff
     };
 
     BDAddressType getBDAddressType(const HCILEOwnAddressType hciOwnAddrType);
+    std::string getHCILEOwnAddressTypeString(const HCILEOwnAddressType type);
 
     /**
      * A packed 48 bit EUI-48 identifier, formerly known as MAC-48

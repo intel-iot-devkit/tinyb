@@ -286,7 +286,7 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                 }
             } break;
         default: {
-                ERR_PRINT("Can't connectLE to '%s' address type: %s", getBDAddressTypeString(addressType).c_str(), toString().c_str());
+                ERR_PRINT("Can't connectLE to address type '%s': %s", getBDAddressTypeString(addressType).c_str(), toString().c_str());
                 return false;
             }
     }
@@ -300,10 +300,6 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
     std::shared_ptr<HCIHandler> hci = adapter.openHCI();
     if( nullptr == hci || !hci->isOpen() ) {
         ERR_PRINT("DBTDevice::connectLE: Opening adapter's HCI failed: %s", toString().c_str());
-        return false;
-    }
-    if( !isLEAddressType() ) {
-        ERR_PRINT("DBTDevice::connectLE: Not a BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM address: %s", toString().c_str());
         return false;
     }
 
@@ -325,13 +321,19 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
     }
 #endif
     if( HCIStatusCode::COMMAND_DISALLOWED == status ) {
-        WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+        WARN_PRINT("DBTDevice::connectLE: Could not yet create connection: status 0x%2.2X (%s), errno %d, hci-atype[peer %s, own %s] %s on %s",
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
+                getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
+                toString().c_str());
         return false;
     }
     if ( HCIStatusCode::SUCCESS != status ) {
-        ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
-                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Could not create connection: status 0x%2.2X (%s), errno %d %s, hci-atype[peer %s, own %s] on %s",
+                static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                getHCILEPeerAddressTypeString(hci_peer_mac_type).c_str(),
+                getHCILEOwnAddressTypeString(hci_own_mac_type).c_str(),
+                toString().c_str());
         return false;
     }
     return true;
