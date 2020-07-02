@@ -75,6 +75,8 @@ namespace direct_bt {
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
                 /** 500ms timeout for l2cap command replies */
                 L2CAP_COMMAND_REPLY_TIMEOUT = 500,
+                /** 1500ms timeout for l2cap _initial_ command reply, long timeout. */
+                L2CAP_INITIAL_COMMAND_REPLY_TIMEOUT = 1500,
 
                 /** Medium ringbuffer capacity... */
                 ATTPDU_RING_CAPACITY = 128
@@ -118,7 +120,7 @@ namespace direct_bt {
             void l2capReaderThreadImpl();
 
             void send(const AttPDUMsg & msg);
-            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg);
+            std::shared_ptr<const AttPDUMsg> sendWithReply(const AttPDUMsg & msg, const int timeout);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.4.2 MTU Exchange
@@ -126,7 +128,7 @@ namespace direct_bt {
              * Returns the server-mtu if successful, otherwise 0.
              * </p>
              */
-            uint16_t exchangeMTU(const uint16_t clientMaxMTU=number(Defaults::MAX_ATT_MTU));
+            uint16_t exchangeMTU(const uint16_t clientMaxMTU, const int timeout);
 
         public:
             GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
