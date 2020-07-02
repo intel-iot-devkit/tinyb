@@ -407,7 +407,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobj
         const JNIAdapterStatusListener * pre =
                 getObjectRef<JNIAdapterStatusListener>(env, statusListener, "nativeInstance");
         if( nullptr == pre ) {
-            WARN_PRINT("statusListener's nativeInstance is null, not in use");
+            DBG_PRINT("statusListener's nativeInstance is null, not in use");
             return false;
         }
         setObjectRef<JNIAdapterStatusListener>(env, statusListener, nullptr, "nativeInstance");
