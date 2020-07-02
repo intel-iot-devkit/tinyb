@@ -15,6 +15,12 @@ case "$machine" in
         archabi="armhf"
         syslibdir="arm-linux-gnueabihf"
     ;;
+    "aarch64")
+        cpu="aarch64"
+        cpufamily="arm"
+        archabi="arm64"
+        syslibdir="aarch64-linux-gnu"
+    ;;
     "x86_64")
         cpu="x86_64"
         cpufamily="x86"
