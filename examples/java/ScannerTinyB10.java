@@ -256,6 +256,7 @@ public class ScannerTinyB10 {
         }
         if( KEEP_CONNECTED ) {
             while( device.pingGATT() ) {
+                System.err.println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
                     Thread.sleep(1000);
                 } catch (final InterruptedException e) {

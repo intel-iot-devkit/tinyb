@@ -322,6 +322,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
 exit:
     if( KEEP_CONNECTED ) {
         while( device->pingGATT() ) {
+            fprintf(stderr, "****** Processing Device: pingGATT OK: %s\n", device->getAddressString().c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         }
         fprintf(stderr, "****** Processing Device: pingGATT failed: %s\n", device->getAddressString().c_str());
