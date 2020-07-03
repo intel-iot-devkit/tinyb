@@ -85,7 +85,7 @@ namespace direct_bt {
         RESERVED            = 0x02,
         /** Static public 'random' device address 0b11 */
         STATIC_PUBLIC       = 0x03,
-        /** Undefined */
+        /** Undefined, e.g. address not of type {@link BDAddressType::BDADDR_LE_RANDOM} */
         UNDEFINED           = 0xff
     };
     std::string getBLERandomAddressTypeString(const BLERandomAddressType type);
@@ -155,7 +155,7 @@ namespace direct_bt {
         EUI48& operator=(const EUI48 &o) noexcept = default;
         EUI48& operator=(EUI48 &&o) noexcept = default;
 
-        BLERandomAddressType getBLERandomAddressType() const;
+        BLERandomAddressType getBLERandomAddressType(const BDAddressType addressType) const;
         std::string toString() const;
     };
 
@@ -167,8 +167,6 @@ namespace direct_bt {
 
     inline bool operator!=(const EUI48& lhs, const EUI48& rhs)
     { return !(lhs == rhs); }
-
-    std::string getBLERandomAddressTypeString(const EUI48 &a);
 
     /** EUI48 MAC address matching any device, i.e. '0:0:0:0:0:0'. */
     extern const EUI48 EUI48_ANY_DEVICE;

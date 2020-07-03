@@ -56,7 +56,7 @@ public enum BLERandomAddressType {
     RESERVED            (0x02),
     /** Static public 'random' device address 0b11 */
     STATIC_PUBLIC       (0x03),
-    /** Undefined */
+    /** Undefined, e.g. address not of type {@link BluetoothAddressType#BDADDR_LE_RANDOM} */
     UNDEFINED           (0xff);
 
     public final int value;
@@ -76,7 +76,10 @@ public enum BLERandomAddressType {
         }
     }
 
-    public static BLERandomAddressType getLERandomAddressType(final String address) {
+    public static BLERandomAddressType getLERandomAddressType(final String address, final BluetoothAddressType addressType) {
+        if( BluetoothAddressType.BDADDR_LE_RANDOM != addressType ) {
+            return BLERandomAddressType.UNDEFINED;
+        }
         final String highByteS = address.substring(0, 3);
         int highByte = 0;
         try {

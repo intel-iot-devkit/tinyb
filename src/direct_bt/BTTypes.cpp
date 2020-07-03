@@ -130,11 +130,10 @@ std::string direct_bt::getBLERandomAddressTypeString(const BLERandomAddressType 
     return "Unknown BLERandomAddressType";
 }
 
-std::string direct_bt::getBLERandomAddressTypeString(const EUI48 &a) {
-    return getBLERandomAddressTypeString(a.getBLERandomAddressType());
-}
-
-BLERandomAddressType EUI48::getBLERandomAddressType() const {
+BLERandomAddressType EUI48::getBLERandomAddressType(const BDAddressType addressType) const {
+    if( BDAddressType::BDADDR_LE_RANDOM != addressType ) {
+        return BLERandomAddressType::UNDEFINED;
+    }
     const uint8_t high2 = ( b[5] >> 6 ) & 0x03;
     switch( high2 ) {
         case 0x00: return BLERandomAddressType::UNRESOLVABLE_PRIVAT;

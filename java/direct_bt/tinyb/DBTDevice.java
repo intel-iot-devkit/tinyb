@@ -207,11 +207,11 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         this.leRandomAddressType = BLERandomAddressType.get(intBLERandomAddressType);
         if( BluetoothAddressType.BDADDR_LE_RANDOM == addressType ) {
             if( BLERandomAddressType.UNDEFINED == leRandomAddressType ) {
-                throw new IllegalArgumentException("BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+intBLERandomAddressType);
+                throw new IllegalArgumentException("BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+intBLERandomAddressType+": "+toString());
             }
         } else {
             if( BLERandomAddressType.UNDEFINED != leRandomAddressType ) {
-                throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+leRandomAddressType);
+                throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+leRandomAddressType+": "+toString());
             }
         }
         this.ts_creation = ts_creation;
@@ -514,7 +514,13 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     public final String toString() {
         if( !isValid() ) {
             // UTF-8 271D = Cross
-            return "Device" + "\u271D" + "["+address+", '"+name+"']";
+            final String leRandomStr;
+            if( BLERandomAddressType.UNDEFINED != this.leRandomAddressType ) {
+                leRandomStr = ", random "+leRandomAddressType.toString();
+            } else {
+                leRandomStr = "";
+            }
+            return "Device" + "\u271D" + "[address["+address+", "+addressType.toString()+leRandomStr+"], '"+name+"']";
         }
         return toStringImpl();
     }

@@ -43,20 +43,33 @@
 using namespace direct_bt;
 
 DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
-: adapter(a), ts_creation(r.getTimestamp()), address(r.getAddress()),
-  addressType(r.getAddressType()), leRandomAddressType(address.getBLERandomAddressType())
+: adapter(a), ts_creation(r.getTimestamp()),
+  address(r.getAddress()), addressType(r.getAddressType()),
+  leRandomAddressType(address.getBLERandomAddressType(addressType))
 {
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
     isConnected = false;
     isConnectIssued = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
-        throw IllegalArgumentException("DBTDevice ctor: Address not set: "+r.toString(), E_FILE_LINE);
+        throw IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
     }
     if( !r.isSet(EIRDataType::BDADDR_TYPE) ) {
-        throw IllegalArgumentException("DBTDevice ctor: AddressType not set: "+r.toString(), E_FILE_LINE);
+        throw IllegalArgumentException("AddressType not set: "+r.toString(), E_FILE_LINE);
     }
     update(r);
+
+    if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
+        if( BLERandomAddressType::UNDEFINED == leRandomAddressType ) {
+            throw IllegalArgumentException("BDADDR_LE_RANDOM: Invalid BLERandomAddressType "+
+                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+        }
+    } else {
+        if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
+            throw new IllegalArgumentException("Not BDADDR_LE_RANDOM: Invalid given native BLERandomAddressType "+
+                    getBLERandomAddressTypeString(leRandomAddressType)+": "+toString(), E_FILE_LINE);
+        }
+    }
 }
 
 DBTDevice::~DBTDevice() {
@@ -123,8 +136,8 @@ std::vector<std::shared_ptr<uuid_t>> DBTDevice::getServices() const {
 std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
     const uint64_t t0 = getCurrentMilliseconds();
-    std::string leaddrtype = "";
-    if( BDAddressType::BDADDR_LE_RANDOM == addressType ) {
+    std::string leaddrtype;
+    if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
         leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
     }
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
