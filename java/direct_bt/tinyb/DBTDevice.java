@@ -261,7 +261,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             return false;
         }
         final DBTDevice other = (DBTDevice)obj;
-        return address.equals(other.address);
+        return address.equals(other.address) && addressType.equals(other.addressType);
     }
 
     @Override

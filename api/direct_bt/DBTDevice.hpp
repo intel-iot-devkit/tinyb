@@ -385,7 +385,7 @@ namespace direct_bt {
     { return lhs.address < rhs.address; }
 
     inline bool operator==(const DBTDevice& lhs, const DBTDevice& rhs)
-    { return lhs.address == rhs.address; }
+    { return lhs.address == rhs.address && lhs.addressType == rhs.addressType; }
 
     inline bool operator!=(const DBTDevice& lhs, const DBTDevice& rhs)
     { return !(lhs == rhs); }
