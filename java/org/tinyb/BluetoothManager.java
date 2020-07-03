@@ -184,6 +184,7 @@ public interface BluetoothManager
      * @return TRUE if discovery was successfully enabled
      * @throws BluetoothException
      * @since 2.0.0
+     * @implNote {@code keepAlive} not implemented in tinyb.dbus
      */
     public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
 

@@ -169,6 +169,7 @@ public interface BluetoothDevice extends BluetoothObject
      *
      * @see BluetoothUtils#getCurrentMilliseconds()
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
      */
     long getLastDiscoveryTimestamp();
 
@@ -178,6 +179,7 @@ public interface BluetoothDevice extends BluetoothObject
      *
      * @see BluetoothUtils#getCurrentMilliseconds()
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus, returns {@link #getCreationTimestamp()}
      */
     long getLastUpdateTimestamp();
 
@@ -191,6 +193,7 @@ public interface BluetoothDevice extends BluetoothObject
      * determining whether the device is {@link BluetoothAddressType#BDADDR_BREDR}
      * or an LE device, {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus, returns {@link BluetoothAddressType#BDADDR_LE_PUBLIC}
      */
     BluetoothAddressType getAddressType();
 
@@ -205,6 +208,7 @@ public interface BluetoothDevice extends BluetoothObject
      * method shall return {@link BLERandomAddressType#UNDEFINED}.
      * </p>
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus, returns {@link BLERandomAddressType#UNDEFINED}
      */
     BLERandomAddressType getBLERandomAddressType();
 
@@ -443,6 +447,7 @@ public interface BluetoothDevice extends BluetoothObject
      *        {@link GATTCharacteristicListener} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);
 
@@ -451,6 +456,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @param listener A {@link GATTCharacteristicListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
 
@@ -458,6 +464,7 @@ public interface BluetoothDevice extends BluetoothObject
      * Remove all {@link GATTCharacteristicListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public int removeAllCharacteristicListener();
 }

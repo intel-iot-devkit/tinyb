@@ -72,6 +72,7 @@ public interface BluetoothAdapter extends BluetoothObject
     /**
      * Returns true, if the adapter's device is already whitelisted.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean isDeviceWhitelisted(final String address);
 
@@ -96,6 +97,7 @@ public interface BluetoothAdapter extends BluetoothObject
      *
      * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType)
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype,
@@ -119,6 +121,7 @@ public interface BluetoothAdapter extends BluetoothObject
      *
      * @see #addDeviceToWhitelist(String, BluetoothAddressType, HCIWhitelistConnectType, short, short, short, short)
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean addDeviceToWhitelist(final String address, final BluetoothAddressType address_type,
                                         final HCIWhitelistConnectType ctype);
@@ -127,6 +130,7 @@ public interface BluetoothAdapter extends BluetoothObject
     /**
      * Remove the given device from the adapter's autoconnect whitelist.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean removeDeviceFromWhitelist(final String address, final BluetoothAddressType address_type);
 
@@ -148,6 +152,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @return TRUE if discovery was successfully enabled
      * @throws BluetoothException
      * @since 2.0.0
+     * @implNote {@code keepAlive} not implemented in tinyb.dbus
      */
     public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
 
@@ -325,6 +330,7 @@ public interface BluetoothAdapter extends BluetoothObject
      *        {@link AdapterStatusListener} {@code device*} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean addStatusListener(final AdapterStatusListener listener, final BluetoothDevice deviceMatch);
 
@@ -333,6 +339,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @param listener A {@link AdapterStatusListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public boolean removeStatusListener(final AdapterStatusListener l);
 
@@ -340,6 +347,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * Remove all {@link AdapterStatusListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public int removeAllStatusListener();
 

@@ -90,6 +90,8 @@ public interface BluetoothGattService extends BluetoothObject
      * Adds the given {@link GATTCharacteristicListener} to the {@link BluetoothDevice} for all {@link BluetoothGattCharacteristic}s.
      * @param listener {@link GATTCharacteristicListener} to add to the {@link BluetoothDevice}.
      * @return true if successful, otherwise false
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public static boolean addCharacteristicListenerToAll(final BluetoothDevice device, final List<BluetoothGattService> services, final GATTCharacteristicListener listener) {
         final boolean res = device.addCharacteristicListener(listener, null /* for all */);
@@ -108,6 +110,8 @@ public interface BluetoothGattService extends BluetoothObject
      * Removes the given {@link GATTCharacteristicListener} from the {@link BluetoothDevice}.
      * @param listener {@link GATTCharacteristicListener} to remove from the {@link BluetoothDevice}.
      * @return true if successful, otherwise false
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public static boolean removeCharacteristicListenerFromAll(final BluetoothDevice device, final List<BluetoothGattService> services, final GATTCharacteristicListener listener) {
         for(final Iterator<BluetoothGattService> is = services.iterator(); is.hasNext(); ) {
@@ -124,6 +128,8 @@ public interface BluetoothGattService extends BluetoothObject
     /**
      * Removes all {@link GATTCharacteristicListener} from the {@link BluetoothDevice}.
      * @return count of removed {@link GATTCharacteristicListener}
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
     public static int removeAllCharacteristicListener(final BluetoothDevice device, final List<BluetoothGattService> services) {
         for(final Iterator<BluetoothGattService> is = services.iterator(); is.hasNext(); ) {
