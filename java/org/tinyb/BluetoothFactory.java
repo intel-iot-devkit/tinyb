@@ -269,7 +269,13 @@ public class BluetoothFactory {
     /**
      * Returns an initialized BluetoothManager instance using the given {@code fqBluetoothManagerImplementationClassName}
      * to lookup a registered {@link ImplementationIdentifier}.
+     * <p>
      * If found, method returns {@link #getBluetoothManager(ImplementationIdentifier)}, otherwise {@code null}.
+     * </p>
+     * <p>
+     * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
+     * </p>
+     *
      * @param fqBluetoothManagerImplementationClassName fully qualified class name for the {@link BluetoothManager} implementation
      * @throws BluetoothException
      * @throws NoSuchMethodException
@@ -298,6 +304,9 @@ public class BluetoothFactory {
      * If the {@link ImplementationIdentifier} has not been {@link #registerImplementationIdentifier(ImplementationIdentifier)},
      * it will be added to the list.
      * </p>
+     * <p>
+     * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
+     * </p>
      * @param id the specific {@link ImplementationIdentifier}
      * @throws BluetoothException
      * @throws NoSuchMethodException
@@ -324,6 +333,9 @@ public class BluetoothFactory {
      * <p>
      * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DBusImplementationID}.
      * </p>
+     * <p>
+     * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
+     * </p>
      * @throws BluetoothException
      * @throws NoSuchMethodException
      * @throws SecurityException
@@ -343,6 +355,9 @@ public class BluetoothFactory {
      * Returns an initialized BluetoothManager instance using the DirectBT implementation.
      * <p>
      * Issues {@link #getBluetoothManager(ImplementationIdentifier)} using {@link #DirectBTImplementationID}.
+     * </p>
+     * <p>
+     * The chosen implementation can't be changed within a running implementation, an exception is thrown if tried.
      * </p>
      * @throws BluetoothException
      * @throws NoSuchMethodException
