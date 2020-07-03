@@ -456,7 +456,11 @@ namespace direct_bt {
 
             std::string toString() const override;
 
-            void printDevices();
+            /**
+             * This is a debug facility only, to observe consistency
+             * of the internally maintained lists of shared_ptr<DBTDevice>.
+             */
+            void printSharedPtrListOfDevices();
     };
 
 } // namespace direct_bt

@@ -252,7 +252,7 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     // GATT Service Processing
     //
     fprintf(stderr, "****** Processing Device: GATT start: %s\n", device->getAddressString().c_str());
-    device->getAdapter().printDevices();
+    device->getAdapter().printSharedPtrListOfDevices();
     try {
         std::vector<GATTServiceRef> primServices = device->getGATTServices(); // implicit GATT connect...
         if( 0 == primServices.size() ) {
@@ -337,7 +337,7 @@ exit:
         fprintf(stderr, "****** Processing Device: removing: %s\n", device->getAddressString().c_str());
         device->remove();
     }
-    device->getAdapter().printDevices();
+    device->getAdapter().printSharedPtrListOfDevices();
 
     removeFromDevicesProcessing(device->getAddress());
     if( 0 < MULTI_MEASUREMENTS ) {
@@ -400,7 +400,7 @@ void test(int dev_id) {
         }
     }
     fprintf(stderr, "****** EOL Adapter's Devices\n");
-    adapter.printDevices();
+    adapter.printSharedPtrListOfDevices();
 }
 
 int main(int argc, char *argv[])

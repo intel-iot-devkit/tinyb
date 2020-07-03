@@ -187,7 +187,7 @@ DBTAdapter::~DBTAdapter() {
     DBG_PRINT("DBTAdapter::dtor: XXX");
 }
 
-void DBTAdapter::printDevices() {
+void DBTAdapter::printSharedPtrListOfDevices() {
     const std::lock_guard<std::recursive_mutex> lock0(mtx_connectedDevices);
     const std::lock_guard<std::recursive_mutex> lock1(mtx_discoveredDevices);
     const std::lock_guard<std::recursive_mutex> lock2(mtx_sharedDevices);
