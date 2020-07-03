@@ -51,38 +51,26 @@ extern "C" {
 
 using namespace direct_bt;
 
-int DBTAdapter::findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac) {
+int DBTAdapter::findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) {
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( nullptr != e && mac == e->getAddress() ) {
+        if ( nullptr != e && mac == e->getAddress() && macType == e->getAddressType() ) {
             return i;
         }
     }
     return -1;
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac) {
+std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType) {
     const size_t size = devices.size();
     for (size_t i = 0; i < size; i++) {
         std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( nullptr != e && mac == e->getAddress() ) {
+        if ( nullptr != e && mac == e->getAddress() && macType == e->getAddressType() ) {
             return e;
         }
     }
     return nullptr;
-}
-
-int DBTAdapter::countDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac) {
-    int count = 0;
-    const size_t size = devices.size();
-    for (size_t i = 0; i < size; i++) {
-        std::shared_ptr<DBTDevice> & e = devices[i];
-        if ( nullptr != e && mac == e->getAddress() ) {
-            count++;
-        }
-    }
-    return count;
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device) {
@@ -133,9 +121,9 @@ int DBTAdapter::disconnectAllDevices(const HCIStatusCode reason) {
     return count;
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac) {
+std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, const BDAddressType macType) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(connectedDevices, mac);
+    return findDevice(connectedDevices, mac, macType);
 }
 
 
@@ -387,9 +375,9 @@ void DBTAdapter::stopDiscovery() {
     DBG_PRINT("DBTAdapter::stopDiscovery: X");
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac) {
+std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(discoveredDevices, mac);
+    return findDevice(discoveredDevices, mac, macType);
 }
 
 bool DBTAdapter::addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device) {
@@ -456,9 +444,9 @@ void DBTAdapter::removeSharedDevice(const DBTDevice & device) {
     }
 }
 
-std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac) {
+std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, const BDAddressType macType) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sharedDevices); // RAII-style acquire and relinquish via destructor
-    return findDevice(sharedDevices, mac);
+    return findDevice(sharedDevices, mac, macType);
 }
 
 std::string DBTAdapter::toString() const {
@@ -578,13 +566,13 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
         ad_report.read_data(event.getData(), event.getDataSize());
     }
     int new_connect = 0;
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr == device ) {
-        device = findDiscoveredDevice(event.getAddress());
+        device = findDiscoveredDevice(event.getAddress(), event.getAddressType());
         new_connect = nullptr != device ? 1 : 0;
     }
     if( nullptr == device ) {
-        device = findSharedDevice(event.getAddress());
+        device = findSharedDevice(event.getAddress(), event.getAddressType());
         if( nullptr != device ) {
             addDiscoveredDevice(device);
             new_connect = 2;
@@ -641,7 +629,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
 bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventHCI:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         DBG_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s\n    -> %s",
             dev_id, event.toString().c_str(), device->toString().c_str());
@@ -671,7 +659,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
 
 bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
-    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress());
+    std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         if( device->getConnectionHandle() != event.getHCIHandle() ) {
             INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): ConnHandle mismatch %s\n    -> %s",
@@ -728,7 +716,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     std::shared_ptr<DBTDevice> dev;
     {
         const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-        dev = findDiscoveredDevice(ad_report.getAddress());
+        dev = findDiscoveredDevice(ad_report.getAddress(), ad_report.getAddressType());
     }
     if( nullptr != dev ) {
         //
@@ -742,7 +730,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
         return true;
     }
 
-    dev = findSharedDevice(ad_report.getAddress());
+    dev = findSharedDevice(ad_report.getAddress(), ad_report.getAddressType());
     if( nullptr != dev ) {
         //
         // active shared device, but flushed from discovered devices

@@ -621,17 +621,9 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         std::string saddress = from_jstring_to_string(env, jaddress);
         EUI48 address(saddress);
-        std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address);
+        const BDAddressType addressType = fromJavaAdressTypeToBDAddressType(env, jaddressType);
+        std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address, addressType);
         if( nullptr != device ) {
-            const BDAddressType addressType = fromJavaAdressTypeToBDAddressType(env, jaddressType);
-            const BDAddressType addressTypeDevice = device->getAddressType();
-            if( addressTypeDevice != addressType ) {
-                // oops?
-                WARN_PRINT("DBTAdapter::connectDevice: AddressType mismatch, ignoring request: Requested %s, Device %s %s",
-                        getBDAddressTypeString(addressType).c_str(), getBDAddressTypeString(addressTypeDevice).c_str(),
-                        device->toString().c_str());
-            }
-
             std::shared_ptr<direct_bt::HCIHandler> hci = adapter->openHCI();
             if( nullptr == hci ) {
                 throw BluetoothException("Couldn't get or open adapter's HCI "+adapter->toString(), E_FILE_LINE);

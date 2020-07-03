@@ -150,9 +150,8 @@ namespace direct_bt {
     {
         private:
             /** Returns index >= 0 if found, otherwise -1 */
-            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
-            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
-            static int countDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac);
+            static int findDeviceIdx(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType);
+            static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType);
             std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device);
 
             DBTManager& mgmt;
@@ -189,7 +188,7 @@ namespace direct_bt {
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);
             bool removeConnectedDevice(const DBTDevice & device);
             int disconnectAllDevices(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
-            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac);
+            std::shared_ptr<DBTDevice> findConnectedDevice (EUI48 const & mac, const BDAddressType macType);
 
             bool addDiscoveredDevice(std::shared_ptr<DBTDevice> const &device);
             bool removeDiscoveredDevice(const DBTDevice & device);
@@ -197,7 +196,7 @@ namespace direct_bt {
             bool addSharedDevice(std::shared_ptr<DBTDevice> const &device);
             std::shared_ptr<DBTDevice> getSharedDevice(const DBTDevice & device);
             void removeSharedDevice(const DBTDevice & device);
-            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac);
+            std::shared_ptr<DBTDevice> findSharedDevice (EUI48 const & mac, const BDAddressType macType);
 
             bool mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e);
@@ -453,7 +452,7 @@ namespace direct_bt {
             int removeDiscoveredDevices();
 
             /** Returns shared DBTDevice if found, otherwise nullptr */
-            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac);
+            std::shared_ptr<DBTDevice> findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType);
 
             std::string toString() const override;
 
