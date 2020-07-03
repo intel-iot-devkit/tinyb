@@ -35,12 +35,12 @@
 
 using namespace tinyb;
 
-jclass search_class(JNIEnv *env, BluetoothObject &object)
+jclass tinyb::search_class(JNIEnv *env, BluetoothObject &object)
 {
     return search_class(env, object.get_java_class().c_str());
 }
 
-BluetoothType from_int_to_btype(int type)
+BluetoothType tinyb::from_int_to_btype(int type)
 {
     BluetoothType result = BluetoothType::NONE;
 
@@ -78,7 +78,7 @@ BluetoothType from_int_to_btype(int type)
     return result;
 }
 
-TransportType from_int_to_transport_type(int type)
+TransportType tinyb::from_int_to_transport_type(int type)
 {
     TransportType result = TransportType::AUTO;
 
@@ -104,7 +104,7 @@ TransportType from_int_to_transport_type(int type)
     return result;
 }
 
-void raise_java_bluetooth_exception(JNIEnv *env, BluetoothException &e)
+void tinyb::raise_java_bluetooth_exception(JNIEnv *env, BluetoothException &e)
 {
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
 }
