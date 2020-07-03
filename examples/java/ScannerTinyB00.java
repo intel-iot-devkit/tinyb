@@ -46,7 +46,8 @@ public class ScannerTinyB00 {
     static long TO_DISCOVER = 60000;
 
     public static void main(final String[] args) throws InterruptedException {
-        int factory = 0;
+        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        int dev_id = 0; // default
         String mac = null;
         int mode = 0;
         boolean forever = false;
@@ -54,29 +55,44 @@ public class ScannerTinyB00 {
         for(int i=0; i< args.length; i++) {
             final String arg = args[i];
 
-            if( arg.equals("-mac") ) {
+            if( arg.equals("-dev_id") && args.length > (i+1) ) {
+                dev_id = Integer.valueOf(args[++i]).intValue();
+            } else if( arg.equals("-mac") ) {
                 mac = args[++i];
             } else if( arg.equals("-mode") ) {
                 mode = Integer.valueOf(args[++i]).intValue();
-            } else if( arg.equals("-factory") ) {
-                factory = Integer.valueOf(args[++i]).intValue();
+            } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
+                bluetoothManagerClazzName = args[++i];
             } else if( arg.equals("-forever") ) {
                 forever = true;
             }
         }
 
+        System.err.println("BluetoothManager "+bluetoothManagerClazzName);
+        System.err.println("dev_id "+dev_id);
+        System.err.println("device: "+mac);
+        System.err.println("mode "+mode);
+
         if ( null == mac ) {
-            System.err.println("Run with '-mac <device_address> [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '-mac <device_address> [-mode <mode>] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
             System.exit(-1);
         }
 
-        final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
         final boolean useAdapter = mode/10 > 0;
         mode = mode %10;
 
+        final boolean isDirectBT;
         final BluetoothManager manager;
         {
             BluetoothManager _manager = null;
+            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+            if( null == implID ) {
+                System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
+                System.exit(-1);
+            }
+            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+            System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
+            System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
                 _manager = BluetoothFactory.getBluetoothManager( implID );
             } catch (BluetoothException | NoSuchMethodException | SecurityException
@@ -88,7 +104,18 @@ public class ScannerTinyB00 {
             }
             manager = _manager;
         }
-        final BluetoothAdapter adapter = manager.getDefaultAdapter();
+        final BluetoothAdapter adapter;
+        {
+            final List<BluetoothAdapter> adapters = manager.getAdapters();
+            for(int i=0; i < adapters.size(); i++) {
+                System.err.println("Adapter["+i+"]: "+adapters.get(i));
+            }
+            if( adapters.size() <= dev_id ) {
+                System.err.println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
+                System.exit(-1);
+            }
+            adapter = adapters.get(dev_id);
+        }
 
         do {
             final long t0 = System.currentTimeMillis();;
@@ -163,7 +190,7 @@ public class ScannerTinyB00 {
                 System.err.println("Sensor servicesResolved in "+(t3-t2)+" ms, total "+(t3-t1)+" ms");
             } else {
                 t3=0;
-                System.out.println("Could not connect device.");
+                System.out.println("Sensor service not resolved: "+(t3-t2)+" ms, total "+(t3-t1)+" ms");
                 System.exit(-1);
             }
 

@@ -50,8 +50,8 @@ public class ScannerTinyB01 {
     /** 10,000 milliseconds */
     static long TO_DISCOVER = 10000;
 
-    /** 500 milliseconds */
-    static long TO_CONNECT = 500;
+    /** 20000 milliseconds */
+    static long TO_CONNECT_AND_RESOLVE = 20000;
 
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
     static String waitForDevice = EUI48_ANY_DEVICE;
@@ -59,7 +59,7 @@ public class ScannerTinyB01 {
     public static void main(final String[] args) throws InterruptedException {
         final boolean waitForEnter=false;
         long t0_discovery = TO_DISCOVER;
-        int factory = 0;
+        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
         int dev_id = 0; // default
         int mode = 0;
         int max_loops = 1;
@@ -74,8 +74,8 @@ public class ScannerTinyB01 {
                     waitForDevice = args[++i];
                 } else if( arg.equals("-mode") && args.length > (i+1) ) {
                     mode = Integer.valueOf(args[++i]).intValue();
-                } else if( arg.equals("-factory") && args.length > (i+1) ) {
-                    factory = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
+                    bluetoothManagerClazzName = args[++i];
                 } else if( arg.equals("-t0_discovery") && args.length > (i+1) ) {
                     t0_discovery = Long.valueOf(args[++i]).longValue();
                 } else if( arg.equals("-forever") ) {
@@ -85,11 +85,13 @@ public class ScannerTinyB01 {
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-mode <mode>] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-mode <mode>] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
         }
 
+        System.err.println("BluetoothManager "+bluetoothManagerClazzName);
         System.err.println("dev_id "+dev_id);
         System.err.println("waitForDevice: "+waitForDevice);
+        System.err.println("mode "+mode);
 
         if( waitForEnter ) {
             System.err.println("Press ENTER to continue\n");
@@ -97,10 +99,18 @@ public class ScannerTinyB01 {
             } catch(final Exception e) { }
         }
 
-        final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
+        final boolean isDirectBT;
         final BluetoothManager manager;
         {
             BluetoothManager _manager = null;
+            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+            if( null == implID ) {
+                System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
+                System.exit(-1);
+            }
+            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+            System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
+            System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
                 _manager = BluetoothFactory.getBluetoothManager( implID );
             } catch (BluetoothException | NoSuchMethodException | SecurityException
@@ -280,7 +290,7 @@ public class ScannerTinyB01 {
                 synchronized( servicesResolvedNotification ) {
                     while( !servicesResolvedNotification.getValue() ) {
                         final long tn = BluetoothUtils.getCurrentMilliseconds();
-                        if( tn - t3 > TO_CONNECT ) {
+                        if( tn - t3 > TO_CONNECT_AND_RESOLVE ) {
                             break;
                         }
                         servicesResolvedNotification.wait(100);
@@ -292,7 +302,7 @@ public class ScannerTinyB01 {
                     System.err.println("Sensor servicesResolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                 } else {
                     t4 = BluetoothUtils.getCurrentMilliseconds();
-                    System.out.println("Could not connect device: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
+                    System.out.println("Sensor service not resolved: "+(t4-t3)+" ms, total "+(t4-t0)+" ms");
                     System.exit(-1);
                 }
 
@@ -300,8 +310,13 @@ public class ScannerTinyB01 {
                 if ( null == primServices || primServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
                 } else {
-                    final boolean addedCharacteristicListenerRes =
-                      BluetoothGattService.addCharacteristicListenerToAll(sensor, primServices, myCharacteristicListener);
+                    final boolean addedCharacteristicListenerRes;
+                    if( isDirectBT ) {
+                        addedCharacteristicListenerRes =
+                                BluetoothGattService.addCharacteristicListenerToAll(sensor, primServices, myCharacteristicListener);
+                    } else {
+                        addedCharacteristicListenerRes = false;
+                    }
                     System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
 
                     int i=0, j=0;
@@ -324,7 +339,12 @@ public class ScannerTinyB01 {
                     }
                     Thread.sleep(1000); // FIXME: Wait for notifications
 
-                    final boolean remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, primServices, myCharacteristicListener);
+                    final boolean remRes;
+                    if( isDirectBT ) {
+                        remRes = BluetoothGattService.removeCharacteristicListenerFromAll(sensor, primServices, myCharacteristicListener);
+                    } else {
+                        remRes = false;
+                    }
                     System.err.println("Removed GATTCharacteristicListener: "+remRes);
                 }
                 sensor.disconnect();

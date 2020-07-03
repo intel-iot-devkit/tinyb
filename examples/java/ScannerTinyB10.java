@@ -64,7 +64,7 @@ public class ScannerTinyB10 {
 
     boolean SHOW_UPDATE_EVENTS = false;
 
-    int factory = 0;
+    String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
 
     int dev_id = 0; // default
 
@@ -296,10 +296,18 @@ public class ScannerTinyB10 {
     }
 
     public void runTest() {
-        final BluetoothFactory.ImplementationIdentifier implID = 0 == factory ? BluetoothFactory.DirectBTImplementationID : BluetoothFactory.DBusImplementationID;
+        final boolean isDirectBT;
         final BluetoothManager manager;
         {
             BluetoothManager _manager = null;
+            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+            if( null == implID ) {
+                System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
+                System.exit(-1);
+            }
+            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+            System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
+            System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
             try {
                 _manager = BluetoothFactory.getBluetoothManager( implID );
             } catch (BluetoothException | NoSuchMethodException | SecurityException
@@ -405,14 +413,15 @@ public class ScannerTinyB10 {
                 } else if( arg.equals("-debug") ) {
                     System.setProperty("org.tinyb.verbose", "true");
                     System.setProperty("org.tinyb.debug", "true");
-                } else if( arg.equals("-factory") && args.length > (i+1) ) {
-                    test.factory = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
+                    test.bluetoothManagerClazzName = args[++i];
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-factory <BluetoothManager-Factory-Implementation-Class>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
         }
 
+        System.err.println("BluetoothManager "+test.bluetoothManagerClazzName);
         System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         System.err.println("REMOVE_DEVICE "+test.REMOVE_DEVICE);

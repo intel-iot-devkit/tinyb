@@ -29,8 +29,10 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -40,9 +42,23 @@ public class BluetoothFactory {
     /**
      * Identifier names, allowing {@link BluetoothFactory#getBluetoothManager(ImplementationIdentifier)}
      * to initialize the required native libraries and to instantiate the root {@link BluetoothManager} instance.
+     * <p>
+     * The implementation class must provide the static factory method
+     * <pre>
+     * public static synchronized BluetoothManager getBluetoothManager() throws BluetoothException { .. }
+     * </pre>
+     * </p>
      */
     public static class ImplementationIdentifier {
-        /** Fully qualified class name for the {@link BluetoothManager} implementation */
+        /**
+         * Fully qualified class name for the {@link BluetoothManager} implementation
+         * <p>
+         * The implementation class must provide the static factory method
+         * <pre>
+         * public static synchronized BluetoothManager getBluetoothManager() throws BluetoothException { .. }
+         * </pre>
+         * </p>
+         */
         public final String BluetoothManagerClassName;
         /** Native library basename for the implementation native library */
         public final String ImplementationNativeLibraryBasename;
@@ -55,6 +71,21 @@ public class BluetoothFactory {
             this.BluetoothManagerClassName = BluetoothManagerClassName;
             this.ImplementationNativeLibraryBasename = ImplementationNativeLibraryBasename;
             this.JavaNativeLibraryBasename = JavaNativeLibraryBasename;
+        }
+
+        /**
+         * <p>
+         * Implementation compares {@link #BluetoothManagerClassName} only for equality.
+         * </p>
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(final Object other) {
+            if( null == other || !(other instanceof ImplementationIdentifier) ) {
+                return false;
+            }
+            final ImplementationIdentifier o = (ImplementationIdentifier)other;
+            return BluetoothManagerClassName.equals( o.BluetoothManagerClassName );
         }
 
         @Override
@@ -81,6 +112,8 @@ public class BluetoothFactory {
      */
     public static final ImplementationIdentifier DirectBTImplementationID = new ImplementationIdentifier("direct_bt.tinyb.DBTManager", "direct_bt", "javadirect_bt");
 
+    private static final List<ImplementationIdentifier> implIDs = new ArrayList<ImplementationIdentifier>();
+
     /**
      * Manifest's {@link Attributes.Name#SPECIFICATION_VERSION} or {@code null} if not available.
      */
@@ -105,6 +138,8 @@ public class BluetoothFactory {
             final String v = System.getProperty("org.tinyb.debug", "false");
             DEBUG = Boolean.valueOf(v);
         }
+        implIDs.add(DirectBTImplementationID);
+        implIDs.add(DBusImplementationID);
     }
 
     private static ImplementationIdentifier initializedID = null;
@@ -202,14 +237,68 @@ public class BluetoothFactory {
     }
 
     /**
-     * Returns an initialized BluetoothManager instance using the given {@code factoryImplClass}.
+     * Registers a new {@link ImplementationIdentifier} to the internal list.
+     * The {@code id} is only added if not registered yet.
+     * @param id the {@link ImplementationIdentifier} to register
+     * @return {@code true} if the given {@link ImplementationIdentifier} has been newly added,
+     * otherwise {@code false}.
+     */
+    public static synchronized boolean registerImplementationIdentifier(final ImplementationIdentifier id) {
+        if( null == id ) {
+            return false;
+        }
+        if( implIDs.contains(id) ) {
+            return false;
+        }
+        return implIDs.add(id);
+    }
+
+    /**
+     * Returns the matching {@link ImplementationIdentifier} from the internal list or {@code null} if not found.
+     * @param fqBluetoothManagerImplementationClassName fully qualified class name for the {@link BluetoothManager} implementation
+     */
+    public static synchronized ImplementationIdentifier getImplementationIdentifier(final String fqBluetoothManagerImplementationClassName) {
+        for(final ImplementationIdentifier id : implIDs) {
+            if( id.BluetoothManagerClassName.equals(fqBluetoothManagerImplementationClassName) ) {
+                return id;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns an initialized BluetoothManager instance using the given {@code fqBluetoothManagerImplementationClassName}
+     * to lookup a registered {@link ImplementationIdentifier}.
+     * If found, method returns {@link #getBluetoothManager(ImplementationIdentifier)}, otherwise {@code null}.
+     * @param fqBluetoothManagerImplementationClassName fully qualified class name for the {@link BluetoothManager} implementation
+     * @throws BluetoothException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @throws ClassNotFoundException
+     * @see {@link #DBusFactoryImplClassName}
+     * @see {@link #DirectBTFactoryImplClassName}
+     */
+    public static synchronized BluetoothManager getBluetoothManager(final String fqBluetoothManagerImplementationClassName)
+            throws BluetoothException, NoSuchMethodException, SecurityException,
+                   IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
+    {
+        final ImplementationIdentifier id = getImplementationIdentifier(fqBluetoothManagerImplementationClassName);
+        if( null != id ) {
+            return getBluetoothManager(id);
+        }
+        return null;
+    }
+
+    /**
+     * Returns an initialized BluetoothManager instance using the given {@link ImplementationIdentifier}.
      * <p>
-     * The {@code factoryImplClass} must provide the static method
-     * <pre>
-     * public static synchronized BluetoothManager getBluetoothManager() throws BluetoothException { .. }
-     * </pre>
+     * If the {@link ImplementationIdentifier} has not been {@link #registerImplementationIdentifier(ImplementationIdentifier)},
+     * it will be added to the list.
      * </p>
-     * @param id the fully qualified factory implementation class name
+     * @param id the specific {@link ImplementationIdentifier}
      * @throws BluetoothException
      * @throws NoSuchMethodException
      * @throws SecurityException
@@ -224,6 +313,7 @@ public class BluetoothFactory {
             throws BluetoothException, NoSuchMethodException, SecurityException,
                    IllegalAccessException, IllegalArgumentException, InvocationTargetException, ClassNotFoundException
     {
+        registerImplementationIdentifier(id);
         initLibrary(id);
         final Class<?> factoryImpl = Class.forName(id.BluetoothManagerClassName);
         return getBluetoothManager(factoryImpl);
