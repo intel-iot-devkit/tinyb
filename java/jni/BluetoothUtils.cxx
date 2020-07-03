@@ -30,6 +30,11 @@
 
 #include <time.h>
 
+#include "JNIMem.hpp"
+#include "helper_base.hpp"
+
+#include "direct_bt/dfa_utf8_decode.hpp"
+
 static const int64_t NanoPerMilli = 1000000L;
 static const int64_t MilliPerOne = 1000L;
 
@@ -51,3 +56,26 @@ jlong Java_org_tinyb_BluetoothUtils_getCurrentMilliseconds(JNIEnv *env, jclass c
     return (jlong)res;
 }
 
+jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
+    (void)clazz;
+
+    const int buffer_size = env->GetArrayLength(jbuffer);
+    if( 0 == buffer_size ) {
+        return env->NewStringUTF("");
+    }
+    if( buffer_size < offset+size ) {
+        std::string msg("buffer.length "+std::to_string(buffer_size)+
+                        " < offset "+std::to_string(offset)+
+                        " + size "+std::to_string(size));
+        throw std::invalid_argument(msg.c_str());
+    }
+
+    JNICriticalArray<uint8_t> criticalArray(env); // RAII - release
+    uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
+    if( NULL == buffer_ptr ) {
+        throw std::invalid_argument("GetPrimitiveArrayCritical(byte array) is null");
+    }
+    std::string sres = dfa_utf8_decode(buffer_ptr+offset, size);
+
+    return from_string_to_jstring(env, sres);
+}

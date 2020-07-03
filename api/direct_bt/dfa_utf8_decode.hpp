@@ -1,5 +1,6 @@
 /*
  * Author: Sven Gothel <sgothel@jausoft.com>
+ * Copyright (c) 2008-2010 Bjoern Hoehrmann <bjoern@hoehrmann.de> (see details below)
  * Copyright (c) 2020 Gothel Software e.K.
  * Copyright (c) 2020 ZAFENA AB
  *
@@ -23,35 +24,30 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "org_tinyb_BluetoothUtils.h"
+#ifndef DFA_UTF8_DECODE_HPP_
+#define DFA_UTF8_DECODE_HPP_
 
+#define DFA_UTF8_ACCEPT 0
+#define DFA_UTF8_REJECT 12
+
+#include <string>
 #include <cstdint>
 #include <cinttypes>
 
-#include <time.h>
+uint32_t dfa_utf8_decode(uint32_t & state, uint32_t & codep, const uint32_t byte_value);
 
-#include "helper_base.hpp"
-#include "helper_dbt.hpp"
+/**
+ * Returns all valid consecutive UTF-8 characters within buffer
+ * in the range up to buffer_size or until EOS.
+ * <p>
+ * In case a non UTF-8 character has been detected,
+ * the content will be cut off and the decoding loop ends.
+ * </p>
+ * <p>
+ * Method utilizes a finite state machine detecting variable length UTF-8 codes.
+ * See Bjoern Hoehrmann's site <http://bjoern.hoehrmann.de/utf-8/decoder/dfa/> for details.
+ * </p>
+ */
+std::string dfa_utf8_decode(const uint8_t *buffer, const size_t buffer_size);
 
-jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz, jbyteArray jbuffer, jint offset, jint size) {
-    (void)clazz;
-
-    const int buffer_size = env->GetArrayLength(jbuffer);
-    if( 0 == buffer_size ) {
-        return env->NewStringUTF("");
-    }
-    if( buffer_size < offset+size ) {
-        throw direct_bt::IllegalArgumentException("buffer.length "+std::to_string(buffer_size)+
-                " < offset "+std::to_string(offset)+
-                " + size "+std::to_string(size), E_FILE_LINE);
-    }
-
-    JNICriticalArray<uint8_t> criticalArray(env); // RAII - release
-    uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
-    if( NULL == buffer_ptr ) {
-        throw direct_bt::InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
-    }
-    std::string sres = direct_bt::decodeUTF8String(buffer_ptr+offset, size);
-
-    return from_string_to_jstring(env, sres);
-}
+#endif /* DFA_UTF8_DECODE_HPP_ */

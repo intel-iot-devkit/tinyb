@@ -407,20 +407,6 @@ namespace direct_bt {
     /** trim copy */
     std::string trimCopy(const std::string &s);
 
-    /**
-     * Returns all valid consecutive UTF-8 characters within buffer
-     * in the range up to buffer_size or until EOS.
-     * <p>
-     * In case a non UTF-8 character has been detected,
-     * the content will be cut off and the decoding loop ends.
-     * </p>
-     * <p>
-     * Method utilizes a finite state machine detecting variable length UTF-8 codes.
-     * See Bjoern Hoehrmann's site <http://bjoern.hoehrmann.de/utf-8/decoder/dfa/> for details.
-     * </p>
-     */
-    std::string decodeUTF8String(const uint8_t *buffer, const size_t buffer_size);
-
 } // namespace direct_bt
 
 #endif /* BASIC_TYPES_HPP_ */
