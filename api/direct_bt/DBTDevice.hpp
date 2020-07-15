@@ -63,8 +63,8 @@ namespace direct_bt {
             int8_t tx_power = 127; // The core spec defines 127 as the "not available" value
             AppearanceCat appearance = AppearanceCat::UNKNOWN;
             std::atomic<uint16_t> hciConnHandle;
-            std::shared_ptr<ManufactureSpecificData> msd = nullptr;
-            std::vector<std::shared_ptr<uuid_t>> services;
+            std::shared_ptr<ManufactureSpecificData> advMSD = nullptr;
+            std::vector<std::shared_ptr<uuid_t>> advServices;
             std::shared_ptr<GATTHandler> gattHandler = nullptr;
             std::shared_ptr<GenericAccess> gattGenericAccess = nullptr;
             std::recursive_mutex mtx_connect;
@@ -74,8 +74,15 @@ namespace direct_bt {
             std::atomic<bool> isConnectIssued;
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
-            bool addService(std::shared_ptr<uuid_t> const &uuid);
-            bool addServices(std::vector<std::shared_ptr<uuid_t>> const & services);
+            /** Add advertised service (GAP discovery) */
+            bool addAdvService(std::shared_ptr<uuid_t> const &uuid);
+            /** Add advertised service (GAP discovery) */
+            bool addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services);
+            /**
+             * Find advertised service (GAP discovery) index
+             * @return index >= 0 if found, otherwise -1
+             */
+            int findAdvService(std::shared_ptr<uuid_t> const &uuid) const;
 
             EIRDataType update(EInfoReport const & data);
             EIRDataType update(GenericAccess const &data, const uint64_t timestamp);
@@ -179,10 +186,7 @@ namespace direct_bt {
              * use {@link #getGATTServices()}.
              * </p>
              */
-            std::vector<std::shared_ptr<uuid_t>> getServices() const;
-
-            /** Returns index >= 0 if found, otherwise -1 */
-            int findService(std::shared_ptr<uuid_t> const &uuid) const;
+            std::vector<std::shared_ptr<uuid_t>> getAdvertisedServices() const;
 
             std::string toString() const override { return toString(false); }
 
@@ -351,6 +355,14 @@ namespace direct_bt {
              * </p>
              */
             std::vector<std::shared_ptr<GATTService>> getGATTServices();
+
+            /**
+             * Returns the matching GATTService for the given uuid.
+             * <p>
+             * Implementation calls getGATTServices().
+             * </p>
+             */
+            std::shared_ptr<GATTService> findGATTService(std::shared_ptr<uuid_t> const &uuid);
 
             /** Returns the shared GenericAccess instance, retrieved by {@link #getGATTServices()} or nullptr if not available. */
             std::shared_ptr<GenericAccess> getGATTGenericAccess();

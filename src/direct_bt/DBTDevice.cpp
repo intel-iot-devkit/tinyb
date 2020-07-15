@@ -75,8 +75,8 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
 DBTDevice::~DBTDevice() {
     DBG_PRINT("DBTDevice::dtor: ... %p %s", this, getAddressString().c_str());
     remove();
-    services.clear();
-    msd = nullptr;
+    advServices.clear();
+    advMSD = nullptr;
     DBG_PRINT("DBTDevice::dtor: XXX %p %s", this, getAddressString().c_str());
 }
 
@@ -87,35 +87,34 @@ void DBTDevice::releaseSharedInstance() const {
     adapter.removeSharedDevice(*this);
 }
 
-bool DBTDevice::addService(std::shared_ptr<uuid_t> const &uuid)
+bool DBTDevice::addAdvService(std::shared_ptr<uuid_t> const &uuid)
 {
-    if( 0 > findService(uuid) ) {
-        services.push_back(uuid);
+    if( 0 > findAdvService(uuid) ) {
+        advServices.push_back(uuid);
         return true;
     }
     return false;
 }
-bool DBTDevice::addServices(std::vector<std::shared_ptr<uuid_t>> const & services)
+bool DBTDevice::addAdvServices(std::vector<std::shared_ptr<uuid_t>> const & services)
 {
     bool res = false;
     for(size_t j=0; j<services.size(); j++) {
         const std::shared_ptr<uuid_t> uuid = services.at(j);
-        res = addService(uuid) || res;
+        res = addAdvService(uuid) || res;
     }
     return res;
 }
 
-int DBTDevice::findService(std::shared_ptr<uuid_t> const &uuid) const
+int DBTDevice::findAdvService(std::shared_ptr<uuid_t> const &uuid) const
 {
-    auto begin = services.begin();
-    auto it = std::find_if(begin, services.end(), [&](std::shared_ptr<uuid_t> const& p) {
-        return *p == *uuid;
-    });
-    if ( it == std::end(services) ) {
-        return -1;
-    } else {
-        return std::distance(begin, it);
+    const size_t size = advServices.size();
+    for (size_t i = 0; i < size; i++) {
+        const std::shared_ptr<uuid_t> & e = advServices[i];
+        if ( nullptr != e && *uuid == *e ) {
+            return i;
+        }
     }
+    return -1;
 }
 
 std::string const DBTDevice::getName() const {
@@ -125,12 +124,12 @@ std::string const DBTDevice::getName() const {
 
 std::shared_ptr<ManufactureSpecificData> const DBTDevice::getManufactureSpecificData() const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
-    return msd;
+    return advMSD;
 }
 
-std::vector<std::shared_ptr<uuid_t>> DBTDevice::getServices() const {
+std::vector<std::shared_ptr<uuid_t>> DBTDevice::getAdvertisedServices() const {
     const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTDevice*>(this)->mtx_data); // RAII-style acquire and relinquish via destructor
-    return services;
+    return advServices;
 }
 
 std::string DBTDevice::toString(bool includeDiscoveredServices) const {
@@ -140,22 +139,22 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     if( BLERandomAddressType::UNDEFINED != leRandomAddressType ) {
         leaddrtype = ", random "+getBLERandomAddressTypeString(leRandomAddressType);
     }
-    std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
+    std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
             "]ms, connected["+std::to_string(isConnectIssued)+"/"+std::to_string(isConnected)+", "+uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
-    if(includeDiscoveredServices && services.size() > 0 ) {
+    if(includeDiscoveredServices && advServices.size() > 0 ) {
         out.append("\n");
-        int i=0;
-        for(auto it = services.begin(); it != services.end(); it++, i++) {
+        const size_t size = advServices.size();
+        for (size_t i = 0; i < size; i++) {
+            const std::shared_ptr<uuid_t> & e = advServices[i];
             if( 0 < i ) {
                 out.append("\n");
             }
-            std::shared_ptr<uuid_t> p = *it;
-            out.append("  ").append(p->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(p->getTypeSize()))).append(" bytes");
+            out.append("  ").append(e->toUUID128String()).append(", ").append(std::to_string(static_cast<int>(e->getTypeSize()))).append(" bytes");
         }
     }
     return out;
@@ -209,12 +208,12 @@ EIRDataType DBTDevice::update(EInfoReport const & data) {
         }
     }
     if( data.isSet(EIRDataType::MANUF_DATA) ) {
-        if( msd != data.getManufactureSpecificData() ) {
-            msd = data.getManufactureSpecificData();
+        if( advMSD != data.getManufactureSpecificData() ) {
+            advMSD = data.getManufactureSpecificData();
             setEIRDataTypeSet(res, EIRDataType::MANUF_DATA);
         }
     }
-    if( addServices( data.getServices() ) ) {
+    if( addAdvServices( data.getServices() ) ) {
         setEIRDataTypeSet(res, EIRDataType::SERVICE_UUID);
     }
     return res;
@@ -531,6 +530,19 @@ std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices() {
         WARN_PRINT("DBTDevice::getGATTServices: Caught exception: '%s' on %s", e.what(), toString().c_str());
     }
     return std::vector<std::shared_ptr<GATTService>>();
+}
+
+std::shared_ptr<GATTService> DBTDevice::findGATTService(std::shared_ptr<uuid_t> const &uuid) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+    const std::vector<std::shared_ptr<GATTService>> & gattServices = getGATTServices(); // reference of the GATTHandler's list
+    const size_t size = gattServices.size();
+    for (size_t i = 0; i < size; i++) {
+        const std::shared_ptr<GATTService> & e = gattServices[i];
+        if ( nullptr != e && *uuid == *(e->type) ) {
+            return e;
+        }
+    }
+    return nullptr;
 }
 
 bool DBTDevice::pingGATT() {
