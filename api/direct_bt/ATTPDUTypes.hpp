@@ -106,9 +106,6 @@
  * > L2CAP should prioritize traffic over the HCI transport in devices that support HCI.
  * > Packets for Guaranteed channels should receive higher priority than packets for Best Effort channels.
  *
- * *As we have experience slower GATT communication w/o HCI connection,
- * Direct-BT enforces the HCI connection.*
- *
  * - - - - - - - - - - - - - - -
  *
  * Module ATTPDUTypes:

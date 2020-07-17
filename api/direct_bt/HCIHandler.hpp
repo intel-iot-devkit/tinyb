@@ -207,10 +207,6 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
              * </p>
              * <p>
-             * Even if not utilizing a HCI channel, it has been observed that maintaining such
-             * enhanced performance on subsequent communication, i.e. GATT over L2CAP.
-             * </p>
-             * <p>
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
              *

@@ -329,8 +329,7 @@ namespace direct_bt {
             /**
              * Returns a newly established GATT connection or an already open GATT connection.
              * <p>
-             * The HCI connectLE(..) or connectBREDR(..) shall be performed first,
-             * to produce best performance. See {@link #connectDefault()}.
+             * The HCI connectLE(..) or connectBREDR(..) must be performed first, see {@link #connectDefault()}.
              * </p>
              * <p>
              * The returned GATTHandler is managed by this device instance
