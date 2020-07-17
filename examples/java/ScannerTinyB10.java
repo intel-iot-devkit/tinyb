@@ -43,6 +43,7 @@ import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
@@ -53,6 +54,8 @@ public class ScannerTinyB10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
     final List<String> waitForDevices = new ArrayList<String>();
+    final boolean isDirectBT;
+    final BluetoothManager manager;
 
     long timestamp_t0;
 
@@ -61,10 +64,9 @@ public class ScannerTinyB10 {
     boolean REMOVE_DEVICE = true;
     boolean USE_WHITELIST = false;
     final List<String> whitelist = new ArrayList<String>();
+    final List<String> characteristicList = new ArrayList<String>();
 
     boolean SHOW_UPDATE_EVENTS = false;
-
-    String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
 
     int dev_id = 0; // default
 
@@ -221,6 +223,20 @@ public class ScannerTinyB10 {
                                    "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
                                    "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
+            {
+                for(final String characteristic : characteristicList) {
+                    final BluetoothGattCharacteristic char0 = (BluetoothGattCharacteristic)
+                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, null);
+                    final BluetoothGattCharacteristic char1 = (BluetoothGattCharacteristic)
+                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device.getAdapter());
+                    final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
+                            manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device);
+                    System.err.println("Char UUID "+characteristic);
+                    System.err.println("  over manager: "+char0);
+                    System.err.println("  over adapter: "+char1);
+                    System.err.println("  over device : "+char2);
+                }
+            }
             final boolean addedCharacteristicListenerRes =
               BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
             System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
@@ -236,10 +252,15 @@ public class ScannerTinyB10 {
                     System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
                     final List<String> properties = Arrays.asList(serviceChar.getFlags());
                     if( properties.contains("read") ) {
-                        final byte[] value = serviceChar.readValue();
-                        final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                        System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                        try {
+                            final byte[] value = serviceChar.readValue();
+                            final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
+                            System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
+                                    i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                        } catch( final Exception ex) {
+                            System.err.println("Caught "+ex.getMessage());
+                            ex.printStackTrace();
+                        }
                     }
                 }
             }
@@ -295,30 +316,29 @@ public class ScannerTinyB10 {
         }
     }
 
-    public void runTest() {
-        final boolean isDirectBT;
-        final BluetoothManager manager;
-        {
-            BluetoothManager _manager = null;
-            final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
-            if( null == implID ) {
-                System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
-                System.exit(-1);
-            }
-            isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
-            System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
-            System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
-            try {
-                _manager = BluetoothFactory.getBluetoothManager( implID );
-            } catch (BluetoothException | NoSuchMethodException | SecurityException
-                    | IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException | ClassNotFoundException e) {
-                System.err.println("Unable to instantiate BluetoothManager via "+implID);
-                e.printStackTrace();
-                System.exit(-1);
-            }
-            manager = _manager;
+    public ScannerTinyB10(final String bluetoothManagerClazzName) {
+        BluetoothManager _manager = null;
+        final BluetoothFactory.ImplementationIdentifier implID = BluetoothFactory.getImplementationIdentifier(bluetoothManagerClazzName);
+        if( null == implID ) {
+            System.err.println("Unable to find BluetoothManager "+bluetoothManagerClazzName);
+            System.exit(-1);
         }
+        isDirectBT = BluetoothFactory.DirectBTImplementationID.equals(implID);
+        System.err.println("Using BluetoothManager "+bluetoothManagerClazzName);
+        System.err.println("Using Implementation "+implID+", isDirectBT "+isDirectBT);
+        try {
+            _manager = BluetoothFactory.getBluetoothManager( implID );
+        } catch (BluetoothException | NoSuchMethodException | SecurityException
+                | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException | ClassNotFoundException e) {
+            System.err.println("Unable to instantiate BluetoothManager via "+implID);
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        manager = _manager;
+    }
+
+    public void runTest() {
         final BluetoothAdapter adapter;
         {
             final List<BluetoothAdapter> adapters = manager.getAdapters();
@@ -382,7 +402,17 @@ public class ScannerTinyB10 {
     }
 
     public static void main(final String[] args) throws InterruptedException {
-        final ScannerTinyB10 test = new ScannerTinyB10();
+        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        for(int i=0; i< args.length; i++) {
+            final String arg = args[i];
+            if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
+                bluetoothManagerClazzName = args[++i];
+            } else if( arg.equals("-debug") ) {
+                System.setProperty("org.tinyb.verbose", "true");
+                System.setProperty("org.tinyb.debug", "true");
+            }
+        }
+        final ScannerTinyB10 test = new ScannerTinyB10(bluetoothManagerClazzName);
 
         boolean waitForEnter=false;
         {
@@ -402,6 +432,8 @@ public class ScannerTinyB10 {
                     System.err.println("Whitelist + "+addr);
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;
+                } else if( arg.equals("-char") && args.length > (i+1) ) {
+                    test.characteristicList.add(args[++i]);
                 } else if( arg.equals("-disconnect") ) {
                     test.KEEP_CONNECTED = false;
                 } else if( arg.equals("-keepDevice") ) {
@@ -410,24 +442,19 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-single") ) {
                     test.MULTI_MEASUREMENTS = -1;
-                } else if( arg.equals("-debug") ) {
-                    System.setProperty("org.tinyb.verbose", "true");
-                    System.setProperty("org.tinyb.debug", "true");
-                } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
-                    test.bluetoothManagerClazzName = args[++i];
                 }
             }
-
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
         }
 
-        System.err.println("BluetoothManager "+test.bluetoothManagerClazzName);
+        System.err.println("BluetoothManager "+bluetoothManagerClazzName);
         System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
         System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
         System.err.println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
         System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
         System.err.println("dev_id "+test.dev_id);
         System.err.println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
+        System.err.println("characteristicList: "+Arrays.toString(test.characteristicList.toArray()));
 
         if( waitForEnter ) {
             System.err.println("Press ENTER to continue\n");

@@ -30,8 +30,10 @@ import java.util.List;
 
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
+import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 
 public class DBTGattService extends DBTObject implements BluetoothGattService
@@ -43,7 +45,7 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
     private final String type_uuid;
     private final short handleStart;
     private final short handleEnd;
-    private final List<BluetoothGattCharacteristic> characteristicList;
+    /* pp */ final List<BluetoothGattCharacteristic> characteristicList;
 
    /* pp */ DBTGattService(final long nativeInstance, final DBTDevice device, final boolean isPrimary,
                            final String type_uuid, final short handleStart, final short handleEnd)
@@ -81,14 +83,15 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
 
     @Override
     public BluetoothGattCharacteristic find(final String UUID, final long timeoutMS) {
-            final BluetoothManager manager = DBTManager.getBluetoothManager();
-            return (DBTGattCharacteristic) manager.find(BluetoothType.GATT_CHARACTERISTIC,
-                null, UUID, this, timeoutMS);
+        if( !checkServiceCache() ) {
+            return null;
+        }
+        return (DBTGattCharacteristic) findInCache(UUID, BluetoothType.GATT_CHARACTERISTIC);
     }
 
     @Override
     public BluetoothGattCharacteristic find(final String UUID) {
-            return find(UUID, 0);
+        return find(UUID, 0);
     }
 
     @Override
@@ -132,4 +135,59 @@ public class DBTGattService extends DBTObject implements BluetoothGattService
 
     @Override
     protected native void deleteImpl(long nativeInstance);
+
+    /* local functionality */
+
+    /* pp */ boolean checkServiceCache() {
+        final DBTDevice device = wbr_device.get();
+        return null != device && device.checkServiceCache(false);
+    }
+
+    /**
+     * Returns the matching {@link DBTObject} from the internal cache if found,
+     * otherwise {@code null}.
+     * <p>
+     * The returned {@link DBTObject} may be of type
+     * <ul>
+     *   <li>{@link DBTGattCharacteristic}</li>
+     *   <li>{@link DBTGattDescriptor}</li>
+     * </ul>
+     * or alternatively in {@link BluetoothObject} space
+     * <ul>
+     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
+     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     * </ul>
+     * </p>
+     * @param uuid UUID of the desired
+     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
+     * @param type specify the type of the object to be found, either
+     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
+     * {@link BluetoothType#NONE none} means anything.
+     */
+    /* pp */ DBTObject findInCache(final String uuid, final BluetoothType type) {
+        final boolean anyType = BluetoothType.NONE == type;
+        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+
+        if( !anyType && !charType && !descType ) {
+            return null;
+        }
+        final int characteristicSize = characteristicList.size();
+        for(int charIdx = 0; charIdx < characteristicSize; charIdx++ ) {
+            final DBTGattCharacteristic characteristic = (DBTGattCharacteristic) characteristicList.get(charIdx);
+            if( ( anyType || charType ) && ( null == uuid || characteristic.getUUID().equals(uuid) ) ) {
+                return characteristic;
+            }
+            if( anyType || descType ) {
+                final DBTObject dbtObj = characteristic.findInCache(uuid, type);
+                if( null != dbtObj ) {
+                    return dbtObj;
+                }
+            }
+        }
+        return null;
+    }
+
 }

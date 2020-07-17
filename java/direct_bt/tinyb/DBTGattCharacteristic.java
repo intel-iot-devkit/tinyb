@@ -35,6 +35,7 @@ import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
@@ -73,7 +74,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     /* Optional Client Characteristic Configuration index within descriptorList */
     private final int clientCharacteristicsConfigIndex;
 
-    private final List<BluetoothGattDescriptor> descriptorList;
+    /* pp */ final List<BluetoothGattDescriptor> descriptorList;
 
     private byte[] cachedValue = null;
     private BluetoothNotification<byte[]> valueNotificationCB = null;
@@ -194,9 +195,10 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public BluetoothGattDescriptor find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBTManager.getBluetoothManager();
-        return (BluetoothGattDescriptor) manager.find(BluetoothType.GATT_DESCRIPTOR,
-                null, UUID, this, timeoutMS);
+        if( !checkServiceCache() ) {
+            return null;
+        }
+        return (DBTGattDescriptor) findInCache(UUID, BluetoothType.GATT_DESCRIPTOR);
     }
 
     @Override
@@ -331,4 +333,50 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     @Override
     protected native void deleteImpl(long nativeInstance);
 
+    /* local functionality */
+
+    /* pp */ boolean checkServiceCache() {
+        final DBTGattService service = wbr_service.get();
+        if( null == service ) {
+            return false;
+        }
+        final DBTDevice device = service.wbr_device.get();
+        return null != device && device.checkServiceCache(false);
+    }
+
+    /**
+     * Returns the matching {@link DBTObject} from the internal cache if found,
+     * otherwise {@code null}.
+     * <p>
+     * The returned {@link DBTObject} may be of type
+     * <ul>
+     *   <li>{@link DBTGattDescriptor}</li>
+     * </ul>
+     * or alternatively in {@link BluetoothObject} space
+     * <ul>
+     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     * </ul>
+     * </p>
+     * @param uuid UUID of the desired
+     * {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
+     * @param type specify the type of the object to be found, a {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
+     * {@link BluetoothType#NONE none} means anything.
+     */
+    /* pp */ DBTObject findInCache(final String uuid, final BluetoothType type) {
+        final boolean anyType = BluetoothType.NONE == type;
+        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+
+        if( !anyType && !descType ) {
+            return null;
+        }
+        final int size = descriptorList.size();
+        for(int i = 0; i < size; i++ ) {
+            final DBTGattDescriptor descr = (DBTGattDescriptor) descriptorList.get(i);
+            if( null == uuid || descr.getUUID().equals(uuid) ) {
+                return descr;
+            }
+        }
+        return null;
+    }
 }

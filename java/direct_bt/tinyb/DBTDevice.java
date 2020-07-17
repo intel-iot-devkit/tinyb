@@ -26,6 +26,7 @@
 package direct_bt.tinyb;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,9 +37,11 @@ import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
@@ -58,6 +61,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private volatile String name;
     long ts_last_discovery;
     long ts_last_update;
+    /* pp */ final List<WeakReference<DBTGattService>> serviceCache = new ArrayList<WeakReference<DBTGattService>>();
 
     private final Object userCallbackLock = new Object();
 
@@ -127,6 +131,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
             if( isConnected.compareAndSet(true, false) ) {
+                clearServiceCache();
                 synchronized(userCallbackLock) {
                     if( servicesResolved.compareAndSet(true, false) ) {
                         if( null != userServicesResolvedNotificationsCB ) {
@@ -246,6 +251,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         disableTrustedNotifications();
         // FIXME disableTrustedNotificationsImpl();
 
+        clearServiceCache();
+
         final DBTAdapter a = getAdapter();
         if( null != a ) {
             a.removeStatusListener(statusListener);
@@ -297,9 +304,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public BluetoothGattService find(final String UUID, final long timeoutMS) {
-        final BluetoothManager manager = DBTManager.getBluetoothManager();
-        return (BluetoothGattService) manager.find(BluetoothType.GATT_SERVICE,
-                null, UUID, this, timeoutMS);
+        return (DBTGattService) findInCache(UUID, BluetoothType.GATT_SERVICE);
     }
 
     @Override
@@ -583,7 +588,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     @Override
     public List<BluetoothGattService> getServices() {
         try {
-            return getServicesImpl();
+            final List<BluetoothGattService> services = getServicesImpl();
+            updateServiceCache(services);
+            return services;
         } catch (final Throwable t) {
             if(DEBUG) {
                 System.err.println("Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString());
@@ -645,4 +652,113 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public native int removeAllCharacteristicListener();
+
+    /* local functionality */
+
+    private void clearServiceCache() {
+        synchronized(serviceCache) {
+            for(int i = serviceCache.size() - 1; i >= 0; i-- ) {
+                serviceCache.get(i).clear();
+                serviceCache.remove(i);
+            }
+        }
+    }
+    private void updateServiceCache(final List<BluetoothGattService> services) {
+        synchronized(serviceCache) {
+            clearServiceCache();
+            if( null != services ) {
+                for(final BluetoothGattService service : services) {
+                    serviceCache.add( new WeakReference<DBTGattService>( (DBTGattService)service ) );
+                }
+            }
+        }
+    }
+
+    /* pp */ boolean checkServiceCache(final boolean getServices) {
+        synchronized(serviceCache) {
+            if( serviceCache.isEmpty() ) {
+                if( getServices ) {
+                    getServices();
+                    if( serviceCache.isEmpty() ) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    /**
+     * Returns the matching {@link DBTObject} from the internal cache if found,
+     * otherwise {@code null}.
+     * <p>
+     * The returned {@link DBTObject} may be of type
+     * <ul>
+     *   <li>{@link DBTGattService}</li>
+     *   <li>{@link DBTGattCharacteristic}</li>
+     *   <li>{@link DBTGattDescriptor}</li>
+     * </ul>
+     * or alternatively in {@link BluetoothObject} space
+     * <ul>
+     *   <li>{@link BluetoothType#GATT_SERVICE} -> {@link BluetoothGattService}</li>
+     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
+     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     * </ul>
+     * </p>
+     * @param uuid UUID of the desired {@link BluetoothType#GATT_SERVICE service},
+     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
+     * @param type specify the type of the object to be found, either
+     * {@link BluetoothType#GATT_SERVICE service}, {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
+     * {@link BluetoothType#NONE none} means anything.
+     */
+    /* pp */ DBTObject findInCache(final String uuid, final BluetoothType type) {
+        final boolean anyType = BluetoothType.NONE == type;
+        final boolean serviceType = BluetoothType.GATT_SERVICE == type;
+        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+
+        if( !anyType && !serviceType && !charType && !descType ) {
+            return null;
+        }
+        synchronized(serviceCache) {
+            if( !checkServiceCache(true) ) {
+                return null;
+            }
+
+            if( null == uuid && ( anyType || serviceType ) ) {
+                // special case for 1st valid service ref
+                while( !serviceCache.isEmpty() ) {
+                    final DBTGattService service = serviceCache.get(0).get();
+                    if( null == service ) {
+                        serviceCache.remove(0);
+                    } else {
+                        return service;
+                    }
+                }
+                return null; // empty valid service refs
+            }
+            for(int srvIdx = serviceCache.size() - 1; srvIdx >= 0; srvIdx-- ) {
+                final DBTGattService service = serviceCache.get(srvIdx).get();
+                if( null == service ) {
+                    serviceCache.remove(srvIdx); // remove dead ref
+                    continue; // cont w/ next service
+                }
+                if( ( anyType || serviceType ) && service.getUUID().equals(uuid) ) {
+                    return service;
+                }
+                if( anyType || charType || descType ) {
+                    final DBTObject dbtObj = service.findInCache(uuid, type);
+                    if( null != dbtObj ) {
+                        return dbtObj;
+                    }
+                }
+            }
+            return null;
+        }
+    }
+
 }

@@ -24,6 +24,7 @@
  */
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -38,6 +39,7 @@ import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.EIRDataTypeSet;
 import org.tinyb.GATTCharacteristicListener;
@@ -55,6 +57,7 @@ public class ScannerTinyB01 {
 
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
     static String waitForDevice = EUI48_ANY_DEVICE;
+    static List<String> characteristicList = new ArrayList<String>();
 
     public static void main(final String[] args) throws InterruptedException {
         final boolean waitForEnter=false;
@@ -72,6 +75,8 @@ public class ScannerTinyB01 {
                     dev_id = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
                     waitForDevice = args[++i];
+                } else if( arg.equals("-char") && args.length > (i+1) ) {
+                    characteristicList.add(args[++i]);
                 } else if( arg.equals("-mode") && args.length > (i+1) ) {
                     mode = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
@@ -85,12 +90,13 @@ public class ScannerTinyB01 {
                 }
             }
 
-            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-mode <mode>] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] [-mac <device_address>] (-char <uuid>)* [-mode <mode>] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
         }
 
         System.err.println("BluetoothManager "+bluetoothManagerClazzName);
         System.err.println("dev_id "+dev_id);
         System.err.println("waitForDevice: "+waitForDevice);
+        System.err.println("characteristicList: "+Arrays.toString(characteristicList.toArray()));
         System.err.println("mode "+mode);
 
         if( waitForEnter ) {
@@ -241,7 +247,15 @@ public class ScannerTinyB01 {
                         matchingDiscoveredDeviceBucket[0] = null;
                     }
                 } else if( 1 == mode ) {
-                    sensor = adapter.find(null, waitForDevice, t0_discovery);
+                    boolean timeout = false;
+                    while( null == sensor && !timeout ) {
+                        sensor = adapter.find(null, waitForDevice, t0_discovery);
+                        if( null == sensor ) {
+                            final long tn = BluetoothUtils.getCurrentMilliseconds();
+                            timeout = ( tn - t0 ) > t0_discovery;
+                            Thread.sleep(60);
+                        }
+                    }
                 } else {
                     boolean timeout = false;
                     while( null == sensor && !timeout ) {
@@ -310,6 +324,21 @@ public class ScannerTinyB01 {
                 if ( null == primServices || primServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
                 } else {
+                    {
+                        for(final String characteristic : characteristicList) {
+                            final BluetoothGattCharacteristic char0 = (BluetoothGattCharacteristic)
+                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, null, 1000);
+                            final BluetoothGattCharacteristic char1 = (BluetoothGattCharacteristic)
+                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, sensor.getAdapter(), 1000);
+                            final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
+                                    manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, sensor, 1000);
+                            System.err.println("Char UUID "+characteristic);
+                            //System.err.println("  over manager: "+char0);
+                            System.err.println("  over adapter: "+char1);
+                            System.err.println("  over device : "+char2);
+                        }
+                    }
+
                     final boolean addedCharacteristicListenerRes;
                     if( isDirectBT ) {
                         addedCharacteristicListenerRes =
@@ -330,10 +359,15 @@ public class ScannerTinyB01 {
                             System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
                             final List<String> properties = Arrays.asList(serviceChar.getFlags());
                             if( properties.contains("read") ) {
-                                final byte[] value = serviceChar.readValue();
-                                final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                                System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
-                                        i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                                try {
+                                    final byte[] value = serviceChar.readValue();
+                                    final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
+                                    System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
+                                            i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
+                                } catch( final Exception ex) {
+                                    System.err.println("Caught "+ex.getMessage());
+                                    ex.printStackTrace();
+                                }
                             }
                         }
                     }

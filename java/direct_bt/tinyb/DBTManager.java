@@ -35,6 +35,8 @@ import org.tinyb.BluetoothAdapter;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
+import org.tinyb.BluetoothGattCharacteristic;
+import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothManager;
@@ -158,12 +160,9 @@ public class DBTManager implements BluetoothManager
 
     public BluetoothType getBluetoothType() { return BluetoothType.NONE; }
 
-    private DBTObject find(final int type, final String name, final String identifier, final BluetoothObject parent, final long milliseconds)
-    { throw new UnsupportedOperationException(); } // FIXME
-
     @Override
     public DBTObject find(final BluetoothType type, final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
-        return find(type.ordinal(), name, identifier, parent, timeoutMS);
+        return findInCache((DBTObject)parent, type, name, identifier);
     }
 
     @Override
@@ -174,13 +173,19 @@ public class DBTManager implements BluetoothManager
     @SuppressWarnings("unchecked")
     @Override
     public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent, final long timeoutMS) {
-        return (T) find(DBTObject.class_type().ordinal(), name, identifier, parent, timeoutMS);
+        // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
+        // hence this orig TinyB API method is rather misleading than useful.
+        throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
+        // return (T) find(BluetoothType.NONE, name, identifier, parent, timeoutMS);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public <T extends BluetoothObject>  T find(final String name, final String identifier, final BluetoothObject parent) {
-        return (T) find(name, identifier, parent, 0);
+        // Due to generic type erasure, we cannot determine the matching BluetoothType for the return parameter,
+        // hence this orig TinyB API method is rather misleading than useful.
+        throw new UnsupportedOperationException("Generic return type 'find' won't be implemented.");
+        // return (T) find(BluetoothType.NONE, name, identifier, parent, 0);
     }
 
     @Override
@@ -315,6 +320,128 @@ public class DBTManager implements BluetoothManager
         }
         adapters.clear();
         deleteImpl(nativeInstance);
+    }
+
+    /**
+     * Returns the matching {@link DBTObject} from the internal cache if found,
+     * otherwise {@code null}.
+     * <p>
+     * The returned {@link DBTObject} may be of type
+     * <ul>
+     *   <li>{@link DBTAdapter}</li>
+     *   <li>{@link DBTDevice}</li>
+     *   <li>{@link DBTGattService}</li>
+     *   <li>{@link DBTGattCharacteristic}</li>
+     *   <li>{@link DBTGattDescriptor}</li>
+     * </ul>
+     * or alternatively in {@link BluetoothObject} space
+     * <ul>
+     *   <li>{@link BluetoothType#ADAPTER} -> {@link BluetoothAdapter}</li>
+     *   <li>{@link BluetoothType#DEVICE} -> {@link BluetoothDevice}</li>
+     *   <li>{@link BluetoothType#GATT_SERVICE} -> {@link BluetoothGattService}</li>
+     *   <li>{@link BluetoothType#GATT_CHARACTERISTIC} -> {@link BluetoothGattCharacteristic}</li>
+     *   <li>{@link BluetoothType#GATT_DESCRIPTOR} -> {@link BluetoothGattDescriptor}</li>
+     * </ul>
+     * </p>
+     * @param name name of the desired {@link BluetoothType#ADAPTER adapter} or {@link BluetoothType#DEVICE device}.
+     * Maybe {@code null}.
+     * @param identifier EUI48 address of the desired {@link BluetoothType#ADAPTER adapter} or {@link BluetoothType#DEVICE device}
+     * or UUID of the desired {@link BluetoothType#GATT_SERVICE service},
+     * {@link BluetoothType#GATT_CHARACTERISTIC characteristic} or {@link BluetoothType#GATT_DESCRIPTOR descriptor} to be found.
+     * Maybe {@code null}, in which case the first object of the desired type is being returned - if existing.
+     * @param type specify the type of the object to be found, either
+     * {@link BluetoothType#ADAPTER adapter}, {@link BluetoothType#DEVICE device},
+     * {@link BluetoothType#GATT_SERVICE service}, {@link BluetoothType#GATT_CHARACTERISTIC characteristic}
+     * or {@link BluetoothType#GATT_DESCRIPTOR descriptor}.
+     * {@link BluetoothType#NONE none} means anything.
+     */
+    /* pp */ DBTObject findInCache(final String name, final String identifier, final BluetoothType type) {
+        final boolean anyType = BluetoothType.NONE == type;
+        final boolean adapterType = BluetoothType.ADAPTER == type;
+
+        if( null == name && null == identifier && ( anyType || adapterType ) ) {
+            // special case for 1st valid adapter
+            if( adapters.size() > 0 ) {
+                return (DBTAdapter) adapters.get(0);
+            }
+            return null; // no adapter
+        }
+        for(int devIdx = adapters.size() - 1; devIdx >= 0; devIdx-- ) {
+            final DBTAdapter adapter = (DBTAdapter) adapters.get(devIdx);
+            if( ( anyType || adapterType ) ) {
+                if( null != name && null != identifier &&
+                    adapter.getName().equals(name) &&
+                    adapter.getAddress().equals(identifier)
+                  )
+                {
+                    return adapter;
+                }
+                if( null != identifier &&
+                    adapter.getAddress().equals(identifier)
+                  )
+                {
+                    return adapter;
+                }
+                if( null != name &&
+                    adapter.getName().equals(name)
+                  )
+                {
+                    return adapter;
+                }
+            }
+            final DBTObject dbtObj = adapter.findInCache(name, identifier, type);
+            if( null != dbtObj ) {
+                return dbtObj;
+            }
+        }
+        return null;
+    }
+
+    /* pp */ DBTObject findInCache(final DBTObject parent, final BluetoothType type, final String name, final String identifier) {
+        if( null == parent ) {
+            return findInCache(name, identifier, type);
+        }
+        final boolean anyType = BluetoothType.NONE == type;
+        final boolean deviceType = BluetoothType.DEVICE == type;
+        final boolean serviceType = BluetoothType.GATT_SERVICE == type;
+        final boolean charType = BluetoothType.GATT_CHARACTERISTIC== type;
+        final boolean descType = BluetoothType.GATT_DESCRIPTOR == type;
+
+        final BluetoothType parentType = parent.getBluetoothType();
+
+        if( BluetoothType.ADAPTER == parentType &&
+            ( anyType || deviceType || serviceType || charType || descType )
+          )
+        {
+            return ((DBTAdapter) parent).findInCache(name, identifier, type);
+        }
+        if( BluetoothType.DEVICE == parentType &&
+            ( anyType || serviceType || charType || descType )
+          )
+        {
+            return ((DBTDevice) parent).findInCache(identifier, type);
+        }
+        if( BluetoothType.GATT_SERVICE == parentType &&
+            ( anyType || charType || descType )
+          )
+        {
+            final DBTGattService service = (DBTGattService) parent;
+            if( !service.checkServiceCache() ) {
+                return null;
+            }
+            return service.findInCache(identifier, type);
+        }
+        if( BluetoothType.GATT_CHARACTERISTIC == parentType &&
+            ( anyType || descType )
+          )
+        {
+            final DBTGattCharacteristic characteristic = (DBTGattCharacteristic) parent;
+            if( !characteristic.checkServiceCache() ) {
+                return null;
+            }
+            return characteristic.findInCache(identifier, type);
+        }
+        return null;
     }
 
 }
