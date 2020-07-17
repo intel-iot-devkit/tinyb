@@ -308,7 +308,7 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
             }
     }
 
-    if( 0 < hciConnHandle ) {
+    if( isConnected ) {
         ERR_PRINT("DBTDevice::connectLE: Already connected: %s", toString().c_str());
         return false;
     }
@@ -360,7 +360,7 @@ bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offse
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    if( 0 < hciConnHandle ) {
+    if( isConnected ) {
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
         return false;
     }
@@ -478,6 +478,12 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int replyTimeoutMS) {
         }
         gattHandler = nullptr;
     }
+
+    if( !isConnected ) {
+        ERR_PRINT("DBTDevice::connectGATT: Device not connected: %s", toString().c_str());
+        return nullptr;
+    }
+
     gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, replyTimeoutMS));
     if( !gattHandler->connect() ) {
         DBG_PRINT("DBTDevice::connectGATT: Connection failed");
