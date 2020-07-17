@@ -50,8 +50,7 @@
  * Direct-BT implements the following layers
  * - DBTManager for adapter management and device discovery
  *   - Using *BlueZ Kernel Manager Control Channel*
- * - HCIHandler implements native HCI handling (DBTDevice connect/disconnect w/ tracking, discovery, etc)
- * - *Basic HCI* via HCIComm for connection
+ * - *HCI Handling* via HCIHandler implementing connect/disconnect w/ tracking, discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
  * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
  *   -  GATTService
