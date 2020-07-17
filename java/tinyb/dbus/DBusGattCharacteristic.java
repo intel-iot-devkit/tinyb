@@ -114,4 +114,9 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     public int removeAllCharacteristicListener() {
         return 0; // FIXME
     }
+
+    @Override
+    public String toString() {
+        return "Characteristic[uuid "+getUUID()+"]";
+    }
 }

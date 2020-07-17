@@ -73,4 +73,9 @@ public class DBusGattDescriptor extends DBusObject implements BluetoothGattDescr
     {
         super(instance);
     }
+
+    @Override
+    public String toString() {
+        return "Descriptor[uuid "+getUUID()+"]";
+    }
 }

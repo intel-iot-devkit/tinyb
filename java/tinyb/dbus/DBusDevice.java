@@ -255,4 +255,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
         ts_creation = BluetoothUtils.getCurrentMilliseconds();
     }
     final long ts_creation;
+
+    @Override
+    public String toString() {
+        return "Device[address["+getAddress()+", "+getAddressType()+"], '"+getName()+"']";
+    }
 }

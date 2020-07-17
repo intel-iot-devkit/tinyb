@@ -235,4 +235,9 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     {
         super(instance);
     }
+
+    @Override
+    public String toString() {
+        return "Adapter["+getAddress()+", '"+getName()+"']";
+    }
 }

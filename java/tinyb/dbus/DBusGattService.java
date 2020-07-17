@@ -77,4 +77,9 @@ public class DBusGattService extends DBusObject implements BluetoothGattService
     {
         super(instance);
     }
+
+    @Override
+    public String toString() {
+        return "Service[uuid "+getUUID()+"]";
+    }
 }

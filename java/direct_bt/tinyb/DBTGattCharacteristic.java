@@ -310,7 +310,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     @Override
     public final String toString() {
         if( !isValid() ) {
-            return "Characteristic" + "\u271D" + "[handle 0x"+Integer.toHexString(handle)+"]";
+            return "Characteristic" + "\u271D" + "[uuid "+getUUID()+", handle 0x"+Integer.toHexString(handle)+"]";
         }
         return toStringImpl();
     }
