@@ -54,22 +54,31 @@
 namespace direct_bt {
 
     class HCIConnection {
-        public:
-            uint16_t handle;
-            EUI48 address;
-            BDAddressType addressType;
+        private:
+            EUI48 address; // immutable
+            BDAddressType addressType; // immutable
+            uint16_t handle; // mutable
 
         public:
-            HCIConnection(const uint16_t handle, const EUI48 &address, const BDAddressType addressType)
-            : handle(handle), address(address), addressType(addressType) {}
+            HCIConnection(const EUI48 &address, const BDAddressType addressType, const uint16_t handle)
+            : address(address), addressType(addressType), handle(handle) {}
 
             HCIConnection(const HCIConnection &o) = default;
             HCIConnection(HCIConnection &&o) = default;
             HCIConnection& operator=(const HCIConnection &o) = default;
             HCIConnection& operator=(HCIConnection &&o) = default;
 
+            const EUI48 & getAddress() const { return address; }
+            BDAddressType getAddressType() const { return addressType; }
+            uint16_t getHandle() const { return handle; }
+
+            void setHandle(uint16_t newHandle) { handle = newHandle; }
+
+            bool equals(const EUI48 & otherAddress, const BDAddressType otherAddressType) const
+            { return address == otherAddress && addressType == otherAddressType; }
+
             bool operator==(const HCIConnection& rhs) const
-            { return handle == rhs.handle && address == rhs.address; }
+            { return address == rhs.address && addressType == rhs.addressType; }
 
             bool operator!=(const HCIConnection& rhs) const
             { return !(*this == rhs); }
@@ -133,12 +142,23 @@ namespace direct_bt {
 
             std::vector<HCIConnectionRef> connectionList;
             std::recursive_mutex mtx_connectionList;
-            void addTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle);
-            HCIConnectionRef setTrackerConnectionHandle(const EUI48 & address, const uint16_t handle);
-            HCIConnectionRef findTrackerConnection(const EUI48 & address);
+            /**
+             * Returns a newly added HCIConnectionRef tracker connection with given parameters, if not existing yet.
+             * <p>
+             * In case the HCIConnectionRef tracker connection already exists,
+             * its handle will be updated (see below) and reference returned.
+             * <p>
+             * Overwrite existing tracked connection handle with given _valid_ handle only, i.e. non zero!
+             * </p>
+             * @param address key to matching connection
+             * @param addrType key to matching connection
+             * @param handle ignored for existing tracker _if_ invalid, i.e. zero.
+             */
+            HCIConnectionRef addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle);
+            HCIConnectionRef findTrackerConnection(const EUI48 & address, BDAddressType addrType);
             HCIConnectionRef findTrackerConnection(const uint16_t handle);
+            HCIConnectionRef removeTrackerConnection(const HCIConnectionRef conn);
             HCIConnectionRef removeTrackerConnection(const uint16_t handle);
-            bool removeTrackerConnection(const EUI48 & address);
 
             /** One MgmtAdapterEventCallbackList per event type, allowing multiple callbacks to be invoked for each event */
             std::array<MgmtEventCallbackList, static_cast<uint16_t>(MgmtEvent::Opcode::MGMT_EVENT_TYPE_COUNT)> mgmtEventCallbackLists;

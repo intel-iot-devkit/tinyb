@@ -57,53 +57,39 @@ using namespace direct_bt;
 
 const pid_t HCIHandler::pidSelf = getpid();
 
-void HCIHandler::addTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) {
+HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     // remove all old entry with given address first
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
         HCIConnectionRef conn = *it;
-        if ( address == conn->address ) {
-            if( addrType == conn->addressType ) {
-                // reuse same entry
-                INFO_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], reuse entry %s",
-                           address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), conn->toString().c_str());
-                if( 0 == conn->handle && 0 != handle ) {
-                    conn->handle = handle;
+        if ( conn->equals(address, addrType) ) {
+            // reuse same entry
+            INFO_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reuse entry %s",
+               address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), uint16HexString(handle).c_str(), conn->toString().c_str());
+            // Overwrite tracked connection handle with given _valid_ handle only, i.e. non zero!
+            if( 0 != handle ) {
+                if( 0 != conn->getHandle() && handle != conn->getHandle() ) {
+                    WARN_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], handle %s: reusing entry %s, overwriting non-zero handle",
+                       address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), uint16HexString(handle).c_str(), conn->toString().c_str());
                 }
-                return; // done
-            } else {
-                // delete incompatible old entry
-                WARN_PRINT("HCIHandler::addTrackerConnection: address[%s, %s], remove incompatible entry %s",
-                           address.toString().c_str(), getBDAddressTypeString(addrType).c_str(), conn->toString().c_str());
-                it = connectionList.erase(it);
-                break;
+                conn->setHandle( handle );
             }
+            return conn; // done
         } else {
             ++it;
         }
     }
-    connectionList.push_back( HCIConnectionRef( new HCIConnection(handle, address, addrType) ) );
+    HCIConnectionRef res( new HCIConnection(address, addrType, handle) );
+    connectionList.push_back( res );
+    return res;
 }
 
-HCIConnectionRef HCIHandler::setTrackerConnectionHandle(const EUI48 & address, const uint16_t handle) {
+HCIConnectionRef HCIHandler::findTrackerConnection(const EUI48 & address, BDAddressType addrType) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
         HCIConnectionRef & e = connectionList[i];
-        if ( address == e->address ) {
-            e->handle = handle;
-            return e; // done
-        }
-    }
-    return nullptr;
-}
-
-HCIConnectionRef HCIHandler::findTrackerConnection(const EUI48 & address) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
-    const size_t size = connectionList.size();
-    for (size_t i = 0; i < size; i++) {
-        HCIConnectionRef & e = connectionList[i];
-        if ( address == e->address ) {
+        if( e->equals(address, addrType) ) {
             return e;
         }
     }
@@ -115,18 +101,18 @@ HCIConnectionRef HCIHandler::findTrackerConnection(const uint16_t handle) {
     const size_t size = connectionList.size();
     for (size_t i = 0; i < size; i++) {
         HCIConnectionRef & e = connectionList[i];
-        if ( handle == e->handle ) {
+        if ( handle == e->getHandle() ) {
             return e;
         }
     }
     return nullptr;
 }
 
-HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) {
+HCIConnectionRef HCIHandler::removeTrackerConnection(const HCIConnectionRef conn) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
-        if ( (*it)->handle == handle ) {
-            HCIConnectionRef e = *it;
+        HCIConnectionRef e = *it;
+        if ( *e == *conn ) {
             it = connectionList.erase(it); // old entry
             return e; // done
         } else {
@@ -136,18 +122,18 @@ HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) {
     return nullptr;
 }
 
-bool HCIHandler::removeTrackerConnection(const EUI48 & address) {
-    int count = 0;
+HCIConnectionRef HCIHandler::removeTrackerConnection(const uint16_t handle) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
     for (auto it = connectionList.begin(); it != connectionList.end(); ) {
-        if ( (*it)->address == address ) {
+        HCIConnectionRef e = *it;
+        if ( e->getHandle() == handle ) {
             it = connectionList.erase(it); // old entry
-            count++;
+            return e; // done
         } else {
             ++it;
         }
     }
-    return count>0;
+    return nullptr;
 }
 
 MgmtEvent::Opcode HCIHandler::translate(HCIEventType evt, HCIMetaEventType met) {
@@ -181,18 +167,13 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
                 }
                 const HCILEPeerAddressType hciAddrType = static_cast<HCILEPeerAddressType>(ev_cc->bdaddr_type);
                 const BDAddressType addrType = getBDAddressType(hciAddrType);
-                HCIConnectionRef conn = setTrackerConnectionHandle(ev_cc->bdaddr, ev_cc->handle);
-                if( nullptr == conn ) {
-                    INFO_PRINT("HCIHandler::translate(reader): LE_CONN_COMPLETE: Not tracked address[%s, %s], handle %s: %s",
-                               ev_cc->bdaddr.toString().c_str(), getBDAddressTypeString(addrType).c_str(),
-                               uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str());
-                    return nullptr;
+                HCIConnectionRef conn = addOrUpdateTrackerConnection(ev_cc->bdaddr, addrType, ev_cc->handle);
+                if( HCIStatusCode::SUCCESS == status ) {
+                    return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, ev_cc->bdaddr, addrType, ev_cc->handle) );
                 } else {
-                    if( HCIStatusCode::SUCCESS == status ) {
-                        return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, ev_cc->bdaddr, addrType, ev_cc->handle) );
-                    } else {
-                        return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnectFailed(dev_id, ev_cc->bdaddr, addrType, status) );
-                    }
+                    std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, ev_cc->bdaddr, addrType, status) );
+                    removeTrackerConnection(conn);
+                    return res;
                 }
             }
             default:
@@ -207,19 +188,13 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
                 ERR_PRINT("HCIHandler::translate(reader): CONN_COMPLETE: Null reply-struct: %s", ev->toString().c_str());
                 return nullptr;
             }
-            HCIConnectionRef conn = setTrackerConnectionHandle(ev_cc->bdaddr, ev_cc->handle);
-            if( nullptr == conn ) {
-                INFO_PRINT("HCIHandler::translate(reader): CONN_COMPLETE: Not tracked address %s, handle %s: %s",
-                           ev_cc->bdaddr.toString().c_str(), uint16HexString(ev_cc->handle).c_str(), ev->toString().c_str());
-                return nullptr;
+            HCIConnectionRef conn = addOrUpdateTrackerConnection(ev_cc->bdaddr, BDAddressType::BDADDR_BREDR, ev_cc->handle);
+            if( HCIStatusCode::SUCCESS == status ) {
+                return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, conn->getAddress(), conn->getAddressType(), conn->getHandle()) );
             } else {
-                if( HCIStatusCode::SUCCESS == status ) {
-                    return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceConnected(dev_id, conn->address, conn->addressType, conn->handle) );
-                } else {
-                    std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->address, conn->addressType, status) );
-                    removeTrackerConnection(conn->address);
-                    return res;
-                }
+                std::shared_ptr<MgmtEvent> res( new MgmtEvtDeviceConnectFailed(dev_id, conn->getAddress(), conn->getAddressType(), status) );
+                removeTrackerConnection(conn);
+                return res;
             }
         }
         case HCIEventType::DISCONN_COMPLETE: {
@@ -242,7 +217,7 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
                             conn->toString().c_str(), ev->toString().c_str());
                 }
                 const HCIStatusCode hciRootReason = static_cast<HCIStatusCode>(ev_cc->reason);
-                return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(dev_id, conn->address, conn->addressType, hciRootReason, conn->handle) );
+                return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(dev_id, conn->getAddress(), conn->getAddressType(), hciRootReason, conn->getHandle()) );
             }
         }
         default: return nullptr;
@@ -609,7 +584,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
     cp->min_ce_len = cpu_to_le(min_ce_length);
     cp->max_ce_len = cpu_to_le(max_ce_length);
 
-    addTrackerConnection(peer_bdaddr, getBDAddressType(peer_mac_type), 0);
+    addOrUpdateTrackerConnection(peer_bdaddr, getBDAddressType(peer_mac_type), 0);
     HCIStatusCode status;
     std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
     return status;
@@ -633,7 +608,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     cp->clock_offset = cpu_to_le(clock_offset);
     cp->role_switch = role_switch;
 
-    addTrackerConnection(bdaddr, BDAddressType::BDADDR_BREDR, 0);
+    addOrUpdateTrackerConnection(bdaddr, BDAddressType::BDADDR_BREDR, 0);
     HCIStatusCode status;
     std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
     return status;
@@ -653,24 +628,27 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
                    peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str());
         return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
     }
+    HCIConnectionRef conn;
     {
-        const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-        HCIConnectionRef conn = findTrackerConnection(conn_handle);
+        const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
+        conn = findTrackerConnection(conn_handle);
         if( nullptr == conn ) {
             // disconnect called w/o being connected through this HCIHandler
-            INFO_PRINT("HCIHandler::disconnect: Not tracked address[%s, %s] (adding)",
-                       peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str());
-            addTrackerConnection(peer_bdaddr, peer_mac_type, conn_handle);
-        } else if( conn->address != peer_bdaddr || conn->addressType != peer_mac_type ) {
+            conn = addOrUpdateTrackerConnection(peer_bdaddr, peer_mac_type, conn_handle);
+            INFO_PRINT("HCIHandler::disconnect: Not tracked address[%s, %s], added %s",
+                       peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
+                       conn->toString().c_str());
+        } else if( !conn->equals(peer_bdaddr, peer_mac_type) ) {
             ERR_PRINT("HCIHandler::disconnect: Mismatch given address[%s, %s] and tracked %s (drop)",
                        peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
                        conn->toString().c_str());
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
     }
-    INFO_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, ioError %d",
+    INFO_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s, ioError %d",
                peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
-               uint16HexString(conn_handle).c_str(), ioErrorCause);
+               uint16HexString(conn_handle).c_str(),
+               conn->toString().c_str(), ioErrorCause);
 
     HCIStatusCode status;
 
@@ -683,7 +661,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
 
         std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
     } else {
-        removeTrackerConnection(conn_handle);
+        removeTrackerConnection(conn);
         MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, conn_handle);
         sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     }
