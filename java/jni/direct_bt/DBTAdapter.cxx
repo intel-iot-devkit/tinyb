@@ -624,9 +624,9 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
         const BDAddressType addressType = fromJavaAdressTypeToBDAddressType(env, jaddressType);
         std::shared_ptr<DBTDevice> device = adapter->findDiscoveredDevice(address, addressType);
         if( nullptr != device ) {
-            std::shared_ptr<direct_bt::HCIHandler> hci = adapter->openHCI();
+            std::shared_ptr<direct_bt::HCIHandler> hci = adapter->getHCI();
             if( nullptr == hci ) {
-                throw BluetoothException("Couldn't get or open adapter's HCI "+adapter->toString(), E_FILE_LINE);
+                throw BluetoothException("Adapter's HCI not open "+adapter->toString(), E_FILE_LINE);
             }
             std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
             JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);

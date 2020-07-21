@@ -165,14 +165,20 @@ namespace direct_bt {
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
-            std::recursive_mutex mtx_hci;
             std::recursive_mutex mtx_connectedDevices;
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
             std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
+            inline void checkValid() {
+                if( !valid ) {
+                    throw IllegalStateException("Adapter state invalid: "+toString(), E_FILE_LINE);
+                }
+            }
             bool validateDevInfo();
+            bool openHCI();
+            bool closeHCI();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
@@ -296,20 +302,9 @@ namespace direct_bt {
             DBTManager& getManager() const { return mgmt; }
 
             /**
-             * Returns a reference to the already opened HCIHandler
-             * or the newly opened HCIHandler instance, otherwise nullptr if no success.
-             */
-            std::shared_ptr<HCIHandler> openHCI();
-
-            /**
              * Returns the {@link #openHCI()} HCIHandler or {@code nullptr} if closed.
              */
-            std::shared_ptr<HCIHandler> getHCI() const;
-
-            /**
-             * Closes the HCIHandler instance
-             */
-            bool closeHCI();
+            std::shared_ptr<HCIHandler> getHCI() const { return hci; }
 
             /**
              * Returns true, if the adapter's device is already whitelisted.
@@ -332,7 +327,7 @@ namespace direct_bt {
              * @param conn_interval_max default value 0x000F
              * @param conn_latency default value 0x0000
              * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
-             * @return
+             * @return true if the device was already added or has been newly added to the adapter's whitelist.
              */
             bool addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type,
                                       const HCIWhitelistConnectType ctype,

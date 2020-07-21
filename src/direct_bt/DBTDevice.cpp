@@ -313,10 +313,9 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
         return false;
     }
 
-    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
-    std::shared_ptr<HCIHandler> hci = adapter.openHCI();
+    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
     if( nullptr == hci || !hci->isOpen() ) {
-        ERR_PRINT("DBTDevice::connectLE: Opening adapter's HCI failed: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectLE: Adapter's HCI not open: %s", toString().c_str());
         return false;
     }
 
@@ -364,10 +363,9 @@ bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offse
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
         return false;
     }
-    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
-    std::shared_ptr<HCIHandler> hci = adapter.openHCI();
+    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
     if( nullptr == hci || !hci->isOpen() ) {
-        ERR_PRINT("DBTDevice::connectBREDR: Opening adapter's HCI failed: %s", toString().c_str());
+        ERR_PRINT("DBTDevice::connectBREDR: Adapter's HCI not open: %s", toString().c_str());
         return false;
     }
     if( !isBREDRAddressType() ) {
@@ -429,7 +427,6 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
 
     bool res = false;
 
-    const std::lock_guard<std::recursive_mutex> lock_hci(adapter.mtx_hci); // RAII-style acquire and relinquish via destructor
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
 
     if( !isConnected || !isConnectIssued ) {
@@ -442,7 +439,7 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
     }
 
     if( nullptr == hci || !hci->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Skip HCI disconnect: HCI not Open: %s", toString().c_str());
+        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not Open: %s", toString().c_str());
         goto exit;
     }
 

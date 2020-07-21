@@ -187,14 +187,6 @@ int main(int argc, char *argv[])
 
     const int64_t t0 = getCurrentMilliseconds();
 
-    if( doHCI_Connect ) {
-        std::shared_ptr<HCIHandler> hci = adapter.openHCI();
-        if( nullptr == hci || !hci->isOpen() ) {
-            fprintf(stderr, "Couldn't open HCI from %s\n", adapter.toString().c_str());
-            exit(1);
-        }
-    }
-
     while( ok && ( forever || !foundDevice ) ) {
         ok = adapter.startDiscovery(true /* keepAlive */);
         if( !ok) {
@@ -327,7 +319,6 @@ int main(int argc, char *argv[])
 #endif /* SHOW_STATIC_SERVICE_CHARACTERISTIC_COMPOSITION */
 
 out:
-    adapter.closeHCI();
     return 0;
 }
 

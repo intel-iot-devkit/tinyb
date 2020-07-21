@@ -131,11 +131,45 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 // *************************************************
 // *************************************************
 
+bool DBTAdapter::openHCI()
+{
+    HCIHandler *s = new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT);
+    if( !s->isOpen() ) {
+        delete s;
+        ERR_PRINT("Could not open HCIHandler: %s of %s", s->toString().c_str(), toString().c_str());
+        return false;
+    }
+    hci = std::shared_ptr<HCIHandler>( s );
+    return true;
+}
+
+bool DBTAdapter::closeHCI()
+{
+    DBG_PRINT("DBTAdapter::closeHCI: ...");
+    if( nullptr == hci || !hci->isOpen() ) {
+        DBG_PRINT("DBTAdapter::closeHCI: Not open");
+        return false;
+    }
+    hci->close();
+    hci = nullptr;
+    DBG_PRINT("DBTAdapter::closeHCI: XXX");
+    return true;
+}
+
 bool DBTAdapter::validateDevInfo() {
     currentScanType = ScanType::SCAN_TYPE_NONE;
     keepDiscoveringAlive = false;
 
-    if( !mgmt.isOpen() || 0 > dev_id ) {
+    if( 0 > dev_id ) {
+        ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id: %s", toString().c_str());
+        return false;
+    }
+    if( !mgmt.isOpen() ) {
+        ERR_PRINT("DBTAdapter::validateDevInfo: Manager not open: %s", toString().c_str());
+        return false;
+    }
+    if( !openHCI() ) {
+        ERR_PRINT("DBTAdapter::validateDevInfo: Opening adapter's HCI failed: %s", toString().c_str());
         return false;
     }
 
@@ -144,6 +178,11 @@ bool DBTAdapter::validateDevInfo() {
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundMgmt));
+
+    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
+    hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
+    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
+
 #ifdef VERBOSE_ON
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
 #endif
@@ -213,54 +252,6 @@ void DBTAdapter::setBondable(bool value) {
     mgmt.setMode(dev_id, MgmtOpcode::SET_BONDABLE, value ? 1 : 0);
 }
 
-std::shared_ptr<HCIHandler> DBTAdapter::openHCI()
-{
-    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
-
-    if( !valid ) {
-        return nullptr;
-    }
-    if( nullptr != hci ) {
-        if( hci->isOpen() ) {
-            DBG_PRINT("DBTAdapter::openHCI: Already open");
-            return hci;
-        }
-        hci = nullptr;
-    }
-    HCIHandler *s = new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT);
-    if( !s->isOpen() ) {
-        delete s;
-        ERR_PRINT("Could not open HCIHandler: %s of %s", s->toString().c_str(), toString().c_str());
-        return nullptr;
-    }
-    hci = std::shared_ptr<HCIHandler>( s );
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
-    return hci;
-}
-
-std::shared_ptr<HCIHandler> DBTAdapter::getHCI() const {
-    const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_hci); // RAII-style acquire and relinquish via destructor
-    return hci;
-}
-
-bool DBTAdapter::closeHCI()
-{
-    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
-
-    DBG_PRINT("DBTAdapter::closeHCI: ...");
-    if( nullptr == hci || !hci->isOpen() ) {
-        DBG_PRINT("DBTAdapter::closeHCI: Not open");
-        return false;
-    }
-    disconnectAllDevices(); // FIXME ????
-    hci->close();
-    hci = nullptr;
-    DBG_PRINT("DBTAdapter::closeHCI: XXX");
-    return true;
-}
-
 bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
     return mgmt.isDeviceWhitelisted(dev_id, address);
 }
@@ -268,9 +259,10 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
+    checkValid();
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
-        return false;
+        return true;
     }
 
     if( !mgmt.uploadConnParam(dev_id, address, address_type, conn_interval_min, conn_interval_max, conn_latency, timeout) ) {
@@ -281,10 +273,12 @@ bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType 
 }
 
 bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
+    checkValid();
     return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
 }
 
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+    checkValid();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -301,6 +295,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
 }
 
 bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
+    checkValid();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -317,6 +312,7 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) 
 }
 
 bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
+    checkValid();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -333,6 +329,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
 }
 
 int DBTAdapter::removeAllStatusListener() {
+    checkValid();
     const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     int count = statusListenerList.size();
     statusListenerList.clear();
@@ -342,6 +339,7 @@ int DBTAdapter::removeAllStatusListener() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
+    checkValid();
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
         return true;
