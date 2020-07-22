@@ -210,13 +210,18 @@ DBTAdapter::DBTAdapter(const int dev_id)
 DBTAdapter::~DBTAdapter() {
     DBG_PRINT("DBTAdapter::dtor: ... %p %s", this, toString().c_str());
     keepDiscoveringAlive = false;
+    // mute all listener first
     {
         int count = mgmt.removeMgmtEventCallback(dev_id);
         DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
         (void)count;
     }
+    if( nullptr != hci ) {
+        hci->clearAllMgmtEventCallbacks();
+    }
     statusListenerList.clear();
 
+    // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
     disconnectAllDevices();
     closeHCI();
