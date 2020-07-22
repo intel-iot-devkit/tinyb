@@ -275,13 +275,12 @@ public class ScannerTinyB10 {
             System.err.println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
-        if( KEEP_CONNECTED ) {
+        if( KEEP_CONNECTED && success ) {
             while( device.pingGATT() ) {
                 System.err.println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
                     device.getAdapter().startDiscovery( false );
                     Thread.sleep(1000);
-                    device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }
