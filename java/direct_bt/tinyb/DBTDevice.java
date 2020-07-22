@@ -233,30 +233,36 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public synchronized void close() {
+        close(false);
+    }
+
+    /* pp */ synchronized void close(final boolean isShutdown) {
         if( !isValid() ) {
             return;
         }
-        disconnect();
+        if( !isShutdown ) { // avoid all interaction @ JVM shutdown, native dtor (deleteImpl) cleans up.
+            disconnect();
 
-        disableConnectedNotifications();
-        disableRSSINotifications();
-        disableManufacturerDataNotifications();
-        disableServicesResolvedNotifications();
+            disableConnectedNotifications();
+            disableRSSINotifications();
+            disableManufacturerDataNotifications();
+            disableServicesResolvedNotifications();
 
-        disableBlockedNotifications();
-        disableBlockedNotificationsImpl();
-        disablePairedNotifications();
-        disablePairedNotificationsImpl();
-        disableServiceDataNotifications();
-        disableTrustedNotifications();
-        // FIXME disableTrustedNotificationsImpl();
+            disableBlockedNotifications();
+            disableBlockedNotificationsImpl();
+            disablePairedNotifications();
+            disablePairedNotificationsImpl();
+            disableServiceDataNotifications();
+            disableTrustedNotifications();
+            // FIXME disableTrustedNotificationsImpl();
 
-        clearServiceCache();
+            clearServiceCache();
 
-        final DBTAdapter a = getAdapter();
-        if( null != a ) {
-            a.removeStatusListener(statusListener);
-            a.removeDiscoveredDevice(this);
+            final DBTAdapter a = getAdapter();
+            if( null != a ) {
+                a.removeStatusListener(statusListener);
+                a.removeDiscoveredDevice(this);
+            }
         }
         super.close();
     }

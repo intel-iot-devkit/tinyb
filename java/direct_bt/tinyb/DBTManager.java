@@ -315,8 +315,8 @@ public class DBTManager implements BluetoothManager
     @Override
     public void shutdown() {
         for(final Iterator<BluetoothAdapter> ia= adapters.iterator(); ia.hasNext(); ) {
-            final BluetoothAdapter a = ia.next();
-            a.close();
+            final DBTAdapter a = (DBTAdapter)ia.next();
+            a.close( true );
         }
         adapters.clear();
         deleteImpl(nativeInstance);
