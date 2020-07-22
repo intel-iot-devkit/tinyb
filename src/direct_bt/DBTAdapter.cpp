@@ -133,21 +133,19 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 
 bool DBTAdapter::openHCI()
 {
-    HCIHandler *s = new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT);
-    if( !s->isOpen() ) {
-        delete s;
-        ERR_PRINT("Could not open HCIHandler: %s of %s", s->toString().c_str(), toString().c_str());
+    hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT) );
+    if( !hci->isOpen() ) {
+        ERR_PRINT("Could not open HCIHandler: %s of %s", hci->toString().c_str(), toString().c_str());
         return false;
     }
-    hci = std::shared_ptr<HCIHandler>( s );
     return true;
 }
 
 bool DBTAdapter::closeHCI()
 {
     DBG_PRINT("DBTAdapter::closeHCI: ...");
-    if( nullptr == hci || !hci->isOpen() ) {
-        DBG_PRINT("DBTAdapter::closeHCI: Not open");
+    if( nullptr == hci ) {
+        DBG_PRINT("DBTAdapter::closeHCI: HCI null");
         return false;
     }
     hci->close();

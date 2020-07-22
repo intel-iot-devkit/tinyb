@@ -171,11 +171,6 @@ namespace direct_bt {
             std::recursive_mutex mtx_statusListenerList;
             std::recursive_mutex mtx_discovery;
 
-            inline void checkValid() {
-                if( !valid ) {
-                    throw IllegalStateException("Adapter state invalid: "+toString(), E_FILE_LINE);
-                }
-            }
             bool validateDevInfo();
             bool openHCI();
             bool closeHCI();
@@ -247,6 +242,15 @@ namespace direct_bt {
             }
             static std::string java_class() {
                 return std::string(JAVA_DBT_PACKAGE "DBTAdapter");
+            }
+
+            /**
+             * Throws an IllegalStateException if isValid() == false
+             */
+            inline void checkValid() const {
+                if( !isValid() ) {
+                    throw IllegalStateException("Adapter state invalid: "+toString(), E_FILE_LINE);
+                }
             }
 
             bool hasDevId() const { return 0 <= dev_id; }

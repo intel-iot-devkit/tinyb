@@ -265,6 +265,7 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                           uint16_t conn_latency, uint16_t supervision_timeout)
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+    adapter.checkValid();
 
     HCILEOwnAddressType hci_own_mac_type;
     HCILEPeerAddressType hci_peer_mac_type;
@@ -313,13 +314,7 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
         return false;
     }
 
-    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        ERR_PRINT("DBTDevice::connectLE: Adapter's HCI not open: %s", toString().c_str());
-        return false;
-    }
-
-    HCIStatusCode status = hci->le_create_conn(address,
+    HCIStatusCode status = adapter.getHCI()->le_create_conn(address,
                                               hci_peer_mac_type, hci_own_mac_type,
                                               le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                               conn_latency, supervision_timeout);
@@ -358,14 +353,10 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
 bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch)
 {
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
+    adapter.checkValid();
 
     if( isConnected ) {
         ERR_PRINT("DBTDevice::connectBREDR: Already connected: %s", toString().c_str());
-        return false;
-    }
-    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
-    if( nullptr == hci || !hci->isOpen() ) {
-        ERR_PRINT("DBTDevice::connectBREDR: Adapter's HCI not open: %s", toString().c_str());
         return false;
     }
     if( !isBREDRAddressType() ) {
@@ -373,7 +364,7 @@ bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offse
         return false;
     }
 
-    HCIStatusCode status = hci->create_conn(address, pkt_type, clock_offset, role_switch);
+    HCIStatusCode status = adapter.getHCI()->create_conn(address, pkt_type, clock_offset, role_switch);
     isConnectIssued = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
@@ -425,9 +416,8 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
     disconnectGATT();
 
-    bool res = false;
-
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
+    bool res = false;
 
     if( !isConnected || !isConnectIssued ) {
         goto exit;
@@ -438,8 +428,8 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
         goto exit;
     }
 
-    if( nullptr == hci || !hci->isOpen() ) {
-        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not Open: %s", toString().c_str());
+    if( nullptr == hci ) {
+        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI is null: %s", toString().c_str());
         goto exit;
     }
 

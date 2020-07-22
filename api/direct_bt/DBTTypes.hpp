@@ -69,7 +69,7 @@ namespace direct_bt {
                 valid = false;
             }
 
-            bool isValid() { return valid; }
+            bool isValid() const { return valid; }
     };
 
     /**
