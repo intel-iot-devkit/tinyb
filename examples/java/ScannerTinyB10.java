@@ -279,7 +279,9 @@ public class ScannerTinyB10 {
             while( device.pingGATT() ) {
                 System.err.println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
+                    device.getAdapter().startDiscovery( false );
                     Thread.sleep(1000);
+                    device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
                 }

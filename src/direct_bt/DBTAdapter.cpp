@@ -342,14 +342,21 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
     checkValid();
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
+        removeDiscoveredDevices();
+        if( keepDiscoveringAlive == keepAlive ) {
+            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d ...", keepDiscoveringAlive.load(), keepAlive);
+        } else {
+            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d ...", keepDiscoveringAlive.load(), keepAlive);
+            keepDiscoveringAlive = keepAlive;
+        }
         return true;
     }
     (void)own_mac_type;
     (void)le_scan_interval;
     (void)le_scan_window;
 
-    DBG_PRINT("DBTAdapter::startDiscovery: keepAlive %d ...", keepAlive);
     removeDiscoveredDevices();
+    DBG_PRINT("DBTAdapter::startDiscovery: Initiating discovery, keepAlive %d -> %d ...", keepDiscoveringAlive.load(), keepAlive);
     keepDiscoveringAlive = keepAlive;
     currentScanType = mgmt.startDiscovery(dev_id);
     return ScanType::SCAN_TYPE_NONE != currentScanType;
@@ -465,6 +472,7 @@ std::string DBTAdapter::toString() const {
 // *************************************************
 
 bool DBTAdapter::mgmtEvDeviceDiscoveringMgmt(std::shared_ptr<MgmtEvent> e) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("DBTAdapter::EventCB:DeviceDiscovering(dev_id %d, keepDiscoveringAlive %d): %s",
         dev_id, keepDiscoveringAlive.load(), e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());

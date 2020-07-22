@@ -397,7 +397,7 @@ namespace direct_bt {
              * This adapter's DBTManager instance is used, i.e. the management channel.
              * </p>
              * <p>
-             * Also clears previous discovered devices via removeDiscoveredDevices().
+             * Method will always clear previous discovered devices via removeDiscoveredDevices().
              * </p>
              * @param keepAlive
              * @param own_mac_type
