@@ -165,7 +165,15 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
 jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
                         jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
-        GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getInstanceUnchecked<GATTCharacteristic>(env, obj);
+        if( nullptr == characteristic ) {
+            if( !enableNotification && !enableIndication ) {
+                // OK to have native characteristic being shutdown @ disable
+                DBG_PRINT("Characteristic's native instance has been deleted");
+                return false;
+            }
+            throw IllegalStateException("Characteristic's native instance deleted", E_FILE_LINE);
+        }
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         if( nullptr == jEnabledState ) {

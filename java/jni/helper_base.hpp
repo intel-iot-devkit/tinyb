@@ -116,6 +116,13 @@ T *getInstance(JNIEnv *env, jobject obj)
 }
 
 template <typename T>
+T *getInstanceUnchecked(JNIEnv *env, jobject obj)
+{
+    jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
+    return reinterpret_cast<T *>(instance);
+}
+
+template <typename T>
 void setInstance(JNIEnv *env, jobject obj, T *t)
 {
     if (t == nullptr) {

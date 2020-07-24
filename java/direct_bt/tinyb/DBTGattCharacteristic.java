@@ -235,7 +235,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
             enabledState[0] = false;
             enabledState[1] = false;
             if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.configNotificationIndication: FALSE*");
+                System.err.println("GATTCharacteristicListener.configNotificationIndication: FALSE*: hasNotify "+hasNotify+", hasIndicate "+hasIndicate);
             }
             return false;
         }
