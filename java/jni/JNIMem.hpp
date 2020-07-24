@@ -121,7 +121,7 @@ public:
  *
  * RAII-style acquire and relinquish via destructor
  */
-template <typename T>
+template <typename T, typename U>
 class JNICriticalArray {
 public:
     enum Mode : jint {
@@ -138,7 +138,7 @@ public:
 private:
     JNIEnv *env;
     Mode mode = UPDATE_AND_RELEASE;
-    jbyteArray jarray = nullptr;
+    U jarray = nullptr;
     T* narray = nullptr;
     jboolean isCopy = false;
 
@@ -173,7 +173,7 @@ public:
     /**
      * Acquired the primitive array.
      */
-    T* get(jbyteArray jarray, Mode mode=UPDATE_AND_RELEASE) {
+    T* get(U jarray, Mode mode=UPDATE_AND_RELEASE) {
         if( nullptr == jarray ) {
             return nullptr;
         }

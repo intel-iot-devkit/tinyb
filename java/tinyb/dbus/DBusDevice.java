@@ -233,13 +233,18 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native void disableServicesResolvedNotifications();
 
     @Override
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch) {
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
         return false; // FIXME
     }
 
     @Override
     public boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
         return false; // FIXME
+    }
+
+    @Override
+    public int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic) {
+        return 0; // FIXME
     }
 
     @Override

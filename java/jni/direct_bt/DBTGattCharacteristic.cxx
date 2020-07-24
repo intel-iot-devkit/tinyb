@@ -145,7 +145,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
         GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
-        JNICriticalArray<uint8_t> criticalArray(env); // RAII - release
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jvalue, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
@@ -162,16 +162,31 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_enableValueNotificationsImpl(JNIEnv *env, jobject obj, jboolean enable) {
+jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
+                        jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
         GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
+        if( nullptr == jEnabledState ) {
+            throw IllegalArgumentException("boolean array null", E_FILE_LINE);
+        }
+        const int state_size = env->GetArrayLength(jEnabledState);
+        if( 2 > state_size ) {
+            throw IllegalArgumentException("boolean array smaller than 2, length "+std::to_string(state_size), E_FILE_LINE);
+        }
+        JNICriticalArray<jboolean, jbooleanArray> criticalArray(env); // RAII - release
+        jboolean * state_ptr = criticalArray.get(jEnabledState, criticalArray.Mode::UPDATE_AND_RELEASE);
+        if( NULL == state_ptr ) {
+            throw InternalError("GetPrimitiveArrayCritical(boolean array) is null", E_FILE_LINE);
+        }
+
         bool cccdEnableResult[2];
-        bool res = characteristic->configIndicationNotification(enable, enable, cccdEnableResult);
-        DBG_PRINT("DBTGattCharacteristic::configIndicationNotification Config Notification(%d), Indication(%d): Result %d",
+        bool res = characteristic->configNotificationIndication(enableNotification, enableIndication, cccdEnableResult);
+        DBG_PRINT("DBTGattCharacteristic::configNotificationIndication Config Notification(%d), Indication(%d): Result %d",
                 cccdEnableResult[0], cccdEnableResult[1], res);
-        (void) cccdEnableResult;
+        state_ptr[0] = cccdEnableResult[0];
+        state_ptr[1] = cccdEnableResult[1];
         return res;
     } catch(...) {
         rethrow_and_raise_java_exception(env);

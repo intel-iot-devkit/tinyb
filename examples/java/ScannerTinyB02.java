@@ -193,22 +193,6 @@ public class ScannerTinyB02 {
 
         adapter.enablePoweredNotifications(new BooleanNotification("Powered", timestamp_t0));
 
-        final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener() {
-            @Override
-            public void notificationReceived(final BluetoothGattCharacteristic charDecl,
-                                             final byte[] value, final long timestamp) {
-                System.err.println("****** GATT notificationReceived: "+charDecl+
-                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
-            }
-
-            @Override
-            public void indicationReceived(final BluetoothGattCharacteristic charDecl,
-                                           final byte[] value, final long timestamp, final boolean confirmationSent) {
-                System.err.println("****** GATT indicationReceived: "+charDecl+
-                                   ", value "+BluetoothUtils.bytesHexString(value, true, true));
-            }
-        };
-
         int loop = 0;
         try {
             while( forever || loop < max_loops ) {
@@ -346,6 +330,21 @@ public class ScannerTinyB02 {
                 if ( null == primServices || primServices.isEmpty() ) {
                     System.err.println("No BluetoothGattService found!");
                 } else {
+                    final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener(null) {
+                        @Override
+                        public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                                         final byte[] value, final long timestamp) {
+                            System.err.println("****** GATT notificationReceived: "+charDecl+
+                                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        }
+
+                        @Override
+                        public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                                       final byte[] value, final long timestamp, final boolean confirmationSent) {
+                            System.err.println("****** GATT indicationReceived: "+charDecl+
+                                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        }
+                    };
                     final boolean addedCharacteristicListenerRes =
                       BluetoothGattService.addCharacteristicListenerToAll(sensor, primServices, myCharacteristicListener);
                     System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);

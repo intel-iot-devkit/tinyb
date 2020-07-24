@@ -241,7 +241,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             return;
         }
         if( !isShutdown ) { // avoid all interaction @ JVM shutdown, native dtor (deleteImpl) cleans up.
-            disconnect();
+            // implicit via disconnect, gatt.disconnect(): GATTHandler::removeAllCharacteristicListener();
+            disconnectImpl(); // make sure, regardless of isConnected state
 
             disableConnectedNotifications();
             disableRSSINotifications();
@@ -651,10 +652,16 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     protected native void deleteImpl(long nativeInstance);
 
     @Override
-    public native boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
+        return addCharacteristicListener(listener, (DBTGattCharacteristic)listener.getAssociatedCharacteristic());
+    }
+    private native boolean addCharacteristicListener(final GATTCharacteristicListener listener, final DBTGattCharacteristic associatedCharacteristic);
 
     @Override
     public native boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+
+    @Override
+    public native int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic);
 
     @Override
     public native int removeAllCharacteristicListener();

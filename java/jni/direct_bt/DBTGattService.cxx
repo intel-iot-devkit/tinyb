@@ -60,7 +60,7 @@ void Java_direct_1bt_tinyb_DBTGattService_deleteImpl(JNIEnv *env, jobject obj, j
     }
 }
 
-static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattService;S[Ljava/lang/String;Ljava/lang/String;SI)V");
+static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattService;S[Ljava/lang/String;ZZLjava/lang/String;SI)V");
 
 jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
     try {
@@ -71,6 +71,7 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
 
         // DBTGattCharacteristic(final long nativeInstance, final DBTGattService service,
         //                       final short handle, final String[] properties,
+        //                       final boolean hasNotify, final boolean hasIndicate,
         //                       final String value_type_uuid, final short value_handle,
         //                       final int clientCharacteristicsConfigIndex)
 
@@ -97,13 +98,16 @@ jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env,
                     }
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
+                    const bool hasNotify = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
+                    const bool hasIndicate = characteristic->hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
+
                     const jstring uuid = from_string_to_jstring(env,
                             directBTJNISettings.getUnifyUUID128Bit() ? characteristic->value_type->toUUID128String() :
                                                                        characteristic->value_type->toString());
                     java_exception_check_and_throw(env, E_FILE_LINE);
 
                     jobject jchar = env->NewObject(clazz, clazz_ctor, (jlong)characteristic, jservice,
-                            characteristic->handle, jproperties,
+                            characteristic->handle, jproperties, hasNotify, hasIndicate,
                             uuid, characteristic->value_handle, characteristic->clientCharacteristicsConfigIndex);
                     java_exception_check_and_throw(env, E_FILE_LINE);
                     JNIGlobalRef::check(jchar, E_FILE_LINE);

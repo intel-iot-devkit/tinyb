@@ -92,7 +92,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, job
         GATTDescriptor *descriptor = getInstance<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
-        JNICriticalArray<uint8_t> criticalArray(env); // RAII - release
+        JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
         uint8_t * value_ptr = criticalArray.get(jvalue, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
         if( NULL == value_ptr ) {
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);

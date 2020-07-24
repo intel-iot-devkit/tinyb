@@ -70,7 +70,7 @@ jstring Java_org_tinyb_BluetoothUtils_decodeUTF8String(JNIEnv *env, jclass clazz
         throw std::invalid_argument(msg.c_str());
     }
 
-    JNICriticalArray<uint8_t> criticalArray(env); // RAII - release
+    JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
     uint8_t * buffer_ptr = criticalArray.get(jbuffer, criticalArray.Mode::NO_UPDATE_AND_RELEASE);
     if( NULL == buffer_ptr ) {
         throw std::invalid_argument("GetPrimitiveArrayCritical(byte array) is null");

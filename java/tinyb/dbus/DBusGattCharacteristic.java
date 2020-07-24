@@ -102,16 +102,30 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     {
         super(instance);
     }
+
     @Override
     public boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
         return false; // FIXME
     }
     @Override
-    public boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
+    public boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean[] enabledState)
+            throws IllegalStateException
+    {
+        return false; // FIXME
+    }
+
+    @Override
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean[] enabledState)
+            throws IllegalStateException
+    {
         return false; // FIXME
     }
     @Override
-    public int removeAllCharacteristicListener() {
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l, final boolean disableIndicationNotification) {
+        return false; // FIXME
+    }
+    @Override
+    public int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification) {
         return 0; // FIXME
     }
 

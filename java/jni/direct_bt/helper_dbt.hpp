@@ -106,6 +106,10 @@ namespace direct_bt {
             /* Provides access to the stored GlobalRef as a jclass. */
             jclass getClass() const { return javaObjectRef.getClass(); }
 
+            /* Provides access to the stored GlobalRef as an getJavaObject. */
+            static JNIGlobalRef GetJavaObject(const std::shared_ptr<JavaAnonObj> & shref) {
+                return static_cast<JavaGlobalObj*>(shref.get())->getJavaObject();
+            }
             /* Provides access to the stored GlobalRef as an jobject. */
             static jobject GetObject(const std::shared_ptr<JavaAnonObj> & shref) {
                 return static_cast<JavaGlobalObj*>(shref.get())->getObject();

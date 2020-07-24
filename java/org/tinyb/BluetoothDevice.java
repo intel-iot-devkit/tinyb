@@ -443,22 +443,39 @@ public interface BluetoothDevice extends BluetoothObject
     /**
      * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
      * @param listener A {@link GATTCharacteristicListener} instance, listening to all {@link BluetoothGattCharacteristic} events of this device
-     * @param characteristicMatch Optional {@link BluetoothGattCharacteristic} to be matched before calling any
-     *        {@link GATTCharacteristicListener} methods. Pass {@code null} for no filtering.
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @throws IllegalStateException if the {@link BluetoothDevice}'s GATTHandler is null, i.e. not connected
+     * @throws IllegalStateException if the given {@link GATTCharacteristicListener} is already in use, i.e. added.
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final BluetoothGattCharacteristic characteristicMatch);
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener)
+        throws IllegalStateException;
 
     /**
      * Remove the given {@link GATTCharacteristicListener} from the listener list.
+     * <p>
+     * If the {@link BluetoothDevice}'s GATTHandler is null, i.e. not connected, {@code false} is being returned.
+     * </p>
      * @param listener A {@link GATTCharacteristicListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
      */
     public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+
+    /**
+     * Remove all {@link GATTCharacteristicListener} from the list, which are associated to the given {@link BluetoothGattCharacteristic}.
+     * <p>
+     * Implementation tests all listener's {@link GATTCharacteristicListener#getAssociatedCharacteristic()}
+     * to match with the given associated characteristic.
+     * </p>
+     * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
+     * @return number of removed listener.
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    public int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic);
 
     /**
      * Remove all {@link GATTCharacteristicListener} from the list.

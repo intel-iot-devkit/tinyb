@@ -164,22 +164,6 @@ public class ScannerTinyB10 {
         }
     };
 
-    final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener() {
-        @Override
-        public void notificationReceived(final BluetoothGattCharacteristic charDecl,
-                                         final byte[] value, final long timestamp) {
-            System.err.println("****** GATT notificationReceived: "+charDecl+
-                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
-        }
-
-        @Override
-        public void indicationReceived(final BluetoothGattCharacteristic charDecl,
-                                       final byte[] value, final long timestamp, final boolean confirmationSent) {
-            System.err.println("****** GATT indicationReceived: "+charDecl+
-                               ", value "+BluetoothUtils.bytesHexString(value, true, true));
-        }
-    };
-
     private void connectDiscoveredDevice(final BluetoothDevice device) {
         System.err.println("****** Connecting Device: Start " + device.toString());
         device.getAdapter().stopDiscovery();
@@ -237,9 +221,26 @@ public class ScannerTinyB10 {
                     System.err.println("  over device : "+char2);
                 }
             }
-            final boolean addedCharacteristicListenerRes =
-              BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
-            System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+            {
+                final GATTCharacteristicListener myCharacteristicListener = new GATTCharacteristicListener(null) {
+                    @Override
+                    public void notificationReceived(final BluetoothGattCharacteristic charDecl,
+                                                     final byte[] value, final long timestamp) {
+                        System.err.println("****** GATT notificationReceived: "+charDecl+
+                                           ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                    }
+
+                    @Override
+                    public void indicationReceived(final BluetoothGattCharacteristic charDecl,
+                                                   final byte[] value, final long timestamp, final boolean confirmationSent) {
+                        System.err.println("****** GATT indicationReceived: "+charDecl+
+                                           ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                    }
+                };
+                final boolean addedCharacteristicListenerRes =
+                  BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
+                System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+            }
 
             int i=0, j=0;
             for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {

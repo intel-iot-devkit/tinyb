@@ -95,11 +95,11 @@ class MyAdapterStatusListener : public AdapterStatusListener {
 
 static const uuid16_t _TEMPERATURE_MEASUREMENT(GattCharacteristicType::TEMPERATURE_MEASUREMENT);
 
-class MyGATTEventListener : public SpecificGATTCharacteristicListener {
+class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
   public:
 
     MyGATTEventListener(const GATTCharacteristic * characteristicMatch)
-    : SpecificGATTCharacteristicListener(characteristicMatch) {}
+    : AssociatedGATTCharacteristicListener(characteristicMatch) {}
 
     void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
         const std::shared_ptr<DBTDevice> dev = charDecl->getDevice();
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
                             }
                         }
                         bool cccdEnableResult[2];
-                        bool cccdRet = serviceChar.configIndicationNotification(true /* enableNotification */, true /* enableIndication */, cccdEnableResult);
+                        bool cccdRet = serviceChar.configNotificationIndication(true /* enableNotification */, true /* enableIndication */, cccdEnableResult);
                         fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
                                 (int)i, (int)j, cccdEnableResult[0], cccdEnableResult[1], cccdRet);
                         if( cccdRet ) {

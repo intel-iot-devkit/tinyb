@@ -59,26 +59,28 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
 
         };
     */
-    const GATTCharacteristic * characteristicMatchRef;
-    std::shared_ptr<JavaAnonObj> deviceObjRef;
-    std::unique_ptr<JNIGlobalRef> listenerObjRef;
+    const GATTCharacteristic * associatedCharacteristicRef;
+    JNIGlobalRef listenerObj; // keep listener instance alive
+    JNIGlobalRef associatedCharacteristicObj; // keeps associated characteristic alive, if not null
     jmethodID  mNotificationReceived = nullptr;
     jmethodID  mIndicationReceived = nullptr;
 
   public:
 
-    JNICharacteristicListener(JNIEnv *env, DBTDevice *device, jobject listener, const GATTCharacteristic * characteristicMatchRef) {
-        deviceObjRef = device->getJavaObject();
-        JavaGlobalObj::check(deviceObjRef, E_FILE_LINE);
-
-        listenerObjRef = std::unique_ptr<JNIGlobalRef>(new JNIGlobalRef(listener));
-        jclass listenerClazz = search_class(env, listenerObjRef->getObject());
+    JNICharacteristicListener(JNIEnv *env, DBTDevice *device, jobject listener, GATTCharacteristic * associatedCharacteristicRef)
+    : associatedCharacteristicRef(associatedCharacteristicRef),
+      listenerObj(listener)
+    {
+        jclass listenerClazz = search_class(env, listenerObj.getObject());
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == listenerClazz ) {
             throw InternalError("CharacteristicListener not found", E_FILE_LINE);
         }
 
-        this->characteristicMatchRef = characteristicMatchRef;
+        if( nullptr != associatedCharacteristicRef ) {
+            JavaGlobalObj::check(associatedCharacteristicRef->getJavaObject(), E_FILE_LINE);
+            associatedCharacteristicObj = JavaGlobalObj::GetJavaObject(associatedCharacteristicRef->getJavaObject()); // new global ref
+        }
 
         mNotificationReceived = search_method(env, listenerClazz, "notificationReceived", _notificationReceivedMethodArgs.c_str(), false);
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -93,10 +95,10 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
     }
 
     bool match(const GATTCharacteristic & characteristic) override {
-        if( nullptr == characteristicMatchRef ) {
+        if( nullptr == associatedCharacteristicRef ) {
             return true;
         }
-        return characteristic == *characteristicMatchRef;
+        return characteristic == *associatedCharacteristicRef;
     }
 
     void notificationReceived(GATTCharacteristicRef charDecl,
@@ -111,7 +113,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
 
 
-        env->CallVoidMethod(listenerObjRef->getObject(), mNotificationReceived,
+        env->CallVoidMethod(listenerObj.getObject(), mNotificationReceived,
                             jCharDecl, jvalue, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
@@ -129,7 +131,7 @@ class JNICharacteristicListener : public GATTCharacteristicListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
 
 
-        env->CallVoidMethod(listenerObjRef->getObject(), mIndicationReceived,
+        env->CallVoidMethod(listenerObj.getObject(), mIndicationReceived,
                             jCharDecl, jvalue, (jlong)timestamp, (jboolean)confirmationSent);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
@@ -168,16 +170,16 @@ jstring Java_direct_1bt_tinyb_DBTDevice_toStringImpl(JNIEnv *env, jobject obj) {
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, jobject obj, jobject listener, jobject jcharacteristicMatch) {
+jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, jobject obj, jobject listener, jobject jAssociatedCharacteristic) {
     try {
         if( nullptr == listener ) {
-            throw IllegalArgumentException("characteristicListener is null", E_FILE_LINE);
+            throw IllegalArgumentException("characteristicListener argument is null", E_FILE_LINE);
         }
         {
             JNICharacteristicListener * pre =
                     getObjectRef<JNICharacteristicListener>(env, listener, "nativeInstance");
             if( nullptr != pre ) {
-                WARN_PRINT("characteristicListener's nativeInstance not null, already in use");
+                throw IllegalStateException("CharacteristicListener's nativeInstance not null, already in use", E_FILE_LINE);
                 return false;
             }
         }
@@ -188,14 +190,13 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, 
             throw IllegalStateException("Characteristic's device GATTHandle not connected: "+ device->toString(), E_FILE_LINE);
         }
 
-        GATTCharacteristic * characteristicMatchRef = nullptr;
-        if( nullptr != jcharacteristicMatch ) {
-            characteristicMatchRef = getInstance<GATTCharacteristic>(env, jcharacteristicMatch);
-            JavaGlobalObj::check(characteristicMatchRef->getJavaObject(), E_FILE_LINE);
+        GATTCharacteristic * associatedCharacteristicRef = nullptr;
+        if( nullptr != jAssociatedCharacteristic ) {
+            associatedCharacteristicRef = getInstance<GATTCharacteristic>(env, jAssociatedCharacteristic);
         }
 
         std::shared_ptr<GATTCharacteristicListener> l =
-                std::shared_ptr<GATTCharacteristicListener>( new JNICharacteristicListener(env, device, listener, characteristicMatchRef) );
+                std::shared_ptr<GATTCharacteristicListener>( new JNICharacteristicListener(env, device, listener, associatedCharacteristicRef) );
 
         if( gatt->addCharacteristicListener(l) ) {
             setInstance(env, listener, l.get());
@@ -207,18 +208,18 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_addCharacteristicListener(JNIEnv *env, 
     return JNI_FALSE;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *env, jobject obj, jobject statusListener) {
+jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *env, jobject obj, jobject jlistener) {
     try {
-        if( nullptr == statusListener ) {
-            throw IllegalArgumentException("characteristicListener is null", E_FILE_LINE);
+        if( nullptr == jlistener ) {
+            throw IllegalArgumentException("characteristicListener argument is null", E_FILE_LINE);
         }
         JNICharacteristicListener * pre =
-                getObjectRef<JNICharacteristicListener>(env, statusListener, "nativeInstance");
+                getObjectRef<JNICharacteristicListener>(env, jlistener, "nativeInstance");
         if( nullptr == pre ) {
             WARN_PRINT("characteristicListener's nativeInstance is null, not in use");
             return false;
         }
-        setObjectRef<JNICharacteristicListener>(env, statusListener, nullptr, "nativeInstance");
+        setObjectRef<JNICharacteristicListener>(env, jlistener, nullptr, "nativeInstance");
 
         DBTDevice *device = getInstance<DBTDevice>(env, obj);
         JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
@@ -238,6 +239,30 @@ jboolean Java_direct_1bt_tinyb_DBTDevice_removeCharacteristicListener(JNIEnv *en
         rethrow_and_raise_java_exception(env);
     }
     return JNI_FALSE;
+}
+
+jint Java_direct_1bt_tinyb_DBTDevice_removeAllAssociatedCharacteristicListener(JNIEnv *env, jobject obj, jobject jAssociatedCharacteristic) {
+    try {
+        if( nullptr == jAssociatedCharacteristic ) {
+            throw IllegalArgumentException("associatedCharacteristic argument is null", E_FILE_LINE);
+        }
+        DBTDevice *device = getInstance<DBTDevice>(env, obj);
+        JavaGlobalObj::check(device->getJavaObject(), E_FILE_LINE);
+        std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+        if( nullptr == gatt ) {
+            // OK to have GATTHandler being shutdown @ disable
+            DBG_PRINT("Characteristic's device GATTHandle not connected: %s", device->toString().c_str());
+            return 0;
+        }
+
+        GATTCharacteristic * associatedCharacteristicRef = getInstance<GATTCharacteristic>(env, jAssociatedCharacteristic);
+        JavaGlobalObj::check(associatedCharacteristicRef->getJavaObject(), E_FILE_LINE);
+
+        return gatt->removeAllAssociatedCharacteristicListener(associatedCharacteristicRef);
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return 0;
 }
 
 jint Java_direct_1bt_tinyb_DBTDevice_removeAllCharacteristicListener(JNIEnv *env, jobject obj) {

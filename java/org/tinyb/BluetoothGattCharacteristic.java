@@ -71,31 +71,112 @@ public interface BluetoothGattCharacteristic extends BluetoothObject
     public byte[] readValue() throws BluetoothException;
 
     /**
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+     * <p>
+     * Method enables notification and/or indication for this characteristic at BLE level.
+     * </p>
+     * <p>
+     * Implementation masks this Characteristic properties PropertyBitVal::Notify and PropertyBitVal::Indicate
+     * with the respective user request parameters, hence removes unsupported requests.
+     * </p>
+     * @param enableNotification
+     * @param enableIndication
+     * @param enabledState array of size 2, holding the resulting enabled state for notification and indication.
+     * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
+     * or there is no GATTDescriptor of type ClientCharacteristicConfiguration, or if the operation has failed.
+     * Otherwise returns true.
+     * @throws IllegalStateException if notification or indication is set to be enabled
+     * and the {@link BluetoothDevice}'s GATTHandler is null, i.e. not connected
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    public boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
+            throws IllegalStateException;
+
+    /**
      * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
+     * <p>
+     * Occurring notifications and indications, if enabled via {#link {@link #configNotificationIndication(boolean, boolean, boolean[])}},
+     * will call the respective GATTCharacteristicListener callback method.
+     * </p>
      * @param listener A {@link GATTCharacteristicListener} instance, listening to this {@link BluetoothGattCharacteristic}'s events
      * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+     * @throws IllegalStateException if the DBTDevice's GATTHandler is null, i.e. not connected
+     * @throws IllegalStateException if the given {@link GATTCharacteristicListener} is already in use, i.e. added.
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
-    public boolean addCharacteristicListener(final GATTCharacteristicListener listener);
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener)
+            throws IllegalStateException;
 
     /**
-     * Remove the given {@link GATTCharacteristicListener} from the listener list.
+     * Add the given {@link GATTCharacteristicListener} to the listener list if not already present
+     * and if enabling the notification and/or indication for this characteristic at BLE level was successful.
+     * <p>
+     * Occurring notifications and indications will call the respective {@link GATTCharacteristicListener}
+     * callback method.
+     * </p>
+     * @param listener A {@link GATTCharacteristicListener} instance, listening to this {@link BluetoothGattCharacteristic}'s events
+     * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
+     * using #configNotificationIndication(boolean, boolean, boolean[])
+     * @return true if enabling the notification and/or indication was successful
+     * and if the given listener is not element of the list and has been newly added, otherwise false.
+     * @throws IllegalStateException if the {@link BluetoothDevice}'s GATTHandler is null, i.e. not connected
+     * @throws IllegalStateException if the given {@link GATTCharacteristicListener} is already in use, i.e. added.
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
+     */
+    public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean enabledState[/*2*/])
+            throws IllegalStateException;
+
+    /**
+     * Disables the notification and/or indication for this characteristic at BLE level
+     * if {@code disableIndicationNotification == true}
+     * and removes the given {@link GATTCharacteristicListener} from the listener list.
+     * <p>
+     * If the DBTDevice's GATTHandler is null, i.e. not connected, {@code false} is being returned.
+     * </p>
+     *
      * @param listener A {@link GATTCharacteristicListener} instance
+     * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
+     * using {@link #configNotificationIndication(boolean, boolean, boolean[])
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
-    public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
+    public boolean removeCharacteristicListener(final GATTCharacteristicListener l, final boolean disableIndicationNotification);
 
     /**
-     * Remove all {@link GATTCharacteristicListener} from the list.
+     * Disables the notification and/or indication for this characteristic BLE level
+     * if {@code disableIndicationNotification == true}
+     * and removes all {@link GATTCharacteristicListener} from the listener list,
+     * which are associated with this characteristic instance.
+     * <p>
+     * Implementation tests all listener's {@link GATTCharacteristicListener#getAssociatedCharacteristic()}
+     * to match with this characteristic instance.
+     * </p>
+     * <p>
+     * If the DBTDevice's GATTHandler is null, i.e. not connected, {@code false} is being returned.
+     * </p>
+     *
+     * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
+     * using {@link #configNotificationIndication(boolean, boolean, boolean[])
      * @return number of removed listener.
+     * @see #configNotificationIndication(boolean, boolean, boolean[])
+     * @see BluetoothDevice#removeAllAssociatedCharacteristicListener(BluetoothGattCharacteristic)
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus
      */
-    public int removeAllCharacteristicListener();
+    public int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification);
 
     /**
-     * Enables notifications for the value and calls run function of the BluetoothNotification
-     * object. It enables notifications for this characteristic at BLE level.
+     * Sets the given value BluetoothNotification to have its run function
+     * receive the enabled notification and/or indication sent.
+     * <p>
+     * Enables notification and/or indication for this characteristic at BLE level.
+     * </p.
      * @param callback A BluetoothNotification<byte[]> object. Its run function will be called
      * when a notification is issued. The run function will deliver the new value of the value
      * property.
@@ -104,7 +185,7 @@ public interface BluetoothGattCharacteristic extends BluetoothObject
 
     /**
      * Disables notifications of the value and unregisters the callback object
-     * passed through the corresponding enable method. It disables notications
+     * passed through the corresponding enable method. It disables notifcations
      * at BLE level for this characteristic.
      */
     public void disableValueNotifications();

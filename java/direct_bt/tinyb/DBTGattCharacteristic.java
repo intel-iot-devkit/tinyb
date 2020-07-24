@@ -33,7 +33,6 @@ import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
-import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothObject;
 import org.tinyb.BluetoothType;
@@ -57,8 +56,8 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     /* Characteristics Property */
     private final String[] properties;
-    // private final boolean hasNotify;
-    // private final boolean hasIndicate;
+    private final boolean hasNotify;
+    private final boolean hasIndicate;
 
     /* Characteristics Value Type UUID */
     private final String value_type_uuid;
@@ -96,41 +95,9 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         return valueChanged;
     }
 
-    private final GATTCharacteristicListener characteristicListener = new GATTCharacteristicListener() {
-
-        @Override
-        public void notificationReceived(final BluetoothGattCharacteristic charDecl, final byte[] value, final long timestamp) {
-            final DBTGattCharacteristic cd = (DBTGattCharacteristic)charDecl;
-            if( !cd.equals(DBTGattCharacteristic.this) ) {
-                throw new InternalError("Filtered GATTCharacteristicListener.notificationReceived: Wrong Characteristic: Got "+charDecl+
-                                        ", expected "+DBTGattCharacteristic.this.toString());
-            }
-            final boolean valueChanged = updateCachedValue(value, true);
-            if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                   ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
-            }
-        }
-
-        @Override
-        public void indicationReceived(final BluetoothGattCharacteristic charDecl, final byte[] value, final long timestamp,
-                                       final boolean confirmationSent) {
-            final DBTGattCharacteristic cd = (DBTGattCharacteristic)charDecl;
-            if( !cd.equals(DBTGattCharacteristic.this) ) {
-                throw new InternalError("Filtered GATTCharacteristicListener.indicationReceived: Wrong Characteristic: Got "+charDecl+
-                                        ", expected "+DBTGattCharacteristic.this.toString());
-            }
-            final boolean valueChanged = updateCachedValue(value, true);
-            if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                   ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
-            }
-        }
-
-    };
-
    /* pp */ DBTGattCharacteristic(final long nativeInstance, final DBTGattService service,
                                   final short handle, final String[] properties,
+                                  final boolean hasNotify, final boolean hasIndicate,
                                   final String value_type_uuid, final short value_handle,
                                   final int clientCharacteristicsConfigIndex)
     {
@@ -139,26 +106,47 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         this.handle = handle;
 
         this.properties = properties;
-        /** {
-            boolean hasNotify = false;
-            boolean hasIndicate = false;
-            for(int i=0; !hasNotify && !hasIndicate && i<properties.length; i++) {
-                if( "notify".equals(properties[i]) ) {
-                    hasNotify = true;
-                }
-                if( "indicate".equals(properties[i]) ) {
-                    hasIndicate = true;
-                }
-            }
-            this.hasNotify = hasNotify;
-            this.hasIndicate = hasIndicate;
-        } */
-
+        this.hasNotify = hasNotify;
+        this.hasIndicate = hasIndicate;
         this.value_type_uuid = value_type_uuid;
         this.value_handle = value_handle;
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
         this.descriptorList = getDescriptorsImpl();
-        this.addCharacteristicListener(characteristicListener, false); // silent, don't enable native GATT ourselves
+
+        if( hasNotify || hasIndicate ) {
+            // This characteristicListener serves TinyB 'enableValueNotification(..)' and 'getValue()' (cached value)
+            // backwards compatibility only!
+            final GATTCharacteristicListener characteristicListener = new GATTCharacteristicListener(this) {
+                @Override
+                public void notificationReceived(final BluetoothGattCharacteristic charDecl, final byte[] value, final long timestamp) {
+                    final DBTGattCharacteristic cd = (DBTGattCharacteristic)charDecl;
+                    if( !cd.equals(DBTGattCharacteristic.this) ) {
+                        throw new InternalError("Filtered GATTCharacteristicListener.notificationReceived: Wrong Characteristic: Got "+charDecl+
+                                                ", expected "+DBTGattCharacteristic.this.toString());
+                    }
+                    final boolean valueChanged = updateCachedValue(value, true);
+                    if( DEBUG ) {
+                        System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
+                                           ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
+                    }
+                }
+                @Override
+                public void indicationReceived(final BluetoothGattCharacteristic charDecl, final byte[] value, final long timestamp,
+                                               final boolean confirmationSent) {
+                    final DBTGattCharacteristic cd = (DBTGattCharacteristic)charDecl;
+                    if( !cd.equals(DBTGattCharacteristic.this) ) {
+                        throw new InternalError("Filtered GATTCharacteristicListener.indicationReceived: Wrong Characteristic: Got "+charDecl+
+                                                ", expected "+DBTGattCharacteristic.this.toString());
+                    }
+                    final boolean valueChanged = updateCachedValue(value, true);
+                    if( DEBUG ) {
+                        System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
+                                           ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
+                    }
+                }
+            };
+            this.addCharacteristicListener(characteristicListener); // silent, don't enable native GATT ourselves
+        }
     }
 
     @Override
@@ -166,8 +154,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         if( !isValid() ) {
             return;
         }
-        removeAllCharacteristicListener();
-        disableValueNotifications();
+        removeAllAssociatedCharacteristicListener(true);
         super.close();
     }
 
@@ -235,57 +222,74 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     public final List<BluetoothGattDescriptor> getDescriptors() { return descriptorList; }
 
     @Override
-    public final synchronized void enableValueNotifications(final BluetoothNotification<byte[]> callback) {
-        final boolean res = enableValueNotificationsImpl(true);
-        if( DEBUG ) {
-            System.err.println("GATTCharacteristicListener.enableValueNotifications: GATT Native: "+res);
+    public final synchronized boolean configNotificationIndication(final boolean enableNotification, final boolean enableIndication, final boolean enabledState[/*2*/])
+            throws IllegalStateException
+    {
+        if( hasNotify || hasIndicate ) {
+            final boolean res = configNotificationIndicationImpl(enableNotification, enableIndication, enabledState);
+            if( DEBUG ) {
+                System.err.println("GATTCharacteristicListener.configNotificationIndication: "+res+", enableResult "+Arrays.toString(enabledState));
+            }
+            return res;
+        } else {
+            enabledState[0] = false;
+            enabledState[1] = false;
+            if( DEBUG ) {
+                System.err.println("GATTCharacteristicListener.configNotificationIndication: FALSE*");
+            }
+            return false;
         }
-        valueNotificationCB = callback;
+    }
+    private native boolean configNotificationIndicationImpl(boolean enableNotification, boolean enableIndication, final boolean enabledState[/*2*/])
+            throws IllegalStateException;
+
+    @Override
+    public final boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
+        return getService().getDevice().addCharacteristicListener(listener);
+    }
+
+    @Override
+    public final boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean enabledState[/*2*/]) {
+        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, enabledState) ) {
+            return false;
+        }
+        return getService().getDevice().addCharacteristicListener(listener);
+    }
+
+    @Override
+    public final boolean removeCharacteristicListener(final GATTCharacteristicListener l, final boolean disableIndicationNotification) {
+        if( disableIndicationNotification ) {
+            configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
+        }
+        return getService().getDevice().removeCharacteristicListener(l);
+    }
+
+    @Override
+    public final int removeAllAssociatedCharacteristicListener(final boolean disableIndicationNotification) {
+        if( disableIndicationNotification ) {
+            configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
+        }
+        return getService().getDevice().removeAllAssociatedCharacteristicListener(this);
+    }
+
+    @Override
+    public final synchronized void enableValueNotifications(final BluetoothNotification<byte[]> callback) {
+        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, null) ) {
+            valueNotificationCB = null;
+        } else {
+            valueNotificationCB = callback;
+        }
     }
 
     @Override
     public final synchronized void disableValueNotifications() {
-        try {
-            final boolean res = enableValueNotificationsImpl(false);
-            if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.disableValueNotifications: GATT Native: "+res);
-            }
-        } catch (final Throwable t) {
-            if( DEBUG ) {
-                System.err.println("Caught "+t.getMessage());
-                t.printStackTrace();
-            }
-        }
+        configNotificationIndication(false /* enableNotification */, false /* enableIndication */, null);
         valueNotificationCB = null;
     }
 
     @Override
     public final boolean getNotifying() {
         return null != valueNotificationCB;
-    }
-
-    @Override
-    public final boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
-        return addCharacteristicListener(listener, true);
-    }
-    private final boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean nativeEnable) {
-        if( nativeEnable ) {
-            final boolean res = enableValueNotificationsImpl(true);
-            if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.addCharacteristicListener: GATT Native: "+res);
-            }
-        }
-        return getService().getDevice().addCharacteristicListener(listener, this);
-    }
-
-    @Override
-    public final boolean removeCharacteristicListener(final GATTCharacteristicListener l) {
-        return getService().getDevice().removeCharacteristicListener(l);
-    }
-
-    @Override
-    public final int removeAllCharacteristicListener() {
-        return getService().getDevice().removeAllCharacteristicListener();
     }
 
     /**
@@ -324,11 +328,6 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
 
     private native List<BluetoothGattDescriptor> getDescriptorsImpl();
-
-    /**
-     * Enables disables GATT notification and/or indication.
-     */
-    private native boolean enableValueNotificationsImpl(boolean v);
 
     @Override
     protected native void deleteImpl(long nativeInstance);

@@ -390,6 +390,44 @@ namespace direct_bt {
              * </p>
              */
             void disconnectGATT();
+
+            /**
+             * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
+             * <p>
+             * Convenience delegation call to GATTHandler
+             * </p>
+             * @param listener A {@link GATTCharacteristicListener} instance, listening to all {@link BluetoothGattCharacteristic} events of this device
+             * @return true if the given listener is not element of the list and has been newly added, otherwise false.
+             * @throws IllegalStateException if the GATTHandler is null, i.e. not connected
+             */
+            bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+
+            /**
+             * Remove the given {@link GATTCharacteristicListener} from the listener list.
+             * <p>
+             * If the GATTHandler is null, i.e. not connected, {@code false} is being returned.
+             * </p>
+             * @param listener A {@link GATTCharacteristicListener} instance
+             * @return true if the given listener is an element of the list and has been removed, otherwise false.
+             */
+            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+
+            /**
+             * Remove all {@link GATTCharacteristicListener} from the list, which are associated to the given {@link GATTCharacteristic}.
+             * <p>
+             * Implementation tests all listener's GATTCharacteristicListener::match(const GATTCharacteristic & characteristic)
+             * to match with the given associated characteristic.
+             * </p>
+             * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
+             * @return number of removed listener.
+             */
+            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic);
+
+            /**
+             * Remove all {@link GATTCharacteristicListener} from the list.
+             * @return number of removed listener.
+             */
+            int removeAllCharacteristicListener();
     };
 
     inline bool operator<(const DBTDevice& lhs, const DBTDevice& rhs)

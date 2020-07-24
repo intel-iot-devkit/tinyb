@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
                             const bool enableNotification = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
                             const bool enableIndication = serviceChar.hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
                             if( enableNotification || enableIndication ) {
-                                bool res = gatt->configIndicationNotification(*cccd, enableNotification, enableIndication);
+                                bool res = gatt->configNotificationIndication(*cccd, enableNotification, enableIndication);
                                 fprintf(stderr, "  [%2.2d.%2.2d] Config Notification(%d), Indication(%d): Result %d\n",
                                         (int)i, (int)j, enableNotification, enableIndication, res);
                             }

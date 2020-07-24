@@ -106,7 +106,7 @@ namespace direct_bt {
 
             /** send immediate confirmation of indication events from device, defaults to true. */
             bool sendIndicationConfirmation = true;
-            std::vector<std::shared_ptr<GATTCharacteristicListener>> eventListenerList;
+            std::vector<std::shared_ptr<GATTCharacteristicListener>> characteristicListenerList;
             std::recursive_mutex mtx_eventListenerList;
 
             uint16_t serverMTU;
@@ -310,10 +310,13 @@ namespace direct_bt {
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * <p>
+             * Method enables notification and/or indication for the corresponding characteristic at BLE level.
+             * </p>
+             * <p>
              * Throws an IllegalArgumentException if the given GATTDescriptor is not a ClientCharacteristicConfiguration.
              * </p>
              */
-            bool configIndicationNotification(GATTDescriptor & cd, const bool enableNotification, const bool enableIndication);
+            bool configNotificationIndication(GATTDescriptor & cd, const bool enableNotification, const bool enableIndication);
 
             /**
              * Add the given listener to the list if not already present.
@@ -341,7 +344,21 @@ namespace direct_bt {
              * </p>
              */
             bool removeCharacteristicListener(const GATTCharacteristicListener * l);
+
             
+            /**
+             * Remove all {@link GATTCharacteristicListener} from the list, which are associated to the given {@link GATTCharacteristic}.
+             * <p>
+             * Implementation tests all listener's GATTCharacteristicListener::match(const GATTCharacteristic & characteristic)
+             * to match with the given associated characteristic.
+             * </p>
+             * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
+             * @return number of removed listener.
+             */
+            int removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic);
+
+            int removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic);
+
             /**
              * Remove all event listener from the list.
              * <p>

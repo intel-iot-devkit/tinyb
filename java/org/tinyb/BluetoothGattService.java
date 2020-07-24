@@ -89,18 +89,30 @@ public interface BluetoothGattService extends BluetoothObject
     /**
      * Adds the given {@link GATTCharacteristicListener} to the {@link BluetoothDevice} for all {@link BluetoothGattCharacteristic}s.
      * @param listener {@link GATTCharacteristicListener} to add to the {@link BluetoothDevice}.
+     *        It is important to have hte listener's {@link GATTCharacteristicListener#getAssociatedCharacteristic() associated characteristic} == null,
+     *        otherwise the listener can't be used for all characteristics.
      * @return true if successful, otherwise false
+     * @throws IllegalArgumentException if listener's {@link GATTCharacteristicListener#getAssociatedCharacteristic() associated characteristic}
+     * is not null.
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
+     * @see BluetoothGattCharacteristic#configNotificationIndication(boolean, boolean, boolean[])
+     * @see BluetoothDevice#addCharacteristicListener(GATTCharacteristicListener, BluetoothGattCharacteristic)
      */
-    public static boolean addCharacteristicListenerToAll(final BluetoothDevice device, final List<BluetoothGattService> services, final GATTCharacteristicListener listener) {
-        final boolean res = device.addCharacteristicListener(listener, null /* for all */);
+    public static boolean addCharacteristicListenerToAll(final BluetoothDevice device, final List<BluetoothGattService> services,
+                                                         final GATTCharacteristicListener listener) {
+        if( null == listener ) {
+            throw new IllegalArgumentException("listener argument null");
+        }
+        if( null != listener.getAssociatedCharacteristic() ) {
+            throw new IllegalArgumentException("listener's associated characteristic is not null");
+        }
+        final boolean res = device.addCharacteristicListener(listener);
         for(final Iterator<BluetoothGattService> is = services.iterator(); is.hasNext(); ) {
             final BluetoothGattService s = is.next();
             final List<BluetoothGattCharacteristic> characteristics = s.getCharacteristics();
             for(final Iterator<BluetoothGattCharacteristic> ic = characteristics.iterator(); ic.hasNext(); ) {
-                final BluetoothGattCharacteristic c = ic.next();
-                c.enableValueNotifications(null);
+                ic.next().configNotificationIndication(true /* enableNotification */, true /* enableIndication */, new boolean[2]);
             }
         }
         return res;
@@ -112,14 +124,16 @@ public interface BluetoothGattService extends BluetoothObject
      * @return true if successful, otherwise false
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
+     * @see BluetoothGattCharacteristic#configNotificationIndication(boolean, boolean, boolean[])
+     * @see BluetoothDevice#removeCharacteristicListener(GATTCharacteristicListener)
      */
-    public static boolean removeCharacteristicListenerFromAll(final BluetoothDevice device, final List<BluetoothGattService> services, final GATTCharacteristicListener listener) {
+    public static boolean removeCharacteristicListenerFromAll(final BluetoothDevice device, final List<BluetoothGattService> services,
+                                                              final GATTCharacteristicListener listener) {
         for(final Iterator<BluetoothGattService> is = services.iterator(); is.hasNext(); ) {
             final BluetoothGattService s = is.next();
             final List<BluetoothGattCharacteristic> characteristics = s.getCharacteristics();
             for(final Iterator<BluetoothGattCharacteristic> ic = characteristics.iterator(); ic.hasNext(); ) {
-                final BluetoothGattCharacteristic c = ic.next();
-                c.disableValueNotifications();
+                ic.next().configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
             }
         }
         return device.removeCharacteristicListener(listener);
@@ -130,18 +144,17 @@ public interface BluetoothGattService extends BluetoothObject
      * @return count of removed {@link GATTCharacteristicListener}
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
+     * @see BluetoothGattCharacteristic#configNotificationIndication(boolean, boolean, boolean[])
+     * @see BluetoothDevice#removeAllCharacteristicListener()
      */
     public static int removeAllCharacteristicListener(final BluetoothDevice device, final List<BluetoothGattService> services) {
         for(final Iterator<BluetoothGattService> is = services.iterator(); is.hasNext(); ) {
             final BluetoothGattService s = is.next();
             final List<BluetoothGattCharacteristic> characteristics = s.getCharacteristics();
             for(final Iterator<BluetoothGattCharacteristic> ic = characteristics.iterator(); ic.hasNext(); ) {
-                final BluetoothGattCharacteristic c = ic.next();
-                c.disableValueNotifications();
+                ic.next().configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
             }
         }
         return device.removeAllCharacteristicListener();
     }
-
-
 }

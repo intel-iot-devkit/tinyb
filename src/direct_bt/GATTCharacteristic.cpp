@@ -144,11 +144,16 @@ std::string GATTCharacteristic::toString() const {
            service_name+" ]";
 }
 
-bool GATTCharacteristic::configIndicationNotification(const bool enableNotification, const bool enableIndication, bool enableResult[2]) {
+bool GATTCharacteristic::configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) {
+    enabledState[0] = false;
+    enabledState[1] = false;
+
     const bool hasEnableNotification = hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
     const bool hasEnableIndication = hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
-    const bool resEnableNotification = hasEnableNotification & enableNotification;
-    const bool resEnableIndication = hasEnableIndication & enableIndication;
+    if( !hasEnableNotification && !hasEnableIndication ) {
+        DBG_PRINT("Characteristic has neither Notify nor Indicate property present: %s", toString().c_str());
+        return false;
+    }
 
     std::shared_ptr<DBTDevice> device = getDevice();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
@@ -161,20 +166,20 @@ bool GATTCharacteristic::configIndicationNotification(const bool enableNotificat
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
                 toString() + ", " + device->toString(), E_FILE_LINE);
     }
+    const bool resEnableNotification = hasEnableNotification & enableNotification;
+    const bool resEnableIndication = hasEnableIndication & enableIndication;
+
     GATTDescriptorRef cccd = this->getClientCharacteristicConfig();
     if( nullptr == cccd ) {
         DBG_PRINT("Characteristic has no ClientCharacteristicConfig descriptor: %s", toString().c_str());
         return false;
     }
-    bool res = gatt->configIndicationNotification(*cccd, resEnableNotification, resEnableIndication);
+    bool res = gatt->configNotificationIndication(*cccd, resEnableNotification, resEnableIndication);
     if( res ) {
-        enableResult[0] = resEnableNotification;
-        enableResult[1] = resEnableIndication;
-    } else {
-        enableResult[0] = false;
-        enableResult[1] = false;
+        enabledState[0] = resEnableNotification;
+        enabledState[1] = resEnableIndication;
     }
-    DBG_PRINT("GATTCharacteristic::configIndicationNotification: res %d, notification[shall %d, has %d = %d], indication[shall %s, has %d = %d]",
+    DBG_PRINT("GATTCharacteristic::configNotificationIndication: res %d, notification[shall %d, has %d = %d], indication[shall %s, has %d = %d]",
             res,
             enableNotification. hasEnableNotification, resEnableNotification,
             enableIndication. hasEnableIndication, resEnableIndication);
@@ -182,46 +187,30 @@ bool GATTCharacteristic::configIndicationNotification(const bool enableNotificat
 }
 
 bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
-    std::shared_ptr<DBTDevice> device = getDevice();
-    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-    if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString() + ", " + device->toString(), E_FILE_LINE);
-    }
-    return gatt->addCharacteristicListener(l);
+    return getDevice()->addCharacteristicListener(l);
 }
 
-bool GATTCharacteristic::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
-    std::shared_ptr<DBTDevice> device = getDevice();
-    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-    if( nullptr == gatt ) {
-        // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Characteristic's device GATTHandle not connected: %s, %s", toString().c_str(), device->toString().c_str());
+bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool enabledState[2]) {
+    if( !configNotificationIndication(true, true, enabledState) ) {
         return false;
     }
-    return gatt->removeCharacteristicListener(l);
+    return addCharacteristicListener(l);
 }
 
-bool GATTCharacteristic::removeCharacteristicListener(const GATTCharacteristicListener * l) {
-    std::shared_ptr<DBTDevice> device = getDevice();
-    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-    if( nullptr == gatt ) {
-        // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Characteristic's device GATTHandle not connected: %s, %s", toString().c_str(), device->toString().c_str());
-        return false;
+bool GATTCharacteristic::removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool disableIndicationNotification) {
+    if( disableIndicationNotification ) {
+        bool enabledState[2];
+        configNotificationIndication(false, false, enabledState);
     }
-    return gatt->removeCharacteristicListener(l);
+    return getDevice()->removeCharacteristicListener(l);
 }
 
-int GATTCharacteristic::removeAllCharacteristicListener() {
-    std::shared_ptr<DBTDevice> device = getDevice();
-    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
-    if( nullptr == gatt ) {
-        // OK to have GATTHandler being shutdown @ disable
-        DBG_PRINT("Characteristic's device GATTHandle not connected: %s, %s", toString().c_str(), device->toString().c_str());
-        return 0;
+int GATTCharacteristic::removeAllCharacteristicListener(bool disableIndicationNotification) {
+    if( disableIndicationNotification ) {
+        bool enabledState[2];
+        configNotificationIndication(false, false, enabledState);
     }
-    return gatt->removeAllCharacteristicListener();
+    return getDevice()->removeAllCharacteristicListener();
 }
 
 bool GATTCharacteristic::readValue(POctets & res, int expectedLength) {

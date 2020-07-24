@@ -25,6 +25,8 @@
 
 package org.tinyb;
 
+import java.lang.ref.WeakReference;
+
 /**
  * {@link BluetoothGattCharacteristic} event listener for notification and indication events.
  * <p>
@@ -55,14 +57,59 @@ package org.tinyb;
 public abstract class GATTCharacteristicListener {
     @SuppressWarnings("unused")
     private long nativeInstance;
+    private final WeakReference<BluetoothGattCharacteristic> associatedCharacteristic;
 
+    /**
+     * Returns the weakly associated {@link BluetoothGattCharacteristic} to this listener instance.
+     * <p>
+     * Returns {@code null} if no association has been made
+     * or if the associated {@link BluetoothGattCharacteristic} has been garbage collected.
+     * </p>
+     */
+    public final BluetoothGattCharacteristic getAssociatedCharacteristic() {
+        return null != associatedCharacteristic ? associatedCharacteristic.get() : null;
+    }
+
+    /**
+     * @param associatedCharacteristic weakly associates this listener instance to one {@link BluetoothGattCharacteristic},
+     *        may be {@code null} for no association.
+     * @see #getAssociatedCharacteristic()
+     */
+    public GATTCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic) {
+        if( null != associatedCharacteristic ) {
+            this.associatedCharacteristic = new WeakReference<BluetoothGattCharacteristic>(associatedCharacteristic);
+        } else {
+            this.associatedCharacteristic = null;
+        }
+    }
+
+    /**
+     * Called from native BLE stack, initiated by a received notification associated
+     * with the given {@link BluetoothGattCharacteristic}.
+     * @param charDecl {@link BluetoothGattCharacteristic} related to this notification
+     * @param value the notification value
+     * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+     */
     public void notificationReceived(final BluetoothGattCharacteristic charDecl,
                                      final byte[] value, final long timestamp) {
     }
 
+    /**
+     * Called from native BLE stack, initiated by a received indication associated
+     * with the given {@link BluetoothGattCharacteristic}.
+     * @param charDecl {@link BluetoothGattCharacteristic} related to this indication
+     * @param value the indication value
+     * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+     * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
+     */
     public void indicationReceived(final BluetoothGattCharacteristic charDecl,
                                    final byte[] value, final long timestamp,
                                    final boolean confirmationSent) {
     }
 
+    public String toString() {
+        final BluetoothGattCharacteristic c = getAssociatedCharacteristic();
+        final String cs = null != c ? c.toString() : "null";
+        return "GATTCharacteristicListener[associated "+cs+"]";
+    }
 };

@@ -91,14 +91,14 @@ bool GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicLi
         throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = eventListenerList.begin(); it != eventListenerList.end(); ) {
+    for(auto it = characteristicListenerList.begin(); it != characteristicListenerList.end(); ) {
         if ( **it == *l ) {
             return false; // already included
         } else {
             ++it;
         }
     }
-    eventListenerList.push_back(l);
+    characteristicListenerList.push_back(l);
     return true;
 }
 
@@ -106,10 +106,17 @@ bool GATTHandler::removeCharacteristicListener(std::shared_ptr<GATTCharacteristi
     if( nullptr == l ) {
         throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
     }
+    return removeCharacteristicListener( l.get() );
+}
+
+bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener * l) {
+    if( nullptr == l ) {
+        throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
+    }
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = eventListenerList.begin(); it != eventListenerList.end(); ) {
+    for(auto it = characteristicListenerList.begin(); it != characteristicListenerList.end(); ) {
         if ( **it == *l ) {
-            it = eventListenerList.erase(it);
+            it = characteristicListenerList.erase(it);
             return true;
         } else {
             ++it;
@@ -118,14 +125,21 @@ bool GATTHandler::removeCharacteristicListener(std::shared_ptr<GATTCharacteristi
     return false;
 }
 
-bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener * l) {
-    if( nullptr == l ) {
-        throw IllegalArgumentException("GATTEventListener ref is null", E_FILE_LINE);
+int GATTHandler::removeAllAssociatedCharacteristicListener(std::shared_ptr<GATTCharacteristic> associatedCharacteristic) {
+    if( nullptr == associatedCharacteristic ) {
+        throw IllegalArgumentException("GATTCharacteristic ref is null", E_FILE_LINE);
+    }
+    return removeAllAssociatedCharacteristicListener( associatedCharacteristic.get() );
+}
+
+int GATTHandler::removeAllAssociatedCharacteristicListener(const GATTCharacteristic * associatedCharacteristic) {
+    if( nullptr == associatedCharacteristic ) {
+        throw IllegalArgumentException("GATTCharacteristic ref is null", E_FILE_LINE);
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
-    for(auto it = eventListenerList.begin(); it != eventListenerList.end(); ) {
-        if ( **it == *l ) {
-            it = eventListenerList.erase(it);
+    for(auto it = characteristicListenerList.begin(); it != characteristicListenerList.end(); ) {
+        if ( (*it)->match(*associatedCharacteristic) ) {
+            it = characteristicListenerList.erase(it);
             return true;
         } else {
             ++it;
@@ -136,8 +150,8 @@ bool GATTHandler::removeCharacteristicListener(const GATTCharacteristicListener 
 
 int GATTHandler::removeAllCharacteristicListener() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_eventListenerList); // RAII-style acquire and relinquish via destructor
-    int count = eventListenerList.size();
-    eventListenerList.clear();
+    int count = characteristicListenerList.size();
+    characteristicListenerList.clear();
     return count;
 }
 
@@ -176,19 +190,19 @@ void GATTHandler::l2capReaderThreadImpl() {
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                DBG_PRINT("GATTHandler: NTF: %s", a->toString().c_str());
+                DBG_PRINT("GATTHandler: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                for_each_idx_mtx(mtx_eventListenerList, eventListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                for_each_idx_mtx(mtx_eventListenerList, characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->notificationReceived(decl, data, timestamp);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::notificationReceived-CBs %d/%zd: GATTCharacteristicListener %s: Caught exception %s",
-                                i+1, eventListenerList.size(),
+                                i+1, characteristicListenerList.size(),
                                 aptrHexString((void*)l.get()).c_str(), e.what());
                     }
                     i++;
@@ -196,7 +210,8 @@ void GATTHandler::l2capReaderThreadImpl() {
                 attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                DBG_PRINT("GATTHandler: IND: %s, sendIndicationConfirmation %d", a->toString().c_str(), sendIndicationConfirmation);
+                DBG_PRINT("GATTHandler: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(),
+                        sendIndicationConfirmation, characteristicListenerList.size());
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
                     AttHandleValueCfm cfm;
@@ -208,14 +223,14 @@ void GATTHandler::l2capReaderThreadImpl() {
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
                 int i=0;
-                for_each_idx_mtx(mtx_eventListenerList, eventListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
+                for_each_idx_mtx(mtx_eventListenerList, characteristicListenerList, [&](std::shared_ptr<GATTCharacteristicListener> &l) {
                     try {
                         if( l->match(*decl) ) {
                             l->indicationReceived(decl, data, timestamp, cfmSent);
                         }
                     } catch (std::exception &e) {
                         ERR_PRINT("GATTHandler::indicationReceived-CBs %d/%zd: GATTCharacteristicListener %s, cfmSent %d: Caught exception %s",
-                                i+1, eventListenerList.size(),
+                                i+1, characteristicListenerList.size(),
                                 aptrHexString((void*)l.get()).c_str(), cfmSent, e.what());
                     }
                     i++;
@@ -254,7 +269,6 @@ GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int rep
 { }
 
 GATTHandler::~GATTHandler() {
-    eventListenerList.clear();
     disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
     services.clear();
 }
@@ -313,6 +327,7 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
                   disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
+        characteristicListenerList.clear();
         return false;
     }
     hasIOError = false;
@@ -336,6 +351,8 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
             }
         }
     }
+    removeAllCharacteristicListener();
+
     std::shared_ptr<DBTDevice> device = getDevice();
 
     if( disconnectDevice && nullptr != device ) {
@@ -836,13 +853,13 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     return res;
 }
 
-bool GATTHandler::configIndicationNotification(GATTDescriptor & cccd, const bool enableNotification, const bool enableIndication) {
+bool GATTHandler::configNotificationIndication(GATTDescriptor & cccd, const bool enableNotification, const bool enableIndication) {
     if( !cccd.isClientCharacteristicConfiguration() ) {
         throw IllegalArgumentException("Not a ClientCharacteristicConfiguration: "+cccd.toString(), E_FILE_LINE);
     }
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     const uint16_t ccc_value = enableNotification | ( enableIndication << 1 );
-    DBG_PRINT("GATTHandler::configIndicationNotification decl %s, enableNotification %d, enableIndication %d",
+    DBG_PRINT("GATTHandler::configNotificationIndication decl %s, enableNotification %d, enableIndication %d",
             cccd.toString().c_str(), enableNotification, enableIndication);
     cccd.value.resize(2, 2);
     cccd.value.put_uint16(0, ccc_value);

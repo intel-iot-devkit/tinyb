@@ -173,25 +173,32 @@ namespace direct_bt {
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
              * <p>
+             * Method enables notification and/or indication for this characteristic at BLE level.
+             * </p>
+             * <p>
              * Convenience delegation call to GATTHandler via DBTDevice
              * </p>
              * <p>
-             * If the DBTDevice's GATTHandler is null, i.e. not connected, an IllegalStateException is thrown.
-             * </p>
-             * <p>
              * Implementation masks this Characteristic properties PropertyBitVal::Notify and PropertyBitVal::Indicate
-             * with the respective user request parameters, hence removes unsupported requests.<br>
-             * If the resulting combination for both requests is false, method returns false.
+             * with the respective user request parameters, hence removes unsupported requests.
              * </p>
-             * <p>
-             * Returns false if there is no GATTDescriptor of type ClientCharacteristicConfiguration,
-             * or if the operation has failed.
-             * </p>
+             * @param enableNotification
+             * @param enableIndication
+             * @param enabledState array of size 2, holding the resulting enabled state for notification and indication.
+             * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
+             * or there is no GATTDescriptor of type ClientCharacteristicConfiguration, or if the operation has failed.
+             * Otherwise returns true.
+             * @throws IllegalStateException if notification or indication is set to be enabled
+             * and the {@link DBTDevice's}'s {@link GATTHandler} is null, i.e. not connected
              */
-            bool configIndicationNotification(const bool enableNotification, const bool enableIndication, bool enableResult[2]);
+            bool configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]);
 
             /**
-             * Add the given listener to the list if not already present.
+             * Add the given GATTCharacteristicListener to the listener list if not already present.
+             * <p>
+             * Occurring notifications and indications, if enabled via {@link #configNotificationIndication(bool, bool, bool[])}},
+             * will call the respective GATTCharacteristicListener callback method.
+             * </p>
              * <p>
              * Returns true if the given listener is not element of the list and has been newly added,
              * otherwise false.
@@ -200,61 +207,88 @@ namespace direct_bt {
              * Convenience delegation call to GATTHandler via DBTDevice
              * </p>
              * <p>
-             * If the DBTDevice's GATTHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * To restrict the listener to listen only to this GATTCharacteristic instance,
+             * user has to implement GATTCharacteristicListener::match(GATTCharacteristicRef) accordingly.
+             * <br>
+             * For this purpose, use may derive from AssociatedGATTCharacteristicListener,
+             * which provides these simple matching filter facilities.
+             * </p>
+             * @throws IllegalStateException if the {@link DBTDevice's}'s {@link GATTHandler} is null, i.e. not connected
+             */
+            bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+
+            /**
+             * Add the given GATTCharacteristicListener to the listener list if not already present
+             * and if enabling the notification and/or indication for this characteristic at BLE level was successful.
+             * <p>
+             * Occurring notifications and indications will call the respective {@link GATTCharacteristicListener}
+             * callback method.
+             * </p>
+             * <p>
+             * Returns true if enabling the notification and/or indication was successful
+             * and if the given listener is not element of the list and has been newly added,
+             * otherwise false.
+             * </p>
+             * <p>
+             * Convenience delegation call to GATTHandler via DBTDevice
+             * performing both, configNotificationIndication(..) and addCharacteristicListener(..).
              * </p>
              * <p>
              * To restrict the listener to listen only to this GATTCharacteristic instance,
              * user has to implement GATTCharacteristicListener::match(GATTCharacteristicRef) accordingly.
              * <br>
-             * For this purpose, use may derive from SpecificGATTCharacteristicListener,
+             * For this purpose, use may derive from AssociatedGATTCharacteristicListener,
              * which provides these simple matching filter facilities.
              * </p>
+             * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
+             * using {@link #configNotificationIndication(bool, bool, bool[])}}
+             * @throws IllegalStateException if the {@link DBTDevice's}'s {@link GATTHandler} is null, i.e. not connected
              */
-            bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+            bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool enabledState[2]);
 
             /**
-             * Remove the given listener from the list.
+             * Disables the notification and/or indication for this characteristic at BLE level
+             * if {@code disableIndicationNotification == true}
+             * and removes the given {@link GATTCharacteristicListener} from the listener list.
              * <p>
              * Returns true if the given listener is an element of the list and has been removed,
              * otherwise false.
              * </p>
              * <p>
              * Convenience delegation call to GATTHandler via DBTDevice
+             * performing addCharacteristicListener(..)
+             * and {@link #configNotificationIndication(bool, bool, bool[]) if {@code disableIndicationNotification == true}.
              * </p>
              * <p>
-             * If the DBTDevice's GATTHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the DBTDevice's GATTHandler is null, i.e. not connected, {@code false} is being returned.
              * </p>
+             * @param l
+             * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
+             * using {@link #configNotificationIndication(bool, bool, bool[])
+             * @return
              */
-            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l);
+            bool removeCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool disableIndicationNotification);
 
             /**
-             * Remove the given listener from the list.
-             * <p>
-             * Returns true if the given listener is an element of the list and has been removed,
-             * otherwise false.
-             * </p>
-             * <p>
-             * Convenience delegation call to GATTHandler via DBTDevice
-             * </p>
-             * <p>
-             * If the DBTDevice's GATTHandler is null, i.e. not connected, an IllegalStateException is thrown.
-             * </p>
-             */
-            bool removeCharacteristicListener(const GATTCharacteristicListener * l);
-
-            /**
-             * Remove all event listener from the list.
+             * Disables the notification and/or indication for this characteristic at BLE level
+             * if {@code disableIndicationNotification == true}
+             * and removes all {@link GATTCharacteristicListener} from the listener list.
              * <p>
              * Returns the number of removed event listener.
              * </p>
              * <p>
              * Convenience delegation call to GATTHandler via DBTDevice
+             * performing addCharacteristicListener(..)
+             * and configNotificationIndication(..) if {@code disableIndicationNotification == true}.
              * </p>
              * <p>
-             * If the DBTDevice's GATTHandler is null, i.e. not connected, an IllegalStateException is thrown.
+             * If the DBTDevice's GATTHandler is null, i.e. not connected, {@code zero} is being returned.
              * </p>
+             * @param disableIndicationNotification if true, disables the notification and/or indication for this characteristic
+             * using {@link #configNotificationIndication(bool, bool, bool[])
+             * @return
              */
-            int removeAllCharacteristicListener();
+            int removeAllCharacteristicListener(bool disableIndicationNotification);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.8.1 Read Characteristic Value
@@ -319,6 +353,9 @@ namespace direct_bt {
      * see method's API doc for {@link GATTCharacteristic} filtering.
      * </p>
      * <p>
+     * User may utilize {@link AssociatedGATTCharacteristicListener} to listen to only one {@link GATTCharacteristic}.
+     * </p>
+     * <p>
      * A listener instance may be attached to a {@link GATTHandler} via
      * {@link GATTHandler::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener>)}
      * to listen to all events of the device or the matching filtered events.
@@ -345,9 +382,24 @@ namespace direct_bt {
                 return true;
             }
 
+            /**
+             * Called from native BLE stack, initiated by a received notification associated
+             * with the given {@link GATTCharacteristic}.
+             * @param charDecl {@link GATTCharacteristic} related to this notification
+             * @param charValue the notification value
+             * @param timestamp the indication monotonic timestamp, see getCurrentMilliseconds()
+             */
             virtual void notificationReceived(GATTCharacteristicRef charDecl,
                                               std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) = 0;
 
+            /**
+             * Called from native BLE stack, initiated by a received indication associated
+             * with the given {@link GATTCharacteristic}.
+             * @param charDecl {@link GATTCharacteristic} related to this indication
+             * @param charValue the indication value
+             * @param timestamp the indication monotonic timestamp, see {@link BluetoothUtils#getCurrentMilliseconds()}
+             * @param confirmationSent if true, the native stack has sent the confirmation, otherwise user is required to do so.
+             */
             virtual void indicationReceived(GATTCharacteristicRef charDecl,
                                             std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
                                             const bool confirmationSent) = 0;
@@ -367,22 +419,22 @@ namespace direct_bt {
             { return !(*this == rhs); }
     };
 
-    class SpecificGATTCharacteristicListener : public GATTCharacteristicListener{
+    class AssociatedGATTCharacteristicListener : public GATTCharacteristicListener{
         private:
-            const GATTCharacteristic * characteristicMatch;
+            const GATTCharacteristic * associatedCharacteristic;
 
         public:
             /**
-             * Passing the specific GATTCharacteristic to filter out non matching events.
+             * Passing the associated GATTCharacteristic to filter out non matching events.
              */
-            SpecificGATTCharacteristicListener(const GATTCharacteristic * characteristicMatch)
-            : characteristicMatch(characteristicMatch) { }
+            AssociatedGATTCharacteristicListener(const GATTCharacteristic * characteristicMatch)
+            : associatedCharacteristic(characteristicMatch) { }
 
             bool match(const GATTCharacteristic & characteristic) override {
-                if( nullptr == characteristicMatch ) {
+                if( nullptr == associatedCharacteristic ) {
                     return true;
                 }
-                return *characteristicMatch == characteristic;
+                return *associatedCharacteristic == characteristic;
             }
     };
 
