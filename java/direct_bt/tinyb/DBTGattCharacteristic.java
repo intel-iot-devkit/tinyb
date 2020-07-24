@@ -274,7 +274,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public final synchronized void enableValueNotifications(final BluetoothNotification<byte[]> callback) {
-        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, null) ) {
+        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, new boolean[2]) ) {
             valueNotificationCB = null;
         } else {
             valueNotificationCB = callback;
@@ -283,7 +283,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public final synchronized void disableValueNotifications() {
-        configNotificationIndication(false /* enableNotification */, false /* enableIndication */, null);
+        configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
         valueNotificationCB = null;
     }
 
