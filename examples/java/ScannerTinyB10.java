@@ -403,7 +403,7 @@ public class ScannerTinyB10 {
     }
 
     public static void main(final String[] args) throws InterruptedException {
-        String bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
+        String bluetoothManagerClazzName = null;
         for(int i=0; i< args.length; i++) {
             final String arg = args[i];
             if( arg.equals("-bluetoothManager") && args.length > (i+1) ) {
@@ -411,7 +411,12 @@ public class ScannerTinyB10 {
             } else if( arg.equals("-debug") ) {
                 System.setProperty("org.tinyb.verbose", "true");
                 System.setProperty("org.tinyb.debug", "true");
+            } else if( arg.equals("-verbose") ) {
+                System.setProperty("org.tinyb.verbose", "true");
             }
+        }
+        if( null == bluetoothManagerClazzName ) {
+            bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
         }
         final ScannerTinyB10 test = new ScannerTinyB10(bluetoothManagerClazzName);
 
@@ -445,7 +450,7 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug]'");
         }
 
         System.err.println("BluetoothManager "+bluetoothManagerClazzName);
