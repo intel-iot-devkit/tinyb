@@ -269,6 +269,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         if( disableIndicationNotification ) {
             configNotificationIndication(false /* enableNotification */, false /* enableIndication */, new boolean[2]);
         }
+        valueNotificationCB = null;
         return getService().getDevice().removeAllAssociatedCharacteristicListener(this);
     }
 
