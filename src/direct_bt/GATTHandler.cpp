@@ -863,7 +863,17 @@ bool GATTHandler::configNotificationIndication(GATTDescriptor & cccd, const bool
             cccd.toString().c_str(), enableNotification, enableIndication);
     cccd.value.resize(2, 2);
     cccd.value.put_uint16(0, ccc_value);
-    return writeDescriptorValue(cccd);
+    try {
+        return writeDescriptorValue(cccd);
+    } catch (BluetoothException & bte) {
+        if( !enableNotification && !enableIndication ) {
+            // OK to have lost connection @ disable
+            INFO_PRINT("GATTHandler::configNotificationIndication(disable) on %s caught exception: %s", deviceString.c_str(), bte.what());
+            return false;
+        } else {
+            throw; // re-throw current exception
+        }
+    }
 }
 
 /*********************************************************************************************************************/
