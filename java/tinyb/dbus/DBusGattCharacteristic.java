@@ -113,7 +113,12 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     {
         return false; // FIXME
     }
-
+    @Override
+    public boolean enableNotificationOrIndication(final boolean[] enabledState)
+            throws IllegalStateException
+    {
+        return false; // FIXME
+    }
     @Override
     public boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean[] enabledState)
             throws IllegalStateException

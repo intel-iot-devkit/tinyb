@@ -37,6 +37,13 @@ import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
+/**
+ * One stop {@link BluetoothManager} API entry point.
+ * <p>
+ * Further provides access to certain property settings,
+ * see {@link #DEBUG}, {@link #VERBOSE}, {@link #DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT}.
+ * </p>
+ */
 public class BluetoothFactory {
 
     /**
@@ -126,8 +133,29 @@ public class BluetoothFactory {
     public static final String getImplVersion() { return ImplVersion; }
     private static String ImplVersion;
 
+    /**
+     * Verbose logging enabled or disabled.
+     * <p>
+     * System property {@code org.tinyb.verbose}, boolean, default {@code false}.
+     * </p>
+     */
     public static final boolean VERBOSE;
+    /**
+     * Debug logging enabled or disabled.
+     * <p>
+     * System property {@code org.tinyb.debug}, boolean, default {@code false}.
+     * </p>
+     */
     public static final boolean DEBUG;
+    /**
+     * Have direct_bt provide compatibility to TinyB's {@link BluetoothGattCharacteristic}
+     * API: {@link BluetoothGattCharacteristic#getValue() value cache} and
+     * {@link BluetoothGattCharacteristic#enableValueNotifications(BluetoothNotification) value notification}.
+     * <p>
+     * System property {@code direct_bt.tinyb.characteristic.compat}, boolean, default {@code true}.
+     * </p>
+     */
+    public static final boolean DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT;
 
     static {
         {
@@ -137,6 +165,10 @@ public class BluetoothFactory {
         {
             final String v = System.getProperty("org.tinyb.debug", "false");
             DEBUG = Boolean.valueOf(v);
+        }
+        {
+            final String v = System.getProperty("direct_bt.tinyb.characteristic.compat", "true");
+            DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT = Boolean.valueOf(v);
         }
         implIDs.add(DirectBTImplementationID);
         implIDs.add(DBusImplementationID);

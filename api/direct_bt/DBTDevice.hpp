@@ -392,11 +392,16 @@ namespace direct_bt {
             void disconnectGATT();
 
             /**
-             * Add the given {@link GATTCharacteristicListener} to the listener list if not already present.
+             * Add the given GATTCharacteristicListener to the listener list if not already present.
              * <p>
              * Convenience delegation call to GATTHandler
              * </p>
-             * @param listener A {@link GATTCharacteristicListener} instance, listening to all {@link BluetoothGattCharacteristic} events of this device
+             * <p>
+             * To enable the actual BLE notification and/or indication, one needs to call
+             * GATTCharacteristic::configNotificationIndication(bool, bool, bool[])
+             * or GATTCharacteristic::enableNotificationOrIndication(bool enabledState[2]).
+             * </p>
+             * @param listener A GATTCharacteristicListener instance, listening to all BluetoothGattCharacteristic events of this device
              * @return true if the given listener is not element of the list and has been newly added, otherwise false.
              * @throws IllegalStateException if the GATTHandler is null, i.e. not connected
              */

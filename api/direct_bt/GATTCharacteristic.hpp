@@ -75,6 +75,8 @@ namespace direct_bt {
         private:
             /** Characteristics's service weak back-reference */
             std::weak_ptr<GATTService> wbr_service;
+            bool enabledNotifyState = false;
+            bool enabledIndicateState = false;
 
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
@@ -176,11 +178,15 @@ namespace direct_bt {
              * Method enables notification and/or indication for this characteristic at BLE level.
              * </p>
              * <p>
-             * Convenience delegation call to GATTHandler via DBTDevice
-             * </p>
-             * <p>
              * Implementation masks this Characteristic properties PropertyBitVal::Notify and PropertyBitVal::Indicate
              * with the respective user request parameters, hence removes unsupported requests.
+             * </p>
+             * <p>
+             * Notification and/or indication configuration is only performed per characteristic if changed.
+             * </p>
+             * <p>
+             * It is recommended to utilize notification over indication, as its link-layer handshake
+             * and higher potential bandwidth may deliver material higher performance.
              * </p>
              * @param enableNotification
              * @param enableIndication
@@ -194,9 +200,32 @@ namespace direct_bt {
             bool configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]);
 
             /**
+             * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration
+             * <p>
+             * Method will attempt to enable notification on the BLE level, if available,
+             * otherwise indication if available.
+             * </p>
+             * <p>
+             * Notification and/or indication configuration is only performed per characteristic if changed.
+             * </p>
+             * <p>
+             * It is recommended to utilize notification over indication, as its link-layer handshake
+             * and higher potential bandwidth may deliver material higher performance.
+             * </p>
+             * @param enabledState array of size 2, holding the resulting enabled state for notification and indication.
+             * @return false if this characteristic has no PropertyBitVal::Notify or PropertyBitVal::Indication present,
+             * or there is no GATTDescriptor of type ClientCharacteristicConfiguration, or if the operation has failed.
+             * Otherwise returns true.
+             * @throws IllegalStateException if notification or indication is set to be enabled
+             * and the {@link DBTDevice's}'s {@link GATTHandler} is null, i.e. not connected
+             */
+            bool enableNotificationOrIndication(bool enabledState[2]);
+
+            /**
              * Add the given GATTCharacteristicListener to the listener list if not already present.
              * <p>
-             * Occurring notifications and indications, if enabled via {@link #configNotificationIndication(bool, bool, bool[])}},
+             * Occurring notifications and indications, if enabled via configNotificationIndication(bool, bool, bool[])
+             * or enableNotificationOrIndication(bool[]),
              * will call the respective GATTCharacteristicListener callback method.
              * </p>
              * <p>
@@ -219,19 +248,21 @@ namespace direct_bt {
 
             /**
              * Add the given GATTCharacteristicListener to the listener list if not already present
-             * and if enabling the notification and/or indication for this characteristic at BLE level was successful.
+             * and if enabling the notification <i>or</i> indication for this characteristic at BLE level was successful.<br>
+             * Notification and/or indication configuration is only performed per characteristic if changed.
              * <p>
-             * Occurring notifications and indications will call the respective {@link GATTCharacteristicListener}
+             * Implementation will attempt to enable notification only, if available,
+             * otherwise indication if available. <br>
+             * Implementation uses enableNotificationOrIndication(bool[]) to enable either.
+             * </p>
+             * <p>
+             * Occurring notifications and indications will call the respective GATTCharacteristicListener
              * callback method.
              * </p>
              * <p>
              * Returns true if enabling the notification and/or indication was successful
              * and if the given listener is not element of the list and has been newly added,
              * otherwise false.
-             * </p>
-             * <p>
-             * Convenience delegation call to GATTHandler via DBTDevice
-             * performing both, configNotificationIndication(..) and addCharacteristicListener(..).
              * </p>
              * <p>
              * To restrict the listener to listen only to this GATTCharacteristic instance,
@@ -241,7 +272,7 @@ namespace direct_bt {
              * which provides these simple matching filter facilities.
              * </p>
              * @param enabledState array of size 2, holding the resulting enabled state for notification and indication
-             * using {@link #configNotificationIndication(bool, bool, bool[])}}
+             * using enableNotificationOrIndication(bool[])
              * @throws IllegalStateException if the {@link DBTDevice's}'s {@link GATTHandler} is null, i.e. not connected
              */
             bool addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool enabledState[2]);

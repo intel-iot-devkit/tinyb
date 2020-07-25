@@ -416,6 +416,9 @@ public class ScannerTinyB10 {
                 System.setProperty("org.tinyb.verbose", "true");
             }
         }
+        // Drop BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.
+        System.setProperty("direct_bt.tinyb.characteristic.compat", "false");
+
         if( null == bluetoothManagerClazzName ) {
             bluetoothManagerClazzName = BluetoothFactory.DirectBTImplementationID.BluetoothManagerClassName;
         }

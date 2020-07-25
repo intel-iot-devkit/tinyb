@@ -87,7 +87,8 @@ public interface BluetoothGattService extends BluetoothObject
     public List<BluetoothGattCharacteristic> getCharacteristics();
 
     /**
-     * Adds the given {@link GATTCharacteristicListener} to the {@link BluetoothDevice} for all {@link BluetoothGattCharacteristic}s.
+     * Adds the given {@link GATTCharacteristicListener} to the {@link BluetoothDevice}
+     * and {@link BluetoothGattCharacteristic#enableNotificationOrIndication(boolean[])} for all {@link BluetoothGattCharacteristic} instances.
      * @param listener {@link GATTCharacteristicListener} to add to the {@link BluetoothDevice}.
      *        It is important to have hte listener's {@link GATTCharacteristicListener#getAssociatedCharacteristic() associated characteristic} == null,
      *        otherwise the listener can't be used for all characteristics.
@@ -96,7 +97,7 @@ public interface BluetoothGattService extends BluetoothObject
      * is not null.
      * @since 2.0.0
      * @implNote not implemented in tinyb.dbus
-     * @see BluetoothGattCharacteristic#configNotificationIndication(boolean, boolean, boolean[])
+     * @see BluetoothGattCharacteristic#enableNotificationOrIndication(boolean[])
      * @see BluetoothDevice#addCharacteristicListener(GATTCharacteristicListener, BluetoothGattCharacteristic)
      */
     public static boolean addCharacteristicListenerToAll(final BluetoothDevice device, final List<BluetoothGattService> services,
@@ -112,7 +113,7 @@ public interface BluetoothGattService extends BluetoothObject
             final BluetoothGattService s = is.next();
             final List<BluetoothGattCharacteristic> characteristics = s.getCharacteristics();
             for(final Iterator<BluetoothGattCharacteristic> ic = characteristics.iterator(); ic.hasNext(); ) {
-                ic.next().configNotificationIndication(true /* enableNotification */, true /* enableIndication */, new boolean[2]);
+                ic.next().enableNotificationOrIndication(new boolean[2]);
             }
         }
         return res;

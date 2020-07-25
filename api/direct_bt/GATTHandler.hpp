@@ -313,6 +313,10 @@ namespace direct_bt {
              * Method enables notification and/or indication for the corresponding characteristic at BLE level.
              * </p>
              * <p>
+             * It is recommended to utilize notification over indication, as its link-layer handshake
+             * and higher potential bandwidth may deliver material higher performance.
+             * </p>
+             * <p>
              * Throws an IllegalArgumentException if the given GATTDescriptor is not a ClientCharacteristicConfiguration.
              * </p>
              */

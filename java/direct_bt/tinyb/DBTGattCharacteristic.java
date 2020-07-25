@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.tinyb.BluetoothException;
+import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattDescriptor;
 import org.tinyb.BluetoothGattService;
@@ -75,6 +76,9 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     /* pp */ final List<BluetoothGattDescriptor> descriptorList;
 
+    boolean enabledNotifyState = false;
+    boolean enabledIndicateState = false;
+
     private byte[] cachedValue = null;
     private BluetoothNotification<byte[]> valueNotificationCB = null;
 
@@ -113,7 +117,10 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
         this.clientCharacteristicsConfigIndex = clientCharacteristicsConfigIndex;
         this.descriptorList = getDescriptorsImpl();
 
-        if( hasNotify || hasIndicate ) {
+        if( ( BluetoothFactory.DEBUG || BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) &&
+            ( hasNotify || hasIndicate )
+          )
+        {
             // This characteristicListener serves TinyB 'enableValueNotification(..)' and 'getValue()' (cached value)
             // backwards compatibility only!
             final GATTCharacteristicListener characteristicListener = new GATTCharacteristicListener(this) {
@@ -124,10 +131,15 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                         throw new InternalError("Filtered GATTCharacteristicListener.notificationReceived: Wrong Characteristic: Got "+charDecl+
                                                 ", expected "+DBTGattCharacteristic.this.toString());
                     }
-                    final boolean valueChanged = updateCachedValue(value, true);
+                    final boolean valueChanged;
+                    if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+                        valueChanged = updateCachedValue(value, true);
+                    } else {
+                        valueChanged = true;
+                    }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.notificationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, true, true)+"]");
                     }
                 }
                 @Override
@@ -138,10 +150,16 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
                         throw new InternalError("Filtered GATTCharacteristicListener.indicationReceived: Wrong Characteristic: Got "+charDecl+
                                                 ", expected "+DBTGattCharacteristic.this.toString());
                     }
-                    final boolean valueChanged = updateCachedValue(value, true);
+                    final boolean valueChanged;
+                    if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+                        valueChanged = updateCachedValue(value, true);
+                    } else {
+                        valueChanged = true;
+                    }
                     if( DEBUG ) {
                         System.err.println("GATTCharacteristicListener.indicationReceived: "+charDecl+
-                                           ", value[changed "+valueChanged+", data "+BluetoothUtils.bytesHexString(value, true, true)+"]");
+                                           ", value[changed "+valueChanged+", len "+value.length+": "+BluetoothUtils.bytesHexString(value, true, true)+
+                                           "], confirmationSent "+confirmationSent);
                     }
                 }
             };
@@ -204,15 +222,19 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     @Override
     public final byte[] readValue() throws BluetoothException {
-        final byte[] value = readValueImpl();
-        updateCachedValue(value, true);
-        return cachedValue;
+        if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT ) {
+            final byte[] value = readValueImpl();
+            updateCachedValue(value, true);
+            return cachedValue;
+        } else {
+            return readValueImpl();
+        }
     }
 
     @Override
     public final boolean writeValue(final byte[] value) throws BluetoothException {
         final boolean res = writeValueImpl(value);
-        if( res ) {
+        if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT && res ) {
             updateCachedValue(value, false);
         }
         return res;
@@ -226,16 +248,39 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
             throws IllegalStateException
     {
         if( hasNotify || hasIndicate ) {
+            final boolean resEnableNotification = hasNotify && enableNotification;
+            final boolean resEnableIndication = hasIndicate && enableIndication;
+
+            if( resEnableNotification == enabledNotifyState &&
+                resEnableIndication == enabledIndicateState )
+            {
+                enabledState[0] = resEnableNotification;
+                enabledState[1] = resEnableIndication;
+                if( DEBUG ) {
+                    System.err.printf("GATTCharacteristic.configNotificationIndication: Unchanged: notification[shall %b, has %b: %b == %b], indication[shall %b, has %b: %b == %b]\n",
+                        enableNotification, hasNotify, enabledNotifyState, resEnableNotification,
+                        enableIndication, hasIndicate, enabledIndicateState, resEnableIndication);
+                }
+                return true;
+            }
+
             final boolean res = configNotificationIndicationImpl(enableNotification, enableIndication, enabledState);
             if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.configNotificationIndication: "+res+", enableResult "+Arrays.toString(enabledState));
+                System.err.printf("GATTCharacteristic.configNotificationIndication: res %b, notification[shall %b, has %b: %b -> %b], indication[shall %b, has %b: %b -> %b]\n",
+                        res,
+                        enableNotification, hasNotify, enabledNotifyState, resEnableNotification,
+                        enableIndication, hasIndicate, enabledIndicateState, resEnableIndication);
+            }
+            if( res ) {
+                enabledNotifyState = resEnableNotification;
+                enabledIndicateState = resEnableIndication;
             }
             return res;
         } else {
             enabledState[0] = false;
             enabledState[1] = false;
             if( DEBUG ) {
-                System.err.println("GATTCharacteristicListener.configNotificationIndication: FALSE*: hasNotify "+hasNotify+", hasIndicate "+hasIndicate);
+                System.err.println("GATTCharacteristic.configNotificationIndication: FALSE*: hasNotify "+hasNotify+", hasIndicate "+hasIndicate);
             }
             return false;
         }
@@ -244,13 +289,23 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
             throws IllegalStateException;
 
     @Override
+    public boolean enableNotificationOrIndication(final boolean enabledState[/*2*/])
+            throws IllegalStateException
+    {
+        final boolean enableNotification = hasNotify;
+        final boolean enableIndication = !enableNotification && hasIndicate;
+
+        return configNotificationIndication(enableNotification, enableIndication, enabledState);
+    }
+
+    @Override
     public final boolean addCharacteristicListener(final GATTCharacteristicListener listener) {
         return getService().getDevice().addCharacteristicListener(listener);
     }
 
     @Override
     public final boolean addCharacteristicListener(final GATTCharacteristicListener listener, final boolean enabledState[/*2*/]) {
-        if( !configNotificationIndication(true /* enableNotification */, true /* enableIndication */, enabledState) ) {
+        if( !enableNotificationOrIndication(enabledState) ) {
             return false;
         }
         return getService().getDevice().addCharacteristicListener(listener);

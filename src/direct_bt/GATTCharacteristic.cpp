@@ -23,7 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <dbt_debug.hpp>
 #include <cstring>
 #include <string>
 #include <memory>
@@ -32,6 +31,9 @@
 #include <cstdio>
 
 #include  <algorithm>
+
+// #define VERBOSE_ON 1
+#include <dbt_debug.hpp>
 
 #include "GATTCharacteristic.hpp"
 #include "GATTHandler.hpp"
@@ -141,7 +143,7 @@ std::string GATTCharacteristic::toString() const {
            ", value[type 0x"+value_type->toString()+", handle "+uint16HexString(value_handle)+char_name+desc_str+
            "], service[type 0x"+service_uuid_str+
            ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
-           service_name+" ]";
+           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
 }
 
 bool GATTCharacteristic::configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) {
@@ -166,8 +168,19 @@ bool GATTCharacteristic::configNotificationIndication(const bool enableNotificat
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
                 toString() + ", " + device->toString(), E_FILE_LINE);
     }
-    const bool resEnableNotification = hasEnableNotification & enableNotification;
-    const bool resEnableIndication = hasEnableIndication & enableIndication;
+    const bool resEnableNotification = hasEnableNotification && enableNotification;
+    const bool resEnableIndication = hasEnableIndication && enableIndication;
+
+    if( resEnableNotification == enabledNotifyState &&
+        resEnableIndication == enabledIndicateState )
+    {
+        enabledState[0] = resEnableNotification;
+        enabledState[1] = resEnableIndication;
+        DBG_PRINT("GATTCharacteristic::configNotificationIndication: Unchanged: notification[shall %d, has %d: %d == %d], indication[shall %d, has %d: %d == %d]",
+                enableNotification, hasEnableNotification, enabledNotifyState, resEnableNotification,
+                enableIndication, hasEnableIndication, enabledIndicateState, resEnableIndication);
+        return true;
+    }
 
     GATTDescriptorRef cccd = this->getClientCharacteristicConfig();
     if( nullptr == cccd ) {
@@ -175,15 +188,27 @@ bool GATTCharacteristic::configNotificationIndication(const bool enableNotificat
         return false;
     }
     bool res = gatt->configNotificationIndication(*cccd, resEnableNotification, resEnableIndication);
+    DBG_PRINT("GATTCharacteristic::configNotificationIndication: res %d, notification[shall %d, has %d: %d -> %d], indication[shall %d, has %d: %d -> %d]",
+            res,
+            enableNotification, hasEnableNotification, enabledNotifyState, resEnableNotification,
+            enableIndication, hasEnableIndication, enabledIndicateState, resEnableIndication);
     if( res ) {
+        enabledNotifyState = resEnableNotification;
+        enabledIndicateState = resEnableIndication;
         enabledState[0] = resEnableNotification;
         enabledState[1] = resEnableIndication;
     }
-    DBG_PRINT("GATTCharacteristic::configNotificationIndication: res %d, notification[shall %d, has %d = %d], indication[shall %s, has %d = %d]",
-            res,
-            enableNotification. hasEnableNotification, resEnableNotification,
-            enableIndication. hasEnableIndication, resEnableIndication);
     return res;
+}
+
+bool GATTCharacteristic::enableNotificationOrIndication(bool enabledState[2]) {
+    const bool hasEnableNotification = hasProperties(GATTCharacteristic::PropertyBitVal::Notify);
+    const bool hasEnableIndication = hasProperties(GATTCharacteristic::PropertyBitVal::Indicate);
+
+    const bool enableNotification = hasEnableNotification;
+    const bool enableIndication = !enableNotification && hasEnableIndication;
+
+    return configNotificationIndication(enableNotification, enableIndication, enabledState);
 }
 
 bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
@@ -191,7 +216,7 @@ bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacter
 }
 
 bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool enabledState[2]) {
-    if( !configNotificationIndication(true, true, enabledState) ) {
+    if( !enableNotificationOrIndication(enabledState) ) {
         return false;
     }
     return addCharacteristicListener(l);
