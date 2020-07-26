@@ -233,37 +233,31 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public synchronized void close() {
-        close(false);
-    }
-
-    /* pp */ synchronized void close(final boolean isShutdown) {
         if( !isValid() ) {
             return;
         }
-        if( !isShutdown ) { // avoid all interaction @ JVM shutdown, native dtor (deleteImpl) cleans up.
-            // implicit via disconnect, gatt.disconnect(): GATTHandler::removeAllCharacteristicListener();
-            disconnectImpl(); // make sure, regardless of isConnected state
+        // GATTHandler::removeAllCharacteristicListener(): implicit via device.disconnect -> gatt.disconnect
+        disconnectImpl(); // make sure, regardless of isConnected state
 
-            disableConnectedNotifications();
-            disableRSSINotifications();
-            disableManufacturerDataNotifications();
-            disableServicesResolvedNotifications();
+        disableConnectedNotifications();
+        disableRSSINotifications();
+        disableManufacturerDataNotifications();
+        disableServicesResolvedNotifications();
 
-            disableBlockedNotifications();
-            disableBlockedNotificationsImpl();
-            disablePairedNotifications();
-            disablePairedNotificationsImpl();
-            disableServiceDataNotifications();
-            disableTrustedNotifications();
-            // FIXME disableTrustedNotificationsImpl();
+        disableBlockedNotifications();
+        disableBlockedNotificationsImpl();
+        disablePairedNotifications();
+        disablePairedNotificationsImpl();
+        disableServiceDataNotifications();
+        disableTrustedNotifications();
+        // FIXME disableTrustedNotificationsImpl();
 
-            clearServiceCache();
+        clearServiceCache();
 
-            final DBTAdapter a = getAdapter();
-            if( null != a ) {
-                a.removeStatusListener(statusListener);
-                a.removeDiscoveredDevice(this);
-            }
+        final DBTAdapter a = getAdapter();
+        if( null != a ) {
+            a.removeStatusListener(statusListener);
+            a.removeDiscoveredDevice(this);
         }
         super.close();
     }

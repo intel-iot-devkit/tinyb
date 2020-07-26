@@ -87,41 +87,25 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
 
     @Override
     public synchronized void close() {
-        close(false);
-    }
-
-    /* pp */ synchronized void close(final boolean isShutdown) {
         if( !isValid() ) {
             return;
         }
-        if( !isShutdown ) { // avoid all interaction @ JVM shutdown, native dtor (deleteImpl) cleans up.
+        // mute all listener first
+        removeAllStatusListener();
+        disableDiscoverableNotifications();
+        disableDiscoveringNotifications();
+        disablePairableNotifications();
+        disablePoweredNotifications();
 
-            // mute all listener first
-            removeAllStatusListener();
-            disableDiscoverableNotifications();
-            disableDiscoveringNotifications();
-            disablePairableNotifications();
-            disablePoweredNotifications();
+        stopDiscovery();
 
-            stopDiscovery();
-
-            final List<BluetoothDevice> devices = getDevices();
-            for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext(); ) {
-                final DBTDevice d = (DBTDevice) id.next();
-                d.close( false );
-            }
-
-            // done in native dtor: removeDevicesImpl();
-
-        } else {
-
-            final List<BluetoothDevice> devices = getDevices();
-            for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext(); ) {
-                final DBTDevice d = (DBTDevice) id.next();
-                d.close( true );
-            }
-
+        final List<BluetoothDevice> devices = getDevices();
+        for(final Iterator<BluetoothDevice> id = devices.iterator(); id.hasNext(); ) {
+            final DBTDevice d = (DBTDevice) id.next();
+            d.close();
         }
+
+        // done in native dtor: removeDevicesImpl();
         discoveredDevices.clear();
 
         super.close();
