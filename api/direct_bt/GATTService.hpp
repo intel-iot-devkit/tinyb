@@ -106,7 +106,8 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattService");
             }
 
-            std::shared_ptr<DBTDevice> getDevice() const { return wbr_device.lock(); }
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const { return wbr_device.lock(); }
+            std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             std::string toString() const;
     };

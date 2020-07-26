@@ -65,14 +65,6 @@ using namespace direct_bt;
 
 #define CASE_TO_STRING2(V,S) case V: return #S;
 
-std::shared_ptr<DBTDevice> GATTCharacteristic::getDevice() const {
-    std::shared_ptr<GATTService> s = getService();
-    if( nullptr != s ) {
-        return s->getDevice();
-    }
-    return nullptr;
-}
-
 std::string GATTCharacteristic::getPropertyString(const PropertyBitVal prop) {
     switch(prop) {
         CHAR_DECL_PROPS_ENUM(CASE_TO_STRING2)
@@ -114,7 +106,7 @@ std::vector<std::unique_ptr<std::string>> GATTCharacteristic::getPropertiesStrin
 std::string GATTCharacteristic::toString() const {
     std::shared_ptr<const uuid_t> service_uuid;
     uint16_t service_handle_end = 0xffff;
-    GATTServiceRef serviceRef = getService();
+    GATTServiceRef serviceRef = getServiceUnchecked();
     std::string service_uuid_str = "";
     std::string service_name = "";
     std::string char_name = "";
@@ -146,6 +138,26 @@ std::string GATTCharacteristic::toString() const {
            service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
 }
 
+std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {
+    std::shared_ptr<GATTService> ref = wbr_service.lock();
+    if( nullptr == ref ) {
+        throw IllegalStateException("GATTCharacteristic's service already destructed: "+toString(), E_FILE_LINE);
+    }
+    return ref;
+}
+
+std::shared_ptr<DBTDevice> GATTCharacteristic::getDeviceUnchecked() const {
+    std::shared_ptr<GATTService> s = getServiceUnchecked();
+    if( nullptr != s ) {
+        return s->getDeviceUnchecked();
+    }
+    return nullptr;
+}
+
+std::shared_ptr<DBTDevice> GATTCharacteristic::getDeviceChecked() const {
+    return getServiceChecked()->getDeviceChecked();
+}
+
 bool GATTCharacteristic::configNotificationIndication(const bool enableNotification, const bool enableIndication, bool enabledState[2]) {
     enabledState[0] = false;
     enabledState[1] = false;
@@ -157,8 +169,8 @@ bool GATTCharacteristic::configNotificationIndication(const bool enableNotificat
         return false;
     }
 
-    std::shared_ptr<DBTDevice> device = getDevice();
-    std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
+    std::shared_ptr<DBTDevice> device = getDeviceUnchecked();
+    std::shared_ptr<GATTHandler> gatt = nullptr != device ? device->getGATTHandler() : nullptr;
     if( nullptr == gatt ) {
         if( !enableNotification && !enableIndication ) {
             // OK to have GATTHandler being shutdown @ disable
@@ -212,7 +224,7 @@ bool GATTCharacteristic::enableNotificationOrIndication(bool enabledState[2]) {
 }
 
 bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {
-    return getDevice()->addCharacteristicListener(l);
+    return getDeviceChecked()->addCharacteristicListener(l);
 }
 
 bool GATTCharacteristic::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l, bool enabledState[2]) {
@@ -227,7 +239,7 @@ bool GATTCharacteristic::removeCharacteristicListener(std::shared_ptr<GATTCharac
         bool enabledState[2];
         configNotificationIndication(false, false, enabledState);
     }
-    return getDevice()->removeCharacteristicListener(l);
+    return getDeviceChecked()->removeCharacteristicListener(l);
 }
 
 int GATTCharacteristic::removeAllCharacteristicListener(bool disableIndicationNotification) {
@@ -235,11 +247,11 @@ int GATTCharacteristic::removeAllCharacteristicListener(bool disableIndicationNo
         bool enabledState[2];
         configNotificationIndication(false, false, enabledState);
     }
-    return getDevice()->removeAllCharacteristicListener();
+    return getDeviceChecked()->removeAllCharacteristicListener();
 }
 
 bool GATTCharacteristic::readValue(POctets & res, int expectedLength) {
-    std::shared_ptr<DBTDevice> device = getDevice();
+    std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
@@ -251,7 +263,7 @@ bool GATTCharacteristic::readValue(POctets & res, int expectedLength) {
  * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
  */
 bool GATTCharacteristic::writeValue(const TROOctets & value) {
-    std::shared_ptr<DBTDevice> device = getDevice();
+    std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
@@ -264,7 +276,7 @@ bool GATTCharacteristic::writeValue(const TROOctets & value) {
  * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
  */
 bool GATTCharacteristic::writeValueNoResp(const TROOctets & value) {
-    std::shared_ptr<DBTDevice> device = getDevice();
+    std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+

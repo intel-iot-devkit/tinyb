@@ -77,10 +77,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
         std::function<jobject(JNIEnv*, jclass, jmethodID, GATTDescriptor *)> ctor_desc =
                 [](JNIEnv *env, jclass clazz, jmethodID clazz_ctor, GATTDescriptor *descriptor)->jobject {
                     // prepare adapter ctor
-                    std::shared_ptr<GATTCharacteristic> characteristic = descriptor->getCharacteristic();
-                    if( nullptr == characteristic ) {
-                        throw IllegalStateException("Descriptor's GATTCharacteristic destructed: "+descriptor->toString(), E_FILE_LINE);
-                    }
+                    std::shared_ptr<GATTCharacteristic> characteristic = descriptor->getCharacteristicChecked();
                     JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
                     jobject jcharacteristic = JavaGlobalObj::GetObject(characteristic->getJavaObject());
 

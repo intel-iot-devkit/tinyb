@@ -907,7 +907,7 @@ std::shared_ptr<GenericAccess> GATTHandler::getGenericAccess(std::vector<GATTCha
 
     for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
-        std::shared_ptr<GATTService> service = charDecl.getService();
+        std::shared_ptr<GATTService> service = charDecl.getServiceUnchecked();
         if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
         	continue;
         }
@@ -951,7 +951,7 @@ bool GATTHandler::ping() {
 
         for(size_t i=0; i<genericAccessCharDeclList.size(); i++) {
             const GATTCharacteristic & charDecl = *genericAccessCharDeclList.at(i);
-            std::shared_ptr<GATTService> service = charDecl.getService();
+            std::shared_ptr<GATTService> service = charDecl.getServiceUnchecked();
             if( nullptr == service || _GENERIC_ACCESS != *(service->type) ) {
                 continue;
             }
@@ -984,7 +984,7 @@ std::shared_ptr<DeviceInformation> GATTHandler::getDeviceInformation(std::vector
 
     for(size_t i=0; i<characteristicDeclList.size(); i++) {
         const GATTCharacteristic & charDecl = *characteristicDeclList.at(i);
-        std::shared_ptr<GATTService> service = charDecl.getService();
+        std::shared_ptr<GATTService> service = charDecl.getServiceUnchecked();
         if( nullptr == service || _DEVICE_INFORMATION != *(service->type) ) {
             continue;
         }

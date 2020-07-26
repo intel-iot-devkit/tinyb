@@ -38,6 +38,14 @@
 
 using namespace direct_bt;
 
+std::shared_ptr<DBTDevice> GATTService::getDeviceChecked() const {
+    std::shared_ptr<DBTDevice> ref = wbr_device.lock();
+    if( nullptr == ref ) {
+        throw IllegalStateException("GATTService's device already destructed: "+toString(), E_FILE_LINE);
+    }
+    return ref;
+}
+
 std::string GATTService::toString() const {
     std::string name = "";
     if( uuid_t::UUID16_SZ == type->getTypeSize() ) {

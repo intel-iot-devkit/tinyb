@@ -124,9 +124,9 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattDescriptor");
             }
 
-            std::shared_ptr<GATTCharacteristic> getCharacteristic() const { return wbr_characteristic.lock(); }
-
-            std::shared_ptr<DBTDevice> getDevice() const;
+            std::shared_ptr<GATTCharacteristic> getCharacteristicUnchecked() const { return wbr_characteristic.lock(); }
+            std::shared_ptr<GATTCharacteristic> getCharacteristicChecked() const;
+            std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             virtual std::string toString() const {
                 return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";

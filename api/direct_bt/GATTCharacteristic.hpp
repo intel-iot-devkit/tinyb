@@ -151,9 +151,10 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTGattCharacteristic");
             }
 
-            std::shared_ptr<GATTService> getService() const { return wbr_service.lock(); }
-
-            std::shared_ptr<DBTDevice> getDevice() const;
+            std::shared_ptr<GATTService> getServiceUnchecked() const { return wbr_service.lock(); }
+            std::shared_ptr<GATTService> getServiceChecked() const;
+            std::shared_ptr<DBTDevice> getDeviceUnchecked() const;
+            std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
             bool hasProperties(const PropertyBitVal v) const { return v == ( properties & v ); }
 
