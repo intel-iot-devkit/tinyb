@@ -50,6 +50,8 @@ import org.tinyb.GATTCharacteristicListener;
 import org.tinyb.HCIStatusCode;
 import org.tinyb.HCIWhitelistConnectType;
 
+import direct_bt.tinyb.DBTManager;
+
 public class ScannerTinyB10 {
     static final String EUI48_ANY_DEVICE = "00:00:00:00:00:00";
 
@@ -69,6 +71,8 @@ public class ScannerTinyB10 {
     boolean SHOW_UPDATE_EVENTS = false;
 
     int dev_id = 0; // default
+
+    int shutdownTest = 0;
 
     Collection<String> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
     Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
@@ -177,6 +181,39 @@ public class ScannerTinyB10 {
         }
     }
 
+    void execute(final Runnable task, final boolean offThread) {
+        if( offThread ) {
+            final Thread t = new Thread(task);
+            t.setDaemon(true);
+            t.start();
+        } else {
+            task.run();
+        }
+    }
+    void shutdownTest() {
+        switch( shutdownTest ) {
+            case 1:
+                shutdownTest01();
+                break;
+            case 2:
+                shutdownTest02();
+                break;
+            default:
+                // nop
+        }
+    }
+    void shutdownTest01() {
+        execute( () -> {
+            final DBTManager mngr = (DBTManager) DBTManager.getBluetoothManager();
+            mngr.shutdown();
+        }, true);
+    }
+    void shutdownTest02() {
+        execute( () -> {
+            System.exit(1);
+        }, true);
+    }
+
     private void processConnectedDevice(final BluetoothDevice device) {
         System.err.println("****** Processing Device: Start " + device.toString());
         device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
@@ -228,6 +265,8 @@ public class ScannerTinyB10 {
                                                      final byte[] value, final long timestamp) {
                         System.err.println("****** GATT notificationReceived: "+charDecl+
                                            ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        shutdownTest();
+
                     }
 
                     @Override
@@ -235,6 +274,7 @@ public class ScannerTinyB10 {
                                                    final byte[] value, final long timestamp, final boolean confirmationSent) {
                         System.err.println("****** GATT indicationReceived: "+charDecl+
                                            ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        shutdownTest();
                     }
                 };
                 final boolean addedCharacteristicListenerRes =
@@ -435,6 +475,8 @@ public class ScannerTinyB10 {
                     test.SHOW_UPDATE_EVENTS = true;
                 } else if( arg.equals("-dev_id") && args.length > (i+1) ) {
                     test.dev_id = Integer.valueOf(args[++i]).intValue();
+                } else if( arg.equals("-shutdown") && args.length > (i+1) ) {
+                    test.shutdownTest = Integer.valueOf(args[++i]).intValue();
                 } else if( arg.equals("-mac") && args.length > (i+1) ) {
                     test.waitForDevices.add(args[++i]);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
@@ -454,7 +496,7 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug]'");
+            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug] [-shutdown <int>]'");
         }
 
         System.err.println("BluetoothManager "+bluetoothManagerClazzName);
