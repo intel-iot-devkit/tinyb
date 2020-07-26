@@ -59,7 +59,8 @@ namespace direct_bt {
             std::shared_ptr<JavaAnonObj> javaObjectRef;
 
         public:
-            virtual std::string toString() const = 0;
+            virtual std::string toString() const { return "JavaUplink["+direct_bt::aptrHexString(this)+"]"; }
+
             virtual std::string get_java_class() const = 0;
 
             std::string javaObjectToString() const { return nullptr == javaObjectRef ? "JavaAnonObj[null]" : javaObjectRef->toString(); }

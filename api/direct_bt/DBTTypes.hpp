@@ -65,6 +65,8 @@ namespace direct_bt {
              }
 
         public:
+            virtual std::string toString() const { return "DBTObject["+aptrHexString(this)+"]"; }
+
             virtual ~DBTObject() {
                 valid = false;
             }
