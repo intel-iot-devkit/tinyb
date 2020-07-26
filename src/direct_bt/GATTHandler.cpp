@@ -274,6 +274,8 @@ GATTHandler::~GATTHandler() {
 }
 
 bool GATTHandler::connect() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
     bool expConn = false; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
         // already connected
@@ -321,6 +323,8 @@ bool GATTHandler::connect() {
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         // not connected
