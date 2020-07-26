@@ -39,7 +39,7 @@ using namespace direct_bt;
 
 void Java_direct_1bt_tinyb_DBTGattDescriptor_deleteImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTDescriptor *descriptor = getInstance<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
         (void)descriptor;
         // No delete: Service instance owned by GATTService -> DBTDevice
     } catch(...) {
@@ -61,7 +61,7 @@ jstring Java_direct_1bt_tinyb_DBTGattDescriptor_toStringImpl(JNIEnv *env, jobjec
 
 jbyteArray Java_direct_1bt_tinyb_DBTGattDescriptor_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTDescriptor *descriptor = getInstance<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
         if( !descriptor->readValue() ) {
@@ -89,7 +89,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattDescriptor_writeValueImpl(JNIEnv *env, job
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        GATTDescriptor *descriptor = getInstance<GATTDescriptor>(env, obj);
+        GATTDescriptor *descriptor = getDBTObject<GATTDescriptor>(env, obj);
         JavaGlobalObj::check(descriptor->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release

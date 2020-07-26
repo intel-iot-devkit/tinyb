@@ -373,12 +373,12 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
                 return false;
             }
         }
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         DBTDevice * deviceMatchRef = nullptr;
         if( nullptr != jdeviceMatch ) {
-            deviceMatchRef = getInstance<DBTDevice>(env, jdeviceMatch);
+            deviceMatchRef = getDBTObject<DBTDevice>(env, jdeviceMatch);
             JavaGlobalObj::check(deviceMatchRef->getJavaObject(), E_FILE_LINE);
         }
 
@@ -412,7 +412,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobj
         }
         setObjectRef<JNIAdapterStatusListener>(env, statusListener, nullptr, "nativeInstance");
 
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         if( ! adapter->removeStatusListener( pre ) ) {
@@ -428,7 +428,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeStatusListener(JNIEnv *env, jobj
 
 jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         return adapter->removeAllStatusListener();
@@ -440,7 +440,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeAllStatusListener(JNIEnv *env, jobje
 
 jboolean Java_direct_1bt_tinyb_DBTAdapter_isDeviceWhitelisted(JNIEnv *env, jobject obj, jstring jaddress) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         std::string saddress = from_jstring_to_string(env, jaddress);
@@ -456,7 +456,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
                                                                jshort min_interval, jshort max_interval,
                                                                jshort latency, jshort timeout) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         std::string saddress = from_jstring_to_string(env, jaddress);
@@ -472,7 +472,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
 jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_String_2II(JNIEnv *env, jobject obj,
                                                                jstring jaddress, int jaddressType, int jctype) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         std::string saddress = from_jstring_to_string(env, jaddress);
@@ -487,7 +487,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addDeviceToWhitelist__Ljava_lang_Strin
 }
 jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelist(JNIEnv *env, jobject obj, jstring jaddress, int jaddressType) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
 
         std::string saddress = from_jstring_to_string(env, jaddress);
@@ -502,7 +502,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_removeDeviceFromWhitelist(JNIEnv *env,
 
 jstring Java_direct_1bt_tinyb_DBTAdapter_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *nativePtr = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *nativePtr = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -526,7 +526,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong
 jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         return adapter->startDiscovery(keepAlive);
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -537,7 +537,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobjec
 jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         adapter->stopDiscovery();
         return JNI_TRUE;
     } catch(...) {
@@ -549,7 +549,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject
 jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         std::vector<std::shared_ptr<DBTDevice>> array = adapter->getDiscoveredDevices();
         return convert_vector_sharedptr_to_jarraylist(env, array);
     } catch(...) {
@@ -561,7 +561,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_getDiscoveredDevicesImpl(JNIEnv *env, j
 jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj)
 {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         return adapter->removeDiscoveredDevices();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
@@ -575,7 +575,7 @@ jint Java_direct_1bt_tinyb_DBTAdapter_removeDevicesImpl(JNIEnv *env, jobject obj
 
 void Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         adapter->setPowered(JNI_TRUE == value ? true : false);
     } catch(...) {
@@ -585,7 +585,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_setPowered(JNIEnv *env, jobject obj, jbool
 
 jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, adapter->getLocalName().getName());
     } catch(...) {
@@ -596,7 +596,7 @@ jstring Java_direct_1bt_tinyb_DBTAdapter_getAlias(JNIEnv *env, jobject obj) {
 
 void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring jnewalias) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         std::string newalias = from_jstring_to_string(env, jnewalias);
         adapter->setLocalName(newalias, std::string());
@@ -607,7 +607,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_setAlias(JNIEnv *env, jobject obj, jstring
 
 void Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         adapter->setDiscoverable(JNI_TRUE == value ? true : false);
     } catch(...) {
@@ -617,7 +617,7 @@ void Java_direct_1bt_tinyb_DBTAdapter_setDiscoverable(JNIEnv *env, jobject obj, 
 
 jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj, jstring jaddress, jstring jaddressType) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         std::string saddress = from_jstring_to_string(env, jaddress);
         EUI48 address(saddress);
@@ -642,7 +642,7 @@ jobject Java_direct_1bt_tinyb_DBTAdapter_connectDevice(JNIEnv *env, jobject obj,
 
 void Java_direct_1bt_tinyb_DBTAdapter_setPairable(JNIEnv *env, jobject obj, jboolean value) {
     try {
-        DBTAdapter *adapter = getInstance<DBTAdapter>(env, obj);
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
         JavaGlobalObj::check(adapter->getJavaObject(), E_FILE_LINE);
         adapter->setBondable(JNI_TRUE == value ? true : false);
     } catch(...) {

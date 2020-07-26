@@ -40,7 +40,7 @@
 #include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
-#include "JavaUplink.hpp"
+#include "DBTTypes.hpp"
 
 /**
  * - - - - - - - - - - - - - - -
@@ -59,7 +59,7 @@ namespace direct_bt {
     /**
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3 Characteristic Descriptor
      */
-    class GATTDescriptor : public JavaUplink {
+    class GATTDescriptor : public DBTObject {
         private:
             /** Descriptor's characteristic weak back-reference */
             std::weak_ptr<GATTCharacteristic> wbr_characteristic;

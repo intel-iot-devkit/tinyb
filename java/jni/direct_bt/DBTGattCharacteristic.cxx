@@ -39,7 +39,7 @@ using namespace direct_bt;
 
 jstring Java_direct_1bt_tinyb_DBTGattCharacteristic_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *nativePtr = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *nativePtr = getDBTObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -63,7 +63,7 @@ static const std::string _descriptorClazzCtorArgs("(JLdirect_bt/tinyb/DBTGattCha
 
 jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         std::vector<GATTDescriptorRef> & descriptorList = characteristic->descriptorList;
@@ -112,7 +112,7 @@ jobject Java_direct_1bt_tinyb_DBTGattCharacteristic_getDescriptorsImpl(JNIEnv *e
 
 jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         POctets res(GATTHandler::number(GATTHandler::Defaults::MAX_ATT_MTU), 0);
@@ -142,7 +142,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
         if( 0 == value_size ) {
             return JNI_TRUE;
         }
-        GATTCharacteristic *characteristic = getInstance<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getDBTObject<GATTCharacteristic>(env, obj);
         JavaGlobalObj::check(characteristic->getJavaObject(), E_FILE_LINE);
 
         JNICriticalArray<uint8_t, jbyteArray> criticalArray(env); // RAII - release
@@ -165,7 +165,7 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
 jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_configNotificationIndicationImpl(JNIEnv *env, jobject obj,
                         jboolean enableNotification, jboolean enableIndication, jbooleanArray jEnabledState) {
     try {
-        GATTCharacteristic *characteristic = getInstanceUnchecked<GATTCharacteristic>(env, obj);
+        GATTCharacteristic *characteristic = getDBTObjectUnchecked<GATTCharacteristic>(env, obj);
         if( nullptr == characteristic ) {
             if( !enableNotification && !enableIndication ) {
                 // OK to have native characteristic being shutdown @ disable

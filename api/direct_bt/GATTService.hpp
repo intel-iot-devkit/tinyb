@@ -40,6 +40,8 @@
 #include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
+#include "DBTTypes.hpp"
+
 #include "GATTCharacteristic.hpp"
 
 #include "JavaUplink.hpp"
@@ -61,7 +63,7 @@ namespace direct_bt {
      * including its list of Characteristic Declarations,
      * which also may include its client config if available.
      */
-    class GATTService : public JavaUplink {
+    class GATTService : public DBTObject {
         private:
             /** Service's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;

@@ -247,9 +247,9 @@ namespace direct_bt {
             /**
              * Throws an IllegalStateException if isValid() == false
              */
-            inline void checkValid() const {
+            inline void checkValidAdapter() const {
                 if( !isValid() ) {
-                    throw IllegalStateException("Adapter state invalid: "+toString(), E_FILE_LINE);
+                    throw IllegalStateException("Adapter state invalid: "+aptrHexString(this)+", "+toString(), E_FILE_LINE);
                 }
             }
 

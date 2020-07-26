@@ -40,6 +40,8 @@
 #include "OctetTypes.hpp"
 #include "ATTPDUTypes.hpp"
 
+#include "DBTTypes.hpp"
+
 #include "GATTDescriptor.hpp"
 
 #include "JavaUplink.hpp"
@@ -71,7 +73,7 @@ namespace direct_bt {
      * and the value the Characteristics Property, Characteristics Value Handle _and_ Characteristics UUID.
      * </p>
      */
-    class GATTCharacteristic : public JavaUplink {
+    class GATTCharacteristic : public DBTObject {
         private:
             /** Characteristics's service weak back-reference */
             std::weak_ptr<GATTService> wbr_service;

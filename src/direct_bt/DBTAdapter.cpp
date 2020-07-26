@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-// #define VERBOSE_ON 1
+#define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BasicAlgos.hpp"
@@ -262,7 +262,7 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
-    checkValid();
+    checkValidAdapter();
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
         return true;
@@ -276,12 +276,12 @@ bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType 
 }
 
 bool DBTAdapter::removeDeviceFromWhitelist(const EUI48 &address, const BDAddressType address_type) {
-    checkValid();
+    checkValidAdapter();
     return mgmt.removeDeviceFromWhitelist(dev_id, address, address_type);
 }
 
 bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
-    checkValid();
+    checkValidAdapter();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -298,7 +298,7 @@ bool DBTAdapter::addStatusListener(std::shared_ptr<AdapterStatusListener> l) {
 }
 
 bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) {
-    checkValid();
+    checkValidAdapter();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -315,7 +315,7 @@ bool DBTAdapter::removeStatusListener(std::shared_ptr<AdapterStatusListener> l) 
 }
 
 bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
-    checkValid();
+    checkValidAdapter();
     if( nullptr == l ) {
         throw IllegalArgumentException("DBTAdapterStatusListener ref is null", E_FILE_LINE);
     }
@@ -332,7 +332,7 @@ bool DBTAdapter::removeStatusListener(const AdapterStatusListener * l) {
 }
 
 int DBTAdapter::removeAllStatusListener() {
-    checkValid();
+    checkValidAdapter();
     const std::lock_guard<std::recursive_mutex> lock(mtx_statusListenerList); // RAII-style acquire and relinquish via destructor
     int count = statusListenerList.size();
     statusListenerList.clear();
@@ -342,7 +342,7 @@ int DBTAdapter::removeAllStatusListener() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
-    checkValid();
+    checkValidAdapter();
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
         removeDiscoveredDevices();

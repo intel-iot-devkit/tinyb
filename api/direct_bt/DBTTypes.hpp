@@ -46,8 +46,8 @@ namespace direct_bt {
     class DBTObject : public JavaUplink
     {
         protected:
-            std::mutex lk;
             std::atomic_bool valid;
+            std::mutex lk;
 
             DBTObject() : valid(true) {}
 
@@ -69,7 +69,16 @@ namespace direct_bt {
                 valid = false;
             }
 
-            bool isValid() const { return valid; }
+            inline bool isValid() const { return valid.load(); }
+
+            /**
+             * Throws an IllegalStateException if isValid() == false
+             */
+            inline void checkValid() const {
+                if( !isValid() ) {
+                    throw IllegalStateException("DBTObject state invalid: "+aptrHexString(this), E_FILE_LINE);
+                }
+            }
     };
 
     /**

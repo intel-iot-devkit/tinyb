@@ -149,6 +149,37 @@ namespace direct_bt {
     BDAddressType fromJavaAdressTypeToBDAddressType(JNIEnv *env, jstring jAddressType);
     jstring fromBDAddressTypeToJavaAddressType(JNIEnv *env, BDAddressType bdAddressType);
 
+    template <typename T>
+    T *getDBTObject(JNIEnv *env, jobject obj)
+    {
+        jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
+        T *t = reinterpret_cast<T *>(instance);
+        if (t == nullptr) {
+            throw std::runtime_error("Trying to acquire null DBTObject");
+        }
+        t->checkValid();
+        return t;
+    }
+
+    template <typename T>
+    T *getDBTObjectUnchecked(JNIEnv *env, jobject obj)
+    {
+        jlong instance = env->GetLongField(obj, getInstanceField(env, obj));
+        return reinterpret_cast<T *>(instance);
+    }
+
+    template <typename T>
+    void setDBTObject(JNIEnv *env, jobject obj, T *t)
+    {
+        if (t == nullptr) {
+            throw std::runtime_error("Trying to create null DBTObject");
+        }
+        jlong instance = reinterpret_cast<jlong>(t);
+        env->SetLongField(obj, getInstanceField(env, obj), instance);
+    }
+
+
+
 } // namespace direct_bt
 
 #endif /* HELPER_DBT_HPP_ */

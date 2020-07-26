@@ -39,7 +39,7 @@ using namespace direct_bt;
 
 jstring Java_direct_1bt_tinyb_DBTGattService_toStringImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *nativePtr = getInstance<GATTService>(env, obj);
+        GATTService *nativePtr = getDBTObject<GATTService>(env, obj);
         JavaGlobalObj::check(nativePtr->getJavaObject(), E_FILE_LINE);
         return from_string_to_jstring(env, nativePtr->toString());
     } catch(...) {
@@ -64,7 +64,7 @@ static const std::string _characteristicClazzCtorArgs("(JLdirect_bt/tinyb/DBTGat
 
 jobject Java_direct_1bt_tinyb_DBTGattService_getCharacteristicsImpl(JNIEnv *env, jobject obj) {
     try {
-        GATTService *service = getInstance<GATTService>(env, obj);
+        GATTService *service = getDBTObject<GATTService>(env, obj);
         JavaGlobalObj::check(service->getJavaObject(), E_FILE_LINE);
 
         std::vector<std::shared_ptr<GATTCharacteristic>> & characteristics = service->characteristicList;
