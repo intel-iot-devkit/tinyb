@@ -138,10 +138,37 @@ std::string GATTCharacteristic::toString() const {
            service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
 }
 
+std::string GATTCharacteristic::toSafeString() const {
+    std::shared_ptr<const uuid_t> service_uuid;
+    uint16_t service_handle_end = 0xffff;
+    GATTServiceRef serviceRef = getServiceUnchecked();
+    std::string service_name = "";
+    std::string char_name = "";
+
+    if( nullptr != serviceRef ) {
+        service_uuid = serviceRef->type;
+        service_handle_end = serviceRef->endHandle;
+
+        if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
+            const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
+            service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+        }
+    }
+    if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
+        const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
+        char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
+    }
+    return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
+           ", value[handle "+uint16HexString(value_handle)+char_name+
+           "], service["+
+           ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
+           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
+}
+
 std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {
     std::shared_ptr<GATTService> ref = wbr_service.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTCharacteristic's service already destructed: "+toString(), E_FILE_LINE);
+        throw IllegalStateException("GATTCharacteristic's service already destructed: "+toSafeString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -174,11 +201,11 @@ bool GATTCharacteristic::configNotificationIndication(const bool enableNotificat
     if( nullptr == gatt ) {
         if( !enableNotification && !enableIndication ) {
             // OK to have GATTHandler being shutdown @ disable
-            DBG_PRINT("Characteristic's device GATTHandle not connected: %s, %s", toString().c_str(), device->toString().c_str());
+            DBG_PRINT("Characteristic's device GATTHandle not connected: %s", toSafeString().c_str());
             return false;
         }
         throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString() + ", " + device->toString(), E_FILE_LINE);
+                toString(), E_FILE_LINE);
     }
     const bool resEnableNotification = hasEnableNotification && enableNotification;
     const bool resEnableIndication = hasEnableIndication && enableIndication;
@@ -254,8 +281,7 @@ bool GATTCharacteristic::readValue(POctets & res, int expectedLength) {
     std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString() + ", " + device->toString(), E_FILE_LINE);
+        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toSafeString(), E_FILE_LINE);
     }
     return gatt->readCharacteristicValue(*this, res, expectedLength);
 }
@@ -266,8 +292,7 @@ bool GATTCharacteristic::writeValue(const TROOctets & value) {
     std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString() + ", " + device->toString(), E_FILE_LINE);
+        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toSafeString(), E_FILE_LINE);
     }
     return gatt->writeCharacteristicValue(*this, value);
 }
@@ -279,8 +304,7 @@ bool GATTCharacteristic::writeValueNoResp(const TROOctets & value) {
     std::shared_ptr<DBTDevice> device = getDeviceChecked();
     std::shared_ptr<GATTHandler> gatt = device->getGATTHandler();
     if( nullptr == gatt ) {
-        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+
-                toString() + ", " + device->toString(), E_FILE_LINE);
+        throw IllegalStateException("Characteristic's device GATTHandle not connected: "+toSafeString(), E_FILE_LINE);
     }
     return gatt->writeCharacteristicValueNoResp(*this, value);
 }

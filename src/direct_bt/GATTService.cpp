@@ -41,7 +41,7 @@ using namespace direct_bt;
 std::shared_ptr<DBTDevice> GATTService::getDeviceChecked() const {
     std::shared_ptr<DBTDevice> ref = wbr_device.lock();
     if( nullptr == ref ) {
-        throw IllegalStateException("GATTService's device already destructed: "+toString(), E_FILE_LINE);
+        throw IllegalStateException("GATTService's device already destructed: "+toSafeString(), E_FILE_LINE);
     }
     return ref;
 }
@@ -53,5 +53,15 @@ std::string GATTService::toString() const {
         name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
     }
     return "type 0x"+type->toString()+", handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
-                      name+", "+std::to_string(characteristicList.size())+" characteristics";
+                name+", "+std::to_string(characteristicList.size())+" characteristics";
+}
+
+std::string GATTService::toSafeString() const {
+    std::string name = "";
+    if( uuid_t::UUID16_SZ == type->getTypeSize() ) {
+        const uint16_t uuid16 = (static_cast<const uuid16_t*>(type.get()))->value;
+        name = " - "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
+    }
+    return "handle ["+uint16HexString(startHandle, true)+".."+uint16HexString(endHandle, true)+"]"+
+                name+", "+std::to_string(characteristicList.size())+" characteristics";
 }

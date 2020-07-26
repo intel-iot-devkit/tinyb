@@ -80,6 +80,16 @@ namespace direct_bt {
             bool enabledNotifyState = false;
             bool enabledIndicateState = false;
 
+            /**
+             * For an unknown reason, using the virtual function 'toString()'
+             * while constructing an exception message causes a SIGSEGV.
+             * <p>
+             * This method represents a non-virtual variation,
+             * which also does not call any other virtual function.
+             * </p>
+             */
+            std::string toSafeString() const;
+
         public:
             /** BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1.1 Characteristic Properties */
             enum PropertyBitVal : uint8_t {
@@ -161,7 +171,7 @@ namespace direct_bt {
             std::string getPropertiesString() const {
                 return getPropertiesString(properties);
             }
-            std::string toString() const;
+            std::string toString() const override;
 
             void clearDescriptors() {
                 descriptorList.clear();

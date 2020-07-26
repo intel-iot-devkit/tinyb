@@ -68,6 +68,16 @@ namespace direct_bt {
             /** Service's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;
 
+            /**
+             * For an unknown reason, using the virtual function 'toString()'
+             * while constructing an exception message causes a SIGSEGV.
+             * <p>
+             * This method represents a non-virtual variation,
+             * which also does not call any other virtual function.
+             * </p>
+             */
+            std::string toSafeString() const;
+
         public:
             const bool isPrimary;
 
@@ -109,7 +119,7 @@ namespace direct_bt {
             std::shared_ptr<DBTDevice> getDeviceUnchecked() const { return wbr_device.lock(); }
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
-            std::string toString() const;
+            std::string toString() const override;
     };
 
     inline bool operator==(const GATTService& lhs, const GATTService& rhs)

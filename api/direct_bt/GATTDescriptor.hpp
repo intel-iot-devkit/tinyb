@@ -64,6 +64,16 @@ namespace direct_bt {
             /** Descriptor's characteristic weak back-reference */
             std::weak_ptr<GATTCharacteristic> wbr_characteristic;
 
+            /**
+             * For an unknown reason, using the virtual function 'toString()'
+             * while constructing an exception message causes a SIGSEGV.
+             * <p>
+             * This method represents a non-virtual variation,
+             * which also does not call any other virtual function.
+             * </p>
+             */
+            std::string toSafeString() const;
+
         public:
             static const uuid16_t TYPE_EXT_PROP;
             static const uuid16_t TYPE_USER_DESC;
@@ -128,9 +138,7 @@ namespace direct_bt {
             std::shared_ptr<GATTCharacteristic> getCharacteristicChecked() const;
             std::shared_ptr<DBTDevice> getDeviceChecked() const;
 
-            virtual std::string toString() const {
-                return "[type 0x"+type->toString()+", handle "+uint16HexString(handle)+", value["+value.toString()+"]]";
-            }
+            virtual std::string toString() const override;
 
             /** Value is uint16_t bitfield */
             bool isExtendedProperties() const { return TYPE_EXT_PROP == *type; }
