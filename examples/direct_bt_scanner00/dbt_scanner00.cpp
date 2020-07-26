@@ -102,7 +102,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
     : AssociatedGATTCharacteristicListener(characteristicMatch) {}
 
     void notificationReceived(GATTCharacteristicRef charDecl, std::shared_ptr<TROOctets> charValue, const uint64_t timestamp) override {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDevice();
+        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
         const int64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Notify (td %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
@@ -116,7 +116,7 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
                             std::shared_ptr<TROOctets> charValue, const uint64_t timestamp,
                             const bool confirmationSent) override
     {
-        const std::shared_ptr<DBTDevice> dev = charDecl->getDevice();
+        const std::shared_ptr<DBTDevice> dev = charDecl->getDeviceChecked();
         const int64_t tR = getCurrentMilliseconds();
         fprintf(stderr, "****** GATT Indication (confirmed %d, td(msg %" PRIu64 " ms, dev-discovered %" PRIu64 " ms): From %s\n",
                 confirmationSent, (tR-timestamp), (tR-dev->ts_creation), dev->toString().c_str());
