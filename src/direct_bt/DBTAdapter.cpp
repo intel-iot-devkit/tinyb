@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BasicAlgos.hpp"
