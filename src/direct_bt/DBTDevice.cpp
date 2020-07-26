@@ -50,7 +50,7 @@ DBTDevice::DBTDevice(DBTAdapter & a, EInfoReport const & r)
     ts_last_discovery = ts_creation;
     hciConnHandle = 0;
     isConnected = false;
-    isConnectIssued = false;
+    allowDisconnect = false;
     if( !r.isSet(EIRDataType::BDADDR) ) {
         throw IllegalArgumentException("Address not set: "+r.toString(), E_FILE_LINE);
     }
@@ -142,7 +142,7 @@ std::string DBTDevice::toString(bool includeDiscoveredServices) const {
     std::string msdstr = nullptr != advMSD ? advMSD->toString() : "MSD[null]";
     std::string out("Device[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+leaddrtype+"], name['"+name+
             "'], age[total "+std::to_string(t0-ts_creation)+", ldisc "+std::to_string(t0-ts_last_discovery)+", lup "+std::to_string(t0-ts_last_update)+
-            "]ms, connected["+std::to_string(isConnectIssued)+"/"+std::to_string(isConnected)+", "+uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
+            "]ms, connected["+std::to_string(allowDisconnect)+"/"+std::to_string(isConnected)+", "+uint16HexString(hciConnHandle)+"], rssi "+std::to_string(getRSSI())+
             ", tx-power "+std::to_string(tx_power)+
             ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
             "), "+msdstr+", "+javaObjectToString()+"]");
@@ -318,7 +318,7 @@ bool DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_window,
                                               hci_peer_mac_type, hci_own_mac_type,
                                               le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
                                               conn_latency, supervision_timeout);
-    isConnectIssued = true;
+    allowDisconnect = true;
 #if 0
     if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
         INFO_PRINT("DBTDevice::connectLE: Connection already exists: status 0x%2.2X (%s) on %s",
@@ -365,7 +365,7 @@ bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offse
     }
 
     HCIStatusCode status = adapter.getHCI()->create_conn(address, pkt_type, clock_offset, role_switch);
-    isConnectIssued = true;
+    allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
                 static_cast<uint8_t>(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno), toString().c_str());
@@ -392,6 +392,7 @@ bool DBTDevice::connectDefault()
 void DBTDevice::notifyConnected(const uint16_t handle) {
     DBG_PRINT("DBTDevice::notifyConnected: handle %s, %s", uint16HexString(handle).c_str(), toString().c_str());
     isConnected = true;
+    allowDisconnect = true;
     hciConnHandle = handle;
 }
 
@@ -404,14 +405,26 @@ void DBTDevice::notifyDisconnected() {
         ERR_PRINT("Exception caught on %s: %s", toString().c_str(), e.what());
     }
     isConnected = false;
+    allowDisconnect = false;
     hciConnHandle = 0;
 }
 
 bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause, const HCIStatusCode reason) {
+    // Avoid disconnect re-entry -> potential deadlock
+    bool expConn = true; // C++11, exp as value since C++20
+    if( !allowDisconnect.compare_exchange_strong(expConn, false) ) {
+        // not connected
+        DBG_PRINT("DBTDevice::disconnect: Not connected: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+                allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
+                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
+                (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
+        return false;
+    }
+    // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    INFO_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
-            isConnectIssued.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
+    DBG_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+            allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
     disconnectGATT();
@@ -419,10 +432,9 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
     std::shared_ptr<HCIHandler> hci = adapter.getHCI();
     bool res = false;
 
-    if( !isConnected || !isConnectIssued ) {
+    if( !isConnected ) {
         goto exit;
     }
-    isConnectIssued = false;
 
     if( fromDisconnectCB || 0 == hciConnHandle ) {
         goto exit;
@@ -440,8 +452,8 @@ bool DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
     }
 
 exit:
-    INFO_PRINT("DBTDevice::disconnect: End: isConnected %d/%d, fromDisconnectCB %d, ioError %d",
-               isConnectIssued.load(), isConnected.load(), fromDisconnectCB, ioErrorCause);
+    DBG_PRINT("DBTDevice::disconnect: End: isConnected %d/%d, fromDisconnectCB %d, ioError %d",
+              allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause);
     return res;
 }
 
@@ -569,13 +581,13 @@ std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
 
 void DBTDevice::disconnectGATT() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    INFO_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=gattHandler));
+    DBG_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=gattHandler));
     if( nullptr != gattHandler ) {
         // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
         gattHandler = nullptr;
     }
-    INFO_PRINT("DBTDevice::disconnectGATT: End");
+    DBG_PRINT("DBTDevice::disconnectGATT: End");
 }
 
 bool DBTDevice::addCharacteristicListener(std::shared_ptr<GATTCharacteristicListener> l) {

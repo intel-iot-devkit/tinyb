@@ -71,7 +71,8 @@ namespace direct_bt {
             std::recursive_mutex mtx_data;
             std::recursive_mutex mtx_gatt;
             std::atomic<bool> isConnected;
-            std::atomic<bool> isConnectIssued;
+            /** atomic: allowDisconnect = isConnected || 'isConnectIssued' */
+            std::atomic<bool> allowDisconnect;
             DBTDevice(DBTAdapter & adapter, EInfoReport const & r);
 
             /** Add advertised service (GAP discovery) */

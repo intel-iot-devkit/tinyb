@@ -274,15 +274,17 @@ GATTHandler::~GATTHandler() {
 }
 
 bool GATTHandler::connect() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-
+    // Avoid connect re-entry -> potential deadlock
     bool expConn = false; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
         // already connected
-        INFO_PRINT("GATTHandler::connect: Already connected: GattHandler[%s], l2cap[%s]: %s",
-                    getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
+        DBG_PRINT("GATTHandler::connect: Already connected: GattHandler[%s], l2cap[%s]: %s",
+                  getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
         return true;
     }
+    // Lock to avoid other threads using instance while connecting
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
     hasIOError = false;
     DBG_PRINT("GATTHandler::connect: Start: GattHandler[%s], l2cap[%s]: %s",
                 getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
@@ -323,8 +325,7 @@ bool GATTHandler::connect() {
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-
+    // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         // not connected
@@ -334,6 +335,9 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
         characteristicListenerList.clear();
         return false;
     }
+    // Lock to avoid other threads using instance while disconnecting
+    const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
+
     hasIOError = false;
     DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
