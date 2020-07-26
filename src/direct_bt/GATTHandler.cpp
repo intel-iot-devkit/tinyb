@@ -238,7 +238,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_MULTIPLE_HANDLE_VALUE_NTF == opc ) {
                 // FIXME TODO ..
-                INFO_PRINT("GATTHandler: MULTI-NTF: %s", attPDU->toString().c_str());
+                ERR_PRINT("GATTHandler: MULTI-NTF not implemented: %s", attPDU->toString().c_str());
             } else {
                 attPDURing.putBlocking( std::shared_ptr<const AttPDUMsg>( attPDU ) );
                 attPDU = nullptr;
