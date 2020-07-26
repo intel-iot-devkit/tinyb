@@ -139,21 +139,8 @@ std::string GATTCharacteristic::toString() const {
 }
 
 std::string GATTCharacteristic::toSafeString() const {
-    std::shared_ptr<const uuid_t> service_uuid;
-    uint16_t service_handle_end = 0xffff;
-    GATTServiceRef serviceRef = getServiceUnchecked();
-    std::string service_name = "";
     std::string char_name = "";
 
-    if( nullptr != serviceRef ) {
-        service_uuid = serviceRef->type;
-        service_handle_end = serviceRef->endHandle;
-
-        if( uuid_t::UUID16_SZ == service_uuid->getTypeSize() ) {
-            const uint16_t uuid16 = (static_cast<const uuid16_t*>(service_uuid.get()))->value;
-            service_name = ", "+GattServiceTypeToString(static_cast<GattServiceType>(uuid16));
-        }
-    }
     if( uuid_t::UUID16_SZ == value_type->getTypeSize() ) {
         const uint16_t uuid16 = (static_cast<const uuid16_t*>(value_type.get()))->value;
         char_name = ", "+GattCharacteristicTypeToString(static_cast<GattCharacteristicType>(uuid16));
@@ -161,8 +148,8 @@ std::string GATTCharacteristic::toSafeString() const {
     return "handle "+uint16HexString(handle)+", props "+uint8HexString(properties)+" "+getPropertiesString()+
            ", value[handle "+uint16HexString(value_handle)+char_name+
            "], service["+
-           ", handle[ "+uint16HexString(service_handle)+".."+uint16HexString(service_handle_end)+" ]"+
-           service_name+", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
+           ", handle[ "+uint16HexString(service_handle)+".. ]"+
+           ", enabled[notify "+std::to_string(enabledNotifyState)+", indicate "+std::to_string(enabledIndicateState)+"] ]";
 }
 
 std::shared_ptr<GATTService> GATTCharacteristic::getServiceChecked() const {
