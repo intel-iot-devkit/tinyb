@@ -295,28 +295,28 @@ public class ScannerTinyB10 {
                 println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
             }
 
-            int i=0, j=0;
-            for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
-                final BluetoothGattService primService = srvIter.next();
-                printf("  [%02d] Service %s\n", i, primService.toString());
-                printf("  [%02d] Service Characteristics\n", i);
-                final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
-                for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
-                    final BluetoothGattCharacteristic serviceChar = charIter.next();
-                    printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
-                    final List<String> properties = Arrays.asList(serviceChar.getFlags());
-                    if( properties.contains("read") ) {
-                        try {
+            try {
+                int i=0, j=0;
+                for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
+                    final BluetoothGattService primService = srvIter.next();
+                    printf("  [%02d] Service %s\n", i, primService.toString());
+                    printf("  [%02d] Service Characteristics\n", i);
+                    final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
+                    for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
+                        final BluetoothGattCharacteristic serviceChar = charIter.next();
+                        printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                        final List<String> properties = Arrays.asList(serviceChar.getFlags());
+                        if( properties.contains("read") ) {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
                             printf("  [%02d.%02d] Value: %s ('%s')\n",
                                     i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
-                        } catch( final Exception ex) {
-                            println("Caught "+ex.getMessage());
-                            ex.printStackTrace();
                         }
                     }
                 }
+            } catch( final Exception ex) {
+                println("Caught "+ex.getMessage());
+                ex.printStackTrace();
             }
             // FIXME sleep 1s for potential callbacks ..
             try {
