@@ -175,11 +175,15 @@ public class BluetoothFactory {
     }
 
     private static ImplementationIdentifier initializedID = null;
+    private static long t0;
 
     public static synchronized void checkInitialized() {
         if( null == initializedID ) {
             throw new IllegalStateException("BluetoothFactory not initialized.");
         }
+    }
+    public static synchronized boolean isInitialized() {
+        return null == initializedID;
     }
 
     private static synchronized void initLibrary(final ImplementationIdentifier id) {
@@ -230,6 +234,7 @@ public class BluetoothFactory {
                 }
             }
             initializedID = id; // initialized!
+            t0 = BluetoothUtils.getCurrentMilliseconds();
 
             APIVersion = JAPIVersion;
             ImplVersion = null != mfAttributes ? mfAttributes.getValue(Attributes.Name.IMPLEMENTATION_VERSION) : null;
@@ -461,4 +466,6 @@ public class BluetoothFactory {
     }
 
     private native static String getNativeAPIVersion();
+
+    /* pp */ static long getStartupTimeMilliseconds() { return t0; }
 }

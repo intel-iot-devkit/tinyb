@@ -74,6 +74,19 @@ public class ScannerTinyB10 {
 
     int shutdownTest = 0;
 
+    static void printf(final String format, final Object... args) {
+        final Object[] args2 = new Object[args.length+1];
+        args2[0] = BluetoothUtils.getElapsedMillisecond();
+        System.arraycopy(args, 0, args2, 1, args.length);
+        System.err.printf("[%,9d] "+format, args2);
+        // System.err.printf("[%,9d] ", BluetoothUtils.getElapsedMillisecond());
+        // System.err.printf(format, args);
+    }
+    static void println(final String msg) {
+        System.err.printf("[%,9d] %s%s", BluetoothUtils.getElapsedMillisecond(), msg, System.lineSeparator());
+    }
+
+
     Collection<String> devicesInProcessing = Collections.synchronizedCollection(new ArrayList<>());
     Collection<String> devicesProcessed = Collections.synchronizedCollection(new ArrayList<>());
 
@@ -81,23 +94,23 @@ public class ScannerTinyB10 {
         @Override
         public void adapterSettingsChanged(final BluetoothAdapter adapter, final AdapterSettings oldmask,
                                            final AdapterSettings newmask, final AdapterSettings changedmask, final long timestamp) {
-            System.err.println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
-            System.err.println("Status Adapter:");
-            System.err.println(adapter.toString());
+            println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
+            println("Status Adapter:");
+            println(adapter.toString());
         }
 
         @Override
         public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) {
-            System.err.println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
+            println("****** DISCOVERING: enabled "+enabled+", keepAlive "+keepAlive+" on "+adapter);
         }
 
         @Override
         public void deviceFound(final BluetoothDevice device, final long timestamp) {
-            System.err.println("****** FOUND__: "+device.toString());
+            println("****** FOUND__: "+device.toString());
 
             if( BluetoothAddressType.BDADDR_LE_PUBLIC != device.getAddressType()
                 && BLERandomAddressType.STATIC_PUBLIC != device.getBLERandomAddressType() ) {
-                System.err.println("****** FOUND__-2: Skip 'non public' or 'random static public' LE "+device.toString());
+                println("****** FOUND__-2: Skip 'non public' or 'random static public' LE "+device.toString());
                 return;
             }
             if( !devicesInProcessing.contains( device.getAddress() ) &&
@@ -108,10 +121,10 @@ public class ScannerTinyB10 {
                 )
               )
             {
-                System.err.println("****** FOUND__-0: Connecting "+device.toString());
+                println("****** FOUND__-0: Connecting "+device.toString());
                 {
                     final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
-                    System.err.println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
+                    println("PERF: adapter-init -> FOUND__-0 " + td + " ms");
                 }
                 final Thread deviceConnectTask = new Thread( new Runnable() {
                     @Override
@@ -122,14 +135,14 @@ public class ScannerTinyB10 {
                 deviceConnectTask.setDaemon(true); // detach thread
                 deviceConnectTask.start();
             } else {
-                System.err.println("****** FOUND__-1: NOP "+device.toString());
+                println("****** FOUND__-1: NOP "+device.toString());
             }
         }
 
         @Override
         public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) {
             if( SHOW_UPDATE_EVENTS ) {
-                System.err.println("****** UPDATED: "+updateMask+" of "+device);
+                println("****** UPDATED: "+updateMask+" of "+device);
             }
         }
 
@@ -143,10 +156,10 @@ public class ScannerTinyB10 {
                 )
               )
             {
-                System.err.println("****** CONNECTED-0: Processing "+device.toString());
+                println("****** CONNECTED-0: Processing "+device.toString());
                 {
                     final long td = BluetoothUtils.getCurrentMilliseconds() - timestamp_t0; // adapter-init -> now
-                    System.err.println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
+                    println("PERF: adapter-init -> CONNECTED-0 " + td + " ms");
                 }
                 final Thread deviceProcessingTask = new Thread( new Runnable() {
                     @Override
@@ -158,24 +171,24 @@ public class ScannerTinyB10 {
                 deviceProcessingTask.setDaemon(true); // detach thread
                 deviceProcessingTask.start();
             } else {
-                System.err.println("****** CONNECTED-1: NOP " + device.toString());
+                println("****** CONNECTED-1: NOP " + device.toString());
             }
         }
 
         @Override
         public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
-            System.err.println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
+            println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
         }
     };
 
     private void connectDiscoveredDevice(final BluetoothDevice device) {
-        System.err.println("****** Connecting Device: Start " + device.toString());
+        println("****** Connecting Device: Start " + device.toString());
         device.getAdapter().stopDiscovery();
         boolean res = false;
         if( !USE_WHITELIST ) {
             res = device.connect();
         }
-        System.err.println("****** Connecting Device: End result "+res+" of " + device.toString());
+        println("****** Connecting Device: End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && !res ) {
             device.getAdapter().startDiscovery( true );
         }
@@ -215,7 +228,7 @@ public class ScannerTinyB10 {
     }
 
     private void processConnectedDevice(final BluetoothDevice device) {
-        System.err.println("****** Processing Device: Start " + device.toString());
+        println("****** Processing Device: Start " + device.toString());
         device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
 
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
@@ -237,12 +250,12 @@ public class ScannerTinyB10 {
                 final long td15 = t5 - t1; // get-gatt-services
                 final long tdc5 = t5 - device.getLastDiscoveryTimestamp(); // discovered to gatt-complete
                 final long td05 = t5 - timestamp_t0; // adapter-init -> gatt-complete
-                System.err.println(System.lineSeparator()+System.lineSeparator());
-                System.err.println("PERF: GATT primary-services completed\n");
-                System.err.println("PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
-                                   "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
-                                   "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
-                                   "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
+                println(System.lineSeparator()+System.lineSeparator());
+                println("PERF: GATT primary-services completed\n");
+                println("PERF:  adapter-init to processing-start " + td01 + " ms,"+System.lineSeparator()+
+                        "PERF:  get-gatt-services " + td15 + " ms,"+System.lineSeparator()+
+                        "PERF:  discovered to gatt-complete " + tdc5 + " ms (connect " + (tdc5 - td15) + " ms),"+System.lineSeparator()+
+                        "PERF:  adapter-init to gatt-complete " + td05 + " ms"+System.lineSeparator());
             }
             {
                 for(final String characteristic : characteristicList) {
@@ -252,10 +265,10 @@ public class ScannerTinyB10 {
                             manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device.getAdapter());
                     final BluetoothGattCharacteristic char2 = (BluetoothGattCharacteristic)
                             manager.find(BluetoothType.GATT_CHARACTERISTIC, null, characteristic, device);
-                    System.err.println("Char UUID "+characteristic);
-                    System.err.println("  over manager: "+char0);
-                    System.err.println("  over adapter: "+char1);
-                    System.err.println("  over device : "+char2);
+                    println("Char UUID "+characteristic);
+                    println("  over manager: "+char0);
+                    println("  over adapter: "+char1);
+                    println("  over device : "+char2);
                 }
             }
             {
@@ -263,8 +276,8 @@ public class ScannerTinyB10 {
                     @Override
                     public void notificationReceived(final BluetoothGattCharacteristic charDecl,
                                                      final byte[] value, final long timestamp) {
-                        System.err.println("****** GATT notificationReceived: "+charDecl+
-                                           ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        println("****** GATT notificationReceived: "+charDecl+
+                                ", value "+BluetoothUtils.bytesHexString(value, true, true));
                         shutdownTest();
 
                     }
@@ -272,34 +285,34 @@ public class ScannerTinyB10 {
                     @Override
                     public void indicationReceived(final BluetoothGattCharacteristic charDecl,
                                                    final byte[] value, final long timestamp, final boolean confirmationSent) {
-                        System.err.println("****** GATT indicationReceived: "+charDecl+
-                                           ", value "+BluetoothUtils.bytesHexString(value, true, true));
+                        println("****** GATT indicationReceived: "+charDecl+
+                                ", value "+BluetoothUtils.bytesHexString(value, true, true));
                         shutdownTest();
                     }
                 };
                 final boolean addedCharacteristicListenerRes =
                   BluetoothGattService.addCharacteristicListenerToAll(device, primServices, myCharacteristicListener);
-                System.err.println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
+                println("Added GATTCharacteristicListener: "+addedCharacteristicListenerRes);
             }
 
             int i=0, j=0;
             for(final Iterator<BluetoothGattService> srvIter = primServices.iterator(); srvIter.hasNext(); i++) {
                 final BluetoothGattService primService = srvIter.next();
-                System.err.printf("  [%02d] Service %s\n", i, primService.toString());
-                System.err.printf("  [%02d] Service Characteristics\n", i);
+                printf("  [%02d] Service %s\n", i, primService.toString());
+                printf("  [%02d] Service Characteristics\n", i);
                 final List<BluetoothGattCharacteristic> serviceCharacteristics = primService.getCharacteristics();
                 for(final Iterator<BluetoothGattCharacteristic> charIter = serviceCharacteristics.iterator(); charIter.hasNext(); j++) {
                     final BluetoothGattCharacteristic serviceChar = charIter.next();
-                    System.err.printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
+                    printf("  [%02d.%02d] Decla: %s\n", i, j, serviceChar.toString());
                     final List<String> properties = Arrays.asList(serviceChar.getFlags());
                     if( properties.contains("read") ) {
                         try {
                             final byte[] value = serviceChar.readValue();
                             final String svalue = BluetoothUtils.decodeUTF8String(value, 0, value.length);
-                            System.err.printf("  [%02d.%02d] Value: %s ('%s')\n",
+                            printf("  [%02d.%02d] Value: %s ('%s')\n",
                                     i, j, BluetoothUtils.bytesHexString(value, true, true), svalue);
                         } catch( final Exception ex) {
-                            System.err.println("Caught "+ex.getMessage());
+                            println("Caught "+ex.getMessage());
                             ex.printStackTrace();
                         }
                     }
@@ -313,12 +326,12 @@ public class ScannerTinyB10 {
             }
             success = true;
         } catch (final Throwable t ) {
-            System.err.println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
+            println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
         if( KEEP_CONNECTED && success ) {
             while( device.pingGATT() ) {
-                System.err.println("****** Processing Device: pingGATT OK: "+device.getAddress());
+                println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
                     device.getAdapter().startDiscovery( false );
                     Thread.sleep(1000);
@@ -326,10 +339,10 @@ public class ScannerTinyB10 {
                     e.printStackTrace();
                 }
             }
-            System.err.println("****** Processing Device: pingGATT failed: "+device.getAddress());
+            println("****** Processing Device: pingGATT failed: "+device.getAddress());
         }
 
-        System.err.println("****** Processing Device: disconnecting: "+device.getAddress());
+        println("****** Processing Device: disconnecting: "+device.getAddress());
         device.disconnect(); // will implicitly purge the GATT data, including GATTCharacteristic listener.
         while( device.getConnected() ) {
             try {
@@ -339,16 +352,16 @@ public class ScannerTinyB10 {
             }
         }
         if( REMOVE_DEVICE ) {
-            System.err.println("****** Processing Device: removing: "+device.getAddress());
+            println("****** Processing Device: removing: "+device.getAddress());
             device.remove();
         }
 
         devicesInProcessing.remove(device.getAddress());
         if( 0 < MULTI_MEASUREMENTS ) {
             MULTI_MEASUREMENTS--;
-            System.err.println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
+            println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
         }
-        System.err.println("****** Processing Device: End: Success " + success +
+        println("****** Processing Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
             device.getAdapter().startDiscovery( true );
@@ -378,6 +391,7 @@ public class ScannerTinyB10 {
             System.exit(-1);
         }
         manager = _manager;
+        println("BluetoothManager "+bluetoothManagerClazzName+" initialized!");
     }
 
     public void runTest() {
@@ -385,10 +399,10 @@ public class ScannerTinyB10 {
         {
             final List<BluetoothAdapter> adapters = manager.getAdapters();
             for(int i=0; i < adapters.size(); i++) {
-                System.err.println("Adapter["+i+"]: "+adapters.get(i));
+                println("Adapter["+i+"]: "+adapters.get(i));
             }
             if( adapters.size() <= dev_id ) {
-                System.err.println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
+                println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
                 System.exit(-1);
             }
             adapter = adapters.get(dev_id);
@@ -411,11 +425,11 @@ public class ScannerTinyB10 {
             for(final Iterator<String> wliter = whitelist.iterator(); wliter.hasNext(); ) {
                 final String addr = wliter.next();
                 final boolean res = adapter.addDeviceToWhitelist(addr, BluetoothAddressType.BDADDR_LE_PUBLIC, HCIWhitelistConnectType.HCI_AUTO_CONN_ALWAYS);
-                System.err.println("Added to whitelist: res "+res+", address "+addr);
+                println("Added to whitelist: res "+res+", address "+addr);
             }
         } else {
             if( !adapter.startDiscovery( true ) ) {
-                System.err.println("Adapter start discovery failed");
+                println("Adapter start discovery failed");
                 done = true;
             }
         }
@@ -425,10 +439,10 @@ public class ScannerTinyB10 {
                 ( -1 == MULTI_MEASUREMENTS && !waitForDevices.isEmpty() && devicesProcessed.containsAll(waitForDevices) )
               )
             {
-                System.err.println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+
+                println("****** EOL Test MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+
                                    ", processed "+devicesProcessed.size()+"/"+waitForDevices.size());
-                System.err.println("****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
-                System.err.println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
+                println("****** WaitForDevices "+Arrays.toString(waitForDevices.toArray()));
+                println("****** DevicesProcessed "+Arrays.toString(devicesProcessed.toArray()));
                 done = true;
             } else {
                 try {
@@ -481,7 +495,7 @@ public class ScannerTinyB10 {
                     test.waitForDevices.add(args[++i]);
                 } else if( arg.equals("-wl") && args.length > (i+1) ) {
                     final String addr = args[++i];
-                    System.err.println("Whitelist + "+addr);
+                    println("Whitelist + "+addr);
                     test.whitelist.add(addr);
                     test.USE_WHITELIST = true;
                 } else if( arg.equals("-char") && args.length > (i+1) ) {
@@ -496,20 +510,20 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            System.err.println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug] [-shutdown <int>]'");
+            println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug] [-shutdown <int>]'");
         }
 
-        System.err.println("BluetoothManager "+bluetoothManagerClazzName);
-        System.err.println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
-        System.err.println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
-        System.err.println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
-        System.err.println("USE_WHITELIST "+test.USE_WHITELIST);
-        System.err.println("dev_id "+test.dev_id);
-        System.err.println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
-        System.err.println("characteristicList: "+Arrays.toString(test.characteristicList.toArray()));
+        println("BluetoothManager "+bluetoothManagerClazzName);
+        println("MULTI_MEASUREMENTS "+test.MULTI_MEASUREMENTS);
+        println("KEEP_CONNECTED "+test.KEEP_CONNECTED);
+        println("REMOVE_DEVICE "+test.REMOVE_DEVICE);
+        println("USE_WHITELIST "+test.USE_WHITELIST);
+        println("dev_id "+test.dev_id);
+        println("waitForDevice: "+Arrays.toString(test.waitForDevices.toArray()));
+        println("characteristicList: "+Arrays.toString(test.characteristicList.toArray()));
 
         if( waitForEnter ) {
-            System.err.println("Press ENTER to continue\n");
+            println("Press ENTER to continue\n");
             try{ System.in.read();
             } catch(final Exception e) { }
         }
