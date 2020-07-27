@@ -729,10 +729,10 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     }
     if( nullptr != dev ) {
         //
-        // existing device
+        // drop existing device
         //
         EIRDataType updateMask = dev->update(ad_report);
-        INFO_PRINT("DBTAdapter::EventCB:DeviceFound.1: Old Discovered %s", dev->getAddressString().c_str());
+        INFO_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s", dev->getAddressString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, ad_report.getTimestamp(), updateMask);
         }
@@ -750,7 +750,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
         EIRDataType updateMask = dev->update(ad_report);
         addDiscoveredDevice(dev); // re-add to discovered devices!
         dev->ts_last_discovery = ad_report.getTimestamp();
-        DBG_PRINT("DBTAdapter::EventCB:DeviceFound.2: Old Shared %s", dev->getAddressString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use already shared %s", dev->getAddressString().c_str());
 
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -759,7 +759,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
                     l->deviceFound(dev, ad_report.getTimestamp());
                 }
             } catch (std::exception &e) {
-                ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
+                ERR_PRINT("DBTAdapter::EventCB:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
                         i+1, statusListenerList.size(),
                         l->toString().c_str(), dev->toString().c_str(), e.what());
             }
@@ -777,7 +777,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
-    DBG_PRINT("DBTAdapter::EventCB:DeviceFound.3: All New %s", dev->getAddressString().c_str());
+    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use new %s", dev->getAddressString().c_str());
 
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
