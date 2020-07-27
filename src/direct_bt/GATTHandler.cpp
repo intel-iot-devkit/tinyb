@@ -412,9 +412,9 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     std::shared_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
-        ERR_PRINT("GATTHandler::send: nullptr result (timeout): req %s to %s", msg.toString().c_str(), deviceString.c_str());
+        ERR_PRINT("GATTHandler::send: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
-        throw BluetoothException("GATTHandler::send: nullptr result (timeout): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BluetoothException("GATTHandler::send: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }

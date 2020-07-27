@@ -593,8 +593,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             updateServiceCache(services);
             return services;
         } catch (final Throwable t) {
+            System.err.println("DBTDevice.getServices(): Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString()+" on "+toString());
             if(DEBUG) {
-                System.err.println("Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString());
                 t.printStackTrace();
             }
         }
@@ -607,8 +607,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         try {
             return pingGATTImpl();
         } catch (final Throwable t) {
+            System.err.println("DBTDevice.pingGATT(): Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString()+" on "+toString());
             if(DEBUG) {
-                System.err.println("Caught "+t.getMessage()+" on thread "+Thread.currentThread().toString());
                 t.printStackTrace();
             }
         }
