@@ -441,7 +441,8 @@ void Java_tinyb_dbus_DBusManager_delete(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothManager *manager = getInstance<BluetoothManager>(env, obj);
-        delete manager;
+        (void) manager;
+        // delete manager; // Should not be called!
     } catch (std::bad_alloc &e) {
         raise_java_oom_exception(env, e);
     } catch (BluetoothException &e) {
