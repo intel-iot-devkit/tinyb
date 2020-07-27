@@ -178,12 +178,12 @@ namespace direct_bt {
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
             friend void DBTDevice::releaseSharedInstance() const;
             friend std::shared_ptr<ConnectionInfo> DBTDevice::getConnectionInfo();
-            friend bool DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
+            friend HCIStatusCode DBTDevice::disconnect(const bool sentFromManager, const bool ioErrorCause,const HCIStatusCode reason);
             friend void DBTDevice::remove();
-            friend bool DBTDevice::connectLE(uint16_t interval, uint16_t window,
-                                             uint16_t min_interval, uint16_t max_interval,
-                                             uint16_t latency, uint16_t supervision_timeout);
-            friend bool DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
+            friend HCIStatusCode DBTDevice::connectLE(uint16_t interval, uint16_t window,
+                                                      uint16_t min_interval, uint16_t max_interval,
+                                                      uint16_t latency, uint16_t supervision_timeout);
+            friend HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t clock_offset, const uint8_t role_switch);
             friend std::vector<std::shared_ptr<GATTService>> DBTDevice::getGATTServices();
 
             bool addConnectedDevice(const std::shared_ptr<DBTDevice> & device);

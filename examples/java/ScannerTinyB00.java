@@ -37,6 +37,7 @@ import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothUtils;
+import org.tinyb.HCIStatusCode;
 
 public class ScannerTinyB00 {
     static {
@@ -165,13 +166,14 @@ public class ScannerTinyB00 {
             sensor.enableServicesResolvedNotifications(servicesResolvedNotification);
 
             final long t2;
-            if ( sensor.connect() ) {
+            final HCIStatusCode res;
+            if ( ( res = sensor.connect() ) == HCIStatusCode.SUCCESS ) {
                 t2 = System.currentTimeMillis();
-                System.err.println("Sensor connected in "+(t2-t1)+" ms");
+                System.err.println("Sensor connect command in "+(t2-t1)+" ms");
                 System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
             } else {
                 t2=0;
-                System.out.println("Could not connect device.");
+                System.out.println("Connect command failed, res "+res);
                 System.exit(-1);
             }
 

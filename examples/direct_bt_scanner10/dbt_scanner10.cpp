@@ -234,12 +234,14 @@ class MyGATTEventListener : public AssociatedGATTCharacteristicListener {
 static void connectDiscoveredDevice(std::shared_ptr<DBTDevice> device) {
     fprintf(stderr, "****** Connecting Device: Start %s\n", device->toString().c_str());
     device->getAdapter().stopDiscovery();
-    bool res = false;
+    HCIStatusCode res;
     if( !USE_WHITELIST ) {
         res = device->connectDefault();
+    } else {
+        res = HCIStatusCode::SUCCESS;
     }
-    fprintf(stderr, "****** Connecting Device: End result %d of %s\n", res, device->toString().c_str());
-    if( !USE_WHITELIST && 0 == devicesInProcessing.size() && !res ) {
+    fprintf(stderr, "****** Connecting Device: End result %s of %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
+    if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode::SUCCESS != res ) {
         device->getAdapter().startDiscovery( true );
     }
 }

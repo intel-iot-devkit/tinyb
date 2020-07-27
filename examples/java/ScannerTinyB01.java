@@ -275,13 +275,14 @@ public class ScannerTinyB01 {
 
                 final long t2 = BluetoothUtils.getCurrentMilliseconds();
                 final long t3;
-                if ( sensor.connect() ) {
+                HCIStatusCode res;
+                if ( ( res = sensor.connect() ) == HCIStatusCode.SUCCESS ) {
                     t3 = BluetoothUtils.getCurrentMilliseconds();
-                    System.err.println("Sensor connected: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
+                    System.err.println("Sensor connect issued: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     System.err.println("Sensor connectedNotification: "+connectedNotification.getValue());
                 } else {
                     t3 = BluetoothUtils.getCurrentMilliseconds();
-                    System.out.println("Could not connect device: "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
+                    System.out.println("connect command failed, res "+res+": "+(t3-t2)+" ms, total "+(t3-t0)+" ms");
                     // we tolerate the failed immediate connect, as it might happen at a later time
                 }
 

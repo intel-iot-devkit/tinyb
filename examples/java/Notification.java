@@ -34,6 +34,7 @@ import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
 import org.tinyb.BluetoothNotification;
+import org.tinyb.HCIStatusCode;
 
 class ValueNotification implements BluetoothNotification<byte[]> {
 
@@ -141,7 +142,7 @@ public class Notification {
         System.out.print("Found device: ");
         printDevice(sensor);
 
-        if (sensor.connect())
+        if ( HCIStatusCode.SUCCESS == sensor.connect() )
             System.out.println("Sensor with the provided address connected");
         else {
             System.out.println("Could not connect device.");

@@ -42,6 +42,7 @@ import org.tinyb.BluetoothNotification;
 import org.tinyb.BluetoothType;
 import org.tinyb.BluetoothUtils;
 import org.tinyb.GATTCharacteristicListener;
+import org.tinyb.HCIStatusCode;
 
 public class DBusDevice extends DBusObject implements BluetoothDevice
 {
@@ -76,15 +77,22 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     /* D-Bus method calls: */
 
     @Override
-    public native boolean disconnect() throws BluetoothException;
+    public final HCIStatusCode disconnect() throws BluetoothException {
+        return disconnectImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.UNSPECIFIED_ERROR ;
+    }
+    private native boolean disconnectImpl() throws BluetoothException;
+
 
     @Override
-    public native boolean connect() throws BluetoothException;
+    public final HCIStatusCode connect() throws BluetoothException {
+        return connectImpl() ? HCIStatusCode.SUCCESS : HCIStatusCode.UNSPECIFIED_ERROR ;
+    }
+    private native boolean connectImpl() throws BluetoothException;
 
     @Override
-    public boolean connect(final short interval, final short window,
-                           final short min_interval, final short max_interval,
-                           final short latency, final short timeout) {
+    public HCIStatusCode connect(final short interval, final short window,
+                                 final short min_interval, final short max_interval,
+                                 final short latency, final short timeout) {
         return connect(); // FIXME connection params ...
     }
 

@@ -218,8 +218,9 @@ int main(int argc, char *argv[])
             // (Without: Overall communication takes ~twice as long!!!)
             //
             if( doHCI_Connect ) {
-                if( 0 == device->connectDefault() ) {
-                    fprintf(stderr, "Connect: Failed %s\n", device->toString().c_str());
+                HCIStatusCode res;
+                if( ( res = device->connectDefault() ) != HCIStatusCode::SUCCESS ) {
+                    fprintf(stderr, "Connect: Failed res %s, %s\n", getHCIStatusCodeString(res).c_str(), device->toString().c_str());
                     // we tolerate the failed immediate connect, as it might happen at a later time
                 } else {
                     fprintf(stderr, "Connect: Success\n");

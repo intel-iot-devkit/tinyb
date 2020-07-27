@@ -11,6 +11,7 @@ import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
 import org.tinyb.BluetoothGattService;
 import org.tinyb.BluetoothManager;
+import org.tinyb.HCIStatusCode;
 
 public class HelloTinyB {
     static boolean running = true;
@@ -149,7 +150,7 @@ public class HelloTinyB {
         System.out.print("Found device: ");
         printDevice(sensor);
 
-        if (sensor.connect())
+        if ( HCIStatusCode.SUCCESS == sensor.connect() )
             System.out.println("Sensor with the provided address connected");
         else {
             System.out.println("Could not connect device.");

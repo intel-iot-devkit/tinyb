@@ -92,8 +92,8 @@ namespace direct_bt {
             void notifyDisconnected();
             void notifyConnected(const uint16_t handle);
 
-            bool disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
-                            const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
+            HCIStatusCode disconnect(const bool fromDisconnectCB, const bool ioErrorCause,
+                                     const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION );
 
         public:
             const uint64_t ts_creation;
@@ -211,14 +211,16 @@ namespace direct_bt {
             /**
              * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
              * <p>
-             * If this device's addressType is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM, 0 is being returned.
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
              * </p>
              * <p>
-             * Returns true if the command has been accepted, otherwise false.
+             * If this device's addressType is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM,
+             * HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM is being returned.
              * </p>
              * <p>
              * The actual new connection handle will be delivered asynchronous and
-             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..),
+             * or if failed via AdapterStatusListener::deviceDisconnected(..).
              * </p>
              * <p>
              * The device is tracked by the managing adapter.
@@ -231,57 +233,62 @@ namespace direct_bt {
              * Set window to the same value as the interval, enables continuous scanning.
              * </p>
              *
-             * @param peer_mac_type
-             * @param own_mac_type
              * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
              * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
              * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
              * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
              * @param conn_latency slave latency in units of connection events, default value 0
              * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
-             * @return
+             * @return the HCIStatusCode result whether the command has been accepted, HCIStatusCode::SUCCESS on success.
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            bool connectLE(const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
-                           const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
-                           const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
+            HCIStatusCode connectLE(const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
+                                    const uint16_t conn_interval_min=0x000F, const uint16_t conn_interval_max=0x000F,
+                                    const uint16_t conn_latency=0x0000, const uint16_t supervision_timeout=number(HCIConstInt::LE_CONN_TIMEOUT_MS)/10);
 
             /**
              * Establish a HCI BDADDR_BREDR connection to this device.
              * <p>
-             * If this device's addressType is not BDADDR_BREDR, 0 is being returned.
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
              * </p>
              * <p>
-             * Returns true if the command has been accepted, otherwise false.
+             * If this device's addressType is not BDADDR_BREDR,
+             * HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM is being returned.
              * </p>
              * <p>
              * The actual new connection handle will be delivered asynchronous and
-             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..),
+             * or if failed via AdapterStatusListener::deviceDisconnected(..).
              * </p>
              * <p>
              * The device is tracked by the managing adapter.
              * </p>
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            bool connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
-                              const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
+            HCIStatusCode connectBREDR(const uint16_t pkt_type=HCI_DM1 | HCI_DM3 | HCI_DM5 | HCI_DH1 | HCI_DH3 | HCI_DH5,
+                                       const uint16_t clock_offset=0x0000, const uint8_t role_switch=0x01);
 
             /**
              * Establish a default HCI connection to this device, using certain default parameter.
              * <p>
-             * Depending on this device's addressType,
-             * either a BREDR (BDADDR_BREDR) or LE (BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM) connection is attempted.
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command <br>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
              * </p>
              * <p>
-             * Returns true if the command has been accepted, otherwise false.
+             * Depending on this device's addressType,
+             * either a BREDR (BDADDR_BREDR) or LE (BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM) connection is attempted.<br>
+             * If unacceptable, HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM is being returned.
              * </p>
              * <p>
              * The actual new connection handle will be delivered asynchronous and
-             * the connection event can be caught via AdapterStatusListener::deviceConnected(..).
-             * </p>
+             * the connection event can be caught via AdapterStatusListener::deviceConnected(..),
+             * or if failed via AdapterStatusListener::deviceDisconnected(..).
              * <p>
              * The device is tracked by the managing adapter.
              * </p>
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            bool connectDefault();
+            HCIStatusCode connectDefault();
 
 
             /** Return the HCI connection handle to the LE or BREDR peer, 0 if not connected. */
@@ -290,7 +297,7 @@ namespace direct_bt {
             /**
              * Disconnect the LE or BREDR peer's GATT and HCI connection.
              * <p>
-             * Returns true if the command has been accepted, otherwise false.
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
              * </p>
              * <p>
              * The actual disconnect event will be delivered asynchronous and
@@ -303,8 +310,9 @@ namespace direct_bt {
              * <p>
              * An open GATTHandler will also be closed via disconnectGATT()
              * </p>
+             * @return HCIStatusCode::SUCCESS if the command has been accepted, otherwise HCIStatusCode may disclose reason for rejection.
              */
-            bool disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
+            HCIStatusCode disconnect(const HCIStatusCode reason=HCIStatusCode::REMOTE_USER_TERMINATED_CONNECTION ) {
                 return disconnect(false /* fromDisconnectCB */, false /* ioErrorCause */, reason);
             }
 

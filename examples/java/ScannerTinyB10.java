@@ -184,12 +184,14 @@ public class ScannerTinyB10 {
     private void connectDiscoveredDevice(final BluetoothDevice device) {
         println("****** Connecting Device: Start " + device.toString());
         device.getAdapter().stopDiscovery();
-        boolean res = false;
+        HCIStatusCode res;
         if( !USE_WHITELIST ) {
             res = device.connect();
+        } else {
+            res = HCIStatusCode.SUCCESS;
         }
-        println("****** Connecting Device: End result "+res+" of " + device.toString());
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() && !res ) {
+        println("****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
             device.getAdapter().startDiscovery( true );
         }
     }

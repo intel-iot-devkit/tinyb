@@ -72,7 +72,7 @@ jobject Java_tinyb_dbus_DBusDevice_clone(JNIEnv *env, jobject obj)
     return nullptr;
 }
 
-jboolean Java_tinyb_dbus_DBusDevice_disconnect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_disconnectImpl(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);
@@ -131,7 +131,7 @@ jboolean Java_tinyb_dbus_DBusDevice_connectAsyncFinish(JNIEnv *env, jobject obj)
     return JNI_FALSE;
 }
 
-jboolean Java_tinyb_dbus_DBusDevice_connect(JNIEnv *env, jobject obj)
+jboolean Java_tinyb_dbus_DBusDevice_connectImpl(JNIEnv *env, jobject obj)
 {
     try {
         BluetoothDevice *obj_device = getInstance<BluetoothDevice>(env, obj);

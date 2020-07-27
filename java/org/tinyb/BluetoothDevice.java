@@ -64,25 +64,83 @@ public interface BluetoothDevice extends BluetoothObject
       */
     BluetoothGattService find(String UUID);
 
-    /* D-Bus method calls: */
-    /** The connection to this device is removed, removing all connected
-      * profiles.
-      * @return TRUE if the device disconnected
-      */
-    boolean disconnect() throws BluetoothException;
-
-    /** A connection to this device is established, connecting each profile
-      * flagged as auto-connectable.
-      * @return TRUE if the device connected
-      * @see #connect(short, short, short, short, short, short)
-      */
-    boolean connect() throws BluetoothException;
+    /* Bluetooth method calls: */
 
     /**
-     * A connection to this device is established, see {@link #connect()}.
+     * <b>direct_bt.tinyb</b>: Disconnect the LE or BREDR peer's GATT and HCI connection.
      * <p>
-     * The given LE connection parameter will be used instead of the Bluetooth implementation defaults,
-     * if this device is of type {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.6 Disconnect command
+     * </p>
+     * <p>
+     * The actual disconnect event will be delivered asynchronous and
+     * the connection event can be caught via AdapterStatusListener::deviceDisconnected(..).
+     * If unacceptable, {@link HCIStatusCode#UNACCEPTABLE_CONNECTION_PARAM} is being returned.
+     * </p>
+     * <p>
+     * The device will be removed from the managing adapter's connected devices
+     * when {@link AdapterStatusListener#deviceDisconnected(BluetoothDevice, HCIStatusCode, long)} has been received.
+     * </p>
+     * <p>
+     * Any open GATT connection will be closed as well.
+     * </p>
+     * <p>
+     * <b>tinyb.dbus</b> The connection to this device is removed, removing all connected
+     * profiles.
+     * </p>
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
+     */
+    HCIStatusCode disconnect() throws BluetoothException;
+
+    /**
+     * <b>direct_bt.tinyb</b>: Establish a default HCI connection to this device, using certain default parameter.
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command <br>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.1.5 Create Connection command
+     * </p>
+     * <p>
+     * Depending on this device's addressType,
+     * either a BREDR (BDADDR_BREDR) or LE (BDADDR_LE_PUBLIC, BDADDR_LE_RANDOM) connection is attempted.<br>
+     * If unacceptable, {@link HCIStatusCode#UNACCEPTABLE_CONNECTION_PARAM} is being returned.
+     * </p>
+     * <p>
+     * The actual new connection handle will be delivered asynchronous and
+     * the connection event can be caught via {@link AdapterStatusListener#deviceConnected(BluetoothDevice, long)},
+     * or if failed via {@link AdapterStatusListener#deviceDisconnected(BluetoothDevice, HCIStatusCode, long)}.
+     * </p>
+     * <p>
+     * The device is tracked by the managing adapter.
+     * </p>
+     * <p>
+     * <b>tinyb.dbus</b>: A connection to this device is established, connecting each profile
+     * flagged as auto-connectable.
+     * </p>
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
+     * @see #connect(short, short, short, short, short, short)
+     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
+     */
+    HCIStatusCode connect() throws BluetoothException;
+
+    /**
+     * Establish a HCI BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM connection to this device.
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
+     * </p>
+     * <p>
+     * If this device's {@link #getAddressType()} is not BDADDR_LE_PUBLIC or BDADDR_LE_RANDOM,
+     * {@link HCIStatusCode#UNACCEPTABLE_CONNECTION_PARAM} is being returned.
+     * </p>
+     * <p>
+     * The actual new connection handle will be delivered asynchronous and
+     * the connection event can be caught via {@link AdapterStatusListener#deviceConnected(BluetoothDevice, long)},
+     * or if failed via {@link AdapterStatusListener#deviceDisconnected(BluetoothDevice, HCIStatusCode, long)}.
+     * </p>
+     * <p>
+     * The device is tracked by the managing adapter.
+     * </p>
+     * <p>
+     * Default parameter values are chosen for using public address resolution
+     * and usual connection latency, interval etc.
      * </p>
      * <p>
      * Set window to the same value as the interval, enables continuous scanning.
@@ -93,15 +151,16 @@ public interface BluetoothDevice extends BluetoothObject
      * @param conn_interval_min in units of 1.25ms, default value 15 for 19.75ms
      * @param conn_interval_max in units of 1.25ms, default value 15 for 19.75ms
      * @param conn_latency slave latency in units of connection events, default value 0
-     * @param timeout in units of 10ms, default value 1000 for 10000ms or 10s.
-     * @return {@code true} if successful, otherwise {@code false}.
+     * @param supervision_timeout in units of 10ms, default value 1000 for 10000ms or 10s.
+     * @return {@link HCIStatusCode#SUCCESS} if the command has been accepted, otherwise {@link HCIStatusCode} may disclose reason for rejection.
      *
      * @see #connect()
-     * @since 2.0.0
+     * @since 2.1.0 change API, i.e. return value from boolean to HCIStatusCode in favor of <i>direct_bt</i>
+     * @implNote not implemented in <b>tinyb.dbus</b>
      */
-    public boolean connect(final short le_scan_interval, final short le_scan_window,
-                           final short conn_interval_min, final short conn_interval_max,
-                           final short conn_latency, final short timeout);
+    HCIStatusCode connect(final short le_scan_interval, final short le_scan_window,
+                          final short conn_interval_min, final short conn_interval_max,
+                          final short conn_latency, final short timeout);
 
 
     /** Connects a specific profile available on the device, given by UUID
@@ -193,7 +252,7 @@ public interface BluetoothDevice extends BluetoothObject
      * determining whether the device is {@link BluetoothAddressType#BDADDR_BREDR}
      * or an LE device, {@link BluetoothAddressType#BDADDR_LE_PUBLIC} or {@link BluetoothAddressType#BDADDR_LE_RANDOM}.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus, returns {@link BluetoothAddressType#BDADDR_LE_PUBLIC}
+     * @implNote not implemented in <b>tinyb.dbus</b>, returns {@link BluetoothAddressType#BDADDR_LE_PUBLIC}
      */
     BluetoothAddressType getAddressType();
 
@@ -208,7 +267,7 @@ public interface BluetoothDevice extends BluetoothObject
      * method shall return {@link BLERandomAddressType#UNDEFINED}.
      * </p>
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus, returns {@link BLERandomAddressType#UNDEFINED}
+     * @implNote not implemented in <b>tinyb.dbus</b>, returns {@link BLERandomAddressType#UNDEFINED}
      */
     BLERandomAddressType getBLERandomAddressType();
 
@@ -454,7 +513,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @see BluetoothGattCharacteristic#configNotificationIndication(boolean, boolean, boolean[])
      * @see BluetoothGattCharacteristic#enableNotificationOrIndication(boolean[])
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in <b>tinyb.dbus</b>
      */
     public boolean addCharacteristicListener(final GATTCharacteristicListener listener)
         throws IllegalStateException;
@@ -467,7 +526,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @param listener A {@link GATTCharacteristicListener} instance
      * @return true if the given listener is an element of the list and has been removed, otherwise false.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in <b>tinyb.dbus</b>
      */
     public boolean removeCharacteristicListener(final GATTCharacteristicListener l);
 
@@ -480,7 +539,7 @@ public interface BluetoothDevice extends BluetoothObject
      * @param associatedCharacteristic the match criteria to remove any GATTCharacteristicListener from the list
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in <b>tinyb.dbus</b>
      */
     public int removeAllAssociatedCharacteristicListener(final BluetoothGattCharacteristic associatedCharacteristic);
 
@@ -488,7 +547,7 @@ public interface BluetoothDevice extends BluetoothObject
      * Remove all {@link GATTCharacteristicListener} from the list.
      * @return number of removed listener.
      * @since 2.0.0
-     * @implNote not implemented in tinyb.dbus
+     * @implNote not implemented in <b>tinyb.dbus</b>
      */
     public int removeAllCharacteristicListener();
 }
