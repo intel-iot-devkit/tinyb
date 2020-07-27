@@ -371,16 +371,19 @@ void DBTAdapter::startDiscoveryBackground() {
 }
 
 void DBTAdapter::stopDiscovery() {
+    INFO_PRINT("DBTAdapter::stopDiscovery: pre-lock");
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     keepDiscoveringAlive = false;
     if( ScanType::SCAN_TYPE_NONE == currentScanType ) {
+        INFO_PRINT("DBTAdapter::stopDiscovery: X0 (nop)");
         return;
     }
-    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
-    if( mgmt.stopDiscovery(dev_id, currentScanType) ) {
+    INFO_PRINT("DBTAdapter::stopDiscovery: ...");
+    bool r;
+    if( ( r = mgmt.stopDiscovery(dev_id, currentScanType) ) == true ) {
         currentScanType = ScanType::SCAN_TYPE_NONE;
     }
-    DBG_PRINT("DBTAdapter::stopDiscovery: X");
+    INFO_PRINT("DBTAdapter::stopDiscovery: X1 (done, res %d)", r);
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) {
@@ -645,8 +648,10 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
-        DBG_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s\n    -> %s",
-            dev_id, event.toString().c_str(), device->toString().c_str());
+        INFO_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+            dev_id, event.toString().c_str(), uint16HexString(device->getConnectionHandle()).c_str(),
+            device->toString().c_str());
+
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
@@ -665,7 +670,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
         });
         removeDiscoveredDevice(*device); // ensure device will cause a deviceFound event after disconnect
     } else {
-        DBG_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
+        INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> Device not tracked",
             dev_id, event.toString().c_str());
     }
     return true;
@@ -680,8 +685,10 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
                 dev_id, event.toString().c_str(), device->toString().c_str());
             return true;
         }
-        DBG_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s\n    -> %s",
-            dev_id, event.toString().c_str(), device->toString().c_str());
+        INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+            dev_id, event.toString().c_str(), uint16HexString(device->getConnectionHandle()).c_str(),
+            device->toString().c_str());
+
         device->notifyDisconnected();
         removeConnectedDevice(*device);
 
