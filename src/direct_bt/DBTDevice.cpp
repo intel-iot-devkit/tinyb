@@ -386,14 +386,16 @@ HCIStatusCode DBTDevice::connectDefault()
 }
 
 void DBTDevice::notifyConnected(const uint16_t handle) {
-    DBG_PRINT("DBTDevice::notifyConnected: handle %s, %s", uint16HexString(handle).c_str(), toString().c_str());
+    DBG_PRINT("DBTDevice::notifyConnected: handle %s -> %s, %s",
+            uint16HexString(hciConnHandle).c_str(), uint16HexString(handle).c_str(), toString().c_str());
     isConnected = true;
     allowDisconnect = true;
     hciConnHandle = handle;
 }
 
 void DBTDevice::notifyDisconnected() {
-    DBG_PRINT("DBTDevice::notifyDisconnected: %s", toString().c_str());
+    DBG_PRINT("DBTDevice::notifyDisconnected: handle %s -> zero, %s",
+            uint16HexString(hciConnHandle).c_str(), toString().c_str());
     try {
         // coming from disconnect callback, ensure cleaning up!
         disconnect(true /* fromDisconnectCB */, false /* ioErrorCause */);

@@ -604,11 +604,17 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
         device->ts_last_discovery = ad_report.getTimestamp();
     }
     if( 0 == new_connect ) {
-        WARN_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, already connected, updated %s): %s,\n    %s\n    -> %s",
-            dev_id, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        WARN_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, already connected, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
+            dev_id, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
+            uint16HexString(device->getConnectionHandle()).c_str(), uint16HexString(event.getHCIHandle()).c_str(),
+            ad_report.toString().c_str(),
+            device->toString().c_str());
     } else {
-        DBG_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s,\n    %s\n    -> %s",
-            dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(), ad_report.toString().c_str(), device->toString().c_str());
+        DBG_PRINT("DBTAdapter::EventHCI:DeviceConnected(dev_id %d, new_connect %d, updated %s): %s, handle %s -> %s,\n    %s,\n    -> %s",
+            dev_id, new_connect, getEIRDataMaskString(updateMask).c_str(), event.toString().c_str(),
+            uint16HexString(device->getConnectionHandle()).c_str(), uint16HexString(event.getHCIHandle()).c_str(),
+            ad_report.toString().c_str(),
+            device->toString().c_str());
     }
 
     device->notifyConnected(event.getHCIHandle());
