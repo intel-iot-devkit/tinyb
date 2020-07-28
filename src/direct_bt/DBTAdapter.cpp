@@ -159,19 +159,21 @@ bool DBTAdapter::validateDevInfo() {
     keepDiscoveringAlive = false;
 
     if( 0 > dev_id ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id: %s", toString().c_str());
+        ERR_PRINT("DBTAdapter::validateDevInfo: Invalid negative dev_id %d", dev_id);
         return false;
     }
     if( !mgmt.isOpen() ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Manager not open: %s", toString().c_str());
+        ERR_PRINT("DBTAdapter::validateDevInfo: Manager not open on dev_id %d", dev_id);
         return false;
     }
+
+    adapterInfo = mgmt.getAdapterInfo(dev_id);
+
     if( !openHCI() ) {
         ERR_PRINT("DBTAdapter::validateDevInfo: Opening adapter's HCI failed: %s", toString().c_str());
         return false;
     }
 
-    adapterInfo = mgmt.getAdapterInfo(dev_id);
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
