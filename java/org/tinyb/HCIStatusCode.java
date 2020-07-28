@@ -91,7 +91,7 @@ public enum HCIStatusCode {
         UNACCEPTABLE_CONNECTION_PARAM((byte) 0x3b),
         ADVERTISING_TIMEOUT((byte) 0x3c),
         CONNECTION_TERMINATED_MIC_FAILURE((byte) 0x3d),
-        CONNECTION_EST_FAILED_OR_SYNC_TIMETOUT((byte) 0x3e),
+        CONNECTION_EST_FAILED_OR_SYNC_TIMEOUT((byte) 0x3e),
         MAX_CONNECTION_FAILED ((byte) 0x3f),
         COARSE_CLOCK_ADJ_REJECTED((byte) 0x40),
         TYPE0_SUBMAP_NOT_DEFINED((byte) 0x41),
@@ -187,7 +187,7 @@ public enum HCIStatusCode {
             case (byte) 0x3b: return UNACCEPTABLE_CONNECTION_PARAM;
             case (byte) 0x3c: return ADVERTISING_TIMEOUT;
             case (byte) 0x3d: return CONNECTION_TERMINATED_MIC_FAILURE;
-            case (byte) 0x3e: return CONNECTION_EST_FAILED_OR_SYNC_TIMETOUT;
+            case (byte) 0x3e: return CONNECTION_EST_FAILED_OR_SYNC_TIMEOUT;
             case (byte) 0x3f: return MAX_CONNECTION_FAILED;
             case (byte) 0x40: return COARSE_CLOCK_ADJ_REJECTED;
             case (byte) 0x41: return TYPE0_SUBMAP_NOT_DEFINED;
