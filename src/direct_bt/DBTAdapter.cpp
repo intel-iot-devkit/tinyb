@@ -371,19 +371,18 @@ void DBTAdapter::startDiscoveryBackground() {
 }
 
 void DBTAdapter::stopDiscovery() {
-    INFO_PRINT("DBTAdapter::stopDiscovery: pre-lock");
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     keepDiscoveringAlive = false;
     if( ScanType::SCAN_TYPE_NONE == currentScanType ) {
-        INFO_PRINT("DBTAdapter::stopDiscovery: X0 (nop)");
+        DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled");
         return;
     }
-    INFO_PRINT("DBTAdapter::stopDiscovery: ...");
+    DBG_PRINT("DBTAdapter::stopDiscovery: ...");
     bool r;
     if( ( r = mgmt.stopDiscovery(dev_id, currentScanType) ) == true ) {
         currentScanType = ScanType::SCAN_TYPE_NONE;
     }
-    INFO_PRINT("DBTAdapter::stopDiscovery: X1 (done, res %d)", r);
+    DBG_PRINT("DBTAdapter::stopDiscovery: X1 (done, res %d)", r);
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) {
@@ -649,7 +648,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
         const uint16_t handle = device->getConnectionHandle();
-        INFO_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+        DBG_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
             dev_id, event.toString().c_str(), uint16HexString(handle).c_str(),
             device->toString().c_str());
 
@@ -686,7 +685,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
                 dev_id, event.toString().c_str(), device->toString().c_str());
             return true;
         }
-        INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
+        DBG_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
             dev_id, event.toString().c_str(), uint16HexString(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
