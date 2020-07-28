@@ -195,6 +195,9 @@ public class DBusDevice extends DBusObject implements BluetoothDevice
     public native boolean getConnected();
 
     @Override
+    public final short getConnectionHandle() { return 0; /* FIXME */ }
+
+    @Override
     public native void enableConnectedNotifications(BluetoothNotification<Boolean> callback);
 
      @Override

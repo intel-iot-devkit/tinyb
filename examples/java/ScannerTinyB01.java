@@ -181,14 +181,14 @@ public class ScannerTinyB01 {
             }
 
             @Override
-            public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+            public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
                 final boolean matches = EUI48_ANY_DEVICE.equals(waitForDevice) || device.getAddress().equals(waitForDevice);
                 System.err.println("****** CONNECTED: "+device+" - matches "+matches);
             }
 
             @Override
-            public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
-                System.err.println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
+            public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+                System.err.println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
         };
         adapter.addStatusListener(statusListener, null);

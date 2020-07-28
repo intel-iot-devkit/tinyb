@@ -48,8 +48,8 @@ static const std::string _adapterSettingsChangedMethodArgs("(Lorg/tinyb/Bluetoot
 static const std::string _discoveringChangedMethodArgs("(Lorg/tinyb/BluetoothAdapter;ZZJ)V");
 static const std::string _deviceFoundMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
 static const std::string _deviceUpdatedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/EIRDataTypeSet;J)V");
-static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;J)V");
-static const std::string _deviceDisconnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/HCIStatusCode;J)V");
+static const std::string _deviceConnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;SJ)V");
+static const std::string _deviceDisconnectedMethodArgs("(Lorg/tinyb/BluetoothDevice;Lorg/tinyb/HCIStatusCode;SJ)V");
 
 class JNIAdapterStatusListener : public AdapterStatusListener {
   private:
@@ -65,8 +65,8 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             public void discoveringChanged(final BluetoothAdapter adapter, final boolean enabled, final boolean keepAlive, final long timestamp) { }
             public void deviceFound(final BluetoothDevice device, final long timestamp) { }
             public void deviceUpdated(final BluetoothDevice device, final EIRDataTypeSet updateMask, final long timestamp) { }
-            public void deviceConnected(final BluetoothDevice device, final long timestamp) { }
-            public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) { }
+            public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
+            public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 
         };
     */
@@ -84,6 +84,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     jmethodID deviceClazzCtor;
     jfieldID deviceClazzTSLastDiscoveryField;
     jfieldID deviceClazzTSLastUpdateField;
+    jfieldID deviceClazzConnectionHandleField;
     JNIGlobalRef listenerObjRef;
     jmethodID  mAdapterSettingsChanged = nullptr;
     jmethodID  mDiscoveringChanged = nullptr;
@@ -183,6 +184,11 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
         if( nullptr == deviceClazzTSLastUpdateField ) {
             throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".ts_last_update", E_FILE_LINE);
+        }
+        deviceClazzConnectionHandleField = env->GetFieldID(deviceClazzRef.getClass(), "hciConnHandle", "S");
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        if( nullptr == deviceClazzConnectionHandleField ) {
+            throw InternalError("DBTDevice::java_class field not found: "+DBTDevice::java_class()+".hciConnHandle", E_FILE_LINE);
         }
 
         mAdapterSettingsChanged = search_method(env, listenerClazz, "adapterSettingsChanged", _adapterSettingsChangedMethodArgs.c_str(), false);
@@ -305,7 +311,7 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 
-    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
+    void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         DBG_PRINT("****** JNI Adapter Device CONNECTED: %s\n", device->toString(true).c_str());
 
@@ -331,14 +337,17 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
             jdevice = JavaGlobalObj::GetObject(jDeviceRef1);
             env->DeleteLocalRef(tmp_jdevice);
         }
+        env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)handle);
+        java_exception_check_and_throw(env, E_FILE_LINE);
         env->SetLongField(jdevice, deviceClazzTSLastDiscoveryField, (jlong)device->getLastDiscoveryTimestamp());
         java_exception_check_and_throw(env, E_FILE_LINE);
         env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jlong)timestamp);
+
+        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceConnected, jdevice, (jshort)handle, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
-    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint64_t timestamp) override {
+    void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
         DBG_PRINT("****** JNI Adapter Device DISCONNECTED: Reason 0x%X (%s): %s\n",
                 static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(), device->toString(true).c_str());
@@ -353,7 +362,12 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
         java_exception_check_and_throw(env, E_FILE_LINE);
         JNIGlobalRef::check(hciErrorCode, E_FILE_LINE);
 
-        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceDisconnected, jdevice, hciErrorCode, (jlong)timestamp);
+        env->SetShortField(jdevice, deviceClazzConnectionHandleField, (jshort)0); // zero out, disconnected
+        java_exception_check_and_throw(env, E_FILE_LINE);
+        env->SetLongField(jdevice, deviceClazzTSLastUpdateField, (jlong)timestamp);
+        java_exception_check_and_throw(env, E_FILE_LINE);
+
+        env->CallVoidMethod(listenerObjRef.getObject(), mDeviceDisconnected, jdevice, hciErrorCode, (jshort)handle, (jlong)timestamp);
         java_exception_check_and_throw(env, E_FILE_LINE);
     }
 };

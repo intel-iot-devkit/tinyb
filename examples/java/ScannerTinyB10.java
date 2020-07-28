@@ -147,7 +147,7 @@ public class ScannerTinyB10 {
         }
 
         @Override
-        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+        public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
             if( !devicesInProcessing.contains( device.getAddress() ) &&
                 ( waitForDevices.isEmpty() ||
                   ( waitForDevices.contains(device.getAddress()) &&
@@ -176,8 +176,8 @@ public class ScannerTinyB10 {
         }
 
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
-            println("****** DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
+        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
+            println("****** DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
         }
     };
 

@@ -112,18 +112,20 @@ namespace direct_bt {
 
             /**
              * DBTDevice got connected
-             * @param device the device which connection state has changed
+             * @param device the device which has been connected, holding the new connection handle.
+             * @param handle the new connection handle, which has been assigned to the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) = 0;
+            virtual void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) = 0;
 
             /**
              * DBTDevice got disconnected
-             * @param device the device which connection state has changed
+             * @param device the device which has been disconnected with zeroed connection handle.
              * @param reason the HCIStatusCode reason for disconnection
+             * @param handle the disconnected connection handle, which has been unassigned from the device already
              * @param timestamp the time in monotonic milliseconds when this event occurred. See BasicTypes::getCurrentMilliseconds().
              */
-            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint64_t timestamp) = 0;
+            virtual void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) = 0;
 
             virtual ~AdapterStatusListener() {}
 

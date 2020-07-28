@@ -90,16 +90,18 @@ public abstract class AdapterStatusListener {
 
     /**
      * {@link BluetoothDevice} got connected.
-     * @param device the device which connection state has changed
+     * @param device the device which has been connected, holding the new connection handle.
+     * @param handle the new connection handle, which has been assigned to the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void deviceConnected(final BluetoothDevice device, final long timestamp) { }
+    public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) { }
 
     /**
      * {@link BluetoothDevice} got disconnected.
-     * @param device the device which connection state has changed
+     * @param device the device which has been disconnected with zeroed connection handle.
      * @param reason the {@link HCIStatusCode} reason for disconnection
+     * @param handle the disconnected connection handle, which has been unassigned from the device already
      * @param timestamp the time in monotonic milliseconds when this event occurred. See {@link BluetoothUtils#getCurrentMilliseconds()}.
      */
-    public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) { }
+    public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) { }
 };

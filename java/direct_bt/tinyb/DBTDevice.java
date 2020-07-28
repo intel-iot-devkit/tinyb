@@ -59,8 +59,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
     private final BLERandomAddressType leRandomAddressType;
     private final long ts_creation;
     private volatile String name;
-    long ts_last_discovery;
-    long ts_last_update;
+    volatile long ts_last_discovery;
+    volatile long ts_last_update;
+    volatile short hciConnHandle;
     /* pp */ final List<WeakReference<DBTGattService>> serviceCache = new ArrayList<WeakReference<DBTGattService>>();
 
     private final Object userCallbackLock = new Object();
@@ -114,7 +115,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+        public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
             if( isConnected.compareAndSet(false, true) ) {
                 synchronized(userCallbackLock) {
                     if( null != userConnectedNotificationsCB ) {
@@ -129,7 +130,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             }
         }
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
+        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             if( isConnected.compareAndSet(true, false) ) {
                 clearServiceCache();
                 synchronized(userCallbackLock) {
@@ -223,6 +224,7 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
         this.name = name;
         ts_last_discovery = ts_creation;
         ts_last_update = ts_creation;
+        hciConnHandle = 0;
         appearance = 0;
         initImpl();
         adptr.addStatusListener(statusListener, this); // only for this device
@@ -354,6 +356,9 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
 
     @Override
     public final boolean getConnected() { return isConnected.get(); }
+
+    @Override
+    public final short getConnectionHandle() { return hciConnHandle; }
 
     @Override
     public final HCIStatusCode disconnect() throws BluetoothException {
@@ -526,7 +531,8 @@ public class DBTDevice extends DBTObject implements BluetoothDevice
             } else {
                 leRandomStr = "";
             }
-            return "Device" + "\u271D" + "[address["+address+", "+addressType.toString()+leRandomStr+"], '"+name+"']";
+            return "Device" + "\u271D" + "[address["+address+", "+addressType.toString()+leRandomStr+"], '"+name+
+                    "', connected["+isConnected.get()+", 0x"+Integer.toHexString(hciConnHandle)+"]]";
         }
         return toStringImpl();
     }

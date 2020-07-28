@@ -630,7 +630,7 @@ bool DBTAdapter::mgmtEvDeviceConnectedHCI(std::shared_ptr<MgmtEvent> e) {
                     l->deviceUpdated(device, updateMask, ad_report.getTimestamp());
                 }
                 if( 0 < new_connect ) {
-                    l->deviceConnected(device, event.getTimestamp());
+                    l->deviceConnected(device, event.getHCIHandle(), event.getTimestamp());
                 }
             }
         } catch (std::exception &e) {
@@ -648,8 +648,9 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
     std::shared_ptr<DBTDevice> device = findConnectedDevice(event.getAddress(), event.getAddressType());
     if( nullptr != device ) {
+        const uint16_t handle = device->getConnectionHandle();
         INFO_PRINT("DBTAdapter::EventHCI:ConnectFailed(dev_id %d): %s, handle %s -> zero,\n    -> %s",
-            dev_id, event.toString().c_str(), uint16HexString(device->getConnectionHandle()).c_str(),
+            dev_id, event.toString().c_str(), uint16HexString(handle).c_str(),
             device->toString().c_str());
 
         device->notifyDisconnected();
@@ -659,7 +660,7 @@ bool DBTAdapter::mgmtEvConnectFailedHCI(std::shared_ptr<MgmtEvent> e) {
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
-                    l->deviceDisconnected(device, event.getHCIStatus(), event.getTimestamp());
+                    l->deviceDisconnected(device, event.getHCIStatus(), handle, event.getTimestamp());
                 }
             } catch (std::exception &e) {
                 ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",
@@ -686,7 +687,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
             return true;
         }
         INFO_PRINT("DBTAdapter::EventHCI:DeviceDisconnected(dev_id %d): %s, handle %s -> zero,\n    -> %s",
-            dev_id, event.toString().c_str(), uint16HexString(device->getConnectionHandle()).c_str(),
+            dev_id, event.toString().c_str(), uint16HexString(event.getHCIHandle()).c_str(),
             device->toString().c_str());
 
         device->notifyDisconnected();
@@ -696,7 +697,7 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e) {
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*device) ) {
-                    l->deviceDisconnected(device, event.getHCIReason(), event.getTimestamp());
+                    l->deviceDisconnected(device, event.getHCIReason(), event.getHCIHandle(), event.getTimestamp());
                 }
             } catch (std::exception &e) {
                 ERR_PRINT("DBTAdapter::EventHCI:DeviceDisconnected-CBs %d/%zd: %s of %s: Caught exception %s",

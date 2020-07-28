@@ -399,6 +399,13 @@ public interface BluetoothDevice extends BluetoothObject
     boolean getConnected();
 
     /**
+     * Return the HCI connection handle to the LE or BREDR peer, zero if not connected.
+     * @since 2.1.0
+     * @implNote not implemented in <b>tinyb.dbus</b>
+     */
+    short getConnectionHandle();
+
+    /**
      * Enables notifications for the connected property and calls run function of the
      * BluetoothNotification object.
      * @param callback A BluetoothNotification<Boolean> object. Its run function will be called

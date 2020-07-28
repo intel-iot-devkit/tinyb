@@ -479,16 +479,16 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
         }
 
         @Override
-        public void deviceConnected(final BluetoothDevice device, final long timestamp) {
+        public void deviceConnected(final BluetoothDevice device, final short handle, final long timestamp) {
             if( DEBUG ) {
                 System.err.println("Adapter.StatusListener.CONNECTED: "+device+" on "+device.getAdapter());
             }
         }
 
         @Override
-        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final long timestamp) {
+        public void deviceDisconnected(final BluetoothDevice device, final HCIStatusCode reason, final short handle, final long timestamp) {
             if( DEBUG ) {
-                System.err.println("Adapter.StatusListener.DISCONNECTED: Reason "+reason+": "+device+" on "+device.getAdapter());
+                System.err.println("Adapter.StatusListener.DISCONNECTED: Reason "+reason+", old handle 0x"+Integer.toHexString(handle)+": "+device+" on "+device.getAdapter());
             }
         }
     };

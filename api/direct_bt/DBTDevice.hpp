@@ -291,7 +291,7 @@ namespace direct_bt {
             HCIStatusCode connectDefault();
 
 
-            /** Return the HCI connection handle to the LE or BREDR peer, 0 if not connected. */
+            /** Return the HCI connection handle to the LE or BREDR peer, zero if not connected. */
             uint16_t getConnectionHandle() const { return hciConnHandle; }
 
             /**
