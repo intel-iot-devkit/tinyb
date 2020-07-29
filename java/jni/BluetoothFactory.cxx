@@ -38,11 +38,11 @@ jstring Java_org_tinyb_BluetoothFactory_getNativeAPIVersion(JNIEnv *env, jclass 
         std::string api_version = std::string(gVERSION_API);
         return env->NewStringUTF(api_version.c_str());
     } catch (std::bad_alloc &e) {
-        raise_java_oom_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::exception &e) {
         raise_java_exception(env, e);
     }

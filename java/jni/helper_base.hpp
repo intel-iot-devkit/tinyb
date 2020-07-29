@@ -241,6 +241,18 @@ jobject convert_vector_sharedptr_to_jarraylist(JNIEnv *env, std::vector<std::sha
 }
 
 void raise_java_exception(JNIEnv *env, std::exception &e);
+void raise_java_exception(JNIEnv *env, std::runtime_error &e);
+void raise_java_exception(JNIEnv *env, direct_bt::RuntimeException &e);
+void raise_java_exception(JNIEnv *env, direct_bt::InternalError &e);
+void raise_java_exception(JNIEnv *env, direct_bt::NullPointerException &e);
+void raise_java_exception(JNIEnv *env, direct_bt::IllegalArgumentException &e);
+void raise_java_exception(JNIEnv *env, std::invalid_argument &e);
+void raise_java_exception(JNIEnv *env, direct_bt::IllegalStateException &e);
+void raise_java_exception(JNIEnv *env, direct_bt::UnsupportedOperationException &e);
+void raise_java_exception(JNIEnv *env, direct_bt::IndexOutOfBoundsException &e);
+void raise_java_exception(JNIEnv *env, std::bad_alloc &e);
+void raise_java_exception(JNIEnv *env, direct_bt::BluetoothException &e);
+
 void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e);
 void raise_java_runtime_exception(JNIEnv *env, direct_bt::RuntimeException &e);
 void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e);

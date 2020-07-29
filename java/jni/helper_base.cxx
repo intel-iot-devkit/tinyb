@@ -31,7 +31,7 @@
 #include <stdexcept>
 #include <vector>
 
-#define VERBOSE_ON 1
+// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "helper_base.hpp"
@@ -185,33 +185,57 @@ jobject get_new_arraylist(JNIEnv *env, unsigned int size, jmethodID *add)
     return result;
 }
 
-void raise_java_exception(JNIEnv *env, std::exception &e)
-{
+void raise_java_exception(JNIEnv *env, std::exception &e) {
     env->ThrowNew(env->FindClass("java/lang/Error"), e.what());
 }
-
-void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e)
-{
+void raise_java_exception(JNIEnv *env, std::runtime_error &e) {
     env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
 }
-
-void raise_java_runtime_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
+void raise_java_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
     env->ThrowNew(env->FindClass("java/lang/RuntimeException"), e.what());
 }
-
-void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e)
-{
-    env->ThrowNew(env->FindClass("java/lang/OutOfMemoryException"), e.what());
+void raise_java_exception(JNIEnv *env, direct_bt::InternalError &e) {
+    env->ThrowNew(env->FindClass("java/lang/InternalError"), e.what());
 }
-
-void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e)
-{
+void raise_java_exception(JNIEnv *env, direct_bt::NullPointerException &e) {
+    env->ThrowNew(env->FindClass("java/lang/NullPointerException"), e.what());
+}
+void raise_java_exception(JNIEnv *env, direct_bt::IllegalArgumentException &e) {
     env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
 }
-
-void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &e)
-{
+void raise_java_exception(JNIEnv *env, std::invalid_argument &e) {
+    env->ThrowNew(env->FindClass("java/lang/IllegalArgumentException"), e.what());
+}
+void raise_java_exception(JNIEnv *env, direct_bt::IllegalStateException &e) {
+    env->ThrowNew(env->FindClass("java/lang/IllegalStateException"), e.what());
+}
+void raise_java_exception(JNIEnv *env, direct_bt::UnsupportedOperationException &e) {
+    env->ThrowNew(env->FindClass("java/lang/UnsupportedOperationException"), e.what());
+}
+void raise_java_exception(JNIEnv *env, direct_bt::IndexOutOfBoundsException &e) {
+    env->ThrowNew(env->FindClass("java/lang/IndexOutOfBoundsException"), e.what());
+}
+void raise_java_exception(JNIEnv *env, std::bad_alloc &e) {
+    env->ThrowNew(env->FindClass("java/lang/OutOfMemoryError"), e.what());
+}
+void raise_java_exception(JNIEnv *env, direct_bt::BluetoothException &e) {
     env->ThrowNew(env->FindClass("org/tinyb/BluetoothException"), e.what());
+}
+
+void raise_java_runtime_exception(JNIEnv *env, std::runtime_error &e) {
+    raise_java_exception(env, e);
+}
+void raise_java_runtime_exception(JNIEnv *env, direct_bt::RuntimeException &e) {
+    raise_java_exception(env, e);
+}
+void raise_java_oom_exception(JNIEnv *env, std::bad_alloc &e) {
+    raise_java_exception(env, e);
+}
+void raise_java_invalid_arg_exception(JNIEnv *env, std::invalid_argument &e) {
+    raise_java_exception(env, e);
+}
+void raise_java_bluetooth_exception(JNIEnv *env, direct_bt::BluetoothException &e) {
+    raise_java_exception(env, e);
 }
 
 void rethrow_and_raise_java_exception(JNIEnv *env) {
@@ -220,15 +244,27 @@ void rethrow_and_raise_java_exception(JNIEnv *env) {
         // std::rethrow_exception(e);
         throw; // re-throw current exception
     } catch (std::bad_alloc &e) { \
-        raise_java_oom_exception(env, e);
+        raise_java_exception(env, e);
+    } catch (direct_bt::InternalError &e) {
+        raise_java_exception(env, e);
+    } catch (direct_bt::NullPointerException &e) {
+        raise_java_exception(env, e);
+    } catch (direct_bt::IllegalArgumentException &e) {
+        raise_java_exception(env, e);
+    } catch (direct_bt::IllegalStateException &e) {
+        raise_java_exception(env, e);
+    } catch (direct_bt::UnsupportedOperationException &e) {
+        raise_java_exception(env, e);
+    } catch (direct_bt::IndexOutOfBoundsException &e) {
+        raise_java_exception(env, e);
     } catch (direct_bt::BluetoothException &e) {
-        raise_java_bluetooth_exception(env, e);
+        raise_java_exception(env, e);
     } catch (direct_bt::RuntimeException &e) {
-        raise_java_runtime_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::runtime_error &e) {
-        raise_java_runtime_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::invalid_argument &e) {
-        raise_java_invalid_arg_exception(env, e);
+        raise_java_exception(env, e);
     } catch (std::exception &e) {
         raise_java_exception(env, e);
     } catch (std::string &msg) {
@@ -244,12 +280,12 @@ bool java_exception_check(JNIEnv *env, const char* file, int line)
 {
     jthrowable e = env->ExceptionOccurred();
     if( nullptr != e ) {
-#ifdef VERBOSE_ON
-        DBG_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
+#if 1
+        INFO_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
         // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
         // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();
-#endif /* VERBOSE_ON */
+#endif
         env->ExceptionClear(); // just be sure, to have same side-effects
         env->Throw(e); // re-throw the java exception - java side!
         return true;
