@@ -409,6 +409,25 @@ void DBTAdapter::startDiscoveryBackground() {
 
 void DBTAdapter::stopDiscovery() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
+    /**
+     * Need to send mgmtEvDeviceDiscoveringMgmt(..)
+     * as manager/hci won't produce such event having temporarily disabled discovery.
+     * + --+-------+--------+-----------+----------------------------------------------------+
+     * | # | meta  | native | keepAlive | Note
+     * +---+-------+--------+-----------+----------------------------------------------------+
+     * | 1 | true  | true   | false     | -
+     * | 2 | false | false  | false     | -
+     * +---+-------+--------+-----------+----------------------------------------------------+
+     * | 3 | true  | true   | true      | -
+     * | 4 | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+     * | 5 | false | false  | true      | [4] -> [5] requires manual DISCOVERING event
+     * +---+-------+--------+-----------+----------------------------------------------------+
+     * [4] current -> [5] post stopDiscovery == sendEvent
+     */
+    const bool sendEvent = ScanType::NONE != currentMetaScanType &&    // true
+                           ScanType::NONE == currentNativeScanType &&  // false
+                           keepDiscoveringAlive;                       // true
+
     keepDiscoveringAlive = false;
     if( ScanType::NONE == currentMetaScanType ) {
         DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled, keepAlive %d, currentScanType[native %s, meta %s] ...",
@@ -417,15 +436,13 @@ void DBTAdapter::stopDiscovery() {
         checkDiscoveryState();
         return;
     }
-    // Need to send mgmtEvDeviceDiscoveringMgmt(..)
-    // as manager/hci won't produce such event having temporarily disabled discovery.
-    const bool sendEvent = ScanType::NONE == currentNativeScanType;
 
     bool r;
     if( ( r = mgmt.stopDiscovery(dev_id, currentMetaScanType) ) == true ) {
         currentNativeScanType = ScanType::NONE;
-        currentMetaScanType = currentNativeScanType.load();
     }
+    currentMetaScanType = currentNativeScanType.load(); // always to have valid DiscoveryState triple
+
     DBG_PRINT("DBTAdapter::stopDiscovery: Stopped (res %d), keepAlive %d, currentScanType[native %s, meta %s], sendEvent %d ...",
             r, keepDiscoveringAlive.load(),
             getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str(),
