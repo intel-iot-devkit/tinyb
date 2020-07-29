@@ -214,7 +214,7 @@ namespace direct_bt {
                 return comm.isOpen();
             }
 
-            std::string toString() const { return "HCIHandler[BTMode "+BTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
+            std::string toString() const { return "HCIHandler[BTMode "+getBTModeString(btMode)+", dev_id "+std::to_string(dev_id)+"]"; }
 
             /**
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.3.2 Reset command

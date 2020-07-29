@@ -129,7 +129,6 @@ namespace direct_bt {
             bool mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e);
             bool mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e);
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
         public:
             /**
@@ -172,7 +171,7 @@ namespace direct_bt {
             }
 
             std::string toString() const override {
-                return "MgmtHandler["+BTModeString(btMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
+                return "MgmtHandler[BTMode "+getBTModeString(btMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
             }
 
             /** retrieve information gathered at startup */
@@ -280,6 +279,9 @@ namespace direct_bt {
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
             void clearAllMgmtEventCallbacks();
+
+            /** Manually send a MgmtEvent to all of its listeners. */
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
     };
 
 } // namespace direct_bt

@@ -38,12 +38,36 @@
 
 namespace direct_bt {
 
-    enum BTMode : uint8_t {
-        BT_MODE_DUAL        = 1,
-        BT_MODE_BREDR       = 2,
-        BT_MODE_LE          = 3
+    enum class BTMode : uint8_t {
+        DUAL        = 1,
+        BREDR       = 2,
+        LE          = 3
     };
-    std::string BTModeString(const BTMode v);
+    inline uint8_t number(const BTMode rhs) {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getBTModeString(const BTMode v);
+
+    /**
+     * Meta ScanType as derived from BTMode,
+     * with defined value mask consisting of BDAddressType bits.
+     * <p>
+     * This ScanType is natively compatible with DBTManager's implementation
+     * for start and stop discovery.
+     * </p>
+     */
+    enum class ScanType : uint8_t {
+        NONE  = 0,
+        BREDR = 1 << BDAddressType::BDADDR_BREDR,
+        LE    = ( 1 << BDAddressType::BDADDR_LE_PUBLIC ) | ( 1 << BDAddressType::BDADDR_LE_RANDOM ),
+        DUAL  = BREDR | LE
+    };
+    inline uint8_t number(const ScanType rhs) {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getScanTypeString(const ScanType v);
+
+    ScanType getScanType(BTMode btMode);
 
     /**
      * HCI Whitelist connection type.

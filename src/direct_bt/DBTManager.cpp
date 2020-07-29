@@ -221,17 +221,17 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
     }
 
     switch ( btMode ) {
-        case BTMode::BT_MODE_DUAL:
+        case BTMode::DUAL:
             setMode(dev_id, MgmtOpcode::SET_SSP, 1);
             setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
             setMode(dev_id, MgmtOpcode::SET_LE, 1);
             break;
-        case BTMode::BT_MODE_BREDR:
+        case BTMode::BREDR:
             setMode(dev_id, MgmtOpcode::SET_SSP, 1);
             setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
             setMode(dev_id, MgmtOpcode::SET_LE, 0);
             break;
-        case BTMode::BT_MODE_LE:
+        case BTMode::LE:
             setMode(dev_id, MgmtOpcode::SET_SSP, 0);
             setMode(dev_id, MgmtOpcode::SET_BREDR, 0);
             setMode(dev_id, MgmtOpcode::SET_LE, 1);
@@ -489,25 +489,13 @@ bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t m
 }
 
 ScanType DBTManager::startDiscovery(const int dev_id) {
-    ScanType scanType;
-    switch ( btMode ) {
-        case BTMode::BT_MODE_DUAL:
-            scanType = ScanType::SCAN_TYPE_DUAL;
-            break;
-        case BTMode::BT_MODE_BREDR:
-            scanType = ScanType::SCAN_TYPE_BREDR;
-            break;
-        case BTMode::BT_MODE_LE:
-            scanType = ScanType::SCAN_TYPE_LE;
-            break;
-    }
-    return startDiscovery(dev_id, scanType);
+    return startDiscovery(dev_id, getScanType(btMode));
 }
 
 ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
-    MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, scanType);
+    MgmtUint8Cmd req(MgmtOpcode::START_DISCOVERY, dev_id, number(scanType));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
-    ScanType type = ScanType::SCAN_TYPE_NONE;
+    ScanType type = ScanType::NONE;
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());
         if( MgmtStatus::SUCCESS == res1.getStatus() && 1 == res1.getDataSize() ) {
@@ -517,7 +505,7 @@ ScanType DBTManager::startDiscovery(const int dev_id, const ScanType scanType) {
     return type;
 }
 bool DBTManager::stopDiscovery(const int dev_id, const ScanType type) {
-    MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, type);
+    MgmtUint8Cmd req(MgmtOpcode::STOP_DISCOVERY, dev_id, number(type));
     std::shared_ptr<MgmtEvent> res = sendWithReply(req);
     if( nullptr != res && res->getOpcode() == MgmtEvent::Opcode::CMD_COMPLETE ) {
         const MgmtEvtCmdComplete &res1 = *static_cast<const MgmtEvtCmdComplete *>(res.get());

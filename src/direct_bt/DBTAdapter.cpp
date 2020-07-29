@@ -155,7 +155,7 @@ bool DBTAdapter::closeHCI()
 }
 
 bool DBTAdapter::validateDevInfo() {
-    currentScanType = ScanType::SCAN_TYPE_NONE;
+    currentScanType = ScanType::NONE;
     keepDiscoveringAlive = false;
 
     if( 0 > dev_id ) {
@@ -190,19 +190,19 @@ bool DBTAdapter::validateDevInfo() {
 }
 
 DBTAdapter::DBTAdapter()
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
+: mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) 
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(mgmt.findAdapterInfoIdx(mac))
+: mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(mgmt.findAdapterInfoIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(const int dev_id) 
-: mgmt(DBTManager::get(BTMode::BT_MODE_LE)), btMode(mgmt.getBTMode()), dev_id(dev_id)
+: mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
@@ -346,12 +346,16 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
 {
     checkValidAdapter();
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
-    if( ScanType::SCAN_TYPE_NONE != currentScanType ) {
+    if( ScanType::NONE != currentScanType ) {
         removeDiscoveredDevices();
         if( keepDiscoveringAlive == keepAlive ) {
-            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d ...", keepDiscoveringAlive.load(), keepAlive);
+            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, unchanged keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
+                    keepDiscoveringAlive.load(), keepAlive,
+                    getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentScanType).c_str());
         } else {
-            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d ...", keepDiscoveringAlive.load(), keepAlive);
+            DBG_PRINT("DBTAdapter::startDiscovery: Already discovering, changed keepAlive %d -> %d, currentScanType[native %s, meta %s] ...",
+                    keepDiscoveringAlive.load(), keepAlive,
+                    getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentScanType).c_str());
             keepDiscoveringAlive = keepAlive;
         }
         return true;
@@ -375,8 +379,10 @@ void DBTAdapter::startDiscoveryBackground() {
 void DBTAdapter::stopDiscovery() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     keepDiscoveringAlive = false;
-    if( ScanType::SCAN_TYPE_NONE == currentScanType ) {
-        DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled");
+    if( ScanType::NONE == currentScanType ) {
+        DBG_PRINT("DBTAdapter::stopDiscovery: Already disabled, keepAlive %d, currentScanType[native %s, meta %s] ...",
+                keepDiscoveringAlive.load(),
+                getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentScanType).c_str());
         return;
     }
     DBG_PRINT("DBTAdapter::stopDiscovery: ...");
@@ -462,7 +468,9 @@ std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, cons
 }
 
 std::string DBTAdapter::toString() const {
-    std::string out("Adapter["+BTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id="+std::to_string(dev_id)+", "+javaObjectToString()+"]");
+    std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
+                    ", scanType[native "+getScanTypeString(currentNativeScanType)+", meta "+getScanTypeString(currentScanType)+"]"
+                    ", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();
     if(devices.size() > 0 ) {
         out.append("\n");

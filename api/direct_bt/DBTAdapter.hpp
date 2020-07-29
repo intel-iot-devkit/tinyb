@@ -159,7 +159,7 @@ namespace direct_bt {
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
             NameAndShortName localName;
-            std::atomic<ScanType> currentScanType; // = ScanType::SCAN_TYPE_NONE
+            std::atomic<ScanType> currentScanType; // = ScanType::NONE
             std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             std::shared_ptr<HCIHandler> hci;
@@ -434,7 +434,7 @@ namespace direct_bt {
              * Returns the discovering state the adapter. It can be modified through startDiscovery(..) and stopDiscovery().
              */
             bool getDiscovering() const {
-                return ScanType::SCAN_TYPE_NONE != currentScanType;
+                return ScanType::NONE != currentScanType;
             }
 
             /**

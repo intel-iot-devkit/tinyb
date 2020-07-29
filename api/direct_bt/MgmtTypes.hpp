@@ -177,13 +177,6 @@ namespace direct_bt {
         PUBLIC_ADDRESS      = 0x00000002
     };
 
-    enum ScanType : uint8_t {
-        SCAN_TYPE_NONE  = 0,
-        SCAN_TYPE_BREDR = 1 << BDAddressType::BDADDR_BREDR,
-        SCAN_TYPE_LE    = ( 1 << BDAddressType::BDADDR_LE_PUBLIC ) | ( 1 << BDAddressType::BDADDR_LE_RANDOM ),
-        SCAN_TYPE_DUAL  = SCAN_TYPE_BREDR | SCAN_TYPE_LE
-    };
-
     class MgmtCommand
     {
         protected:
@@ -723,7 +716,7 @@ namespace direct_bt {
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", scan-type="+uint8HexString(getScanType(), true)+
+                return MgmtEvent::baseString()+", scan-type "+getScanTypeString(getScanType())+
                        ", enabled "+std::to_string(getEnabled());
             }
 
@@ -733,6 +726,14 @@ namespace direct_bt {
             {
                 checkOpcode(getOpcode(), Opcode::DISCOVERING);
             }
+
+            MgmtEvtDiscovering(const uint16_t dev_id, const ScanType scanType, const bool enabled)
+            : MgmtEvent(Opcode::DISCOVERING, dev_id, 1+1)
+            {
+                pdu.put_uint8(MGMT_HEADER_SIZE, number(scanType));
+                pdu.put_uint8(MGMT_HEADER_SIZE+1, enabled);
+            }
+
             ScanType getScanType() const { return static_cast<ScanType>( pdu.get_uint8(MGMT_HEADER_SIZE) ); }
             bool getEnabled() const { return 0 != pdu.get_uint8(MGMT_HEADER_SIZE+1); }
 

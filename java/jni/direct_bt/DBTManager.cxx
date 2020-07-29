@@ -42,7 +42,7 @@ void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolea
 {
     directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
-        DBTManager *manager = &DBTManager::get(BTMode::BT_MODE_LE); // special: static singleton
+        DBTManager *manager = &DBTManager::get(BTMode::LE); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj, nullptr) ) );

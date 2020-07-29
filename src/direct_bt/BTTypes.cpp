@@ -112,7 +112,7 @@ std::string direct_bt::getBDAddressTypeString(const BDAddressType type) {
         CHAR_DECL_BDADDRESSTYPE_ENUM(CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown address type";
+    return "Unknown BDAddressType";
 }
 
 #define CHAR_DECL_LERANDOMADDRESSTYPE_ENUM(X) \
@@ -194,13 +194,42 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
     return static_cast<const int8_t *>( static_cast<void *>( const_cast<uint8_t*>( p ) ) );
 }
 
-std::string direct_bt::BTModeString(const BTMode v) {
+std::string direct_bt::getBTModeString(const BTMode v) {
     switch(v) {
-        case BTMode::BT_MODE_DUAL: return "BT_MODE_DUAL";
-        case BTMode::BT_MODE_BREDR: return "BT_MODE_BREDR";
-        case BTMode::BT_MODE_LE: return "BT_MODE_LE";
+        case BTMode::DUAL: return "DUAL";
+        case BTMode::BREDR: return "BREDR";
+        case BTMode::LE: return "LE";
     }
-    return "Unknown BT_MODE";
+    return "Unknown BTMode";
+}
+
+ScanType direct_bt::getScanType(BTMode btMode) {
+    switch ( btMode ) {
+        case BTMode::DUAL:
+            return ScanType::DUAL;
+        case BTMode::BREDR:
+            return ScanType::BREDR;
+        case BTMode::LE:
+            return ScanType::LE;
+        default:
+            throw new IllegalArgumentException("Unsupported BTMode "+getBTModeString(btMode), E_FILE_LINE);
+    }
+}
+
+#define SCANTYPE_ENUM(X) \
+        X(NONE) \
+        X(BREDR) \
+        X(LE) \
+        X(DUAL) \
+
+#define SCANTYPE_CASE_TO_STRING(V) case ScanType::V: return #V;
+
+std::string direct_bt::getScanTypeString(const ScanType v) {
+    switch(v) {
+        SCANTYPE_ENUM(SCANTYPE_CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown ScanType";
 }
 
 #define APPEARANCECAT_ENUM(X) \
@@ -270,7 +299,7 @@ std::string direct_bt::getAppearanceCatString(const AppearanceCat v) {
         APPEARANCECAT_ENUM(APPEARANCE_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown";
+    return "Unknown AppearanceCat";
 }
 
 // *************************************************
