@@ -398,16 +398,16 @@ namespace direct_bt {
              * is the recommended workflow for a reliable discovery process.
              * </p>
              * <pre>
-             * + ------+--------+-----------+----------------------------------------------------+
-             * | meta  | native | keepAlive | Note
-             * + ------+--------+-----------+----------------------------------------------------+
-             * | true  | true   | false     | -
-             * | false | false  | false     | -
-             * + ------+--------+-----------+----------------------------------------------------+
-             * | true  | true   | true      | -
-             * | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
-             * | false | false  | true      | manual event generation
-             * + ------+--------+-----------+----------------------------------------------------+
+             * + --+-------+--------+-----------+----------------------------------------------------+
+             * | # | meta  | native | keepAlive | Note
+             * +---+-------+--------+-----------+----------------------------------------------------+
+             * | 1 | true  | true   | false     | -
+             * | 2 | false | false  | false     | -
+             * +---+-------+--------+-----------+----------------------------------------------------+
+             * | 3 | true  | true   | true      | -
+             * | 4 | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+             * | 5 | false | false  | true      | [4] -> [5] requires manual DISCOVERING event
+             * +---+-------+--------+-----------+----------------------------------------------------+
              * </pre>
              * <p>
              * Remaining default parameter values are chosen for using public address resolution

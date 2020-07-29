@@ -145,16 +145,16 @@ public interface BluetoothAdapter extends BluetoothObject
     /**
      * Turns on device discovery if it is disabled.
      * <pre>
-     * + ------+--------+-----------+----------------------------------------------------+
-     * | meta  | native | keepAlive | Note
-     * + ------+--------+-----------+----------------------------------------------------+
-     * | true  | true   | false     | -
-     * | false | false  | false     | -
-     * + ------+--------+-----------+----------------------------------------------------+
-     * | true  | true   | true      | -
-     * | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
-     * | false | false  | true      | manual event generation
-     * + ------+--------+-----------+----------------------------------------------------+
+     * + --+-------+--------+-----------+----------------------------------------------------+
+     * | # | meta  | native | keepAlive | Note
+     * +---+-------+--------+-----------+----------------------------------------------------+
+     * | 1 | true  | true   | false     | -
+     * | 2 | false | false  | false     | -
+     * +---+-------+--------+-----------+----------------------------------------------------+
+     * | 3 | true  | true   | true      | -
+     * | 4 | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+     * | 5 | false | false  | true      | [4] -> [5] requires manual DISCOVERING event
+     * +---+-------+--------+-----------+----------------------------------------------------+
      * </pre>
      *
      * @param keepAlive if {@code true}, indicates that discovery shall be restarted
