@@ -159,7 +159,8 @@ namespace direct_bt {
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
             NameAndShortName localName;
-            std::atomic<ScanType> currentScanType; // = ScanType::NONE
+            std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
+            std::atomic<ScanType> currentNativeScanType; // = ScanType::NONE
             std::atomic<bool> keepDiscoveringAlive; //  = false;
 
             std::shared_ptr<HCIHandler> hci;
@@ -212,6 +213,7 @@ namespace direct_bt {
             bool mgmtEvDeviceDisconnectedHCI(std::shared_ptr<MgmtEvent> e);
 
             void startDiscoveryBackground();
+            void checkDiscoveryState();
 
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
 
@@ -395,6 +397,18 @@ namespace direct_bt {
              * Using startDiscovery(keepAlive=true) and stopDiscovery()
              * is the recommended workflow for a reliable discovery process.
              * </p>
+             * <pre>
+             * + ------+--------+-----------+----------------------------------------------------+
+             * | meta  | native | keepAlive | Note
+             * + ------+--------+-----------+----------------------------------------------------+
+             * | true  | true   | false     | -
+             * | false | false  | false     | -
+             * + ------+--------+-----------+----------------------------------------------------+
+             * | true  | true   | true      | -
+             * | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+             * | false | false  | true      | manual event generation
+             * + ------+--------+-----------+----------------------------------------------------+
+             * </pre>
              * <p>
              * Remaining default parameter values are chosen for using public address resolution
              * and usual discovery intervals etc.
@@ -424,17 +438,24 @@ namespace direct_bt {
             void stopDiscovery();
 
             /**
-             * Returns the discovering state the adapter. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
             ScanType getDiscoveringScanType() const {
-                return currentScanType;
+                return currentMetaScanType;
             }
 
             /**
-             * Returns the discovering state the adapter. It can be modified through startDiscovery(..) and stopDiscovery().
+             * Returns the adapter's native discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
+             */
+            ScanType getNativeDiscoveringScanType() const {
+                return currentNativeScanType;
+            }
+
+            /**
+             * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().
              */
             bool getDiscovering() const {
-                return ScanType::NONE != currentScanType;
+                return ScanType::NONE != currentMetaScanType;
             }
 
             /**

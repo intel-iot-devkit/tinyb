@@ -144,6 +144,19 @@ public interface BluetoothAdapter extends BluetoothObject
 
     /**
      * Turns on device discovery if it is disabled.
+     * <pre>
+     * + ------+--------+-----------+----------------------------------------------------+
+     * | meta  | native | keepAlive | Note
+     * + ------+--------+-----------+----------------------------------------------------+
+     * | true  | true   | false     | -
+     * | false | false  | false     | -
+     * + ------+--------+-----------+----------------------------------------------------+
+     * | true  | true   | true      | -
+     * | true  | false  | true      | temporarily disabled -> startDiscoveryBackground()
+     * | false | false  | true      | manual event generation
+     * + ------+--------+-----------+----------------------------------------------------+
+     * </pre>
+     *
      * @param keepAlive if {@code true}, indicates that discovery shall be restarted
      *        if stopped by the underlying Bluetooth implementation (BlueZ, ..).
      *        Using {@link #startDiscovery(boolean) startDiscovery}({@code keepAlive=true})
@@ -153,6 +166,7 @@ public interface BluetoothAdapter extends BluetoothObject
      * @throws BluetoothException
      * @since 2.0.0
      * @implNote {@code keepAlive} not implemented in tinyb.dbus
+     * @see #getDiscovering()
      */
     public boolean startDiscovery(final boolean keepAlive) throws BluetoothException;
 
@@ -317,10 +331,13 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public void setPairableTimeout(long value);
 
-    /** Returns the discovering state the adapter. It can be modified through
-      * start_discovery/stop_discovery functions.
-      * @return The discovering state of the adapter.
-      */
+    /**
+     * Returns the meta discovering state (of the adapter).
+     * It can be modified through
+     * start_discovery/stop_discovery functions.
+     * @return The discovering state of the adapter.
+     * @see #startDiscovery(boolean)
+     */
     public boolean getDiscovering();
 
     /**
