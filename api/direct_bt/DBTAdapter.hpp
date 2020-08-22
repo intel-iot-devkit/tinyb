@@ -168,6 +168,7 @@ namespace direct_bt {
             std::vector<std::shared_ptr<DBTDevice>> discoveredDevices; // all discovered devices
             std::vector<std::shared_ptr<DBTDevice>> sharedDevices; // all active shared devices
             std::vector<std::shared_ptr<AdapterStatusListener>> statusListenerList;
+            std::recursive_mutex mtx_hci;
             std::recursive_mutex mtx_connectedDevices;
             std::recursive_mutex mtx_discoveredDevices;
             std::recursive_mutex mtx_sharedDevices;
@@ -175,7 +176,6 @@ namespace direct_bt {
             std::recursive_mutex mtx_discovery;
 
             bool validateDevInfo();
-            bool openHCI();
             bool closeHCI();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
@@ -257,7 +257,20 @@ namespace direct_bt {
                 }
             }
 
+            /**
+             * Throws an IllegalStateException if isValid() == false or getHCI() == nullptr
+             */
+            inline void checkValidEnabledAdapter() {
+                if( nullptr == getHCI() ) { // implies 'checkValidAdapter()'
+                    throw IllegalStateException("Adapter HCI not enabled: "+aptrHexString(this)+", "+toString(), E_FILE_LINE);
+                }
+            }
+
             bool hasDevId() const { return 0 <= dev_id; }
+
+            bool isEnabled() {
+                return nullptr != getHCI(); // implies 'checkValidAdapter()'
+            }
 
             EUI48 const & getAddress() const { return adapterInfo->address; }
             std::string getAddressString() const { return adapterInfo->address.toString(); }
@@ -310,9 +323,9 @@ namespace direct_bt {
             DBTManager& getManager() const { return mgmt; }
 
             /**
-             * Returns the {@link #openHCI()} HCIHandler or {@code nullptr} if closed.
+             * Returns the already open or newly opened HCIHandler or {@code nullptr} if not available.
              */
-            std::shared_ptr<HCIHandler> getHCI() const { return hci; }
+            std::shared_ptr<HCIHandler> getHCI();
 
             /**
              * Returns true, if the adapter's device is already whitelisted.

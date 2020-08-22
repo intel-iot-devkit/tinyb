@@ -185,6 +185,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Adapter invalid.\n");
         exit(1);
     }
+    if( !adapter.isEnabled() ) {
+        fprintf(stderr, "Adapter not enabled: device %s, address %s: %s\n",
+                adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
+        exit(1);
+    }
     fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
         adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
 

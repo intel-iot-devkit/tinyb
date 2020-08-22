@@ -70,7 +70,7 @@ public class ScannerTinyB10 {
 
     boolean SHOW_UPDATE_EVENTS = false;
 
-    int dev_id = 0; // default
+    int dev_id = -1; // use default
 
     int shutdownTest = 0;
 
@@ -407,7 +407,15 @@ public class ScannerTinyB10 {
                 println("No adapter dev_id "+dev_id+" available, adapter count "+adapters.size());
                 System.exit(-1);
             }
-            adapter = adapters.get(dev_id);
+            if( 0 > dev_id ) {
+                adapter = manager.getDefaultAdapter();
+            } else {
+                adapter = adapters.get(dev_id);
+            }
+            if( !adapter.isEnabled() ) {
+                println("Adapter not enabled: device "+adapter.getName()+", address "+adapter.getAddress()+": "+adapter.toString());
+                System.exit(-1);
+            }
         }
 
         timestamp_t0 = BluetoothUtils.getCurrentMilliseconds();
@@ -470,6 +478,12 @@ public class ScannerTinyB10 {
                 System.setProperty("org.tinyb.debug", "true");
             } else if( arg.equals("-verbose") ) {
                 System.setProperty("org.tinyb.verbose", "true");
+            } else if( arg.equals("-default_dev_id") && args.length > (i+1) ) {
+                final int default_dev_id = Integer.valueOf(args[++i]).intValue();
+                if( 0 <= default_dev_id ) {
+                    System.setProperty("org.tinyb.default_adapter", String.valueOf(default_dev_id));
+                    System.err.println("Setting 'org.tinyb.default_adapter' to "+default_dev_id);
+                }
             }
         }
         // Drop BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.
@@ -512,7 +526,7 @@ public class ScannerTinyB10 {
                     test.MULTI_MEASUREMENTS = -1;
                 }
             }
-            println("Run with '[-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug] [-shutdown <int>]'");
+            println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] (-mac <device_address>)* [-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] [-bluetoothManager <BluetoothManager-Implementation-Class-Name>] [-verbose] [-debug] [-shutdown <int>]'");
         }
 
         println("BluetoothManager "+bluetoothManagerClazzName);

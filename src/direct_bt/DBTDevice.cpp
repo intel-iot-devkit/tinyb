@@ -314,10 +314,15 @@ HCIStatusCode DBTDevice::connectLE(uint16_t le_scan_interval, uint16_t le_scan_w
         return HCIStatusCode::CONNECTION_ALREADY_EXISTS;
     }
 
-    HCIStatusCode status = adapter.getHCI()->le_create_conn(address,
-                                              hci_peer_mac_type, hci_own_mac_type,
-                                              le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
-                                              conn_latency, supervision_timeout);
+    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
+    if( nullptr == hci ) {
+        ERR_PRINT("DBTDevice::connectLE: HCI not available: %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    HCIStatusCode status = hci->le_create_conn(address,
+                                      hci_peer_mac_type, hci_own_mac_type,
+                                      le_scan_interval, le_scan_window, conn_interval_min, conn_interval_max,
+                                      conn_latency, supervision_timeout);
     allowDisconnect = true;
 #if 0
     if( HCIStatusCode::CONNECTION_ALREADY_EXISTS == status ) {
@@ -361,7 +366,12 @@ HCIStatusCode DBTDevice::connectBREDR(const uint16_t pkt_type, const uint16_t cl
         return HCIStatusCode::UNACCEPTABLE_CONNECTION_PARAM;
     }
 
-    HCIStatusCode status = adapter.getHCI()->create_conn(address, pkt_type, clock_offset, role_switch);
+    std::shared_ptr<HCIHandler> hci = adapter.getHCI();
+    if( nullptr == hci ) {
+        ERR_PRINT("DBTDevice::connectBREDR: HCI not available: %s", toString().c_str());
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    HCIStatusCode status = hci->create_conn(address, pkt_type, clock_offset, role_switch);
     allowDisconnect = true;
     if ( HCIStatusCode::SUCCESS != status ) {
         ERR_PRINT("DBTDevice::connectBREDR: Could not create connection: status 0x%2.2X (%s), errno %d %s on %s",
@@ -440,7 +450,8 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     }
 
     if( nullptr == hci ) {
-        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI is null: %s", toString().c_str());
+        DBG_PRINT("DBTDevice::disconnect: Skip disconnect: HCI not available: %s", toString().c_str());
+        res = HCIStatusCode::INTERNAL_FAILURE;
         goto exit;
     }
 

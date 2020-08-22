@@ -129,6 +129,10 @@ public class ScannerTinyB02 {
                 System.exit(-1);
             }
             adapter = adapters.get(dev_id);
+            if( !adapter.isEnabled() ) {
+                System.err.println("Adapter not enabled: device "+adapter.getName()+", address "+adapter.getAddress()+": "+adapter.toString());
+                System.exit(-1);
+            }
         }
 
         final BluetoothDevice[] matchingDiscoveredDeviceBucket = { null };

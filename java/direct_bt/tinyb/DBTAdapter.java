@@ -304,6 +304,9 @@ public class DBTAdapter extends DBTObject implements BluetoothAdapter
     @Override
     public native void setPairable(boolean value);
 
+    @Override
+    public native boolean isEnabled();
+
     /* internal */
 
     @Override

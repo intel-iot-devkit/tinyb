@@ -131,18 +131,27 @@ std::shared_ptr<DBTDevice> DBTAdapter::findConnectedDevice (EUI48 const & mac, c
 // *************************************************
 // *************************************************
 
-bool DBTAdapter::openHCI()
+std::shared_ptr<HCIHandler> DBTAdapter::getHCI()
 {
-    hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT) );
-    if( !hci->isOpen() ) {
-        ERR_PRINT("Could not open HCIHandler: %s of %s", hci->toString().c_str(), toString().c_str());
-        return false;
+    checkValidAdapter();
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
+    if( nullptr == hci ) {
+        hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT) );
+        if( !hci->isOpen() ) {
+            ERR_PRINT("Could not open HCIHandler: %s of %s", hci->toString().c_str(), toString().c_str());
+            hci = nullptr;
+        } else {
+            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
+            hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
+            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
+        }
     }
-    return true;
+    return hci;
 }
 
 bool DBTAdapter::closeHCI()
 {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
     DBG_PRINT("DBTAdapter::closeHCI: ...");
     if( nullptr == hci ) {
         DBG_PRINT("DBTAdapter::closeHCI: HCI null");
@@ -170,19 +179,10 @@ bool DBTAdapter::validateDevInfo() {
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
 
-    if( !openHCI() ) {
-        ERR_PRINT("DBTAdapter::validateDevInfo: Opening adapter's HCI failed: %s", toString().c_str());
-        return false;
-    }
-
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundMgmt));
-
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
-    hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
 
 #ifdef VERBOSE_ON
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
@@ -265,7 +265,7 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
-    checkValidAdapter();
+    checkValidEnabledAdapter();
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
         return true;
@@ -367,7 +367,7 @@ void DBTAdapter::checkDiscoveryState() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
-    checkValidAdapter();
+    checkValidEnabledAdapter();
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE != currentMetaScanType ) {
         removeDiscoveredDevices();

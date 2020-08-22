@@ -214,6 +214,16 @@ public interface BluetoothAdapter extends BluetoothObject
       */
     public long getBluetoothClass();
 
+    /**
+     * Returns whether this adapter is enabled and usable.
+     * <p>
+     * An inactive adapter could be blocked or rfkill'ed.
+     * </p>
+     * @return {@code true} if this adapter is enabled and usable, otherwise {@code false}.
+     * @since 2.0.0
+     */
+    public boolean isEnabled();
+
     /** Returns the power state the adapter.
       * @return The power state of the adapter.
       */

@@ -66,6 +66,11 @@ public class DBusAdapter extends DBusObject implements BluetoothAdapter
     }
 
     @Override
+    public boolean isEnabled() {
+        return true; // FIXME
+    }
+
+    @Override
     public boolean isDeviceWhitelisted(final String address) {
         return false; // FIXME
     }

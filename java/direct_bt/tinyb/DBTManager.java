@@ -50,7 +50,7 @@ public class DBTManager implements BluetoothManager
     private static volatile boolean isJVMShuttingDown = false;
     private static final List<Runnable> userShutdownHooks = new ArrayList<Runnable>();
     private static boolean unifyUUID128Bit = true;
-    private static int DefaultAdapterIndex = 0;
+    private static final int DefaultAdapterIndex;
 
     static {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -65,7 +65,7 @@ public class DBTManager implements BluetoothManager
                 return null;
             } } ) ;
         {
-            final String v = System.getProperty("org.tinyb.default_adapter", "0");
+            final String v = System.getProperty("org.tinyb.default_adapter", "-1");
             DefaultAdapterIndex = Integer.valueOf(v);
         }
 
@@ -279,9 +279,26 @@ public class DBTManager implements BluetoothManager
         } catch (final BluetoothException be) {
             be.printStackTrace();
         }
-        if( adapters.size() >= DefaultAdapterIndex+1 ) {
+        boolean isDefaultAdapterEnabled = false;
+        if( 0 <= DefaultAdapterIndex &&
+            adapters.size() > DefaultAdapterIndex
+          )
+        {
+            // User chosen default adapter index, ignoring enabled state
             defaultAdapterIndex = DefaultAdapterIndex;
+            isDefaultAdapterEnabled = adapters.get(defaultAdapterIndex).isEnabled();
+        } else {
+            // Seek 1st enabled default adapter
+            for( int i=0; i<adapters.size(); i++) {
+                if( adapters.get(i).isEnabled() ) {
+                    defaultAdapterIndex = i;
+                    isDefaultAdapterEnabled = true;
+                    break; // done
+                }
+            }
         }
+        System.err.println("DBTManager: Using default adapter index "+defaultAdapterIndex+", user choice "+DefaultAdapterIndex+", isEnabled "+isDefaultAdapterEnabled);
+        System.err.println("DBTManager: Using default adapter "+adapters.get(defaultAdapterIndex).toString());
     }
 
     /** Returns an instance of BluetoothManager, to be used instead of constructor.

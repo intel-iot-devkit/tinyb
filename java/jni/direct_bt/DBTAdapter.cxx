@@ -537,6 +537,17 @@ void Java_direct_1bt_tinyb_DBTAdapter_deleteImpl(JNIEnv *env, jobject obj, jlong
     }
 }
 
+jboolean Java_direct_1bt_tinyb_DBTAdapter_isEnabled(JNIEnv *env, jobject obj)
+{
+    try {
+        DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
+        return adapter->isEnabled();
+    } catch(...) {
+        rethrow_and_raise_java_exception(env);
+    }
+    return JNI_FALSE;
+}
+
 jboolean Java_direct_1bt_tinyb_DBTAdapter_startDiscoveryImpl(JNIEnv *env, jobject obj, jboolean keepAlive)
 {
     try {

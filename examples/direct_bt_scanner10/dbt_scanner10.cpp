@@ -158,6 +158,7 @@ class MyAdapterStatusListener : public AdapterStatusListener {
     }
 
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
+        (void)handle;
         (void)timestamp;
 
         if( !isDeviceProcessing( device->getAddress() ) &&
@@ -369,6 +370,11 @@ void test(int dev_id) {
     }
     if( !adapter.isValid() ) {
         fprintf(stderr, "Adapter invalid.\n");
+        exit(1);
+    }
+    if( !adapter.isEnabled() ) {
+        fprintf(stderr, "Adapter not enabled: device %s, address %s: %s\n",
+                adapter.getName().c_str(), adapter.getAddressString().c_str(), adapter.toString().c_str());
         exit(1);
     }
     fprintf(stderr, "Using adapter: device %s, address %s: %s\n",
