@@ -331,11 +331,17 @@ public class ScannerTinyB10 {
             println("****** Processing Device: Exception caught for " + device.toString() + ": "+t.getMessage());
             t.printStackTrace();
         }
+
+        devicesInProcessing.remove(device.getAddress());
+        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+            final boolean r = device.getAdapter().startDiscovery( true );
+            println("****** Processing Device: startDiscovery result "+r);
+        }
+
         if( KEEP_CONNECTED && success ) {
             while( device.pingGATT() ) {
                 println("****** Processing Device: pingGATT OK: "+device.getAddress());
                 try {
-                    device.getAdapter().startDiscovery( false );
                     Thread.sleep(1000);
                 } catch (final InterruptedException e) {
                     e.printStackTrace();
@@ -358,16 +364,12 @@ public class ScannerTinyB10 {
             device.remove();
         }
 
-        devicesInProcessing.remove(device.getAddress());
         if( 0 < MULTI_MEASUREMENTS ) {
             MULTI_MEASUREMENTS--;
             println("****** Processing Device: MULTI_MEASUREMENTS left "+MULTI_MEASUREMENTS+": "+device.getAddress());
         }
         println("****** Processing Device: End: Success " + success +
                            " on " + device.toString() + "; devInProc "+devicesInProcessing.size());
-        if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-            device.getAdapter().startDiscovery( true );
-        }
         if( success ) {
             devicesProcessed.add(device.getAddress());
         }
