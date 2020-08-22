@@ -652,7 +652,10 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
 
     HCIStatusCode status;
 
-    if( !ioErrorCause ) {
+    // Always issue DISCONNECT command, even in case of an ioError (lost-connection),
+    // see Issue #124 fast re-connect on CSR adapter.
+    // This will always notify the adapter of a disconnected device.
+    {
         HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
         hci_cp_disconnect * cp = req0.getWStruct();
         bzero(cp, sizeof(*cp));
@@ -660,7 +663,10 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
         cp->reason = number(reason);
 
         std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
-    } else {
+    }
+    if( ioErrorCause ) {
+        // In case of an ioError (lost-connection), don't wait for the lagging
+        // DISCONN_COMPLETE event but send it directly.
         removeTrackerConnection(conn);
         MgmtEvtDeviceDisconnected *e = new MgmtEvtDeviceDisconnected(dev_id, peer_bdaddr, peer_mac_type, reason, conn_handle);
         sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
