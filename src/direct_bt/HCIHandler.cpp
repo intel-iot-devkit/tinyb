@@ -538,6 +538,46 @@ HCIStatusCode HCIHandler::reset() {
     return ev_cc->getReturnStatus(0);
 }
 
+HCIStatusCode HCIHandler::le_set_scan_param(const bool le_scan_active,
+                                            const HCILEOwnAddressType own_mac_type,
+                                            const uint16_t le_scan_interval, const uint16_t le_scan_window,
+                                            const uint8_t filter_policy) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( !comm.isOpen() ) {
+        ERR_PRINT("HCIHandler::le_set_scan_param: device not open");
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    HCIStructCommand<hci_cp_le_set_scan_param> req0(HCIOpcode::LE_SET_SCAN_PARAM);
+    hci_cp_le_set_scan_param * cp = req0.getWStruct();
+    cp->type = le_scan_active ? LE_SCAN_ACTIVE : LE_SCAN_PASSIVE;
+    cp->interval = cpu_to_le(le_scan_interval);
+    cp->window = cpu_to_le(le_scan_window);
+    cp->own_address_type = static_cast<uint8_t>(own_mac_type);
+    cp->filter_policy = filter_policy;
+
+    const hci_rp_status * ev_status;
+    HCIStatusCode status;
+    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    return status;
+}
+
+HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_dup) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    if( !comm.isOpen() ) {
+        ERR_PRINT("HCIHandler::le_enable_scan: device not open");
+        return HCIStatusCode::INTERNAL_FAILURE;
+    }
+    HCIStructCommand<hci_cp_le_set_scan_enable> req0(HCIOpcode::LE_SET_SCAN_ENABLE);
+    hci_cp_le_set_scan_enable * cp = req0.getWStruct();
+    cp->enable = enable ? LE_SCAN_ENABLE : LE_SCAN_DISABLE;
+    cp->filter_dup = filter_dup ? LE_SCAN_FILTER_DUP_ENABLE : LE_SCAN_FILTER_DUP_DISABLE;
+
+    const hci_rp_status * ev_status;
+    HCIStatusCode status;
+    std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+    return status;
+}
+
 HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
                             const HCILEPeerAddressType peer_mac_type,
                             const HCILEOwnAddressType own_mac_type,

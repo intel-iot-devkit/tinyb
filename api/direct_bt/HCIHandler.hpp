@@ -222,6 +222,26 @@ namespace direct_bt {
             HCIStatusCode reset();
 
             /**
+             * Sets LE scanning parameters.
+             * <p>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.10 LE Set Scan Parameters command
+             * </p>
+             * Should not be called while scanning is active.
+             */
+            HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
+                                            const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
+                                            const uint16_t le_scan_interval=48, const uint16_t le_scan_window=48,
+                                            const uint8_t filter_policy=0x00);
+
+            /**
+             * Starts or stops LE scanning.
+             * <p>
+             * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
+             * </p>
+             */
+            HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=false);
+
+            /**
              * Establish a connection to the given LE peer.
              * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.12 LE Create Connection command
