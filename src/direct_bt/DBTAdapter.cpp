@@ -514,6 +514,7 @@ bool DBTAdapter::stopDiscovery() {
     checkDiscoveryState();
 
 #ifdef USE_HCI_DISCOVERY
+    (void) sendEvent;
     {
 #else
     if( sendEvent ) {                       ;
