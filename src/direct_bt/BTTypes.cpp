@@ -232,21 +232,22 @@ std::string direct_bt::getScanTypeString(const ScanType v) {
     return "Unknown ScanType";
 }
 
-#define LEADVEventType_ENUM(X) \
+#define AD_PDU_Type_ENUM(X) \
         X(ADV_IND) \
         X(ADV_DIRECT_IND) \
         X(ADV_SCAN_IND) \
         X(ADV_NONCONN_IND) \
         X(SCAN_RSP) \
+        X(ADV_UNDEFINED) \
 
-#define LEADVEventType_CASE_TO_STRING(V) case LEADVEventType::V: return #V;
+#define AD_PDU_Type_CASE_TO_STRING(V) case AD_PDU_Type::V: return #V;
 
-std::string direct_bt::getLEADVEventTypeString(const LEADVEventType v) {
+std::string direct_bt::getAD_PDU_TypeString(const AD_PDU_Type v) {
     switch(v) {
-        LEADVEventType_ENUM(LEADVEventType_CASE_TO_STRING)
+        AD_PDU_Type_ENUM(AD_PDU_Type_CASE_TO_STRING)
         default: ; // fall through intended
     }
-    return "Unknown LEADVEventType";
+    return "Unknown AD_PDU_Type";
 }
 
 #define APPEARANCECAT_ENUM(X) \
@@ -450,7 +451,7 @@ std::string EInfoReport::toString(const bool includeServices) const {
     std::string out("EInfoReport::"+getSourceString()+
                     "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"/"+std::to_string(ad_address_type)+
                     "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
-                    ", evt-type "+getLEADVEventTypeString(evt_type)+", rssi "+std::to_string(rssi)+
+                    ", evt-type "+getAD_PDU_TypeString(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+
                     ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
@@ -653,7 +654,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_reports.push_back(std::shared_ptr<EInfoReport>(new EInfoReport()));
         ad_reports[i]->setSource(Source::AD);
         ad_reports[i]->setTimestamp(timestamp);
-        ad_reports[i]->setEvtType(static_cast<LEADVEventType>(*i_octets++));
+        ad_reports[i]->setEvtType(static_cast<AD_PDU_Type>(*i_octets++));
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {

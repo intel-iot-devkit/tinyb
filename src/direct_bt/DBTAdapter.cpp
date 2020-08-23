@@ -881,7 +881,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         eir = std::shared_ptr<EInfoReport>(new EInfoReport());
         eir->setSource(EInfoReport::Source::EIR_MGMT);
         eir->setTimestamp(deviceFoundEvent.getTimestamp());
-        // eir->setEvtType(0); ??
+        eir->setEvtType(AD_PDU_Type::ADV_IND);
         eir->setAddressType(deviceFoundEvent.getAddressType());
         eir->setAddress( deviceFoundEvent.getAddress() );
         eir->setRSSI( deviceFoundEvent.getRSSI() );

@@ -70,22 +70,32 @@ namespace direct_bt {
     ScanType getScanType(BTMode btMode);
 
     /**
-     * LE Advertising Event Types
+     * LE Advertising (AD) Protocol Data Unit (PDU) Types
      * <p>
-     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.2 LE Advertising Report event
+     * BT Core Spec v5.2: Vol 4 HCI, Part E HCI Functional: 7.7.65.2 LE Advertising Report event
+     * BT Core Spec v5.2: Vol 6 LE Controller, Part B Link Layer: 2.3 Advertising physical channel PDU
+     * BT Core Spec v5.2: Vol 6 LE Controller, Part B Link Layer: 2.3.1 Advertising PDUs
      * </p>
      */
-    enum class LEADVEventType : uint8_t {
+    enum class AD_PDU_Type : uint8_t {
+        /**
+         * Advertising Indications (ADV_IND),
+         * where a peripheral device requests connection to any central device
+         * (i.e., not directed at a particular central device). */
         ADV_IND  = 0x00,
+        /** Similar to ADV_IND, yet the connection request is directed at a specific central device. */
         ADV_DIRECT_IND = 0x01,
+        /** Similar to ADV_NONCONN_IND, with the option additional information via scan responses. */
         ADV_SCAN_IND = 0x02,
+        /** Non connectable devices, advertising information to any listening device. */
         ADV_NONCONN_IND = 0x03,
-        SCAN_RSP = 0x04
+        SCAN_RSP = 0x04,
+        ADV_UNDEFINED = 0xff
     };
-    inline uint8_t number(const LEADVEventType rhs) {
+    inline uint8_t number(const AD_PDU_Type rhs) {
         return static_cast<uint8_t>(rhs);
     }
-    std::string getLEADVEventTypeString(const LEADVEventType v);
+    std::string getAD_PDU_TypeString(const AD_PDU_Type v);
 
 
     /**
@@ -455,7 +465,7 @@ namespace direct_bt {
         uint64_t timestamp = 0;
         EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
-        LEADVEventType evt_type = LEADVEventType::SCAN_RSP;
+        AD_PDU_Type evt_type = AD_PDU_Type::ADV_UNDEFINED;
         uint8_t ad_address_type = 0;
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
         EUI48 address;
@@ -477,7 +487,7 @@ namespace direct_bt {
         uint16_t did_version = 0;
 
         void set(EIRDataType bit) { eir_data_mask = eir_data_mask | bit; }
-        void setEvtType(LEADVEventType et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
+        void setEvtType(AD_PDU_Type et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setFlags(uint8_t f) { flags = f; set(EIRDataType::FLAGS); }
         void setName(const uint8_t *buffer, int buffer_len);
         void setShortName(const uint8_t *buffer, int buffer_len);
@@ -555,7 +565,7 @@ namespace direct_bt {
         bool isSet(EIRDataType bit) const { return EIRDataType::NONE != (eir_data_mask & bit); }
         EIRDataType getEIRDataMask() const { return eir_data_mask; }
 
-        LEADVEventType getEvtType() const { return evt_type; }
+        AD_PDU_Type getEvtType() const { return evt_type; }
         uint8_t getFlags() const { return flags; }
         uint8_t getADAddressType() const { return ad_address_type; }
         BDAddressType getAddressType() const { return addressType; }
