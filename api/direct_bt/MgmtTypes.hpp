@@ -362,7 +362,7 @@ namespace direct_bt {
             {
                 pdu.put_eui48(MGMT_HEADER_SIZE, address);
                 pdu.put_uint8(MGMT_HEADER_SIZE+6, addressType);
-                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, ctype);
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, number(ctype));
             }
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
@@ -817,14 +817,19 @@ namespace direct_bt {
      */
     class MgmtEvtDeviceFound : public MgmtEvent
     {
-        public:
+        private:
+            std::shared_ptr<EInfoReport> eireport;
 
         protected:
             std::string baseString() const override {
-                return MgmtEvent::baseString()+", address="+getAddress().toString()+
-                       ", addressType "+getBDAddressTypeString(getAddressType())+
-                       ", rssi "+std::to_string(getRSSI())+", flags="+uint32HexString(getFlags(), true)+
-                       ", eir-size "+std::to_string(getEIRSize());
+                if( nullptr != eireport ) {
+                    return MgmtEvent::baseString()+", "+eireport->toString(false /* includeServices */);
+                } else {
+                    return MgmtEvent::baseString()+", address="+getAddress().toString()+
+                           ", addressType "+getBDAddressTypeString(getAddressType())+
+                           ", rssi "+std::to_string(getRSSI())+", flags="+uint32HexString(getFlags(), true)+
+                           ", eir-size "+std::to_string(getEIRSize());
+                }
             }
 
         public:
@@ -832,7 +837,22 @@ namespace direct_bt {
             : MgmtEvent(buffer, buffer_len)
             {
                 checkOpcode(getOpcode(), Opcode::DEVICE_FOUND);
+                eireport = nullptr;
             }
+            MgmtEvtDeviceFound(const uint16_t dev_id, std::shared_ptr<EInfoReport> eir)
+            : MgmtEvent(Opcode::DEVICE_FOUND, dev_id, 6+1+1+4+2+0)
+            {
+                pdu.put_eui48(MGMT_HEADER_SIZE, eir->getAddress());
+                pdu.put_uint8(MGMT_HEADER_SIZE+6, eir->getAddressType());
+                pdu.put_uint8(MGMT_HEADER_SIZE+6+1, eir->getRSSI());
+                pdu.put_uint32(MGMT_HEADER_SIZE+6+1+1, eir->getFlags()); // EIR flags only 8bit, Mgmt uses 32bit?
+                pdu.put_uint16(MGMT_HEADER_SIZE+6+1+1+4, 0); // eir_len
+                eireport = eir;
+            }
+
+            /** Returns the EInfoReport, assuming creation occurred via HCIHandler. Otherwise nullptr. */
+            std::shared_ptr<EInfoReport> getEIR() const { return eireport; }
+
             const EUI48 getAddress() const { return EUI48(pdu.get_ptr(MGMT_HEADER_SIZE)); } // mgmt_addr_info
             BDAddressType getAddressType() const { return static_cast<BDAddressType>(pdu.get_uint8(MGMT_HEADER_SIZE+6)); } // mgmt_addr_info
 

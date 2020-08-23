@@ -232,6 +232,23 @@ std::string direct_bt::getScanTypeString(const ScanType v) {
     return "Unknown ScanType";
 }
 
+#define LEADVEventType_ENUM(X) \
+        X(ADV_IND) \
+        X(ADV_DIRECT_IND) \
+        X(ADV_SCAN_IND) \
+        X(ADV_NONCONN_IND) \
+        X(SCAN_RSP) \
+
+#define LEADVEventType_CASE_TO_STRING(V) case LEADVEventType::V: return #V;
+
+std::string direct_bt::getLEADVEventTypeString(const LEADVEventType v) {
+    switch(v) {
+        LEADVEventType_ENUM(LEADVEventType_CASE_TO_STRING)
+        default: ; // fall through intended
+    }
+    return "Unknown LEADVEventType";
+}
+
 #define APPEARANCECAT_ENUM(X) \
     X(UNKNOWN) \
     X(GENERIC_PHONE) \
@@ -376,8 +393,32 @@ std::string EInfoReport::getSourceString() const {
         case Source::NA: return "N/A";
         case Source::AD: return "AD";
         case Source::EIR: return "EIR";
+        case Source::EIR_MGMT: return "EIR_MGMT";
     }
     return "N/A";
+}
+
+void EInfoReport::setADAddressType(uint8_t adAddressType) {
+    ad_address_type = adAddressType;
+    switch( ad_address_type ) {
+        case 0x00: addressType = BDAddressType::BDADDR_LE_PUBLIC; break;
+        case 0x01: addressType = BDAddressType::BDADDR_LE_RANDOM; break;
+        case 0x02: addressType = BDAddressType::BDADDR_LE_RANDOM; break;
+        case 0x03: addressType = BDAddressType::BDADDR_LE_RANDOM; break;
+        default: addressType = BDAddressType::BDADDR_UNDEFINED; break;
+    }
+    set(EIRDataType::BDADDR_TYPE);
+}
+
+void EInfoReport::setAddressType(BDAddressType at) {
+    addressType = at;
+    switch( addressType ) {
+        case BDAddressType::BDADDR_BREDR: ad_address_type = 0; break;
+        case BDAddressType::BDADDR_LE_PUBLIC: ad_address_type = 0; break;
+        case BDAddressType::BDADDR_LE_RANDOM: ad_address_type = 1; break;
+        case BDAddressType::BDADDR_UNDEFINED: ad_address_type = 4; break;
+    }
+    set(EIRDataType::BDADDR_TYPE);
 }
 
 void EInfoReport::setName(const uint8_t *buffer, int buffer_len) {
@@ -404,12 +445,12 @@ void EInfoReport::addService(std::shared_ptr<uuid_t> const &uuid)
 std::string EInfoReport::eirDataMaskToString() const {
     return std::string("DataSet"+ direct_bt::getEIRDataMaskString(eir_data_mask) );
 }
-std::string EInfoReport::toString() const {
+std::string EInfoReport::toString(const bool includeServices) const {
     std::string msdstr = nullptr != msd ? msd->toString() : "MSD[null]";
     std::string out("EInfoReport::"+getSourceString()+
-                    "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"], name['"+name+"'/'"+name_short+
-                    "'], "+eirDataMaskToString()+
-                    ", evt-type "+std::to_string(evt_type)+", rssi "+std::to_string(rssi)+
+                    "[address["+getAddressString()+", "+getBDAddressTypeString(getAddressType())+"/"+std::to_string(ad_address_type)+
+                    "], name['"+name+"'/'"+name_short+"'], "+eirDataMaskToString()+
+                    ", evt-type "+getLEADVEventTypeString(evt_type)+", rssi "+std::to_string(rssi)+
                     ", tx-power "+std::to_string(tx_power)+
                     ", dev-class "+uint32HexString(device_class, true)+
                     ", appearance "+uint16HexString(static_cast<uint16_t>(appearance))+" ("+getAppearanceCatString(appearance)+
@@ -421,7 +462,7 @@ std::string EInfoReport::toString() const {
                     ", version "+uint16HexString(did_version, true)+
                     "], "+msdstr+"]");
 
-    if(services.size() > 0 ) {
+    if( includeServices && services.size() > 0 ) {
         out.append("\n");
         for(auto it = services.begin(); it != services.end(); it++) {
             std::shared_ptr<uuid_t> p = *it;
@@ -612,11 +653,11 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
         ad_reports.push_back(std::shared_ptr<EInfoReport>(new EInfoReport()));
         ad_reports[i]->setSource(Source::AD);
         ad_reports[i]->setTimestamp(timestamp);
-        ad_reports[i]->setEvtType(*i_octets++);
+        ad_reports[i]->setEvtType(static_cast<LEADVEventType>(*i_octets++));
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets < limes; i++) {
-        ad_reports[i]->setAddressType(static_cast<BDAddressType>(*i_octets++));
+        ad_reports[i]->setADAddressType(*i_octets++);
         read_segments++;
     }
     for(i = 0; i < num_reports && i_octets + 5 < limes; i++) {

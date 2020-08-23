@@ -70,9 +70,28 @@ namespace direct_bt {
     ScanType getScanType(BTMode btMode);
 
     /**
+     * LE Advertising Event Types
+     * <p>
+     * BT Core Spec v5.2: Vol 4, Part E HCI: 7.7.65.2 LE Advertising Report event
+     * </p>
+     */
+    enum class LEADVEventType : uint8_t {
+        ADV_IND  = 0x00,
+        ADV_DIRECT_IND = 0x01,
+        ADV_SCAN_IND = 0x02,
+        ADV_NONCONN_IND = 0x03,
+        SCAN_RSP = 0x04
+    };
+    inline uint8_t number(const LEADVEventType rhs) {
+        return static_cast<uint8_t>(rhs);
+    }
+    std::string getLEADVEventTypeString(const LEADVEventType v);
+
+
+    /**
      * HCI Whitelist connection type.
      */
-    enum HCIWhitelistConnectType : uint8_t {
+    enum class HCIWhitelistConnectType : uint8_t {
         /** Report Connection: Only supported for LE on Linux .. */
         HCI_AUTO_CONN_REPORT = 0x00,
         /** Incoming Connections: Only supported type for BDADDR_BREDR (!LE) on Linux .. */
@@ -80,6 +99,9 @@ namespace direct_bt {
         /** Auto Connect: Only supported for LE on Linux .. */
         HCI_AUTO_CONN_ALWAYS = 0x02
     };
+    inline uint8_t number(const HCIWhitelistConnectType rhs) {
+        return static_cast<uint8_t>(rhs);
+    }
 
     enum AD_Type_Const : uint8_t {
         AD_FLAGS_LIMITED_MODE_BIT = 0x01,
@@ -423,7 +445,9 @@ namespace direct_bt {
             /* Advertising Data (AD) */
             AD,
             /** Extended Inquiry Response (EIR) */
-            EIR
+            EIR,
+            /** Extended Inquiry Response (EIR) from Kernel Mgmt */
+            EIR_MGMT
         };
 
     private:
@@ -431,7 +455,8 @@ namespace direct_bt {
         uint64_t timestamp = 0;
         EIRDataType eir_data_mask = static_cast<EIRDataType>(0);
 
-        uint8_t evt_type = 0;
+        LEADVEventType evt_type = LEADVEventType::SCAN_RSP;
+        uint8_t ad_address_type = 0;
         BDAddressType addressType = BDAddressType::BDADDR_UNDEFINED;
         EUI48 address;
 
@@ -452,7 +477,7 @@ namespace direct_bt {
         uint16_t did_version = 0;
 
         void set(EIRDataType bit) { eir_data_mask = eir_data_mask | bit; }
-        void setEvtType(uint8_t et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
+        void setEvtType(LEADVEventType et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setFlags(uint8_t f) { flags = f; set(EIRDataType::FLAGS); }
         void setName(const uint8_t *buffer, int buffer_len);
         void setShortName(const uint8_t *buffer, int buffer_len);
@@ -482,7 +507,8 @@ namespace direct_bt {
 
         void setSource(Source s) { source = s; }
         void setTimestamp(uint64_t ts) { timestamp = ts; }
-        void setAddressType(BDAddressType at) { addressType = at; set(EIRDataType::BDADDR_TYPE); }
+        void setADAddressType(uint8_t adAddressType);
+        void setAddressType(BDAddressType at);
         void setAddress(EUI48 const &a) { address = a; set(EIRDataType::BDADDR); }
         void setRSSI(int8_t v) { rssi = v; set(EIRDataType::RSSI); }
 
@@ -529,7 +555,9 @@ namespace direct_bt {
         bool isSet(EIRDataType bit) const { return EIRDataType::NONE != (eir_data_mask & bit); }
         EIRDataType getEIRDataMask() const { return eir_data_mask; }
 
-        uint8_t getEvtType() const { return evt_type; }
+        LEADVEventType getEvtType() const { return evt_type; }
+        uint8_t getFlags() const { return flags; }
+        uint8_t getADAddressType() const { return ad_address_type; }
         BDAddressType getAddressType() const { return addressType; }
         EUI48 const & getAddress() const { return address; }
         std::string const & getName() const { return name; }
@@ -552,7 +580,7 @@ namespace direct_bt {
         std::string getSourceString() const;
         std::string getAddressString() const { return address.toString(); }
         std::string eirDataMaskToString() const;
-        std::string toString() const;
+        std::string toString(const bool includeServices=true) const;
     };
 
     // *************************************************

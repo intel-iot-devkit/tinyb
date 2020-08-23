@@ -32,8 +32,6 @@
 
 #include <algorithm>
 
-// #define SHOW_LE_ADVERTISING 1
-
 // #define PERF_PRINT_ON 1
 // #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
@@ -267,17 +265,7 @@ void HCIHandler::hciReaderThreadImpl() {
                 DBG_PRINT("HCIHandler::reader: Drop (meta filter) %s", event->toString().c_str());
                 continue; // next packet
             }
-#ifdef SHOW_LE_ADVERTISING
-            if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
-                std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
-                int i=0;
-                for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
-                    INFO_PRINT("LE_ADV[%d]: %s", i, eir->toString().c_str());
-                    i++;
-                });
-                continue; // next packet
-            }
-#endif /* SHOW_LE_ADVERTISING */
+
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
                 if( hciEventRing.isFull() ) {
@@ -287,28 +275,22 @@ void HCIHandler::hciReaderThreadImpl() {
                 }
                 DBG_PRINT("HCIHandler::reader: CmdResult %s", event->toString().c_str());
                 hciEventRing.putBlocking( event );
+            } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
+                // issue callbacks for the translated AD events
+                std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
+                int i=0;
+                for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
+                    std::shared_ptr<MgmtEvent> mevent( new MgmtEvtDeviceFound(dev_id, eir) );
+                    DBG_PRINT("LE_ADV[%d]: %s", i, eir->toString().c_str());
+                    sendMgmtEvent( mevent );
+                    i++;
+                });
             } else {
-                // issue a callback
+                // issue a callback for the translated event
                 std::shared_ptr<MgmtEvent> mevent = translate(event);
                 if( nullptr != mevent ) {
-                    const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-                    MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(mevent->getOpcode())];
-                    int invokeCount = 0;
-                    if( mgmtEventCallbackList.size() > 0 ) {
-                        for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-                            try {
-                                it->invoke(mevent);
-                            } catch (std::exception &e) {
-                                ERR_PRINT("HCIHandler::fwdPacketReceived-CBs %d/%zd: MgmtEventCallback %s : Caught exception %s",
-                                        invokeCount+1, mgmtEventCallbackList.size(),
-                                        it->toString().c_str(), e.what());
-                            }
-                            invokeCount++;
-                        }
-                    }
-                    DBG_PRINT("HCIHandler::reader: Event %s -> %d/%zd callbacks; source %s",
-                            mevent->toString().c_str(), invokeCount, mgmtEventCallbackList.size(), event->toString().c_str());
-                    (void)invokeCount;
+                    DBG_PRINT("HCIHandler::reader: Event source %s", event->toString().c_str());
+                    sendMgmtEvent( mevent );
                 } else {
                     DBG_PRINT("HCIHandler::reader: Drop (no translation) %s", event->toString().c_str());
                 }
@@ -324,18 +306,19 @@ void HCIHandler::hciReaderThreadImpl() {
 
 void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-    const MgmtEvent::Opcode opc = event->getOpcode();
-    MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(opc)];
+    MgmtEventCallbackList & mgmtEventCallbackList = mgmtEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
     int invokeCount = 0;
-    for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-        try {
-            it->invoke(event);
-        } catch (std::exception &e) {
-            ERR_PRINT("HCIHandler::sendMgmtEvent-CBs %d/%zd: MgmtEventCallback %s : Caught exception %s",
-                    invokeCount+1, mgmtEventCallbackList.size(),
-                    it->toString().c_str(), e.what());
+    if( mgmtEventCallbackList.size() > 0 ) {
+        for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
+            try {
+                it->invoke(event);
+            } catch (std::exception &e) {
+                ERR_PRINT("HCIHandler::sendMgmtEvent-CBs %d/%zd: MgmtEventCallback %s : Caught exception %s",
+                        invokeCount+1, mgmtEventCallbackList.size(),
+                        it->toString().c_str(), e.what());
+            }
+            invokeCount++;
         }
-        invokeCount++;
     }
     DBG_PRINT("HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks",
             event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
@@ -483,9 +466,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         uint32_t mask = 0;
         // filter_all_metaevs(mask);
         filter_set_metaev(HCIMetaEventType::LE_CONN_COMPLETE, mask);
-#ifdef SHOW_LE_ADVERTISING
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
-#endif
         filter_put_metaevs(mask);
     }
 #ifdef VERBOSE_ON

@@ -545,10 +545,13 @@ namespace direct_bt {
                 return "event="+uint8HexString(number(getEventType()))+" "+getEventTypeString();
             }
             virtual std::string valueString() const {
+                const int d_sz_base = getBaseParamSize();
                 const int d_sz = getParamSize();
                 const std::string d_str = d_sz > 0 ? bytesHexString(getParam(), 0, d_sz, true /* lsbFirst */, true /* leading0X */) : "";
-                return "data[size "+std::to_string(d_sz)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
+                return "data[size "+std::to_string(d_sz)+"/"+std::to_string(d_sz_base)+", data "+d_str+"], tsz "+std::to_string(getTotalSize());
             }
+
+            uint8_t getBaseParamSize() const { return pdu.get_uint8(2); }
 
         public:
 
@@ -565,7 +568,7 @@ namespace direct_bt {
             : HCIPacket(buffer, buffer_len), ts_creation(getCurrentMilliseconds())
             {
                 checkEventType(getEventType(), HCIEventType::INQUIRY_COMPLETE, HCIEventType::AMP_Receiver_Report);
-                pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+getParamSize());
+                pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+getBaseParamSize());
             }
 
             /** Enabling manual construction of event without given value.  */
@@ -601,8 +604,8 @@ namespace direct_bt {
             std::string getMetaEventTypeString() const { return getHCIMetaEventTypeString(getMetaEventType()); }
             bool isMetaEvent(HCIMetaEventType t) const { return t == getMetaEventType(); }
 
-            uint8_t getParamSize() const { return pdu.get_uint8(2); }
-            const uint8_t* getParam() const { return pdu.get_ptr(number(HCIConstU8::EVENT_HDR_SIZE)); }
+            virtual uint8_t getParamSize() const { return getBaseParamSize(); }
+            virtual const uint8_t* getParam() const { return pdu.get_ptr(number(HCIConstU8::EVENT_HDR_SIZE)); }
 
             virtual bool validate(const HCICommand & cmd) const { (void)cmd; return true; }
 
@@ -812,7 +815,6 @@ namespace direct_bt {
             : HCIEvent(buffer, buffer_len)
             {
                 checkEventType(getEventType(), HCIEventType::LE_META);
-                pdu.check_range(0, number(HCIConstU8::EVENT_HDR_SIZE)+1);
             }
 
             /** Enabling manual construction of event without given value. */
@@ -832,6 +834,9 @@ namespace direct_bt {
             }
 
             HCIMetaEventType getMetaEventType() const override { return static_cast<HCIMetaEventType>( pdu.get_uint8(number(HCIConstU8::EVENT_HDR_SIZE)) ); }
+
+            uint8_t getParamSize() const override { return HCIEvent::getParamSize()-1; }
+            const uint8_t* getParam() const override { return HCIEvent::getParam()+1; }
     };
 
     /**
