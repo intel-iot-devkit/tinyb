@@ -335,20 +335,25 @@ bool HCIHandler::sendCommand(HCICommand &req) {
     return true;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryCount) {
+std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryCount, const bool verbose) {
     // Ringbuffer read is thread safe
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
         std::shared_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
         if( nullptr == ev ) {
             errno = ETIMEDOUT;
-            DBG_PRINT("HCIHandler::getNextReply: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            ERR_PRINT("HCIHandler::getNextReply: nullptr result (timeout -> abort): req %s", req.toString().c_str());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
             retryCount++;
-            DBG_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
-                       retryCount, ev->toString().c_str(), req.toString().c_str());
+            if( verbose ) {
+                INFO_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            } else {
+                DBG_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            }
         } else {
             DBG_PRINT("HCIHandler::getNextReply: res: %s, req %s", ev->toString().c_str(), req.toString().c_str());
             return ev;
@@ -357,7 +362,7 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryC
     return nullptr;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
+std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res, const bool verbose) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *res = nullptr;
@@ -370,7 +375,7 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount);
+        ev = getNextReply(req, retryCount, verbose);
         if( nullptr == ev ) {
             break;  // timeout, leave loop
         } else if( ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
@@ -386,13 +391,22 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
                         number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
                 break; // error status, leave loop
+            } else if( verbose ) {
+                INFO_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                        number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                        ev_cs->toString().c_str(), req.toString().c_str());
             }
             retryCount++;
             continue; // next packet
         } else {
             retryCount++;
-            DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: !CMD_COMPLETE (drop, retry %d): res %s; req %s",
-                       retryCount, ev->toString().c_str(), req.toString().c_str());
+            if( verbose ) {
+                INFO_PRINT("HCIHandler::sendWithCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            } else {
+                DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            }
             continue; // next packet
         }
     }
@@ -697,7 +711,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
     return status;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status)
+std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool verbose)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -711,7 +725,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount);
+        ev = getNextReply(req, retryCount, verbose);
         if( nullptr == ev ) {
             *status = HCIStatusCode::INTERNAL_TIMEOUT;
             break; // timeout, leave loop
@@ -725,6 +739,13 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
             break; // gotcha, leave loop - pending completion result handled via callback
         } else {
             retryCount++;
+            if( verbose ) {
+                INFO_PRINT("HCIHandler::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            } else {
+                DBG_PRINT("HCIHandler::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s",
+                           retryCount, ev->toString().c_str(), req.toString().c_str());
+            }
             continue; // next packet
         }
     }
@@ -742,20 +763,21 @@ exit:
 
 template<typename hci_cmd_event_struct>
 std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status)
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool verbose)
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
     const HCIEventType evc = HCIEventType::CMD_COMPLETE;
     HCICommandCompleteEvent * ev_cc;
-    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req, &ev_cc);
+    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req, &ev_cc, verbose);
     if( nullptr == ev ) {
+        *status = HCIStatusCode::INTERNAL_TIMEOUT;
         WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
                 getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req.toString().c_str());
-        *status = HCIStatusCode::INTERNAL_TIMEOUT;
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
         WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",

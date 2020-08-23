@@ -173,15 +173,16 @@ namespace direct_bt {
             void hciReaderThreadImpl();
 
             bool sendCommand(HCICommand &req);
-            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount);
+            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount, const bool verbose=false);
 
-            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
+            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res, const bool verbose=false);
 
-            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status);
+            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool verbose=false);
 
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status);
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
+                                                             const bool verbose=false);
 
             template<typename hci_cmd_event_struct>
             const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status);
