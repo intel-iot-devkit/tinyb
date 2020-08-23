@@ -183,7 +183,10 @@ public class ScannerTinyB10 {
 
     private void connectDiscoveredDevice(final BluetoothDevice device) {
         println("****** Connecting Device: Start " + device.toString());
-        device.getAdapter().stopDiscovery();
+        {
+            final boolean r = device.getAdapter().stopDiscovery();
+            println("****** Connecting Device: stopDiscovery result "+r);
+        }
         HCIStatusCode res;
         if( !USE_WHITELIST ) {
             res = device.connect();
@@ -192,7 +195,8 @@ public class ScannerTinyB10 {
         }
         println("****** Connecting Device Command, res "+res+": End result "+res+" of " + device.toString());
         if( !USE_WHITELIST && 0 == devicesInProcessing.size() && HCIStatusCode.SUCCESS != res ) {
-            device.getAdapter().startDiscovery( true );
+            final boolean r = device.getAdapter().startDiscovery( true );
+            println("****** Connecting Device: startDiscovery result "+r);
         }
     }
 
@@ -231,7 +235,11 @@ public class ScannerTinyB10 {
 
     private void processConnectedDevice(final BluetoothDevice device) {
         println("****** Processing Device: Start " + device.toString());
-        device.getAdapter().stopDiscovery(); // make sure for pending connections on failed connect*(..) command
+        {
+            // make sure for pending connections on failed connect*(..) command
+            final boolean r = device.getAdapter().stopDiscovery();
+            println("****** Processing Device: stopDiscovery result "+r);
+        }
 
         final long t1 = BluetoothUtils.getCurrentMilliseconds();
         boolean success = false;

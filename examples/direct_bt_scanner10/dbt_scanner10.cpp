@@ -324,6 +324,11 @@ static void processConnectedDevice(std::shared_ptr<DBTDevice> device) {
     }
 
 exit:
+    removeFromDevicesProcessing(device->getAddress());
+    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
+        device->getAdapter().startDiscovery( true );
+    }
+
     if( KEEP_CONNECTED ) {
         while( device->pingGATT() ) {
             fprintf(stderr, "****** Processing Device: pingGATT OK: %s\n", device->getAddressString().c_str());
@@ -343,16 +348,12 @@ exit:
     }
     device->getAdapter().printSharedPtrListOfDevices();
 
-    removeFromDevicesProcessing(device->getAddress());
     if( 0 < MULTI_MEASUREMENTS ) {
         MULTI_MEASUREMENTS--;
         fprintf(stderr, "****** Processing Device: MULTI_MEASUREMENTS left %d: %s\n", MULTI_MEASUREMENTS, device->getAddressString().c_str());
     }
     fprintf(stderr, "****** Processing Device: End: Success %d on %s; devInProc %zd\n",
             success, device->toString().c_str(), devicesInProcessing.size());
-    if( !USE_WHITELIST && 0 == devicesInProcessing.size() ) {
-        device->getAdapter().startDiscovery( true );
-    }
     if( success ) {
         addToDevicesProcessed(device->getAddress());
     }
