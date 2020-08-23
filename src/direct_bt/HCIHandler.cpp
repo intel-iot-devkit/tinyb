@@ -533,7 +533,7 @@ HCIStatusCode HCIHandler::reset() {
     HCICommandCompleteEvent * ev_cc;
     std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req0, &ev_cc);
     if( nullptr == ev || nullptr == ev_cc ) {
-        return HCIStatusCode::INTERNAL_FAILURE;
+        return HCIStatusCode::INTERNAL_TIMEOUT; // timeout
     }
     return ev_cc->getReturnStatus(0);
 }
@@ -713,6 +713,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
         ev = getNextReply(req, retryCount);
         if( nullptr == ev ) {
+            *status = HCIStatusCode::INTERNAL_TIMEOUT;
             break; // timeout, leave loop
         } else if( ev->isEvent(HCIEventType::CMD_STATUS) ) {
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
@@ -754,6 +755,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
                 getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req.toString().c_str());
+        *status = HCIStatusCode::INTERNAL_TIMEOUT;
         return nullptr; // timeout
     } else if( nullptr == ev_cc ) {
         WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",

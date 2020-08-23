@@ -118,6 +118,7 @@ namespace direct_bt {
         X(LIMIT_REACHED) \
         X(OPERATION_CANCELLED_BY_HOST) \
         X(PACKET_TOO_LONG) \
+        X(INTERNAL_TIMEOUT) \
         X(INTERNAL_FAILURE) \
         X(UNKNOWN)
 

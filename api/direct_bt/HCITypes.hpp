@@ -164,6 +164,7 @@ namespace direct_bt {
         OPERATION_CANCELLED_BY_HOST = 0x44,
         PACKET_TOO_LONG = 0x45,
 
+        INTERNAL_TIMEOUT = 0xfd,
         INTERNAL_FAILURE = 0xfe,
         UNKNOWN = 0xff
     };
