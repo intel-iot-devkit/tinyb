@@ -99,6 +99,7 @@ public enum HCIStatusCode {
         LIMIT_REACHED((byte) 0x43),
         OPERATION_CANCELLED_BY_HOST((byte) 0x44),
         PACKET_TOO_LONG((byte) 0x45),
+        INTERNAL_TIMEOUT((byte) 0xfd),
         INTERNAL_FAILURE((byte) 0xfe),
         UNKNOWN((byte) 0xff);
 
@@ -195,6 +196,7 @@ public enum HCIStatusCode {
             case (byte) 0x43: return LIMIT_REACHED;
             case (byte) 0x44: return OPERATION_CANCELLED_BY_HOST;
             case (byte) 0x45: return PACKET_TOO_LONG;
+            case (byte) 0xfd: return INTERNAL_TIMEOUT;
             case (byte) 0xfe: return INTERNAL_FAILURE;
             case (byte) 0xff: return UNKNOWN;
         }
