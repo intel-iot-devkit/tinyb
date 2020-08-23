@@ -23,26 +23,26 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#ifndef DBT_DEBUG_HPP_
+#define DBT_DEBUG_HPP_
+
+#include <cstdint>
+#include <cinttypes>
 #include <cstring>
 #include <string>
-#include <cstdint>
 #include <cstdio>
-
-#include <vector>
-#include <memory>
 
 extern "C" {
     #include <errno.h>
 }
 
-#ifndef DBT_DEBUG_HPP_
-#define DBT_DEBUG_HPP_
+#include "DBTEnv.hpp"
 
 // #define PERF_PRINT_ON 1
 // #define VERBOSE_ON 1
 
 #ifdef VERBOSE_ON
-    #define DBG_PRINT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+    #define DBG_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Debug: ", direct_bt::DBTEnv::getElapsedMillisecond()); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
 #else
     #define DBG_PRINT(...)
 #endif
@@ -57,11 +57,11 @@ extern "C" {
     #define PERF_TS_TD(m)
 #endif
 
-#define ERR_PRINT(...) { fprintf(stderr, "Error @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno)); fflush(stderr); }
+#define ERR_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno)); fflush(stderr); }
 
-#define WARN_PRINT(...) { fprintf(stderr, "Warning @ %s:%d: ", __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+#define WARN_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
 
-#define INFO_PRINT(...) { fprintf(stderr, "INFO: "); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
+#define INFO_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Info: ", direct_bt::DBTEnv::getElapsedMillisecond()); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
 
 template<class ListElemType>
 inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
