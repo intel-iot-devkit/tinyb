@@ -144,6 +144,7 @@ std::shared_ptr<HCIHandler> DBTAdapter::getHCI()
             hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceConnectedHCI));
             hci->addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTAdapter::mgmtEvConnectFailedHCI));
             hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedHCI));
+            hci->addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundHCI));
         }
     }
     return hci;
@@ -182,7 +183,6 @@ bool DBTAdapter::validateDevInfo() {
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
-    mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceFoundMgmt));
 
 #ifdef VERBOSE_ON
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDisconnectedMgmt));
@@ -803,38 +803,41 @@ bool DBTAdapter::mgmtEvDeviceDisconnectedMgmt(std::shared_ptr<MgmtEvent> e) {
     return true;
 }
 
-bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
+bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
     DBG_PRINT("DBTAdapter::EventCB:DeviceFound(dev_id %d): %s", dev_id, e->toString().c_str());
     const MgmtEvtDeviceFound &deviceFoundEvent = *static_cast<const MgmtEvtDeviceFound *>(e.get());
 
-    EInfoReport ad_report;
-    ad_report.setSource(EInfoReport::Source::EIR);
-    ad_report.setTimestamp(deviceFoundEvent.getTimestamp());
-    // ad_report.setEvtType(0); ??
-    ad_report.setAddressType(deviceFoundEvent.getAddressType());
-    ad_report.setAddress( deviceFoundEvent.getAddress() );
-    ad_report.setRSSI( deviceFoundEvent.getRSSI() );
-    ad_report.read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
+    std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
+    if( nullptr == eir ) {
+        eir = std::shared_ptr<EInfoReport>(new EInfoReport());
+        eir->setSource(EInfoReport::Source::EIR_MGMT);
+        eir->setTimestamp(deviceFoundEvent.getTimestamp());
+        // eir->setEvtType(0); ??
+        eir->setAddressType(deviceFoundEvent.getAddressType());
+        eir->setAddress( deviceFoundEvent.getAddress() );
+        eir->setRSSI( deviceFoundEvent.getRSSI() );
+        eir->read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
+    }
 
     // std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
     std::shared_ptr<DBTDevice> dev;
     {
         const std::lock_guard<std::recursive_mutex> lock(const_cast<DBTAdapter*>(this)->mtx_discoveredDevices); // RAII-style acquire and relinquish via destructor
-        dev = findDiscoveredDevice(ad_report.getAddress(), ad_report.getAddressType());
+        dev = findDiscoveredDevice(eir->getAddress(), eir->getAddressType());
     }
     if( nullptr != dev ) {
         //
         // drop existing device
         //
-        EIRDataType updateMask = dev->update(ad_report);
+        EIRDataType updateMask = dev->update(*eir);
         INFO_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s", dev->getAddressString().c_str());
         if( EIRDataType::NONE != updateMask ) {
-            sendDeviceUpdated("DiscoveredDeviceFound", dev, ad_report.getTimestamp(), updateMask);
+            sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
         return true;
     }
 
-    dev = findSharedDevice(ad_report.getAddress(), ad_report.getAddressType());
+    dev = findSharedDevice(eir->getAddress(), eir->getAddressType());
     if( nullptr != dev ) {
         //
         // active shared device, but flushed from discovered devices
@@ -842,16 +845,16 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
         // - issue deviceFound, allowing receivers to recognize the re-discovered device
         // - issue deviceUpdate if data has changed, allowing receivers to act upon
         //
-        EIRDataType updateMask = dev->update(ad_report);
+        EIRDataType updateMask = dev->update(*eir);
         addDiscoveredDevice(dev); // re-add to discovered devices!
-        dev->ts_last_discovery = ad_report.getTimestamp();
+        dev->ts_last_discovery = eir->getTimestamp();
         DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use already shared %s", dev->getAddressString().c_str());
 
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
             try {
                 if( l->matchDevice(*dev) ) {
-                    l->deviceFound(dev, ad_report.getTimestamp());
+                    l->deviceFound(dev, eir->getTimestamp());
                 }
             } catch (std::exception &e) {
                 ERR_PRINT("DBTAdapter::EventCB:DeviceFound: %d/%zd: %s of %s: Caught exception %s",
@@ -861,7 +864,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
             i++;
         });
         if( EIRDataType::NONE != updateMask ) {
-            sendDeviceUpdated("SharedDeviceFound", dev, ad_report.getTimestamp(), updateMask);
+            sendDeviceUpdated("SharedDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
         return true;
     }
@@ -869,7 +872,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     //
     // new device
     //
-    dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, ad_report));
+    dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *eir));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
     DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use new %s", dev->getAddressString().c_str());
@@ -878,7 +881,7 @@ bool DBTAdapter::mgmtEvDeviceFoundMgmt(std::shared_ptr<MgmtEvent> e) {
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
         try {
             if( l->matchDevice(*dev) ) {
-                l->deviceFound(dev, ad_report.getTimestamp());
+                l->deviceFound(dev, eir->getTimestamp());
             }
         } catch (std::exception &e) {
             ERR_PRINT("DBTAdapter::EventCB:DeviceFound-CBs %d/%zd: %s of %s: Caught exception %s",
