@@ -901,7 +901,8 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         // drop existing device
         //
         EIRDataType updateMask = dev->update(*eir);
-        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s", dev->getAddressString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s, %s",
+                dev->getAddressString().c_str(), eir->toString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
         }
@@ -919,7 +920,8 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         EIRDataType updateMask = dev->update(*eir);
         addDiscoveredDevice(dev); // re-add to discovered devices!
         dev->ts_last_discovery = eir->getTimestamp();
-        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use already shared %s", dev->getAddressString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use already shared %s, %s",
+                dev->getAddressString().c_str(), eir->toString().c_str());
 
         int i=0;
         for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
@@ -946,7 +948,8 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
     dev = std::shared_ptr<DBTDevice>(new DBTDevice(*this, *eir));
     addDiscoveredDevice(dev);
     addSharedDevice(dev);
-    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use new %s", dev->getAddressString().c_str());
+    DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Use new %s, %s",
+            dev->getAddressString().c_str(), eir->toString().c_str());
 
     int i=0;
     for_each_idx_mtx(mtx_statusListenerList, statusListenerList, [&](std::shared_ptr<AdapterStatusListener> &l) {
