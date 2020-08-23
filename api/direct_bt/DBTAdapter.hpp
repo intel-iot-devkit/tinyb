@@ -448,7 +448,7 @@ namespace direct_bt {
              * </p>
              * @return true if no error, otherwise false.
              */
-            void stopDiscovery();
+            bool stopDiscovery();
 
             /**
              * Returns the meta discovering state. It can be modified through startDiscovery(..) and stopDiscovery().

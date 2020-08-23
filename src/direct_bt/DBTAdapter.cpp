@@ -455,7 +455,7 @@ void DBTAdapter::startDiscoveryBackground() {
     }
 }
 
-void DBTAdapter::stopDiscovery() {
+bool DBTAdapter::stopDiscovery() {
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     /**
      * Need to send mgmtEvDeviceDiscoveringMgmt(..)
@@ -482,7 +482,7 @@ void DBTAdapter::stopDiscovery() {
                 keepDiscoveringAlive.load(),
                 getScanTypeString(currentNativeScanType).c_str(), getScanTypeString(currentMetaScanType).c_str());
         checkDiscoveryState();
-        return;
+        return true;
     }
 
     bool res;
@@ -522,6 +522,7 @@ void DBTAdapter::stopDiscovery() {
         MgmtEvtDiscovering *e = new MgmtEvtDiscovering(dev_id, ScanType::NONE, false);
         mgmt.sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
     }
+    return res;
 }
 
 std::shared_ptr<DBTDevice> DBTAdapter::findDiscoveredDevice (EUI48 const & mac, const BDAddressType macType) {

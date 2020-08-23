@@ -563,8 +563,7 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_stopDiscoveryImpl(JNIEnv *env, jobject
 {
     try {
         DBTAdapter *adapter = getDBTObject<DBTAdapter>(env, obj);
-        adapter->stopDiscovery();
-        return JNI_TRUE;
+        return adapter->stopDiscovery();
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
