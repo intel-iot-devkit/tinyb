@@ -11,6 +11,7 @@ include_directories(
 
 set (direct_bt_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/dfa_utf8_decode.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTEnv.cpp
   ${PROJECT_SOURCE_DIR}/src/ieee11073/DataTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/BasicTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/direct_bt/UUID.cpp
