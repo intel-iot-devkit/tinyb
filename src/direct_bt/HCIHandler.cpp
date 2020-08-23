@@ -55,6 +55,10 @@ extern "C" {
 
 using namespace direct_bt;
 
+struct hci_rp_status {
+    __u8    status;
+} __packed;
+
 const pid_t HCIHandler::pidSelf = getpid();
 
 HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) {
@@ -220,7 +224,8 @@ std::shared_ptr<MgmtEvent> HCIHandler::translate(std::shared_ptr<HCIEvent> ev) {
                 return std::shared_ptr<MgmtEvent>( new MgmtEvtDeviceDisconnected(dev_id, conn->getAddress(), conn->getAddressType(), hciRootReason, conn->getHandle()) );
             }
         }
-        default: return nullptr;
+        default:
+            return nullptr;
     }
 }
 
@@ -493,8 +498,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
         const hci_rp_read_local_version * ev_lv;
         HCIStatusCode status;
-        std::shared_ptr<HCIEvent> ev = processSimpleCommand<hci_rp_read_local_version>(
-                HCIOpcode::READ_LOCAL_VERSION, &ev_lv, &status);
+        std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_lv, &status);
         if( nullptr == ev || nullptr == ev_lv ) {
             ERR_PRINT("HCIHandler::ctor: failed READ_LOCAL_VERSION: 0x%x (%s)", number(status), getHCIStatusCodeString(status).c_str());
             goto fail;
@@ -570,7 +574,6 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 
     HCIStructCommand<hci_cp_le_create_conn> req0(HCIOpcode::LE_CREATE_CONN);
     hci_cp_le_create_conn * cp = req0.getWStruct();
-    bzero((void*)cp, sizeof(*cp));
     cp->scan_interval = cpu_to_le(le_scan_interval);
     cp->scan_window = cpu_to_le(le_scan_window);
     cp->filter_policy = initiator_filter;
@@ -586,7 +589,7 @@ HCIStatusCode HCIHandler::le_create_conn(const EUI48 &peer_bdaddr,
 
     addOrUpdateTrackerConnection(peer_bdaddr, getBDAddressType(peer_mac_type), 0);
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
+    std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     return status;
 }
 
@@ -600,7 +603,6 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
     }
     HCIStructCommand<hci_cp_create_conn> req0(HCIOpcode::CREATE_CONN);
     hci_cp_create_conn * cp = req0.getWStruct();
-    bzero((void*)cp, sizeof(*cp));
     cp->bdaddr = bdaddr;
     cp->pkt_type = cpu_to_le((uint16_t)(pkt_type & (uint16_t)ACL_PTYPE_MASK)); /* TODO OK excluding SCO_PTYPE_MASK   (HCI_HV1 | HCI_HV2 | HCI_HV3) ? */
     cp->pscan_rep_mode = 0x02; /* TODO magic? */
@@ -610,7 +612,7 @@ HCIStatusCode HCIHandler::create_conn(const EUI48 &bdaddr,
 
     addOrUpdateTrackerConnection(bdaddr, BDAddressType::BDADDR_BREDR, 0);
     HCIStatusCode status;
-    std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
+    std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     return status;
 }
 
@@ -658,11 +660,10 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
     {
         HCIStructCommand<hci_cp_disconnect> req0(HCIOpcode::DISCONNECT);
         hci_cp_disconnect * cp = req0.getWStruct();
-        bzero(cp, sizeof(*cp));
         cp->handle = cpu_to_le(conn_handle);
         cp->reason = number(reason);
 
-        std::shared_ptr<HCIEvent> ev = processStructCommand(req0, &status);
+        std::shared_ptr<HCIEvent> ev = processCommandStatus(req0, &status);
     }
     if( ioErrorCause ) {
         // In case of an ioError (lost-connection), don't wait for the lagging
@@ -675,49 +676,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
     return status;
 }
 
-
-template<typename hci_cmd_event_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processSimpleCommand(HCIOpcode opc, const hci_cmd_event_struct **res, HCIStatusCode *status)
-{
-    *res = nullptr;
-    *status = HCIStatusCode::INTERNAL_FAILURE;
-
-    const HCIEventType evc = HCIEventType::CMD_COMPLETE;
-    HCICommand req0(opc, 0);
-    HCICommandCompleteEvent * ev_cc;
-    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req0, &ev_cc);
-    if( nullptr == ev ) {
-        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                req0.toString().c_str());
-        return nullptr; // timeout
-    } else if( nullptr == ev_cc ) {
-        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev->toString().c_str(), req0.toString().c_str());
-        return ev;
-    }
-    const uint8_t returnParamSize = ev_cc->getReturnParamSize();
-    if( returnParamSize < sizeof(hci_cmd_event_struct) ) {
-        WARN_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
-                ev_cc->toString().c_str(), req0.toString().c_str());
-        return ev;
-    }
-    *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());
-    *status = static_cast<HCIStatusCode>((*res)->status);
-    DBG_PRINT("HCIHandler::processSimpleCommand %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
-            getHCIOpcodeString(opc).c_str(), getHCIEventTypeString(evc).c_str(),
-            number(*status), getHCIStatusCodeString(*status).c_str(),
-            ev_cc->toString().c_str(), req0.toString().c_str());
-    return ev;
-}
-
-template<typename hci_command_struct>
-std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_command_struct> &req, HCIStatusCode *status)
+std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -737,7 +696,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_
         } else if( ev->isEvent(HCIEventType::CMD_STATUS) ) {
             HCICommandStatusEvent * ev_cs = static_cast<HCICommandStatusEvent*>(ev.get());
             *status = ev_cs->getStatus();
-            DBG_PRINT("HCIHandler::processStructCommand %s -> Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+            DBG_PRINT("HCIHandler::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
                     getHCIOpcodeString(req.getOpcode()).c_str(),
                     number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                     ev_cs->toString().c_str(), req.toString().c_str());
@@ -749,13 +708,53 @@ std::shared_ptr<HCIEvent> HCIHandler::processStructCommand(HCIStructCommand<hci_
     }
     if( nullptr == ev ) {
         // timeout exit
-        WARN_PRINT("HCIHandler::processStructCommand %s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
+        WARN_PRINT("HCIHandler::processCommandStatus %s -> Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
                 getHCIOpcodeString(req.getOpcode()).c_str(),
                 number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
                 req.toString().c_str());
     }
 
 exit:
+    return ev;
+}
+
+template<typename hci_cmd_event_struct>
+std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status)
+{
+    *res = nullptr;
+    *status = HCIStatusCode::INTERNAL_FAILURE;
+
+    const HCIEventType evc = HCIEventType::CMD_COMPLETE;
+    HCICommandCompleteEvent * ev_cc;
+    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req, &ev_cc);
+    if( nullptr == ev ) {
+        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                req.toString().c_str());
+        return nullptr; // timeout
+    } else if( nullptr == ev_cc ) {
+        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                ev->toString().c_str(), req.toString().c_str());
+        return ev;
+    }
+    const uint8_t returnParamSize = ev_cc->getReturnParamSize();
+    if( returnParamSize < sizeof(hci_cmd_event_struct) ) {
+        WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res %s, req %s",
+                getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+                number(*status), getHCIStatusCodeString(*status).c_str(), errno, strerror(errno),
+                ev_cc->toString().c_str(), req.toString().c_str());
+        return ev;
+    }
+    *res = (const hci_cmd_event_struct*)(ev_cc->getReturnParam());
+    *status = static_cast<HCIStatusCode>((*res)->status);
+    DBG_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s): res %s, req %s",
+            getHCIOpcodeString(req.getOpcode()).c_str(), getHCIEventTypeString(evc).c_str(),
+            number(*status), getHCIStatusCodeString(*status).c_str(),
+            ev_cc->toString().c_str(), req.toString().c_str());
     return ev;
 }
 

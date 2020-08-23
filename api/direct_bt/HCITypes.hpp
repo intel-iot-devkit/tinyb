@@ -493,10 +493,13 @@ namespace direct_bt {
     class HCIStructCommand : public HCICommand
     {
         public:
-            /** Enabling manual construction of command without given value. */
+            /** Enabling manual construction of command with zero value. */
             HCIStructCommand(const HCIOpcode opc)
             : HCICommand(opc, sizeof(hcistruct))
-            { }
+            {
+                hcistruct * cp = getWStruct();
+                bzero((void*)cp, sizeof(hcistruct));
+            }
 
             /** Enabling manual construction of command with given value.  */
             HCIStructCommand(const HCIOpcode opc, const hcistruct &cp)
