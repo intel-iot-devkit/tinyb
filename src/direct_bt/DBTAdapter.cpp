@@ -404,7 +404,7 @@ bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType 
         currentNativeScanType = ScanType::NONE;
         ERR_PRINT("DBTAdapter::startDiscovery: le_set_scan_param failed: %s", getHCIStatusCodeString(status).c_str());
     } else {
-        status = hci->le_enable_scan(true /* enable */, true /* filter_dup */);
+        status = hci->le_enable_scan(true /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             currentNativeScanType = ScanType::NONE;
             ERR_PRINT("DBTAdapter::startDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
@@ -441,7 +441,7 @@ void DBTAdapter::startDiscoveryBackground() {
             ERR_PRINT("DBTAdapter::startDiscoveryBackground: HCI not available: %s", toString().c_str());
             return;
         }
-        HCIStatusCode status = hci->le_enable_scan(true /* enable */, true /* filter_dup */);
+        HCIStatusCode status = hci->le_enable_scan(true /* enable */);
         if( HCIStatusCode::SUCCESS != status ) {
             currentNativeScanType = ScanType::NONE;
             ERR_PRINT("DBTAdapter::startDiscoveryBackground: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
@@ -492,7 +492,7 @@ bool DBTAdapter::stopDiscovery() {
         ERR_PRINT("DBTAdapter::stopDiscovery: HCI not available: %s", toString().c_str());
         return false;
     }
-    HCIStatusCode status = hci->le_enable_scan(false /* enable */, false /* filter_dup */);
+    HCIStatusCode status = hci->le_enable_scan(false /* enable */);
     if( HCIStatusCode::SUCCESS != status ) {
         res = false;
         ERR_PRINT("DBTAdapter::stopDiscovery: le_enable_scan failed: %s", getHCIStatusCodeString(status).c_str());
@@ -878,6 +878,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
 
     std::shared_ptr<EInfoReport> eir = deviceFoundEvent.getEIR();
     if( nullptr == eir ) {
+        // Sourced from Linux Mgmt or otherwise ...
         eir = std::shared_ptr<EInfoReport>(new EInfoReport());
         eir->setSource(EInfoReport::Source::EIR_MGMT);
         eir->setTimestamp(deviceFoundEvent.getTimestamp());
@@ -886,7 +887,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         eir->setAddress( deviceFoundEvent.getAddress() );
         eir->setRSSI( deviceFoundEvent.getRSSI() );
         eir->read_data(deviceFoundEvent.getData(), deviceFoundEvent.getDataSize());
-    }
+    } // else: Sourced from HCIHandler via LE_ADVERTISING_REPORT (default!)
 
     // std::shared_ptr<DBTDevice> dev = findDiscoveredDevice(ad_report.getAddress());
     std::shared_ptr<DBTDevice> dev;
@@ -899,7 +900,7 @@ bool DBTAdapter::mgmtEvDeviceFoundHCI(std::shared_ptr<MgmtEvent> e) {
         // drop existing device
         //
         EIRDataType updateMask = dev->update(*eir);
-        INFO_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s", dev->getAddressString().c_str());
+        DBG_PRINT("DBTAdapter::EventCB:DeviceFound: Drop already discovered %s", dev->getAddressString().c_str());
         if( EIRDataType::NONE != updateMask ) {
             sendDeviceUpdated("DiscoveredDeviceFound", dev, eir->getTimestamp(), updateMask);
         }

@@ -227,6 +227,15 @@ namespace direct_bt {
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.10 LE Set Scan Parameters command
              * </p>
              * Should not be called while scanning is active.
+             * <p>
+             * Scan parameters control advertising (AD) Protocol Data Unit (PDU) delivery behavior.
+             * </p>
+             *
+             * @param le_scan_active true enables delivery of active scanning PDUs, otherwise no scanning PDUs shall be sent (default)
+             * @param own_mac_type HCILEOwnAddressType::PUBLIC (default) or random/private.
+             * @param le_scan_interval in units of 0.625ms, default value 48 for 30ms, min value 4 for 2.5ms -> 0x4000 for 10.24s
+             * @param le_scan_window in units of 0.625ms, default value 48 for 30ms,  min value 4 for 2.5ms -> 0x4000 for 10.24s. Shall be <= le_scan_interval
+             * @param filter_policy 0x00 accepts all PDUs (default), 0x01 only of whitelisted, ...
              */
             HCIStatusCode le_set_scan_param(const bool le_scan_active=false,
                                             const HCILEOwnAddressType own_mac_type=HCILEOwnAddressType::PUBLIC,
@@ -238,8 +247,10 @@ namespace direct_bt {
              * <p>
              * BT Core Spec v5.2: Vol 4, Part E HCI: 7.8.11 LE Set Scan Enable command
              * </p>
+             * @param enable true to enable discovery, otherwise false
+             * @param filter_dup true to filter out duplicate AD PDUs (default), otherwise all will be reported.
              */
-            HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=false);
+            HCIStatusCode le_enable_scan(const bool enable, const bool filter_dup=true);
 
             /**
              * Establish a connection to the given LE peer.

@@ -48,9 +48,9 @@
  * Direct-BT shall be suitable for embedded device configurations besides others.
  *
  * Direct-BT implements the following layers
- * - DBTManager for adapter management and device discovery
+ * - DBTManager for adapter management
  *   - Using *BlueZ Kernel Manager Control Channel*
- * - *HCI Handling* via HCIHandler implementing connect/disconnect w/ tracking, discovery, etc
+ * - *HCI Handling* via HCIHandler implementing connect/disconnect w/ tracking, device discovery, etc
  * - *ATT PDU* AttPDUMsg via L2CAP for low level packet communication
  * - *GATT Support* via GATTHandler using AttPDUMsg over L2CAPComm, providing
  *   -  GATTService
@@ -58,9 +58,10 @@
  *   -  GATTDescriptor
  *
  * DBTManager still utilizes the *BlueZ Kernel Manager Control Channel*
- * adapter configuration and device discovery.
+ * adapter configuration.
  * To remove potential side-effects and this last Linux dependency,
- * we will have DBTManager using direct HCI programming via HCIHandler in the future.
+ * we will have DBTManager using direct HCI programming via HCIHandler
+ * for the remaining functionality.
  *
  * - - - - - - - - - - - - - - -
  *
