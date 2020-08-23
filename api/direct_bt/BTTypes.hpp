@@ -487,7 +487,6 @@ namespace direct_bt {
         uint16_t did_version = 0;
 
         void set(EIRDataType bit) { eir_data_mask = eir_data_mask | bit; }
-        void setEvtType(AD_PDU_Type et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setFlags(uint8_t f) { flags = f; set(EIRDataType::FLAGS); }
         void setName(const uint8_t *buffer, int buffer_len);
         void setShortName(const uint8_t *buffer, int buffer_len);
@@ -517,6 +516,7 @@ namespace direct_bt {
 
         void setSource(Source s) { source = s; }
         void setTimestamp(uint64_t ts) { timestamp = ts; }
+        void setEvtType(AD_PDU_Type et) { evt_type = et; set(EIRDataType::EVT_TYPE); }
         void setADAddressType(uint8_t adAddressType);
         void setAddressType(BDAddressType at);
         void setAddress(EUI48 const &a) { address = a; set(EIRDataType::BDADDR); }
