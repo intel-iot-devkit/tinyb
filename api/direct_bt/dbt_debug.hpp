@@ -31,6 +31,7 @@
 #include <cstring>
 #include <string>
 #include <cstdio>
+#include <cstdarg>
 
 extern "C" {
     #include <errno.h>
@@ -39,43 +40,106 @@ extern "C" {
 #include "DBTEnv.hpp"
 
 // #define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
 
-#ifdef VERBOSE_ON
-    #define DBG_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Debug: ", direct_bt::DBTEnv::getElapsedMillisecond()); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
-#else
-    #define DBG_PRINT(...)
-#endif
+namespace direct_bt {
 
-#ifdef PERF_PRINT_ON
-    #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
-
-    #define PERF_TS_TD(m)  { const uint64_t _td = direct_bt::getCurrentMilliseconds() - _t0; \
-                             fprintf(stderr, "%s done in %d ms,\n", (m), (int)_td); }
-#else
-    #define PERF_TS_T0()
-    #define PERF_TS_TD(m)
-#endif
-
-#define ERR_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno)); fflush(stderr); }
-
-#define WARN_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
-
-#define INFO_PRINT(...) { fprintf(stderr, "[%'9" PRIu64 "] Info: ", direct_bt::DBTEnv::getElapsedMillisecond()); fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(stderr); }
-
-template<class ListElemType>
-inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
-    fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), (size_t)list.size());
-    int idx = 0;
-    for (auto it = list.begin(); it != list.end(); idx++) {
-        std::shared_ptr<ListElemType> & e = *it;
-        if ( nullptr != e ) {
-            fprintf(stderr, "%s[%d]: useCount %zd, mem %p\n", prefix.c_str(), idx, (size_t)e.use_count(), e.get());
-        } else {
-            fprintf(stderr, "%s[%d]: NULL\n", prefix.c_str(), idx);
+    /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
+    inline void DBG_PRINT(const char * format, ...) {
+        if(direct_bt::DBTEnv::get().DEBUG) {
+            fprintf(stderr, "[%'9" PRIu64 "] Debug: ", direct_bt::DBTEnv::getElapsedMillisecond());
+            va_list args;
+            va_start (args, format);
+            vfprintf(stderr, format, args);
+            va_end (args);
+            fprintf(stderr, "\n");
+            fflush(stderr);
         }
-        ++it;
     }
-}
+
+    /** Use for environment-variable DBTEnv::VERBOSE conditional info messages, prefix '[elapsed_time] Info: '. */
+    inline void INFO_PRINT(const char * format, ...) {
+        if(direct_bt::DBTEnv::get().VERBOSE) {
+            fprintf(stderr, "[%'9" PRIu64 "] Info: ", direct_bt::DBTEnv::getElapsedMillisecond());
+            va_list args;
+            va_start (args, format);
+            vfprintf(stderr, format, args);
+            va_end (args);
+            fprintf(stderr, "\n");
+            fflush(stderr);
+        }
+    }
+
+    #ifdef PERF_PRINT_ON
+        #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
+
+        #define PERF_TS_TD(m)  { const uint64_t _td = direct_bt::getCurrentMilliseconds() - _t0; \
+                                 fprintf(stderr, "[%'9" PRIu64 "] %s done in %d ms,\n", direct_bt::DBTEnv::getElapsedMillisecond(), (m), (int)_td); }
+    #else
+        #define PERF_TS_T0()
+        #define PERF_TS_TD(m)
+    #endif
+
+    /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
+    inline void ERR_PRINT(const char * format, ...) {
+        fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__);
+        va_list args;
+        va_start (args, format);
+        vfprintf(stderr, format, args);
+        va_end (args);
+        fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
+        fflush(stderr);
+    }
+
+    /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
+    inline void WARN_PRINT(const char * format, ...) {
+        fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__);
+        va_list args;
+        va_start (args, format);
+        vfprintf(stderr, format, args);
+        va_end (args);
+        fprintf(stderr, "\n");
+        fflush(stderr);
+    }
+
+    /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
+    inline void PLAIN_PRINT(const char * format, ...) {
+        fprintf(stderr, "[%'9" PRIu64 "] ", direct_bt::DBTEnv::getElapsedMillisecond());
+        va_list args;
+        va_start (args, format);
+        vfprintf(stderr, format, args);
+        va_end (args);
+        fprintf(stderr, "\n");
+        fflush(stderr);
+    }
+
+    /** Use for conditional plain messages, prefix '[elapsed_time] '. */
+    inline void COND_PRINT(const bool condition, const char * format, ...) {
+        if( condition ) {
+            fprintf(stderr, "[%'9" PRIu64 "] ", direct_bt::DBTEnv::getElapsedMillisecond());
+            va_list args;
+            va_start (args, format);
+            vfprintf(stderr, format, args);
+            va_end (args);
+            fprintf(stderr, "\n");
+            fflush(stderr);
+        }
+    }
+
+    template<class ListElemType>
+    inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
+        fprintf(stderr, "%s: Start: %zd elements\n", prefix.c_str(), (size_t)list.size());
+        int idx = 0;
+        for (auto it = list.begin(); it != list.end(); idx++) {
+            std::shared_ptr<ListElemType> & e = *it;
+            if ( nullptr != e ) {
+                fprintf(stderr, "%s[%d]: useCount %zd, mem %p\n", prefix.c_str(), idx, (size_t)e.use_count(), e.get());
+            } else {
+                fprintf(stderr, "%s[%d]: NULL\n", prefix.c_str(), idx);
+            }
+            ++it;
+        }
+    }
+
+} // namespace direct_bt
 
 #endif /* DBT_DEBUG_HPP_ */
