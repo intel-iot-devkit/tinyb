@@ -103,8 +103,10 @@ namespace direct_bt {
 
                 /** 10s poll timeout for HCI reader thread */
                 HCI_READER_THREAD_POLL_TIMEOUT = 10000,
-                /** 3s timeout for HCI command replies. This timeout is rather longer, as it may include waiting for pending command complete. */
-                HCI_COMMAND_REPLY_TIMEOUT = 3000,
+                /** 3s timeout for HCI command status replies, excluding command complete. */
+                HCI_COMMAND_STATUS_REPLY_TIMEOUT = 3000,
+                /** 10s timeout for HCI command complete replies. This timeout is rather longer, as it may include waiting for pending command complete. */
+                HCI_COMMAND_COMPLETE_REPLY_TIMEOUT = 10000,
                 /** Small ringbuffer capacity for synchronized commands */
                 HCI_EVT_RING_CAPACITY = 64,
                 /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
@@ -120,7 +122,8 @@ namespace direct_bt {
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
-            const int replyTimeoutMS;
+            const int cmdStatusReplyTimeoutMS;
+            const int cmdCompleteReplyTimeoutMS;
             std::recursive_mutex mtx;
             hci_ufilter filter_mask;
             std::atomic<uint32_t> metaev_filter_mask;
@@ -173,16 +176,15 @@ namespace direct_bt {
             void hciReaderThreadImpl();
 
             bool sendCommand(HCICommand &req);
-            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount, const bool verbose=false);
+            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount, const int replyTimeoutMS);
 
-            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res, const bool verbose=false);
+            std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
 
-            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool verbose=false);
+            std::shared_ptr<HCIEvent> processCommandStatus(HCICommand &req, HCIStatusCode *status);
 
             template<typename hci_cmd_event_struct>
             std::shared_ptr<HCIEvent> processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
-                                                             const bool verbose=false);
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status);
 
             template<typename hci_cmd_event_struct>
             const hci_cmd_event_struct* getReplyStruct(std::shared_ptr<HCIEvent> event, HCIEventType evc, HCIStatusCode *status);
@@ -193,13 +195,12 @@ namespace direct_bt {
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
 
-            bool mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e);
-            bool mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e);
             void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
         public:
-            HCIHandler(const BTMode btMode, const uint16_t dev_id, const int replyTimeoutMS=Defaults::HCI_COMMAND_REPLY_TIMEOUT);
+            HCIHandler(const BTMode btMode, const uint16_t dev_id,
+                       const int cmdStatusReplyTimeoutMS=Defaults::HCI_COMMAND_STATUS_REPLY_TIMEOUT,
+                       const int cmdCompleteReplyTimeoutMS=Defaults::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
 
             /**
              * Releases this instance after issuing {@link #close()}.

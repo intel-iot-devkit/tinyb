@@ -36,6 +36,8 @@
 // #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
+#include "DBTEnv.hpp"
+
 #include "BTIoctl.hpp"
 
 #include "HCIIoctl.hpp"
@@ -232,7 +234,7 @@ void HCIHandler::hciReaderThreadImpl() {
         const std::lock_guard<std::mutex> lock(mtx_hciReaderInit); // RAII-style acquire and relinquish via destructor
         hciReaderShallStop = false;
         hciReaderRunning = true;
-        INFO_PRINT("HCIHandler::reader: Started");
+        DBG_PRINT("HCIHandler::reader: Started");
         cv_hciReaderInit.notify_all();
     }
 
@@ -256,32 +258,33 @@ void HCIHandler::hciReaderThreadImpl() {
             std::shared_ptr<HCIEvent> event( HCIEvent::getSpecialized(rbuffer.get_ptr(), len) );
             if( nullptr == event ) {
                 // not an event ...
-                ERR_PRINT("HCIHandler::reader: Drop (non-event) %s", bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
+                ERR_PRINT("HCIHandler-IO RECV Drop (non-event) %s", bytesHexString(rbuffer.get_ptr(), 0, len, true /* lsbFirst*/).c_str());
                 continue;
             }
+
             const HCIMetaEventType mec = event->getMetaEventType();
             if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
                 // DROP
-                DBG_PRINT("HCIHandler::reader: Drop (meta filter) %s", event->toString().c_str());
+                DBG_PRINT("HCIHandler-IO RECV Drop (meta filter) %s", event->toString().c_str());
                 continue; // next packet
             }
 
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
+                DBG_PRINT("HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
                 if( hciEventRing.isFull() ) {
                     const int dropCount = hciEventRing.capacity()/2;
                     hciEventRing.drop(dropCount);
-                    INFO_PRINT("HCIHandler::reader: Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
+                    INFO_PRINT("HCIHandler-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
                 }
-                DBG_PRINT("HCIHandler::reader: CmdResult %s", event->toString().c_str());
                 hciEventRing.putBlocking( event );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
                 // issue callbacks for the translated AD events
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 int i=0;
                 for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
+                    // DBG_PRINT("HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
                     std::shared_ptr<MgmtEvent> mevent( new MgmtEvtDeviceFound(dev_id, eir) );
-                    DBG_PRINT("LE_ADV[%d]: %s", i, eir->toString().c_str());
                     sendMgmtEvent( mevent );
                     i++;
                 });
@@ -289,10 +292,10 @@ void HCIHandler::hciReaderThreadImpl() {
                 // issue a callback for the translated event
                 std::shared_ptr<MgmtEvent> mevent = translate(event);
                 if( nullptr != mevent ) {
-                    DBG_PRINT("HCIHandler::reader: Event source %s", event->toString().c_str());
+                    DBG_PRINT("HCIHandler-IO RECV (CB) %s", event->toString().c_str());
                     sendMgmtEvent( mevent );
                 } else {
-                    DBG_PRINT("HCIHandler::reader: Drop (no translation) %s", event->toString().c_str());
+                    DBG_PRINT("HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
                 }
             }
         } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
@@ -320,13 +323,15 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    DBG_PRINT("HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks",
-            event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    // DBG_PRINT("HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 bool HCIHandler::sendCommand(HCICommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
+
+    DBG_PRINT("HCIHandler-IO SENT %s", req.toString().c_str());
+
     TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
         ERR_PRINT("HCIHandler::sendCommand: HCIComm write error, req %s", req.toString().c_str());
@@ -335,34 +340,29 @@ bool HCIHandler::sendCommand(HCICommand &req) {
     return true;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryCount, const bool verbose) {
+std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryCount, const int replyTimeoutMS) {
     // Ringbuffer read is thread safe
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
         std::shared_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
         if( nullptr == ev ) {
             errno = ETIMEDOUT;
-            ERR_PRINT("HCIHandler::getNextReply: nullptr result (timeout -> abort): req %s", req.toString().c_str());
+            ERR_PRINT("HCIHandler::getNextReply: nullptr result (timeout %d ms -> abort): req %s",
+                    replyTimeoutMS, req.toString().c_str());
             return nullptr;
         } else if( !ev->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
             retryCount++;
-            if( verbose ) {
-                INFO_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            } else {
-                DBG_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            }
+            DBG_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+                       retryCount, ev->toString().c_str(), req.toString().c_str());
         } else {
-            DBG_PRINT("HCIHandler::getNextReply: res: %s, req %s", ev->toString().c_str(), req.toString().c_str());
             return ev;
         }
     }
     return nullptr;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res, const bool verbose) {
+std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
     *res = nullptr;
@@ -375,7 +375,7 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, verbose);
+        ev = getNextReply(req, retryCount, cmdCompleteReplyTimeoutMS);
         if( nullptr == ev ) {
             break;  // timeout, leave loop
         } else if( ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
@@ -391,8 +391,8 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
                         number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
                 break; // error status, leave loop
-            } else if( verbose ) {
-                INFO_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s",
+            } else {
+                DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s",
                         number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
             }
@@ -400,13 +400,8 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
             continue; // next packet
         } else {
             retryCount++;
-            if( verbose ) {
-                INFO_PRINT("HCIHandler::sendWithCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            } else {
-                DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            }
+            DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: !(CMD_COMPLETE, CMD_STATUS) (drop, retry %d): res %s; req %s",
+                       retryCount, ev->toString().c_str(), req.toString().c_str());
             continue; // next packet
         }
     }
@@ -415,9 +410,13 @@ exit:
     return ev;
 }
 
-HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int replyTimeoutMS)
+HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id,
+                       const int cmdStatusReplyTimeoutMS,
+                       const int cmdCompleteReplyTimeoutMS)
 :btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
- comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT), replyTimeoutMS(replyTimeoutMS),
+ comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT),
+ cmdStatusReplyTimeoutMS(cmdStatusReplyTimeoutMS),
+ cmdCompleteReplyTimeoutMS(cmdCompleteReplyTimeoutMS),
  hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
     INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
@@ -438,7 +437,6 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         while( false == hciReaderRunning ) {
             cv_hciReaderInit.wait(lock);
         }
-        DBG_PRINT("HCIHandler::ctor: Reader Started");
     }
 
     PERF_TS_T0();
@@ -483,12 +481,6 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id, const int rep
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
         filter_put_metaevs(mask);
     }
-#ifdef VERBOSE_ON
-    // Add own callbacks
-    addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &HCIHandler::mgmtEvDeviceDisconnectedCB));
-    addMgmtEventCallback(MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &HCIHandler::mgmtEvDeviceConnectedCB));
-    addMgmtEventCallback(MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &HCIHandler::mgmtEvConnectFailedCB));
-#endif
     {
         HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
         const hci_rp_read_local_version * ev_lv;
@@ -682,7 +674,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
             return HCIStatusCode::INVALID_HCI_COMMAND_PARAMETERS;
         }
     }
-    INFO_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s, ioError %d",
+    DBG_PRINT("HCIHandler::disconnect: address[%s, %s], handle %s, %s, ioError %d",
                peer_bdaddr.toString().c_str(), getBDAddressTypeString(peer_mac_type).c_str(),
                uint16HexString(conn_handle).c_str(),
                conn->toString().c_str(), ioErrorCause);
@@ -711,7 +703,7 @@ HCIStatusCode HCIHandler::disconnect(const bool ioErrorCause,
     return status;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status, const bool verbose)
+std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIStatusCode *status)
 {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
 
@@ -725,7 +717,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, verbose);
+        ev = getNextReply(req, retryCount, cmdStatusReplyTimeoutMS);
         if( nullptr == ev ) {
             *status = HCIStatusCode::INTERNAL_TIMEOUT;
             break; // timeout, leave loop
@@ -739,13 +731,8 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
             break; // gotcha, leave loop - pending completion result handled via callback
         } else {
             retryCount++;
-            if( verbose ) {
-                INFO_PRINT("HCIHandler::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            } else {
-                DBG_PRINT("HCIHandler::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s",
-                           retryCount, ev->toString().c_str(), req.toString().c_str());
-            }
+            DBG_PRINT("HCIHandler::processCommandStatus: !CMD_STATUS (drop, retry %d): res %s; req %s",
+                       retryCount, ev->toString().c_str(), req.toString().c_str());
             continue; // next packet
         }
     }
@@ -763,15 +750,14 @@ exit:
 
 template<typename hci_cmd_event_struct>
 std::shared_ptr<HCIEvent> HCIHandler::processCommandComplete(HCICommand &req,
-                                                             const hci_cmd_event_struct **res, HCIStatusCode *status,
-                                                             const bool verbose)
+                                                             const hci_cmd_event_struct **res, HCIStatusCode *status)
 {
     *res = nullptr;
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
     const HCIEventType evc = HCIEventType::CMD_COMPLETE;
     HCICommandCompleteEvent * ev_cc;
-    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req, &ev_cc, verbose);
+    std::shared_ptr<HCIEvent> ev = sendWithCmdCompleteReply(req, &ev_cc);
     if( nullptr == ev ) {
         *status = HCIStatusCode::INTERNAL_TIMEOUT;
         WARN_PRINT("HCIHandler::processCommandComplete %s -> %s: Status 0x%2.2X (%s), errno %d %s: res nullptr, req %s",
@@ -814,10 +800,6 @@ const hci_cmd_event_struct* HCIHandler::getReplyStruct(std::shared_ptr<HCIEvent>
     if( ev_cc->isTypeAndSizeValid(evc) ) {
         *status = ev_cc->getStatus();
         res = ev_cc->getStruct();
-        DBG_PRINT("HCIHandler::getReplyStruct: %s: Status 0x%2.2X (%s): res %s",
-                getHCIEventTypeString(evc).c_str(),
-                number(*status), getHCIStatusCodeString(*status).c_str(),
-                ev_cc->toString().c_str());
     } else {
         WARN_PRINT("HCIHandler::getReplyStruct: %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s",
                 getHCIEventTypeString(evc).c_str(),
@@ -838,10 +820,6 @@ const hci_cmd_event_struct* HCIHandler::getMetaReplyStruct(std::shared_ptr<HCIEv
     if( ev_cc->isTypeAndSizeValid(mec) ) {
         *status = ev_cc->getStatus();
         res = ev_cc->getStruct();
-        DBG_PRINT("HCIHandler::getMetaReplyStruct: %s: Status 0x%2.2X (%s): res %s",
-                  getHCIMetaEventTypeString(mec).c_str(),
-                  number(*status), getHCIStatusCodeString(*status).c_str(),
-                  ev_cc->toString().c_str());
     } else {
         WARN_PRINT("HCIHandler::getMetaReplyStruct: %s: Type or size mismatch: Status 0x%2.2X (%s), errno %d %s: res %s",
                   getHCIMetaEventTypeString(mec).c_str(),
@@ -894,23 +872,4 @@ void HCIHandler::clearAllMgmtEventCallbacks() {
     for(size_t i=0; i<mgmtEventCallbackLists.size(); i++) {
         mgmtEventCallbackLists[i].clear();
     }
-}
-
-bool HCIHandler::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("HCIHandler::EventCB:DeviceDisconnected: %s", e->toString().c_str());
-    const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
-    (void)event;
-    return true;
-}
-bool HCIHandler::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("HCIHandler::EventCB:DeviceConnected: %s", e->toString().c_str());
-    const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
-    (void)event;
-    return true;
-}
-bool HCIHandler::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("HCIHandler::EventCB:ConnectFailed: %s", e->toString().c_str());
-    const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
-    (void)event;
-    return true;
 }

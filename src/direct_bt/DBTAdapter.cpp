@@ -136,7 +136,7 @@ std::shared_ptr<HCIHandler> DBTAdapter::getHCI()
     checkValidAdapter();
     const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
     if( nullptr == hci ) {
-        hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id, HCIHandler::Defaults::HCI_COMMAND_REPLY_TIMEOUT) );
+        hci = std::shared_ptr<HCIHandler>( new HCIHandler(btMode, dev_id) );
         if( !hci->isOpen() ) {
             ERR_PRINT("Could not open HCIHandler: %s of %s", hci->toString().c_str(), toString().c_str());
             hci = nullptr;
