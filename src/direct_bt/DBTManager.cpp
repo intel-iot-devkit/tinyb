@@ -175,11 +175,11 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            DBG_PRINT("DBTManager::sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
+            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
                        retry, res->toString().c_str(), req.toString().c_str());
             retry--;
         } else {
-            COND_PRINT(debug_event, "DBTManager::sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
+            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }

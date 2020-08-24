@@ -352,9 +352,10 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryC
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
             retryCount++;
-            DBG_PRINT("HCIHandler::getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+            COND_PRINT(debug_event, "HCIHandler-IO RECV getNextReply: res mismatch (drop, retry %d): res %s; req %s",
                        retryCount, ev->toString().c_str(), req.toString().c_str());
         } else {
+            COND_PRINT(debug_event, "HCIHandler-IO RECV getNextReply: res %s; req %s", ev->toString().c_str(), req.toString().c_str());
             return ev;
         }
     }
