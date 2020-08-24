@@ -33,7 +33,6 @@
 #include <algorithm>
 
 // #define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "BTIoctl.hpp"
@@ -83,9 +82,16 @@ void DBTManager::mgmtReaderThreadImpl() {
             std::shared_ptr<MgmtEvent> event( MgmtEvent::getSpecialized(rbuffer.get_ptr(), len) );
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
+                COND_PRINT(debug_event, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
+                if( mgmtEventRing.isFull() ) {
+                    const int dropCount = mgmtEventRing.capacity()/4;
+                    mgmtEventRing.drop(dropCount);
+                    WARN_PRINT("DBTManager-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, mgmtEventRing.capacity());
+                }
                 mgmtEventRing.putBlocking( event );
             } else {
                 // issue a callback
+                COND_PRINT(debug_event, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
                 sendMgmtEvent(event);
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
@@ -115,7 +121,7 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    // DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(debug_event, "DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
@@ -150,6 +156,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
+        COND_PRINT(debug_event, "DBTManager-IO SENT %s", req.toString().c_str());
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
             ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
@@ -172,6 +179,7 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
                        retry, res->toString().c_str(), req.toString().c_str());
             retry--;
         } else {
+            COND_PRINT(debug_event, "DBTManager::sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }
@@ -234,8 +242,10 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) {
 }
 
 DBTManager::DBTManager(const BTMode btMode)
-:btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL, Defaults::MGMT_READER_THREAD_POLL_TIMEOUT),
- mgmtEventRing(MGMTEVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
+: debug_global(DBTEnv::get().DEBUG),
+  debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.manager.event", false)),
+  btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL, Defaults::MGMT_READER_THREAD_POLL_TIMEOUT),
+  mgmtEventRing(MGMTEVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
     INFO_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
     if( !comm.isOpen() ) {
@@ -355,22 +365,22 @@ next1:
     }
 
     if( ok ) {
-#ifdef VERBOSE_ON
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
-        addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
-#endif
+        if( debug_event ) {
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_DISCONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDisconnectedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_CONNECTED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceConnectedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::CONNECT_FAILED, bindMemberFunc(this, &DBTManager::mgmtEvConnectFailedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_BLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceBlockedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNBLOCKED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnblockedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_UNPAIRED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceUnpairedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::NEW_CONN_PARAM, bindMemberFunc(this, &DBTManager::mgmtEvNewConnectionParamCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_ADDED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhitelistAddedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_WHITELIST_REMOVED, bindMemberFunc(this, &DBTManager::mgmtEvDeviceWhilelistRemovedCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::PIN_CODE_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvPinCodeRequestCB));
+            addMgmtEventCallback(-1, MgmtEvent::Opcode::USER_PASSKEY_REQUEST, bindMemberFunc(this, &DBTManager::mgmtEvUserPasskeyRequestCB));
+        }
         PERF_TS_TD("DBTManager::open.ok");
         return;
     }
@@ -699,84 +709,84 @@ void DBTManager::clearAllMgmtEventCallbacks() {
 }
 
 bool DBTManager::mgmtEvClassOfDeviceChangedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:ClassOfDeviceChanged: %s", e->toString().c_str());
     (void)e;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDiscoveringCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceDiscovering: %s", e->toString().c_str());
     const MgmtEvtDiscovering &event = *static_cast<const MgmtEvtDiscovering *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceFoundCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceFound: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceFound: %s", e->toString().c_str());
     const MgmtEvtDeviceFound &event = *static_cast<const MgmtEvtDeviceFound *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceDisconnectedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceDisconnected: %s", e->toString().c_str());
     const MgmtEvtDeviceDisconnected &event = *static_cast<const MgmtEvtDeviceDisconnected *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceConnectedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceConnected: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceConnected: %s", e->toString().c_str());
     const MgmtEvtDeviceConnected &event = *static_cast<const MgmtEvtDeviceConnected *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvConnectFailedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:ConnectFailed: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:ConnectFailed: %s", e->toString().c_str());
     const MgmtEvtDeviceConnectFailed &event = *static_cast<const MgmtEvtDeviceConnectFailed *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceBlockedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceBlocked: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceBlocked: %s", e->toString().c_str());
     const MgmtEvtDeviceBlocked &event = *static_cast<const MgmtEvtDeviceBlocked *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceUnblockedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceUnblocked: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceUnblocked: %s", e->toString().c_str());
     const MgmtEvtDeviceUnblocked &event = *static_cast<const MgmtEvtDeviceUnblocked *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceUnpairedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceUnpaired: %s", e->toString().c_str());
     const MgmtEvtDeviceUnpaired &event = *static_cast<const MgmtEvtDeviceUnpaired *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvNewConnectionParamCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:NewConnectionParam: %s", e->toString().c_str());
     const MgmtEvtNewConnectionParam &event = *static_cast<const MgmtEvtNewConnectionParam *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhitelistAddedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistAdded: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistAdded &event = *static_cast<const MgmtEvtDeviceWhitelistAdded *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvDeviceWhilelistRemovedCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:DeviceWhitelistRemoved: %s", e->toString().c_str());
     const MgmtEvtDeviceWhitelistRemoved &event = *static_cast<const MgmtEvtDeviceWhitelistRemoved *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvPinCodeRequestCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:PinCodeRequest: %s", e->toString().c_str());
     const MgmtEvtPinCodeRequest &event = *static_cast<const MgmtEvtPinCodeRequest *>(e.get());
     (void)event;
     return true;
 }
 bool DBTManager::mgmtEvUserPasskeyRequestCB(std::shared_ptr<MgmtEvent> e) {
-    DBG_PRINT("DBTManager::EventCB:UserPasskeyRequest: %s", e->toString().c_str());
+    PLAIN_PRINT("DBTManager::EventCB:UserPasskeyRequest: %s", e->toString().c_str());
     const MgmtEvtUserPasskeyRequest &event = *static_cast<const MgmtEvtUserPasskeyRequest *>(e.get());
     (void)event;
     return true;

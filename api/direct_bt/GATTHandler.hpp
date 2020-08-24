@@ -61,6 +61,12 @@ namespace direct_bt {
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
+     * <p>
+     * Controlling Environment variables:
+     * <pre>
+     * - 'direct_bt.debug.gatt.data': Debug messages about detailed GATT data, see debug_data
+     * </pre>
+     * </p>
      */
     class GATTHandler {
         public:
@@ -84,6 +90,8 @@ namespace direct_bt {
             static inline int number(const Defaults d) { return static_cast<int>(d); }
 
        private:
+            const bool debug_data;
+
             /** GATTHandle's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;
 

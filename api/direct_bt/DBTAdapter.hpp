@@ -148,6 +148,15 @@ namespace direct_bt {
     // *************************************************
     // *************************************************
 
+    /**
+     * DBTAdapter represents one Bluetooth Controller.
+     * <p>
+     * Controlling Environment variables:
+     * <pre>
+     * - 'direct_bt.debug.adapter.event': Debug messages about events, see debug_events
+     * </pre>
+     * </p>
+     */
     class DBTAdapter : public DBTObject
     {
         private:
@@ -156,6 +165,7 @@ namespace direct_bt {
             static std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, EUI48 const & mac, const BDAddressType macType);
             std::shared_ptr<DBTDevice> findDevice(std::vector<std::shared_ptr<DBTDevice>> & devices, DBTDevice const & device);
 
+            const bool debug_event;
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
             NameAndShortName localName;

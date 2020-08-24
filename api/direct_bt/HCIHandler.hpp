@@ -95,6 +95,12 @@ namespace direct_bt {
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
+     * <p>
+     * Controlling Environment variables:
+     * <pre>
+     * - 'direct_bt.debug.hci.event': Debug messages about events, see debug_event
+     * </pre>
+     * </p>
      */
     class HCIHandler {
         public:
@@ -118,6 +124,7 @@ namespace direct_bt {
         private:
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
 
+            const bool debug_event;
             const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;

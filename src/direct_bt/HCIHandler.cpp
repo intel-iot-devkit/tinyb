@@ -33,7 +33,6 @@
 #include <algorithm>
 
 // #define PERF_PRINT_ON 1
-// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 #include "DBTEnv.hpp"
@@ -265,17 +264,17 @@ void HCIHandler::hciReaderThreadImpl() {
             const HCIMetaEventType mec = event->getMetaEventType();
             if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
                 // DROP
-                DBG_PRINT("HCIHandler-IO RECV Drop (meta filter) %s", event->toString().c_str());
+                COND_PRINT(debug_event, "HCIHandler-IO RECV Drop (meta filter) %s", event->toString().c_str());
                 continue; // next packet
             }
 
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
-                DBG_PRINT("HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
+                COND_PRINT(debug_event, "HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
                 if( hciEventRing.isFull() ) {
-                    const int dropCount = hciEventRing.capacity()/2;
+                    const int dropCount = hciEventRing.capacity()/4;
                     hciEventRing.drop(dropCount);
-                    INFO_PRINT("HCIHandler-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
+                    WARN_PRINT("HCIHandler-IO RECV Drop (%d oldest elements of %d capacity, ring full)", dropCount, hciEventRing.capacity());
                 }
                 hciEventRing.putBlocking( event );
             } else if( event->isMetaEvent(HCIMetaEventType::LE_ADVERTISING_REPORT) ) {
@@ -283,7 +282,7 @@ void HCIHandler::hciReaderThreadImpl() {
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 int i=0;
                 for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
-                    // DBG_PRINT("HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
+                    // COND_PRINT(debug_event, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
                     std::shared_ptr<MgmtEvent> mevent( new MgmtEvtDeviceFound(dev_id, eir) );
                     sendMgmtEvent( mevent );
                     i++;
@@ -292,10 +291,10 @@ void HCIHandler::hciReaderThreadImpl() {
                 // issue a callback for the translated event
                 std::shared_ptr<MgmtEvent> mevent = translate(event);
                 if( nullptr != mevent ) {
-                    DBG_PRINT("HCIHandler-IO RECV (CB) %s", event->toString().c_str());
+                    COND_PRINT(debug_event, "HCIHandler-IO RECV (CB) %s", event->toString().c_str());
                     sendMgmtEvent( mevent );
                 } else {
-                    DBG_PRINT("HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
+                    COND_PRINT(debug_event, "HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
                 }
             }
         } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
@@ -323,14 +322,14 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    // DBG_PRINT("HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(debug_event, "HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 bool HCIHandler::sendCommand(HCICommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
 
-    DBG_PRINT("HCIHandler-IO SENT %s", req.toString().c_str());
+    COND_PRINT(debug_event, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
@@ -413,11 +412,12 @@ exit:
 HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id,
                        const int cmdStatusReplyTimeoutMS,
                        const int cmdCompleteReplyTimeoutMS)
-:btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
- comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT),
- cmdStatusReplyTimeoutMS(cmdStatusReplyTimeoutMS),
- cmdCompleteReplyTimeoutMS(cmdCompleteReplyTimeoutMS),
- hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
+: debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
+  btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
+  comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT),
+  cmdStatusReplyTimeoutMS(cmdStatusReplyTimeoutMS),
+  cmdCompleteReplyTimeoutMS(cmdCompleteReplyTimeoutMS),
+  hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
     INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
     if( !comm.isOpen() ) {

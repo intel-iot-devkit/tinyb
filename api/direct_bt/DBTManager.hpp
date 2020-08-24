@@ -50,6 +50,12 @@ namespace direct_bt {
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
+     * <p>
+     * Controlling Environment variables:
+     * <pre>
+     * - 'direct_bt.debug.manager.event': Debug messages about events, see debug_event
+     * </pre>
+     * </p>
      */
     class DBTManager : public JavaUplink {
         public:
@@ -78,6 +84,8 @@ namespace direct_bt {
             };
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
 
+            const bool debug_global; // only to trigger DBTEnv initialization first
+            const bool debug_event;
             const BTMode btMode;
             POctets rbuffer;
             HCIComm comm;
