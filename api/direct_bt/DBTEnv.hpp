@@ -69,7 +69,7 @@ namespace direct_bt {
              * and 'jvm_' prepended.
              * </p>
              */
-            static const char * getProperty(const char *name);
+            static std::string getProperty(const std::string & name);
 
             /**
              * Returns the value of the environment's variable 'name',
@@ -78,7 +78,7 @@ namespace direct_bt {
              * Implementation uses getProperty(const char *name).
              * </p>
              */
-            static std::string getProperty(const char *name, const std::string & default_value);
+            static std::string getProperty(const std::string & name, const std::string & default_value);
 
             /**
              * Returns the boolean value of the environment's variable 'name',
@@ -91,7 +91,7 @@ namespace direct_bt {
              * Implementation uses getProperty(const char *name).
              * </p>
              */
-            static bool getBooleanProperty(const char *name, const bool default_value);
+            static bool getBooleanProperty(const std::string & name, const bool default_value);
 
             static DBTEnv& get() {
                 /**
