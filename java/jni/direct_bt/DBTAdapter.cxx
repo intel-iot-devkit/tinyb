@@ -233,10 +233,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     void adapterSettingsChanged(DBTAdapter const &a, const AdapterSetting oldmask, const AdapterSetting newmask,
                                 const AdapterSetting changedmask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter SETTINGS_CHANGED: %s -> %s, changed %s\n",
-                    direct_bt::getAdapterSettingsString(oldmask).c_str(),
-                    direct_bt::getAdapterSettingsString(newmask).c_str(),
-                    direct_bt::getAdapterSettingsString(changedmask).c_str());
         (void)a;
         jobject adapterSettingOld = env->NewObject(adapterSettingsClazzRef.getClass(), adapterSettingsClazzCtor,  (jint)oldmask);
         java_exception_check_and_throw(env, E_FILE_LINE);
@@ -257,7 +253,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
     void discoveringChanged(DBTAdapter const &a, const bool enabled, const bool keepAlive, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter Device DISCOVERING: enabled %d, keepAlive %d: %s\n", enabled, keepAlive, a.toString().c_str());
         (void)a;
         env->CallVoidMethod(listenerObjRef.getObject(), mDiscoveringChanged, JavaGlobalObj::GetObject(adapterObjRef),
                             (jboolean)enabled, (jboolean)keepAlive, (jlong)timestamp);
@@ -266,7 +261,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
     void deviceFound(std::shared_ptr<DBTDevice> device, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter Device FOUND__: %s\n", device->toString(true).c_str());
         jobject jdevice;
         std::shared_ptr<JavaAnonObj> jDeviceRef0 = device->getJavaObject();
         if( JavaGlobalObj::isValid(jDeviceRef0) ) {
@@ -297,7 +291,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
     void deviceUpdated(std::shared_ptr<DBTDevice> device, const EIRDataType updateMask, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter Device UPDATED: %s of %s\n", direct_bt::getEIRDataMaskString(updateMask).c_str(), device->toString(true).c_str());
         std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
         JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
         env->SetLongField(JavaGlobalObj::GetObject(jDeviceRef), deviceClazzTSLastUpdateField, (jlong)timestamp);
@@ -313,7 +306,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
 
     void deviceConnected(std::shared_ptr<DBTDevice> device, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter Device CONNECTED: %s\n", device->toString(true).c_str());
 
         jobject jdevice;
         std::shared_ptr<JavaAnonObj> jDeviceRef0 = device->getJavaObject();
@@ -349,8 +341,6 @@ class JNIAdapterStatusListener : public AdapterStatusListener {
     }
     void deviceDisconnected(std::shared_ptr<DBTDevice> device, const HCIStatusCode reason, const uint16_t handle, const uint64_t timestamp) override {
         JNIEnv *env = *jni_env;
-        DBG_PRINT("****** JNI Adapter Device DISCONNECTED: Reason 0x%X (%s): %s\n",
-                static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(), device->toString(true).c_str());
 
         std::shared_ptr<JavaAnonObj> jDeviceRef = device->getJavaObject();
         JavaGlobalObj::check(jDeviceRef, E_FILE_LINE);
@@ -401,14 +391,13 @@ jboolean Java_direct_1bt_tinyb_DBTAdapter_addStatusListener(JNIEnv *env, jobject
 
         if( adapter->addStatusListener( l ) ) {
             setInstance(env, statusListener, l.get());
-            DBG_PRINT("JNIAdapterStatusListener::addStatusListener: OK: %s", l->toString().c_str());
             return JNI_TRUE;
         }
         ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED: %s", l->toString().c_str());
     } catch(...) {
         rethrow_and_raise_java_exception(env);
     }
-    DBG_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED XX");
+    ERR_PRINT("JNIAdapterStatusListener::addStatusListener: FAILED XX");
     return JNI_FALSE;
 }
 

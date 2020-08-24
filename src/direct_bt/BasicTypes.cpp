@@ -23,8 +23,6 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "BasicTypes.hpp"
-
 #include <cstdint>
 #include <cinttypes>
 
@@ -38,7 +36,7 @@ extern "C" {
     #endif
 }
 
-#include <dbt_debug.hpp>
+#include "direct_bt/BasicTypes.hpp"
 
 using namespace direct_bt;
 

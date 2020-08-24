@@ -60,7 +60,7 @@ void DBTManager::mgmtReaderThreadImpl() {
         const std::lock_guard<std::mutex> lock(mtx_mgmtReaderInit); // RAII-style acquire and relinquish via destructor
         mgmtReaderShallStop = false;
         mgmtReaderRunning = true;
-        INFO_PRINT("DBTManager::reader: Started");
+        DBG_PRINT("DBTManager::reader: Started");
         cv_mgmtReaderInit.notify_all();
     }
 
@@ -83,29 +83,10 @@ void DBTManager::mgmtReaderThreadImpl() {
             std::shared_ptr<MgmtEvent> event( MgmtEvent::getSpecialized(rbuffer.get_ptr(), len) );
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
-                DBG_PRINT("DBTManager::reader: CmdResult %s", event->toString().c_str());
                 mgmtEventRing.putBlocking( event );
             } else {
                 // issue a callback
-                const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
-                const int dev_id = event->getDevID();
-                MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
-                int invokeCount = 0;
-                for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
-                    if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
-                        try {
-                            it->getCallback().invoke(event);
-                        } catch (std::exception &e) {
-                            ERR_PRINT("DBTManager::fwdPacketReceived-CBs %d/%zd: MgmtAdapterEventCallback %s : Caught exception %s",
-                                    invokeCount+1, mgmtEventCallbackList.size(),
-                                    it->toString().c_str(), e.what());
-                        }
-                        invokeCount++;
-                    }
-                }
-                DBG_PRINT("DBTManager::reader: Event %s -> %d/%zd callbacks",
-                        event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
-                (void)invokeCount;
+                sendMgmtEvent(event);
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
             ERR_PRINT("DBTManager::reader: HCIComm error");
@@ -120,8 +101,7 @@ void DBTManager::mgmtReaderThreadImpl() {
 void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_callbackLists); // RAII-style acquire and relinquish via destructor
     const int dev_id = event->getDevID();
-    const MgmtEvent::Opcode opc = event->getOpcode();
-    MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(opc)];
+    MgmtAdapterEventCallbackList & mgmtEventCallbackList = mgmtAdapterEventCallbackLists[static_cast<uint16_t>(event->getOpcode())];
     int invokeCount = 0;
     for (auto it = mgmtEventCallbackList.begin(); it != mgmtEventCallbackList.end(); ++it) {
         if( 0 > it->getDevID() || dev_id == it->getDevID() ) {
@@ -135,8 +115,7 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks",
-            event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    // DBG_PRINT("DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
@@ -171,7 +150,6 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
         const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
-        DBG_PRINT("DBTManager::sendWithReply.0: req %s", req.toString().c_str());
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
             ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
@@ -190,11 +168,10 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            WARN_PRINT("DBTManager::sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
+            DBG_PRINT("DBTManager::sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
                        retry, res->toString().c_str(), req.toString().c_str());
             retry--;
         } else {
-            DBG_PRINT("DBTManager::sendWithReply.X: res: %s, req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }
@@ -282,7 +259,6 @@ DBTManager::DBTManager(const BTMode btMode)
         while( false == mgmtReaderRunning ) {
             cv_mgmtReaderInit.wait(lock);
         }
-        DBG_PRINT("DBTManager::ctor: Reader Started");
     }
 
     PERF_TS_T0();
@@ -304,7 +280,7 @@ DBTManager::DBTManager(const BTMode btMode)
         const uint16_t revision = get_uint16(data, 1, true /* littleEndian */);
         INFO_PRINT("Bluetooth version %d.%d", version, revision);
         if( version < 1 ) {
-            ERR_PRINT("Bluetooth version >= 1.0 required")
+            ERR_PRINT("Bluetooth version >= 1.0 required");
             goto fail;
         }
     }

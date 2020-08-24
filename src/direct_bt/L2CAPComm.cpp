@@ -47,7 +47,6 @@ extern "C" {
     #include <signal.h>
 }
 
-// #define VERBOSE_ON 1
 #include <dbt_debug.hpp>
 
 using namespace direct_bt;
@@ -108,12 +107,12 @@ bool L2CAPComm::connect() {
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
         // already connected
         DBG_PRINT("L2CAPComm::connect: Already connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
+                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
         return true;
     }
     hasIOError = false;
     DBG_PRINT("L2CAPComm::connect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
+              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
 
     sockaddr_l2 req;
     int err, res;
@@ -138,8 +137,7 @@ bool L2CAPComm::connect() {
         // blocking
         res = ::connect(_dd, (struct sockaddr*)&req, sizeof(req));
 
-        DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s",
-                  res, errno, strerror(errno), deviceString.c_str().c_str());
+        DBG_PRINT("L2CAPComm::connect: Result %d, errno 0%X %s, %s", res, errno, strerror(errno), deviceString.c_str());
 
         if( !res )
         {
@@ -177,12 +175,12 @@ bool L2CAPComm::disconnect() {
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
+                  getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
         return false;
     }
     hasIOError = false;
     DBG_PRINT("L2CAPComm::disconnect: Start: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
-              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, pubaddr);
+              getStateString().c_str(), _dd.load(), deviceString.c_str(), psm, cid, true);
     interruptFlag = true;
 
     // interrupt L2CAP ::connect(..), avoiding prolonged hang

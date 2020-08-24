@@ -431,7 +431,7 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
     // Lock to avoid other threads connecting while disconnecting
     const std::lock_guard<std::recursive_mutex> lock_conn(mtx_connect); // RAII-style acquire and relinquish via destructor
 
-    DBG_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
+    INFO_PRINT("DBTDevice::disconnect: Start: isConnected %d/%d, fromDisconnectCB %d, ioError %d, reason 0x%X (%s), gattHandler %d, hciConnHandle %s",
             allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
             static_cast<uint8_t>(reason), getHCIStatusCodeString(reason).c_str(),
             (nullptr != gattHandler), uint16HexString(hciConnHandle).c_str());
@@ -457,12 +457,19 @@ HCIStatusCode DBTDevice::disconnect(const bool fromDisconnectCB, const bool ioEr
 
     res = hci->disconnect(ioErrorCause, hciConnHandle.load(), address, addressType, reason);
     if( HCIStatusCode::SUCCESS != res ) {
-        DBG_PRINT("DBTDevice::disconnect: handle 0x%X, errno %d %s", hciConnHandle.load(), errno, strerror(errno));
+        ERR_PRINT("DBTDevice::disconnect: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d: errno %d %s on %s",
+                getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
+                allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
+                errno, strerror(errno),
+                toString(false).c_str());
     }
 
 exit:
-    DBG_PRINT("DBTDevice::disconnect: End: isConnected %d/%d, fromDisconnectCB %d, ioError %d",
-              allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause);
+    INFO_PRINT("DBTDevice::disconnect: End: status %s, handle 0x%X, isConnected %d/%d, fromDisconnectCB %d, ioError %d on %s",
+            getHCIStatusCodeString(res).c_str(), hciConnHandle.load(),
+            allowDisconnect.load(), isConnected.load(), fromDisconnectCB, ioErrorCause,
+            toString(false).c_str());
+
     return res;
 }
 

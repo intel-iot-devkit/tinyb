@@ -31,9 +31,6 @@
 #include <stdexcept>
 #include <vector>
 
-// #define VERBOSE_ON 1
-#include <dbt_debug.hpp>
-
 #include "helper_base.hpp"
 
 #define JAVA_MAIN_PACKAGE "org/tinyb"
@@ -281,7 +278,7 @@ bool java_exception_check(JNIEnv *env, const char* file, int line)
     jthrowable e = env->ExceptionOccurred();
     if( nullptr != e ) {
 #if 1
-        INFO_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
+        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded.", file, line); fflush(stderr);
         // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
         // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();
@@ -297,7 +294,7 @@ void java_exception_check_and_throw(JNIEnv *env, const char* file, int line)
 {
     jthrowable e = env->ExceptionOccurred();
     if( nullptr != e ) {
-        ERR_PRINT("Java exception occurred @ %s : %d and forwarded.", file, line);
+        fprintf(stderr, "Java exception occurred @ %s : %d and forwarded.", file, line); fflush(stderr);
         // ExceptionDescribe prints an exception and a backtrace of the stack to a system error-reporting channel, such as stderr.
         // The pending exception is cleared as a side-effect of calling this function. This is a convenience routine provided for debugging.
         env->ExceptionDescribe();

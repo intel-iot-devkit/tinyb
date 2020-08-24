@@ -534,8 +534,6 @@ int EInfoReport::read_data(uint8_t const * data, uint8_t const data_length) {
 
     while( 0 < ( offset = next_data_elem( &elem_len, &elem_type, &elem_data, data, offset, data_length ) ) )
     {
-        DBG_PRINT("%s-Element[%d] @ [%d/%d]: type 0x%.2X with %d bytes net",
-                getSourceString().c_str(), count, offset, data_length, elem_type, elem_len);
         count++;
 
         // Guaranteed: elem_len >= 0!
@@ -683,10 +681,7 @@ std::vector<std::shared_ptr<EInfoReport>> EInfoReport::read_ad_reports(uint8_t c
     const int bytes_left = limes - i_octets;
 
     if( segment_count != read_segments ) {
-        fprintf(stderr, "AD-Reports: Warning: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
-                num_reports, data_length, read_segments, segment_count, bytes_left);
-    } else {
-        DBG_PRINT("AD-Reports: Completed %d reports within %d bytes: Segment read %d == %d, data-ptr %d bytes to limes",
+        WARN_PRINT("AD-Reports: Incomplete %d reports within %d bytes: Segment read %d < %d, data-ptr %d bytes to limes\n",
                 num_reports, data_length, read_segments, segment_count, bytes_left);
     }
     return ad_reports;
