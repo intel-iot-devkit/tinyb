@@ -210,8 +210,6 @@ namespace direct_bt {
             HCIHandler(const HCIHandler&) = delete;
             void operator=(const HCIHandler&) = delete;
 
-            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
-
         public:
             HCIHandler(const BTMode btMode, const uint16_t dev_id,
                        const int cmdStatusReplyTimeoutMS=Defaults::HCI_COMMAND_STATUS_REPLY_TIMEOUT,
@@ -330,6 +328,9 @@ namespace direct_bt {
             void clearMgmtEventCallbacks(const MgmtEvent::Opcode opc);
             /** Removes all MgmtEventCallbacks from all MgmtEvent::Opcode lists. */
             void clearAllMgmtEventCallbacks();
+
+            /** Manually send a MgmtEvent to all of its listeners. */
+            void sendMgmtEvent(std::shared_ptr<MgmtEvent> event);
 
             /**
              * FIXME / TODO: Privacy Mode / Pairing / Bonding

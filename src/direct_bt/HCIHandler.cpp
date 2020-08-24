@@ -594,6 +594,11 @@ HCIStatusCode HCIHandler::le_enable_scan(const bool enable, const bool filter_du
     const hci_rp_status * ev_status;
     HCIStatusCode status;
     std::shared_ptr<HCIEvent> ev = processCommandComplete(req0, &ev_status, &status);
+
+    if( HCIStatusCode::SUCCESS == status ) {
+        MgmtEvtDiscovering *e = new MgmtEvtDiscovering(dev_id, ScanType::LE, enable);
+        sendMgmtEvent(std::shared_ptr<MgmtEvent>(e));
+    }
     return status;
 }
 
