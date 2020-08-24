@@ -75,8 +75,42 @@ bool DBTEnv::getBooleanProperty(const std::string & name, const bool default_val
     }
 }
 
+static void _envset(std::string prefix, std::string basename) {
+    trimInPlace(basename);
+    if( basename.length() > 0 ) {
+        std::string name = prefix+"."+basename;
+        PLAIN_PRINT("DBTEnv::setProperty %s -> true", name.c_str());
+        setenv(name.c_str(), "true", 1 /* overwrite */);
+    }
+}
+
+static void _env_explode_set(std::string prefix, std::string list) {
+    size_t pos = 0, start = 0;
+    while( (pos = list.find(',', start)) != std::string::npos ) {
+        const size_t elem_len = pos-start; // excluding ','
+        _envset(prefix, list.substr(start, elem_len));
+        start = pos+1; // skip ','
+    }
+    const size_t elem_len = list.length()-start; // last one
+    if( elem_len > 0 ) {
+        _envset(prefix, list.substr(start, elem_len));
+    }
+}
+
+static bool _env_explode_set(const std::string & name) {
+    std::string value = DBTEnv::getProperty(name, "false");
+    if( "false" == value ) {
+        return false;
+    }
+    if( "true" == value ) {
+        return true;
+    }
+    _env_explode_set("direct_bt.debug", value);
+    return true;
+}
+
 DBTEnv::DBTEnv()
-: DEBUG( DBTEnv::getBooleanProperty("direct_bt_debug", false) ),
-  VERBOSE( DBTEnv::DEBUG || DBTEnv::getBooleanProperty("direct_bt_verbose", false) )
+: DEBUG( _env_explode_set("direct_bt.debug") ),
+  VERBOSE( _env_explode_set("direct_bt.verbose") || DBTEnv::DEBUG )
 {
 }

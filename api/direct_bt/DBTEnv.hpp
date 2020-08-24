@@ -111,7 +111,34 @@ namespace direct_bt {
             /**
              * Debug logging enabled or disabled.
              * <p>
-             * Environment variable 'direct_bt_debug', boolean, default 'false'.
+             * Environment variable 'direct_bt.debug', boolean, default 'false'.
+             * </p>
+             * <p>
+             * Exploding variable-name values</br>
+             * If the value of variable 'direct_bt.debug' is neither 'true' or 'false',
+             * it is treated as a list of sub-variable names separated by comma ','.</br>
+             *
+             * Each sub-variable name will be trimmed and if not zero-length
+             * appended to the basename "direct_bt.debug" with a dot '.'.</br>
+             *
+             * The new variable name will be set in the environment with value 'true'.</br>
+             *
+             * The boolean variable value having an exploded value is considered true.</br>
+             *
+             * This is supported for DEBUG 'direct_bt.debug' and VERBOSE 'direct_bt.verbose'.</br>
+             *
+             * Example:
+             * <pre>
+               Example:
+                   "direct_bt.debug" = "hci.event,manager.event,gatt.data".
+
+               This leads DBTEnv to set the following environment variables:
+                  "direct_bt.debug.hci.event"  = "true"
+                  "direct_bt.debug.manager.event"  = "true"
+                  "direct_bt.debug.gatt.data" = "true"
+
+               In this case, DEBUG "direct_bt.debug" is also considered true!
+             * </pre>
              * </p>
              */
             const bool DEBUG;
@@ -119,10 +146,13 @@ namespace direct_bt {
             /**
              * Verbose info logging enabled or disabled.
              * <p>
-             * Environment variable 'direct_bt_verbose', boolean, default 'false'.
+             * Environment variable 'direct_bt.verbose', boolean, default 'false'.
              * </p>
              * <p>
              * VERBOSE is also enabled if DEBUG is enabled!
+             * </p>
+             * <p>
+             * See 'Exploding variable-name values' in DEBUG above.
              * </p>
              */
             const bool VERBOSE;

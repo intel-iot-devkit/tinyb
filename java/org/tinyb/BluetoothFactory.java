@@ -224,6 +224,7 @@ public class BluetoothFactory {
         loadLibrary(os_and_arch, id.ImplementationNativeLibraryBasename);
         loadLibrary(os_and_arch, id.JavaNativeLibraryBasename);
     }
+
     private static synchronized void initLibrary(final ImplementationIdentifier id) {
         if( null != initializedID ) {
             if( id != initializedID ) {
@@ -247,12 +248,14 @@ public class BluetoothFactory {
             final Enumeration<?> enums = props.propertyNames();
             while (enums.hasMoreElements()) {
               final String key = (String) enums.nextElement();
-              final String value = props.getProperty(key);
-              final String key2 = "jvm_"+key.replace('.', '_');
-              if( DEBUG ) {
-                  System.err.println("  <"+key+"> -> <"+key2+"> := <"+value+">");
+              if( !key.startsWith("java.") && !key.startsWith("sun.") ) { // skip some
+                  final String value = props.getProperty(key);
+                  final String key2 = "jvm."+key;
+                  if( DEBUG ) {
+                      System.err.println("  <"+key+"> -> <"+key2+"> := <"+value+">");
+                  }
+                  setenv(key2, value, true /* overwrite */);
               }
-              setenv(key2, value, true /* overwrite */);
             }
         } catch (final Throwable e) {
             System.err.println("Caught exception while forwarding system properties: "+e.getMessage());

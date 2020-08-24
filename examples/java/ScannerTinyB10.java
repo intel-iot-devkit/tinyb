@@ -488,10 +488,10 @@ public class ScannerTinyB10 {
                 System.setProperty("org.tinyb.debug", "true");
             } else if( arg.equals("-verbose") ) {
                 System.setProperty("org.tinyb.verbose", "true");
-            } else if( arg.equals("-dbt_debug") ) {
-                System.setProperty("direct_bt.debug", "true"); // 'direct_bt_debug' from C++
-            } else if( arg.equals("-dbt_verbose") ) {
-                System.setProperty("direct_bt.verbose", "true"); // 'direct_bt_verbose' from C++
+            } else if( arg.equals("-dbt_debug") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.debug", args[++i]);
+            } else if( arg.equals("-dbt_verbose") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.verbose", args[++i]);
             } else if( arg.equals("-default_dev_id") && args.length > (i+1) ) {
                 final int default_dev_id = Integer.valueOf(args[++i]).intValue();
                 if( 0 <= default_dev_id ) {
@@ -543,7 +543,10 @@ public class ScannerTinyB10 {
             println("Run with '[-default_dev_id <adapter-index>] [-dev_id <adapter-index>] (-mac <device_address>)* "+
                     "[-disconnect] [-count <number>] [-single] (-wl <device_address>)* (-char <uuid>)* [-show_update_events] "+
                     "[-bluetoothManager <BluetoothManager-Implementation-Class-Name>] "+
-                    "[-verbose] [-debug] [-dbt_verbose] [-dbt_debug] [-shutdown <int>]'");
+                    "[-verbose] [-debug] "+
+                    "[-dbt_verbose [true|false]] "+
+                    "[-dbt_debug [true|false|hci.event,manager.event,adapter.event,gatt.data]] "+
+                    "[-shutdown <int>]'");
         }
 
         println("BluetoothManager "+bluetoothManagerClazzName);
