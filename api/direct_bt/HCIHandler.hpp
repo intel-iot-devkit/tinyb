@@ -127,13 +127,21 @@ namespace direct_bt {
             std::recursive_mutex mtx;
             hci_ufilter filter_mask;
             std::atomic<uint32_t> metaev_filter_mask;
+            std::atomic<uint64_t> opcbit_filter_mask;
 
             inline bool filter_test_metaev(HCIMetaEventType mec) { return 0 != test_bit_uint32(number(mec)-1, metaev_filter_mask); }
             inline void filter_put_metaevs(const uint32_t mask) { metaev_filter_mask=mask; }
 
             inline static void filter_clear_metaevs(uint32_t &mask) { mask=0; }
-            inline static void filter_all_metaevs(uint32_t &mask) { mask=0xffff; }
+            inline static void filter_all_metaevs(uint32_t &mask) { mask=0xffffffffU; }
             inline static void filter_set_metaev(HCIMetaEventType mec, uint32_t &mask) { set_bit_uint32(number(mec)-1, mask); }
+
+            inline bool filter_test_opcbit(HCIOpcodeBit opcbit) { return 0 != test_bit_uint64(number(opcbit), opcbit_filter_mask); }
+            inline void filter_put_opcbit(const uint64_t mask) { opcbit_filter_mask=mask; }
+
+            inline static void filter_clear_opcbit(uint64_t &mask) { mask=0; }
+            inline static void filter_all_opcbit(uint64_t &mask) { mask=0xffffffffffffffffUL; }
+            inline static void filter_set_opcbit(HCIOpcodeBit opcbit, uint64_t &mask) { set_bit_uint64(number(opcbit), mask); }
 
             LFRingbuffer<std::shared_ptr<HCIEvent>, nullptr> hciEventRing;
             std::atomic<pthread_t> hciReaderThreadId;

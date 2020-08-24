@@ -481,6 +481,19 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id,
         filter_set_metaev(HCIMetaEventType::LE_ADVERTISING_REPORT, mask);
         filter_put_metaevs(mask);
     }
+    // Mandatory own HCIOpcodeBit/HCIOpcode filter
+    {
+        uint64_t mask = 0;
+        // filter_all_opcbit(mask);
+        filter_set_opcbit(HCIOpcodeBit::CREATE_CONN, mask);
+        filter_set_opcbit(HCIOpcodeBit::DISCONNECT, mask);
+        filter_set_opcbit(HCIOpcodeBit::RESET, mask);
+        filter_set_opcbit(HCIOpcodeBit::READ_LOCAL_VERSION, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_PARAM, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_SET_SCAN_ENABLE, mask);
+        filter_set_opcbit(HCIOpcodeBit::LE_CREATE_CONN, mask);
+        filter_put_opcbit(mask);
+    }
     {
         HCICommand req0(HCIOpcode::READ_LOCAL_VERSION, 0);
         const hci_rp_read_local_version * ev_lv;

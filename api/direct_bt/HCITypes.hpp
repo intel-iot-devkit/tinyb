@@ -348,6 +348,39 @@ namespace direct_bt {
     }
     std::string getHCIOpcodeString(const HCIOpcode op);
 
+    enum class HCIOpcodeBit : uint8_t {
+        SPECIAL                     =  0,
+        CREATE_CONN                 =  3,
+        DISCONNECT                  =  4,
+        SET_EVENT_MASK              =  6,
+        RESET                       =  7,
+        READ_LOCAL_VERSION          = 10,
+        LE_SET_EVENT_MASK           = 20,
+        LE_READ_BUFFER_SIZE         = 21,
+        LE_READ_LOCAL_FEATURES      = 22,
+        LE_SET_RANDOM_ADDR          = 23,
+        LE_SET_ADV_PARAM            = 24,
+        LE_READ_ADV_TX_POWER        = 25,
+        LE_SET_ADV_DATA             = 26,
+        LE_SET_SCAN_RSP_DATA        = 27,
+        LE_SET_ADV_ENABLE           = 28,
+        LE_SET_SCAN_PARAM           = 29,
+        LE_SET_SCAN_ENABLE          = 30,
+        LE_CREATE_CONN              = 31,
+        LE_CREATE_CONN_CANCEL       = 32,
+        LE_READ_WHITE_LIST_SIZE     = 33,
+        LE_CLEAR_WHITE_LIST         = 34,
+        LE_ADD_TO_WHITE_LIST        = 35,
+        LE_DEL_FROM_WHITE_LIST      = 36,
+        LE_CONN_UPDATE              = 37,
+        LE_READ_REMOTE_FEATURES     = 38,
+        LE_START_ENC                = 39
+        // etc etc - incomplete
+    };
+    inline uint8_t number(const HCIOpcodeBit rhs) {
+        return static_cast<uint8_t>(rhs);
+    }
+
     /**
      * BT Core Spec v5.2: Vol 4, Part E HCI: 5.4 Exchange of HCI-specific information
      * <p>
