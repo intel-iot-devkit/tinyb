@@ -41,6 +41,9 @@ extern "C" {
 namespace direct_bt {
 
     class DBTEnv {
+        private:
+            DBTEnv();
+
         public:
             /**
              * Module startup time t0 in monotonic time in milliseconds.
@@ -53,6 +56,76 @@ namespace direct_bt {
             static uint64_t getElapsedMillisecond() {
                 return getCurrentMilliseconds() - startupTimeMilliseconds;
             }
+
+            /**
+             * Returns the value of the environment's variable 'name'.
+             * <p>
+             * If there is no environment variable 'name',
+             * implementation will try the potentially Java JVM imported 'jvm_name'.
+             * </p>
+             * <p>
+             * Note that all Java JVM system properties are passed to the environment
+             * and all property names have replaced dots '.' to underscore '_'
+             * and 'jvm_' prepended.
+             * </p>
+             */
+            static const char * getProperty(const char *name);
+
+            /**
+             * Returns the value of the environment's variable 'name',
+             * or the 'default_value' if the environment variable's value is null.
+             * <p>
+             * Implementation uses getProperty(const char *name).
+             * </p>
+             */
+            static std::string getProperty(const char *name, const std::string & default_value);
+
+            /**
+             * Returns the boolean value of the environment's variable 'name',
+             * or the 'default_value' if the environment variable's value is null.
+             * <p>
+             * If the environment variable is set (value != null),
+             * true is determined if the value equals 'true'.
+             * </p>
+             * <p>
+             * Implementation uses getProperty(const char *name).
+             * </p>
+             */
+            static bool getBooleanProperty(const char *name, const bool default_value);
+
+            static DBTEnv& get() {
+                /**
+                 * Thread safe starting with C++11 6.7:
+                 *
+                 * If control enters the declaration concurrently while the variable is being initialized,
+                 * the concurrent execution shall wait for completion of the initialization.
+                 *
+                 * (Magic Statics)
+                 *
+                 * Avoiding non-working double checked locking.
+                 */
+                static DBTEnv e;
+                return e;
+            }
+
+            /**
+             * Debug logging enabled or disabled.
+             * <p>
+             * Environment variable 'direct_bt_debug', boolean, default 'false'.
+             * </p>
+             */
+            const bool DEBUG;
+
+            /**
+             * Verbose info logging enabled or disabled.
+             * <p>
+             * Environment variable 'direct_bt_verbose', boolean, default 'false'.
+             * </p>
+             * <p>
+             * VERBOSE is also enabled if DEBUG is enabled!
+             * </p>
+             */
+            const bool VERBOSE;
     };
 
 } // namespace direct_bt

@@ -30,13 +30,50 @@
 #include <vector>
 #include <cstdio>
 
-#include "DBTEnv.hpp"
-
-extern "C" {
-    #include <inttypes.h>
-    #include <unistd.h>
-}
+#include "direct_bt/DBTEnv.hpp"
+#include "direct_bt/dbt_debug.hpp"
 
 using namespace direct_bt;
 
-const uint64_t DBTEnv::startupTimeMilliseconds = getCurrentMilliseconds();
+const uint64_t DBTEnv::startupTimeMilliseconds = direct_bt::getCurrentMilliseconds();
+
+const char * DBTEnv::getProperty(const char *name) {
+    const char * value = getenv(name);
+    if( nullptr != value ) {
+        return value;
+    } else {
+        char name2[strlen(name)+4+1];
+        strcpy(name2, "jvm_");
+        strcpy(name2+4, name);
+        return getenv(name2);
+    }
+}
+
+std::string DBTEnv::getProperty(const char *name, const std::string & default_value) {
+    const char * value = getProperty(name);
+    if( nullptr != value ) {
+        PLAIN_PRINT("DBTEnv::getProperty %s (default %s) -> %s", name, default_value.c_str(), value);
+        return value;
+    } else {
+        PLAIN_PRINT("DBTEnv::getProperty %s -> null -> %s (default)", name, default_value.c_str());
+        return default_value;
+    }
+}
+
+bool DBTEnv::getBooleanProperty(const char *name, const bool default_value) {
+    const char * value = getProperty(name);
+    if( nullptr != value ) {
+        bool res = 0==strcmp("true", value);
+        PLAIN_PRINT("DBTEnv::getBooleanProperty %s (default %d) -> %d/%s", name, default_value, res, value);
+        return res;
+    } else {
+        PLAIN_PRINT("DBTEnv::getBooleanProperty %s -> null -> %d (default)", name, default_value);
+        return default_value;
+    }
+}
+
+DBTEnv::DBTEnv()
+: DEBUG( DBTEnv::getBooleanProperty("direct_bt_debug", false) ),
+  VERBOSE( DBTEnv::DEBUG || DBTEnv::getBooleanProperty("direct_bt_verbose", false) )
+{
+}

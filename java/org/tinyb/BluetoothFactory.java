@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -210,6 +211,26 @@ public class BluetoothFactory {
         }
 
         try {
+            if( DEBUG ) {
+                System.err.println("BlootoothFactory: Mapping properties to native environment");
+            }
+            final Properties props = System.getProperties();
+            final Enumeration<?> enums = props.propertyNames();
+            while (enums.hasMoreElements()) {
+              final String key = (String) enums.nextElement();
+              final String value = props.getProperty(key);
+              final String key2 = "jvm_"+key.replace('.', '_');
+              if( DEBUG ) {
+                  System.err.println("  <"+key+"> -> <"+key2+"> := <"+value+">");
+              }
+              setenv(key2, value, true /* overwrite */);
+            }
+        } catch (final Throwable e) {
+            System.err.println("Caught exception while forwarding system properties: "+e.getMessage());
+            e.printStackTrace();
+        }
+
+        try {
             final Manifest manifest = getManifest(BluetoothFactory.class.getClassLoader(), new String[] { "org.tinyb" } );
             final Attributes mfAttributes = null != manifest ? manifest.getMainAttributes() : null;
 
@@ -234,6 +255,7 @@ public class BluetoothFactory {
                 }
             }
             initializedID = id; // initialized!
+
             t0 = BluetoothUtils.getCurrentMilliseconds();
 
             APIVersion = JAPIVersion;
@@ -466,6 +488,7 @@ public class BluetoothFactory {
     }
 
     private native static String getNativeAPIVersion();
+    private native static void setenv(String name, String value, boolean overwrite);
 
     /* pp */ static long getStartupTimeMilliseconds() { return t0; }
 }

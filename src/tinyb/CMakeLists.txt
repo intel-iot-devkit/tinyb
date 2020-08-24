@@ -14,6 +14,8 @@ include_directories(
 
 set (tinyb_LIB_SRCS
   ${PROJECT_SOURCE_DIR}/src/direct_bt/dfa_utf8_decode.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/DBTEnv.cpp
+  ${PROJECT_SOURCE_DIR}/src/direct_bt/BasicTypes.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothObject.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothEvent.cpp
   ${PROJECT_SOURCE_DIR}/src/tinyb/BluetoothManager.cpp
