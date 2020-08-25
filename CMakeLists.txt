@@ -19,6 +19,25 @@ include(GNUInstallDirs)
 # Appends the cmake/modules path to MAKE_MODULE_PATH variable.
 set (CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 
+# Determine OS_AND_ARCH as library appendix, e.g. 'direct_bt-linux-amd64'
+string(TOLOWER ${CMAKE_SYSTEM_NAME} OS_NAME)
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm")
+    set(OS_ARCH "armhf")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "armv7l")
+    set(OS_ARCH "armhf")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "aarch64")
+    set(OS_ARCH "arm64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+    set(OS_ARCH "amd64")
+else()
+    set(OS_ARCH ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+set(OS_AND_ARCH ${OS_NAME}-${OS_ARCH})
+
+message (INFO " - OS_NAME ${OS_NAME}")
+message (INFO " - OS_ARCH ${OS_ARCH} (${CMAKE_SYSTEM_PROCESSOR})")
+message (INFO " - OS_AND_ARCH ${OS_AND_ARCH}")
+
 # Make a version file containing the current version from git.
 include (GetGitRevisionDescription)
 git_describe (VERSION "--tags")
@@ -29,7 +48,7 @@ if ("x_${VERSION}" STREQUAL "x_GIT-NOTFOUND" OR "x_${VERSION}" STREQUAL "x_HEAD-
   set (VERSION "v2.0.0-dirty")
 endif ()
 
-message (INFO " - libtinyb2 Version ${VERSION}")
+message (INFO " - direct_bt/tinyb2 Version ${VERSION}")
 
 #parse the version information into pieces.
 string (REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")
