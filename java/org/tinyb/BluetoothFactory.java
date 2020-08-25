@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -187,50 +189,6 @@ public class BluetoothFactory {
         return null == initializedID;
     }
 
-    private static synchronized boolean loadLibrary(final String basename, final Throwable[] t) {
-        try {
-            System.loadLibrary(basename);
-            System.err.println("Loaded native library with basename <"+basename+">");
-            return true;
-        } catch (final Throwable e) {
-            System.err.println("Failed to load native library <"+basename+">, cause "+e.getMessage());
-            t[0] = e;
-            return false;
-        }
-    }
-    private static synchronized void loadLibrary(final String os_and_arch, final String basename) {
-        boolean done = false;
-        final Throwable t[] = { null };
-        if( null != os_and_arch ) {
-            final String basename2 = basename+"-"+os_and_arch;
-            done = loadLibrary(basename2, t);
-        }
-        if( !done ) {
-            done = loadLibrary(basename, t);
-            if( !done ) {
-                throw new RuntimeException("Couldn't load native library with basename <"+basename+">, os_and_arch <"+os_and_arch+">", t[0]);
-            }
-        }
-    }
-    @SuppressWarnings("unused")
-    private static synchronized void loadLibraries(final ImplementationIdentifier id) {
-        final String os_and_arch;
-        if( false ) {
-            // disable os_and_arch feature for now...
-            final String os_name = System.getProperty("os.name").toLowerCase();
-            final String os_arch = System.getProperty("os.arch").toLowerCase();
-            if( null != os_name && os_name.length() > 0 && null != os_arch && os_arch.length() > 0 ) {
-                os_and_arch = os_name+"-"+os_arch;
-            } else {
-                os_and_arch = null;
-            }
-        } else {
-            os_and_arch = null;
-        }
-        loadLibrary(os_and_arch, id.ImplementationNativeLibraryBasename);
-        loadLibrary(os_and_arch, id.JavaNativeLibraryBasename);
-    }
-
     private static synchronized void initLibrary(final ImplementationIdentifier id) {
         if( null != initializedID ) {
             if( id != initializedID ) {
@@ -240,7 +198,13 @@ public class BluetoothFactory {
         }
 
         try {
-            loadLibraries(id);
+            final Throwable[] t = { null };
+            if( !PlatformToolkit.loadLibrary(id.ImplementationNativeLibraryBasename, BluetoothFactory.class.getClassLoader(), t) ) {
+                throw new RuntimeException("Couldn't load native library with basename <"+id.ImplementationNativeLibraryBasename+">", t[0]);
+            }
+            if( !PlatformToolkit.loadLibrary(id.JavaNativeLibraryBasename, BluetoothFactory.class.getClassLoader(), t) ) {
+                throw new RuntimeException("Couldn't load native library with basename <"+id.JavaNativeLibraryBasename+">", t[0]);
+            }
         } catch (final Throwable e) {
             e.printStackTrace();
             throw e; // fwd exception - end here
@@ -250,7 +214,12 @@ public class BluetoothFactory {
             if( DEBUG ) {
                 System.err.println("BlootoothFactory: Mapping properties to native environment");
             }
-            final Properties props = System.getProperties();
+            final Properties props = AccessController.doPrivileged(new PrivilegedAction<Properties>() {
+                  @Override
+                  public Properties run() {
+                      return System.getProperties();
+                  } });
+
             final Enumeration<?> enums = props.propertyNames();
             while (enums.hasMoreElements()) {
               final String key = (String) enums.nextElement();
