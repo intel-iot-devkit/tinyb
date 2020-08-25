@@ -37,9 +37,6 @@ import java.util.StringTokenizer;
  * Miscellaneous platform utilities, allowed to be used within same Java package.
  */
 final class PlatformToolkit {
-  private static boolean DEBUG = true;
-  private static boolean DEBUG2 = true;
-
   private enum OSType {
       UNIX, MACOS, IOS, WINDOWS;
   }
@@ -212,7 +209,7 @@ final class PlatformToolkit {
   private static final void addPath(final String msg, final String path, final String platformName, final List<String> paths) {
       if( null != path && path.length() > 0 ) {
           final String fullpath = path + File.separator + platformName;
-          if( DEBUG2 ) {
+          if( BluetoothFactory.DEBUG ) {
               System.err.println("  "+fullpath+" (addPath "+msg+")");
           }
           paths.add(fullpath);
@@ -280,11 +277,12 @@ final class PlatformToolkit {
    * @return {@code true} if successful, otherwise {@code false}.
    */
   static boolean loadLibrary(final String libBaseName, final ClassLoader cl, final Throwable[] t) {
-      if( DEBUG ) {
+      if( BluetoothFactory.DEBUG ) {
+          System.err.println();
           System.err.println("PlatformToolkit.loadLibrary: libBaseName "+libBaseName+":");
       }
       final List<String> possiblePaths = enumerateLibraryPaths(libBaseName, true /* searchSystemPath */, false /* searchSystemPathFirst */, cl);
-      if( DEBUG2 ) {
+      if( BluetoothFactory.DEBUG ) {
           System.err.println();
       }
 
@@ -293,12 +291,12 @@ final class PlatformToolkit {
           final String path = iter.next();
           try {
               System.load(path);
-              if( DEBUG ) {
+              if( BluetoothFactory.DEBUG ) {
                   System.err.println("  "+path+" success");
               }
               return true;
           } catch (final Throwable t0) {
-              if( DEBUG ) {
+              if( BluetoothFactory.DEBUG ) {
                   System.err.println("  "+path+" failed: "+t0.getMessage());
               }
               t[0] = t0;
@@ -308,12 +306,12 @@ final class PlatformToolkit {
       // Fall back to loadLibrary
       try {
           System.loadLibrary(libBaseName);
-          if( DEBUG ) {
+          if( BluetoothFactory.DEBUG ) {
               System.err.println("  "+libBaseName+" success");
           }
           return true;
       } catch (final Throwable t0) {
-          if( DEBUG ) {
+          if( BluetoothFactory.DEBUG ) {
               System.err.println("  "+libBaseName+" failed: "+t0.getMessage());
           }
           t[0] = t0;
