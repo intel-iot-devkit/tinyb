@@ -206,13 +206,35 @@ final class PlatformToolkit {
   private static final String getPlatformName(final String libBaseName) {
       return prefix + libBaseName + suffix;
   }
+  private static final String getCanonicalPath(final String path) {
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+              @Override
+              public String run() {
+                  try {
+                      final File f = new File(path);
+                      // f.getCanonicalPath() also resolved '.', '..' and symbolic links in contrast to f.getAbsolutePath()
+                      return f.getCanonicalPath();
+                  } catch (final Throwable t) {
+                      if( BluetoothFactory.DEBUG ) {
+                          System.err.println("getAbsolutePath("+path+") failed: "+t.getMessage());
+                      }
+                      return null;
+                  }
+              } } );
+  }
   private static final void addPath(final String msg, final String path, final String platformName, final List<String> paths) {
       if( null != path && path.length() > 0 ) {
           final String fullpath = path + File.separator + platformName;
-          if( BluetoothFactory.DEBUG ) {
-              System.err.println("  "+fullpath+" (addPath "+msg+")");
+          final String abspath = getCanonicalPath(fullpath);
+          if( null != abspath ) {
+              final boolean isDup = paths.contains(abspath);
+              if( BluetoothFactory.DEBUG ) {
+                  System.err.println("  "+abspath+" (addPath "+msg+", dropped duplicate "+isDup+")");
+              }
+              if( !isDup ) {
+                  paths.add(abspath);
+              }
           }
-          paths.add(fullpath);
       }
   }
   private static final void addMultiPaths(final String msg, final String pathList, final String platformName, final List<String> paths) {
