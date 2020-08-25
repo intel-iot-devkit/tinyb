@@ -28,4 +28,7 @@ set(JNI_HEADER_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}/tinybj
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/tinyb2.jar DESTINATION ${CMAKE_INSTALL_LIBDIR}/../lib/java)
 
 add_subdirectory (jni/direct_bt)
-add_subdirectory (jni/tinyb)
+
+if(NOT SKIP_TINYB)
+    add_subdirectory (jni/tinyb)
+endif()

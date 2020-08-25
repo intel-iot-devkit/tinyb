@@ -96,9 +96,11 @@ ENDIF(DEBUG)
 find_path (SYSTEM_USR_DIR "stdlib.h")
 include_directories (${SYSTEM_USR_DIR})
 
-add_subdirectory (src/tinyb)
-
 add_subdirectory (src/direct_bt)
+
+if(NOT SKIP_TINYB)
+    add_subdirectory (src/tinyb)
+endif()
 
 option (BUILDJAVA "Build Java API." OFF)
 
