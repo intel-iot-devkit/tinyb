@@ -212,12 +212,18 @@ public class BluetoothFactory {
             }
         }
     }
+    @SuppressWarnings("unused")
     private static synchronized void loadLibraries(final ImplementationIdentifier id) {
         final String os_and_arch;
-        final String os_name = System.getProperty("os.name").toLowerCase();
-        final String os_arch = System.getProperty("os.arch").toLowerCase();
-        if( null != os_name && os_name.length() > 0 && null != os_arch && os_arch.length() > 0 ) {
-            os_and_arch = os_name+"-"+os_arch;
+        if( false ) {
+            // disable os_and_arch feature for now...
+            final String os_name = System.getProperty("os.name").toLowerCase();
+            final String os_arch = System.getProperty("os.arch").toLowerCase();
+            if( null != os_name && os_name.length() > 0 && null != os_arch && os_arch.length() > 0 ) {
+                os_and_arch = os_name+"-"+os_arch;
+            } else {
+                os_and_arch = null;
+            }
         } else {
             os_and_arch = null;
         }
