@@ -5,7 +5,7 @@ include_directories(
 
 add_executable (test_datatypes01     test_datatypes01.cpp)
 
-set_target_properties(list_mfg
+set_target_properties(test_datatypes01
     PROPERTIES
     CXX_STANDARD 11)
 

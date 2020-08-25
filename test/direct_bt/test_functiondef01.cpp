@@ -57,7 +57,8 @@ class Cppunit_tests : public Cppunit {
         }
         IntOffset& operator=(IntOffset &&o) {
             PRINTM("IntOffset::move_assign");
-            value == std::move(o.value);
+            value = std::move(o.value);
+            (void)value;
             return *this;
         }
 
@@ -309,6 +310,9 @@ class Cppunit_tests : public Cppunit {
 };
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
     Cppunit_tests test1;
     return test1.run();
 }

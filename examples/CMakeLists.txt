@@ -64,19 +64,19 @@ if(NOT SKIP_TINYB)
 endif()
 
 add_executable (dbt_scanner00 direct_bt_scanner00/dbt_scanner00.cpp)
-set_target_properties(list_mfg
+set_target_properties(dbt_scanner00
     PROPERTIES
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra -Werror")
 
 add_executable (dbt_scanner01 direct_bt_scanner01/dbt_scanner01.cpp)
-set_target_properties(list_mfg
+set_target_properties(dbt_scanner01
     PROPERTIES
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra -Werror")
 
 add_executable (dbt_scanner10 direct_bt_scanner10/dbt_scanner10.cpp)
-set_target_properties(list_mfg
+set_target_properties(dbt_scanner10
     PROPERTIES
     CXX_STANDARD 11
     COMPILE_FLAGS "-Wall -Wextra -Werror")

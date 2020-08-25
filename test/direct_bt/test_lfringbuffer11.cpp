@@ -80,6 +80,7 @@ class Cppunit_tests : public Cppunit {
 
         fprintf(stderr, "%s: Created / %s\n", msg.c_str(), rb->toString().c_str());
         int preSize = rb->getSize();
+        (void)preSize;
 
         for(int i=0; i<len; i++) {
             Integer * vI = new Integer(startValue+i);
@@ -172,6 +173,9 @@ class Cppunit_tests : public Cppunit {
 };
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
     Cppunit_tests test1;
     return test1.run();
 }

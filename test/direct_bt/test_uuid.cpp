@@ -64,6 +64,9 @@ class Cppunit_tests : public Cppunit {
 };
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
     Cppunit_tests test1;
     return test1.run();
 }

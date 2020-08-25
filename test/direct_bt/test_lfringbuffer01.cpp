@@ -56,6 +56,8 @@ class Cppunit_tests : public Cppunit {
     }
 
     void readTestImpl(Ringbuffer<SharedType> &rb, bool clearRef, int capacity, int len, int startValue) {
+        (void) clearRef;
+
         int preSize = rb.getSize();
         CHECKM("Wrong capacity "+rb.toString(), capacity, rb.capacity());
         CHECKTM("Too low capacity to read "+std::to_string(len)+" elems: "+rb.toString(), capacity-len >= 0);
@@ -325,6 +327,9 @@ class Cppunit_tests : public Cppunit {
 };
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
+
     Cppunit_tests test1;
     return test1.run();
 }
