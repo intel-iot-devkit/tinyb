@@ -244,7 +244,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 delete attPDU; // free unhandled PDU
             }
         } else if( ETIMEDOUT != errno && !l2capReaderShallStop ) { // expected exits
-            WARN_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
+            ERR_PRINT("GATTHandler::l2capReaderThread: l2cap read error -> Stop");
             l2capReaderShallStop = true;
             ioErrorCause = true;
         }

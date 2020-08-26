@@ -95,7 +95,7 @@ void DBTManager::mgmtReaderThreadImpl() {
                 sendMgmtEvent(event);
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
-            ERR_PRINT("DBTManager::reader: HCIComm error");
+            ERR_PRINT("DBTManager::reader: HCIComm read error -> Stop");
         }
     }
 
