@@ -202,10 +202,10 @@ public class Notification {
          * default 1s is good enough for our purposes.
          */
         final byte[] config = { 0x01 };
-        tempConfig.writeValue(config);
+        tempConfig.writeValue(config, false /* withResponse */);
 
         final byte[] period = { 100 };
-        tempPeriod.writeValue(period);
+        tempPeriod.writeValue(period, false /* withResponse */);
 
         tempValue.enableValueNotifications(new ValueNotification());
 

@@ -232,8 +232,8 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
     }
 
     @Override
-    public final boolean writeValue(final byte[] value) throws BluetoothException {
-        final boolean res = writeValueImpl(value);
+    public final boolean writeValue(final byte[] value, final boolean withResponse) throws BluetoothException {
+        final boolean res = writeValueImpl(value, withResponse);
         if( BluetoothFactory.DIRECTBT_CHARACTERISTIC_VALUE_CACHE_NOTIFICATION_COMPAT && res ) {
             updateCachedValue(value, false);
         }
@@ -381,7 +381,7 @@ public class DBTGattCharacteristic extends DBTObject implements BluetoothGattCha
 
     private native byte[] readValueImpl() throws BluetoothException;
 
-    private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
+    private native boolean writeValueImpl(byte[] argValue, boolean withResponse) throws BluetoothException;
 
     private native List<BluetoothGattDescriptor> getDescriptorsImpl();
 

@@ -72,7 +72,13 @@ public class DBusGattCharacteristic extends DBusObject implements BluetoothGattC
     public native void disableValueNotifications();
 
     @Override
-    public native boolean writeValue(byte[] argValue) throws BluetoothException;
+    public boolean writeValue(final byte[] argValue, final boolean withResponse) throws BluetoothException {
+        if( withResponse ) {
+            throw new DBusBluetoothException("writeValue with response not yet supported");
+        }
+        return writeValueImpl(argValue);
+    }
+    private native boolean writeValueImpl(byte[] argValue) throws BluetoothException;
 
     /* D-Bus property accessors: */
 

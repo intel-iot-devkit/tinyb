@@ -26,11 +26,13 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package org.tinyb;
+package tinyb.dbus;
+
+import org.tinyb.BluetoothException;
 
 @SuppressWarnings("serial")
-public class BluetoothException extends RuntimeException {
-    protected BluetoothException(final String msg) {
+public class DBusBluetoothException extends BluetoothException {
+    DBusBluetoothException(final String msg) {
         super(msg);
     }
 }

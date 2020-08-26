@@ -130,7 +130,7 @@ jbyteArray Java_direct_1bt_tinyb_DBTGattCharacteristic_readValueImpl(JNIEnv *env
     return nullptr;
 }
 
-jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jvalue) {
+jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env, jobject obj, jbyteArray jvalue, jboolean withResponse) {
     try {
         if( nullptr == jvalue ) {
             throw IllegalArgumentException("byte array null", E_FILE_LINE);
@@ -148,8 +148,15 @@ jboolean Java_direct_1bt_tinyb_DBTGattCharacteristic_writeValueImpl(JNIEnv *env,
             throw InternalError("GetPrimitiveArrayCritical(byte array) is null", E_FILE_LINE);
         }
         TROOctets value(value_ptr, value_size);
-        if( !characteristic->writeValue(value) ) {
-            ERR_PRINT("Characteristic writeValue failed: %s", characteristic->toString().c_str());
+        bool res;
+        if( withResponse ) {
+            res = characteristic->writeValue(value);
+        } else {
+            res = characteristic->writeValueNoResp(value);
+        }
+        if( !res ) {
+            ERR_PRINT("Characteristic writeValue(withResponse %d) failed: %s",
+                    withResponse, characteristic->toString().c_str());
             return JNI_FALSE;
         }
         return JNI_TRUE;

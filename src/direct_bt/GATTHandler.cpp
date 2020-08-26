@@ -810,6 +810,7 @@ bool GATTHandler::writeCharacteristicValue(const GATTCharacteristic & c, const T
 }
 
 bool GATTHandler::writeCharacteristicValueNoResp(const GATTCharacteristic & c, const TROOctets & value) {
+    /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response */
     COND_PRINT(debug_data, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString().c_str(), value.toString().c_str());
     return writeValue(c.value_handle, value, false);
 }
@@ -826,7 +827,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    // TODO: Long Value!
+    // FIXME TODO: Long Value if value.getSize() > ( PDU_MTU - lala )
     PERF2_TS_T0();
 
     AttWriteReq req(handle, value);
@@ -834,6 +835,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
 
     if( !expResponse ) {
         send( req );
+        PERF2_TS_TD("GATT writeValue (no-resp)");
         return true;
     }
 
@@ -853,7 +855,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     } else {
         ERR_PRINT("GATT writeValue send failed: handle %u: %s", handle, deviceString.c_str());
     }
-    PERF2_TS_TD("GATT writeValue");
+    PERF2_TS_TD("GATT writeValue (with-resp)");
     return res;
 }
 

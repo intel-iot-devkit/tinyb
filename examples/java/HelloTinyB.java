@@ -201,7 +201,7 @@ public class HelloTinyB {
          * default 1s is good enough for our purposes.
          */
         final byte[] config = { 0x01 };
-        tempConfig.writeValue(config);
+        tempConfig.writeValue(config, false /* withResponse */);
 
         /*
          * Each second read the value characteristic and display it in a human readable format.

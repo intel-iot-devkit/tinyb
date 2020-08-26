@@ -234,13 +234,22 @@ public interface BluetoothGattCharacteristic extends BluetoothObject
      */
     public void disableValueNotifications();
 
-    /** Writes the value of this characteristic.
-      * @param[in] arg_value The data as vector<uchar>
-      * to be written packed in a GBytes struct
-      * @return TRUE if value was written succesfully
-      */
-    public boolean writeValue(byte[] argValue) throws BluetoothException;
-
+    /**
+     * Writes the value of this characteristic,
+     * using one of the following methods depending on {@code withResponse}
+     * <pre>
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value
+     * BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response
+     * </pre>
+     * @param[in] arg_value The data as vector<uchar>
+     * to be written packed in a GBytes struct
+     * @param withResponse if {@code true} a subsequent ATT_WRITE_RSP is expected, otherwise not.
+     * @return TRUE if value was written successfully
+     * @since 2.0.0
+     * @implNote {@code withResponse} parameter has been added since 2.0.0
+     * @implNote tinyb.dbus does not support {@code withResponse = true}
+     */
+    public boolean writeValue(byte[] argValue, boolean withResponse) throws BluetoothException;
 
     /* D-Bus property accessors: */
 
