@@ -31,6 +31,7 @@
 #include <cstring>
 #include <string>
 #include <cstdio>
+#include <cstdarg>
 
 extern "C" {
     #include <errno.h>
@@ -58,11 +59,23 @@ namespace direct_bt {
         #define PERF_TS_TD(m)
     #endif
 
+    /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
+    void ERR_PRINTv(const char *file, const int line, const char * format, va_list args);
+
+    /** Use for unconditional error messages, prefix '[elapsed_time] Error @ file:line: '. Function also appends last errno and strerror(errno). */
+    void ERR_PRINT2(const char *file, const int line, const char * format, ...);
+
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    void ERR_PRINT(const char * format, ...);
+    #define ERR_PRINT(...) { ERR_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
+
+    /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
+    void WARN_PRINTv(const char *file, const int line, const char * format, va_list args);
+
+    /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ file:line: ' */
+    void WARN_PRINT2(const char *file, const int line, const char * format, ...);
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
-    void WARN_PRINT(const char * format, ...);
+    #define WARN_PRINT(...) { WARN_PRINT2(__FILE__, __LINE__, __VA_ARGS__); }
 
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
     void PLAIN_PRINT(const char * format, ...);
