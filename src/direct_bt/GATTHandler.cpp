@@ -815,7 +815,7 @@ bool GATTHandler::writeCharacteristicValueNoResp(const GATTCharacteristic & c, c
     return writeValue(c.value_handle, value, false);
 }
 
-bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, const bool expResponse) {
+bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, const bool withResponse) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
@@ -827,17 +827,20 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     }
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
 
-    // FIXME TODO: Long Value if value.getSize() > ( PDU_MTU - lala )
+    // FIXME TODO: Long Value if value.getSize() > ( ATT_MTU - 3 )
     PERF2_TS_T0();
 
-    AttWriteReq req(handle, value);
-    COND_PRINT(debug_data, "GATT WV send(resp %d): %s", expResponse, req.toString().c_str());
+    if( !withResponse ) {
+        AttWriteCmd req(handle, value);
+        COND_PRINT(debug_data, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
 
-    if( !expResponse ) {
         send( req );
         PERF2_TS_TD("GATT writeValue (no-resp)");
         return true;
     }
+
+    AttWriteReq req(handle, value);
+    COND_PRINT(debug_data, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
 
     bool res = false;
     std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, number(Defaults::GATT_WRITE_COMMAND_REPLY_TIMEOUT));

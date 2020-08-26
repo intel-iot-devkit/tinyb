@@ -294,7 +294,7 @@ namespace direct_bt {
             /**
              * Generic write GATT value and long value
              */
-            bool writeValue(const uint16_t handle, const TROOctets & value, const bool expResponse);
+            bool writeValue(const uint16_t handle, const TROOctets & value, const bool withResponse);
 
             /**
              * BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptors
