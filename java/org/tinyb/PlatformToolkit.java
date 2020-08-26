@@ -334,7 +334,7 @@ final class PlatformToolkit {
             case EABI_GNU_ARMHF:
                 return "armhf";
             case EABI_AARCH64:
-                return "aarch64";
+                return "arm64";
             default:
                 break;
         }
