@@ -31,7 +31,6 @@
 #include <cstring>
 #include <string>
 #include <cstdio>
-#include <cstdarg>
 
 extern "C" {
     #include <errno.h>
@@ -44,30 +43,10 @@ extern "C" {
 namespace direct_bt {
 
     /** Use for environment-variable DBTEnv::DEBUG conditional debug messages, prefix '[elapsed_time] Debug: '. */
-    inline void DBG_PRINT(const char * format, ...) {
-        if(direct_bt::DBTEnv::get().DEBUG) {
-            fprintf(stderr, "[%'9" PRIu64 "] Debug: ", direct_bt::DBTEnv::getElapsedMillisecond());
-            va_list args;
-            va_start (args, format);
-            vfprintf(stderr, format, args);
-            va_end (args);
-            fprintf(stderr, "\n");
-            fflush(stderr);
-        }
-    }
+    void DBG_PRINT(const char * format, ...);
 
     /** Use for environment-variable DBTEnv::VERBOSE conditional info messages, prefix '[elapsed_time] Info: '. */
-    inline void INFO_PRINT(const char * format, ...) {
-        if(direct_bt::DBTEnv::get().VERBOSE) {
-            fprintf(stderr, "[%'9" PRIu64 "] Info: ", direct_bt::DBTEnv::getElapsedMillisecond());
-            va_list args;
-            va_start (args, format);
-            vfprintf(stderr, format, args);
-            va_end (args);
-            fprintf(stderr, "\n");
-            fflush(stderr);
-        }
-    }
+    void INFO_PRINT(const char * format, ...);
 
     #ifdef PERF_PRINT_ON
         #define PERF_TS_T0()  const uint64_t _t0 = direct_bt::getCurrentMilliseconds()
@@ -80,50 +59,16 @@ namespace direct_bt {
     #endif
 
     /** Use for unconditional error messages, prefix '[elapsed_time] Error @ FILE:LINE: '. Function also appends last errno and strerror(errno). */
-    inline void ERR_PRINT(const char * format, ...) {
-        fprintf(stderr, "[%'9" PRIu64 "] Error @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__);
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "; last errno %d %s\n", errno, strerror(errno));
-        fflush(stderr);
-    }
+    void ERR_PRINT(const char * format, ...);
 
     /** Use for unconditional warning messages, prefix '[elapsed_time] Warning @ FILE:LINE: ' */
-    inline void WARN_PRINT(const char * format, ...) {
-        fprintf(stderr, "[%'9" PRIu64 "] Warning @ %s:%d: ", direct_bt::DBTEnv::getElapsedMillisecond(), __FILE__, __LINE__);
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "\n");
-        fflush(stderr);
-    }
+    void WARN_PRINT(const char * format, ...);
 
     /** Use for unconditional plain messages, prefix '[elapsed_time] '. */
-    inline void PLAIN_PRINT(const char * format, ...) {
-        fprintf(stderr, "[%'9" PRIu64 "] ", direct_bt::DBTEnv::getElapsedMillisecond());
-        va_list args;
-        va_start (args, format);
-        vfprintf(stderr, format, args);
-        va_end (args);
-        fprintf(stderr, "\n");
-        fflush(stderr);
-    }
+    void PLAIN_PRINT(const char * format, ...);
 
     /** Use for conditional plain messages, prefix '[elapsed_time] '. */
-    inline void COND_PRINT(const bool condition, const char * format, ...) {
-        if( condition ) {
-            fprintf(stderr, "[%'9" PRIu64 "] ", direct_bt::DBTEnv::getElapsedMillisecond());
-            va_list args;
-            va_start (args, format);
-            vfprintf(stderr, format, args);
-            va_end (args);
-            fprintf(stderr, "\n");
-            fflush(stderr);
-        }
-    }
+    void COND_PRINT(const bool condition, const char * format, ...);
 
     template<class ListElemType>
     inline void printSharedPtrList(std::string prefix, std::vector<std::shared_ptr<ListElemType>> & list) {
