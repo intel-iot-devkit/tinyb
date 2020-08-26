@@ -311,7 +311,7 @@ bool GATTHandler::connect() {
     }
 
     // First point of failure if device exposes no GATT functionality. Allow a longer timeout!
-    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU), number(Defaults::L2CAP_INITIAL_COMMAND_REPLY_TIMEOUT));
+    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU), number(Defaults::GATT_INITIAL_COMMAND_REPLY_TIMEOUT));
     usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
     if( 0 == serverMTU ) {
         ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", deviceString.c_str());

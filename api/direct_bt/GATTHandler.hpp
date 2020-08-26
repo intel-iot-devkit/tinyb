@@ -79,10 +79,10 @@ namespace direct_bt {
 
                 /** 3s poll timeout for l2cap reader thread */
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
-                /** 500ms timeout for l2cap command replies */
-                L2CAP_COMMAND_REPLY_TIMEOUT = 500,
+                /** 500ms timeout for GATT read command replies */
+                GATT_READ_COMMAND_REPLY_TIMEOUT = 500,
                 /** 2500ms timeout for l2cap _initial_ command reply, long timeout. */
-                L2CAP_INITIAL_COMMAND_REPLY_TIMEOUT = 2500,
+                GATT_INITIAL_COMMAND_REPLY_TIMEOUT = 2500,
 
                 /** Medium ringbuffer capacity... */
                 ATTPDU_RING_CAPACITY = 128
@@ -139,7 +139,7 @@ namespace direct_bt {
             uint16_t exchangeMTU(const uint16_t clientMaxMTU, const int timeout);
 
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::L2CAP_COMMAND_REPLY_TIMEOUT));
+            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::GATT_READ_COMMAND_REPLY_TIMEOUT));
 
             ~GATTHandler();
 
