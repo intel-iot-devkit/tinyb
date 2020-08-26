@@ -838,7 +838,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     }
 
     bool res = false;
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, replyTimeoutMS);
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, number(Defaults::GATT_WRITE_COMMAND_REPLY_TIMEOUT));
     if( nullptr != pdu ) {
         COND_PRINT(debug_data, "GATT WV recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {

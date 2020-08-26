@@ -81,6 +81,8 @@ namespace direct_bt {
                 L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
                 /** 500ms timeout for GATT read command replies */
                 GATT_READ_COMMAND_REPLY_TIMEOUT = 500,
+                /** 20,000ms timeout for GATT write command replies, extremely long as seen on certain adapter / command combinations. */
+                GATT_WRITE_COMMAND_REPLY_TIMEOUT = 20000, // FIXME: Needs to be analyzed further
                 /** 2500ms timeout for l2cap _initial_ command reply, long timeout. */
                 GATT_INITIAL_COMMAND_REPLY_TIMEOUT = 2500,
 
