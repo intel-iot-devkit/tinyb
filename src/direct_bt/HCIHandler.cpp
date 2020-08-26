@@ -298,7 +298,7 @@ void HCIHandler::hciReaderThreadImpl() {
                 }
             }
         } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
-            ERR_PRINT("HCIHandler::reader: HCIComm read error -> Stop");
+            ERR_PRINT("HCIHandler::reader: HCIComm read error");
         }
     }
     INFO_PRINT("HCIHandler::reader: Ended. Ring has %d entries flushed", hciEventRing.getSize());
