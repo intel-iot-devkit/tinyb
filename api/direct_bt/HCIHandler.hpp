@@ -130,8 +130,6 @@ namespace direct_bt {
             const uint16_t dev_id;
             POctets rbuffer;
             HCIComm comm;
-            const int cmdStatusReplyTimeoutMS;
-            const int cmdCompleteReplyTimeoutMS;
             std::recursive_mutex mtx;
             hci_ufilter filter_mask;
             std::atomic<uint32_t> metaev_filter_mask;
@@ -212,9 +210,7 @@ namespace direct_bt {
             void operator=(const HCIHandler&) = delete;
 
         public:
-            HCIHandler(const BTMode btMode, const uint16_t dev_id,
-                       const int cmdStatusReplyTimeoutMS=Defaults::HCI_COMMAND_STATUS_REPLY_TIMEOUT,
-                       const int cmdCompleteReplyTimeoutMS=Defaults::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
+            HCIHandler(const BTMode btMode, const uint16_t dev_id);
 
             /**
              * Releases this instance after issuing {@link #close()}.

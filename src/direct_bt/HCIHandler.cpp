@@ -380,7 +380,7 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, cmdCompleteReplyTimeoutMS);
+        ev = getNextReply(req, retryCount, HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
         if( nullptr == ev ) {
             break;  // timeout, leave loop
         } else if( ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
@@ -415,14 +415,10 @@ exit:
     return ev;
 }
 
-HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id,
-                       const int cmdStatusReplyTimeoutMS,
-                       const int cmdCompleteReplyTimeoutMS)
+HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id)
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
-  cmdStatusReplyTimeoutMS(cmdStatusReplyTimeoutMS),
-  cmdCompleteReplyTimeoutMS(cmdCompleteReplyTimeoutMS),
   hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
     INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
@@ -741,7 +737,7 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
     }
 
     while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, cmdStatusReplyTimeoutMS);
+        ev = getNextReply(req, retryCount, HCI_COMMAND_STATUS_REPLY_TIMEOUT);
         if( nullptr == ev ) {
             *status = HCIStatusCode::INTERNAL_TIMEOUT;
             break; // timeout, leave loop
