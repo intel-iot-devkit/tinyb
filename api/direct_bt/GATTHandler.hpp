@@ -65,16 +65,16 @@ namespace direct_bt {
 
         public:
             /** L2CAP poll timeout for reader thread, defaults to 10s. */
-            static const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
+            const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
             /** Timeout for GATT read command replies, defaults to 500ms. */
-            static const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
+            const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
             /** Timeout for GATT write command replies, defaults to 500ms. */
-            static const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
+            const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
             /** Timeout for l2cap _initial_ command reply, defaults to 2500ms. */
-            static const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
+            const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
 
             /** Medium ringbuffer capacity, defaults to 128 messages. */
-            static const int32_t ATTPDU_RING_CAPACITY;
+            const int32_t ATTPDU_RING_CAPACITY;
 
         public:
             static GATTEnv& get() {
