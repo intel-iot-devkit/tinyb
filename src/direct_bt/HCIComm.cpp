@@ -96,7 +96,7 @@ int HCIComm::hci_close_dev(int dd)
 }
 
 void HCIComm::close() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx); // RAII-style acquire and relinquish via destructor
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     if( 0 > _dd ) {
         return;
     }
@@ -157,6 +157,7 @@ errout:
 }
 
 int HCIComm::write(const uint8_t* buffer, const int size) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
     if( 0 > _dd || 0 > size ) {
         goto errout;

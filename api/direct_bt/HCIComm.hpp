@@ -46,17 +46,21 @@
  */
 namespace direct_bt {
 
+    /**
+     * Read/Write HCI communication channel.
+     */
     class HCIComm {
         private:
             static int hci_open_dev(const uint16_t dev_id, const uint16_t channel);
             static int hci_close_dev(int dd);
 
-            std::recursive_mutex mtx;
+            std::recursive_mutex mtx_write;
             const uint16_t dev_id;
             const uint16_t channel;
             int _dd; // the hci socket
 
         public:
+            /** Constructing a new HCI communication channel instance */
             HCIComm(const uint16_t dev_id, const uint16_t channel)
             : dev_id(dev_id), channel(channel), _dd(-1) {
                 _dd = hci_open_dev(dev_id, channel);
@@ -67,6 +71,7 @@ namespace direct_bt {
              */
             ~HCIComm() { close(); }
 
+            /** Closing the HCI channel, locking {@link #mutex_write()}. */
             void close();
 
             bool isOpen() const { return 0 <= _dd; }
@@ -74,12 +79,13 @@ namespace direct_bt {
             /** Return this HCI device descriptor, for multithreading access use {@link #dd()}. */
             int dd() const { return _dd; }
 
-            /** Return the recursive mutex for multithreading access of {@link #mutex()}. */
-            std::recursive_mutex & mutex() { return mtx; }
+            /** Return the recursive write mutex for multithreading access. */
+            std::recursive_mutex & mutex_write() { return mtx_write; }
 
-            /** Generic read w/ own timeoutMS. Not protected by mutex. */
+            /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
             int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
-            /** Generic write */
+
+            /** Generic write, locking {@link #mutex_write()}. */
             int write(const uint8_t* buffer, const int size);
 
         private:

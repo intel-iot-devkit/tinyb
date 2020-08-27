@@ -49,6 +49,9 @@ namespace direct_bt {
 
     class DBTDevice; // forward
 
+    /**
+     * Read/Write L2CAP communication channel.
+     */
     class L2CAPComm {
         public:
             enum class Defaults : int {
@@ -64,6 +67,7 @@ namespace direct_bt {
             static int l2cap_open_dev(const EUI48 & adapterAddress, const uint16_t psm, const uint16_t cid, const bool pubaddr);
             static int l2cap_close_dev(int dd);
 
+            std::recursive_mutex mtx_write;
             std::shared_ptr<DBTDevice> device;
             const std::string deviceString;
             const uint16_t psm;
@@ -75,6 +79,7 @@ namespace direct_bt {
             std::atomic<pthread_t> tid_connect;
 
         public:
+            /** Constructing a closed L2CAP channel, use {@link #connect()} to open. */
             L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, const uint16_t cid);
 
             std::shared_ptr<DBTDevice> getDevice() { return device; }
@@ -83,15 +88,27 @@ namespace direct_bt {
             bool getHasIOError() const { return hasIOError; }
             std::string getStateString() const { return getStateString(isConnected, hasIOError); }
 
-            /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
+            /**
+             * Opening the L2CAP channel, locking {@link #mutex_write()}.
+             * <p>
+             * BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ
+             * </p>
+             */
             bool connect();
 
+            /** Closing the L2CAP channel, locking {@link #mutex_write()}. */
             bool disconnect();
 
             bool isOpen() const { return 0 <= _dd; }
             int dd() const { return _dd; }
 
+            /** Return the recursive write mutex for multithreading access. */
+            std::recursive_mutex & mutex_write() { return mtx_write; }
+
+            /** Generic read w/ own timeoutMS, w/o locking suitable for a unique ringbuffer sink. */
             int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
+
+            /** Generic write, locking {@link #mutex_write()}. */
             int write(const uint8_t *buffer, const int length);
     };
 

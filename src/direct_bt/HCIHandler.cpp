@@ -334,8 +334,6 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
 }
 
 bool HCIHandler::sendCommand(HCICommand &req) {
-    const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
-
     COND_PRINT(debug_event, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     TROOctets & pdu = req.getPDU();
@@ -399,8 +397,8 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
                         ev_cs->toString().c_str(), req.toString().c_str());
                 break; // error status, leave loop
             } else {
-                DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s), errno %d %s: res %s, req %s",
-                        number(status), getHCIStatusCodeString(status).c_str(), errno, strerror(errno),
+                DBG_PRINT("HCIHandler::sendWithCmdCompleteReply: CMD_STATUS 0x%2.2X (%s, retryCount %d), errno %d %s: res %s, req %s",
+                        number(status), getHCIStatusCodeString(status).c_str(), retryCount, errno, strerror(errno),
                         ev_cs->toString().c_str(), req.toString().c_str());
             }
             retryCount++;

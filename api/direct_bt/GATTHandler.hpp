@@ -98,7 +98,6 @@ namespace direct_bt {
             std::weak_ptr<DBTDevice> wbr_device;
 
             const std::string deviceString;
-            std::recursive_mutex mtx_write;
             std::recursive_mutex mtx_command;
             POctets rbuffer;
 

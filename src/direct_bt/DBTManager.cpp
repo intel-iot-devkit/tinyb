@@ -161,7 +161,6 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
-        const std::lock_guard<std::recursive_mutex> lock(comm.mutex()); // RAII-style acquire and relinquish via destructor
         COND_PRINT(debug_event, "DBTManager-IO SENT %s", req.toString().c_str());
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {

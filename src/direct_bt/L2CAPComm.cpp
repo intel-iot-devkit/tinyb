@@ -102,6 +102,8 @@ L2CAPComm::L2CAPComm(std::shared_ptr<DBTDevice> device, const uint16_t psm, cons
 { }
 
 bool L2CAPComm::connect() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
+
     /** BT Core Spec v5.2: Vol 3, Part A: L2CAP_CONNECTION_REQ */
     bool expConn = false; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, true) ) {
@@ -172,6 +174,8 @@ failure:
 }
 
 bool L2CAPComm::disconnect() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
+
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         DBG_PRINT("L2CAPComm::disconnect: Not connected: %s, dd %d, %s, psm %u, cid %u, pubDevice %d",
@@ -250,6 +254,7 @@ errout:
 }
 
 int L2CAPComm::write(const uint8_t * buffer, const int length) {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
     int len = 0;
     if( 0 > _dd || 0 > length ) {
         goto errout;

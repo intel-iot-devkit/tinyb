@@ -390,9 +390,7 @@ void GATTHandler::send(const AttPDUMsg & msg) {
                                        " to "+deviceString, E_FILE_LINE);
     }
 
-    // Thread safe write operation only for concurrent access
-    const std::lock_guard<std::recursive_mutex> lock(mtx_write); // RAII-style acquire and relinquish via destructor
-
+    // Thread safe l2cap.write(..) operation..
     const int res = l2cap.write(msg.pdu.get_ptr(), msg.pdu.getSize());
     if( 0 > res ) {
         ERR_PRINT("GATTHandler::send: l2cap write error -> disconnect: %s to %s", msg.toString().c_str(), deviceString.c_str());
