@@ -112,6 +112,9 @@ namespace direct_bt {
             /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
             const int32_t HCI_EVT_RING_CAPACITY;
 
+            /** Debug all HCI event communication */
+            const bool DEBUG_EVENT;
+
         private:
             /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
             const int32_t HCI_READ_PACKET_MAX_RETRY;
@@ -157,7 +160,6 @@ namespace direct_bt {
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
 
             const HCIEnv & env;
-            const bool debug_event;
             const BTMode btMode;
             const uint16_t dev_id;
             POctets rbuffer;

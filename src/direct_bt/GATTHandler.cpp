@@ -70,7 +70,8 @@ GATTEnv::GATTEnv()
   GATT_READ_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_WRITE_COMMAND_REPLY_TIMEOUT(  DBTEnv::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_INITIAL_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
-  ATTPDU_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) )
+  ATTPDU_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */) ),
+  DEBUG_DATA( DBTEnv::getBooleanProperty("direct_bt.debug.gatt.data", false) )
 {
 }
 
@@ -198,7 +199,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 
             if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_NTF == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                COND_PRINT(debug_data, "GATTHandler: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler: NTF: %s, listener %zd", a->toString().c_str(), characteristicListenerList.size());
                 GATTCharacteristicRef decl = findCharacterisicsByValueHandle(a->getHandle());
                 const std::shared_ptr<TROOctets> data(new POctets(a->getValue()));
                 const uint64_t timestamp = a->ts_creation;
@@ -218,7 +219,7 @@ void GATTHandler::l2capReaderThreadImpl() {
                 attPDU = nullptr;
             } else if( AttPDUMsg::Opcode::ATT_HANDLE_VALUE_IND == opc ) {
                 const AttHandleValueRcv * a = static_cast<const AttHandleValueRcv*>(attPDU);
-                COND_PRINT(debug_data, "GATTHandler: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(), sendIndicationConfirmation, characteristicListenerList.size());
+                COND_PRINT(env.DEBUG_DATA, "GATTHandler: IND: %s, sendIndicationConfirmation %d, listener %zd", a->toString().c_str(), sendIndicationConfirmation, characteristicListenerList.size());
                 bool cfmSent = false;
                 if( sendIndicationConfirmation ) {
                     AttHandleValueCfm cfm;
@@ -266,7 +267,7 @@ void GATTHandler::l2capReaderThreadImpl() {
 }
 
 GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device)
-: env(GATTEnv::get()), debug_data(DBTEnv::getBooleanProperty("direct_bt.debug.gatt.data", false)),
+: env(GATTEnv::get()),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
   l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
   isConnected(false), hasIOError(false),
@@ -511,11 +512,11 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
     result.clear();
     while(!done) {
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
-        COND_PRINT(debug_data, "GATT PRIM SRV discover send: %s", req.toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover send: %s", req.toString().c_str());
 
         std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
         if( nullptr != pdu ) {
-            COND_PRINT(debug_data, "GATT PRIM SRV discover recv: %s", pdu->toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_GROUP_TYPE_RSP ) {
                 const AttReadByGroupTypeRsp * p = static_cast<const AttReadByGroupTypeRsp*>(pdu.get());
                 const int count = p->getElementCount();
@@ -528,7 +529,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
                             p->pdu.get_uint16(ePDUOffset + 2), // end-handle
                             p->pdu.get_uuid( ePDUOffset + 2 + 2, uuid_t::toTypeSize(esz-2-2) ) // uuid
                         ) ) );
-                    COND_PRINT(debug_data, "GATT PRIM SRV discovered[%d/%d]: %s", i, count, result.at(result.size()-1)->toString().c_str());
+                    COND_PRINT(env.DEBUG_DATA, "GATT PRIM SRV discovered[%d/%d]: %s", i, count, result.at(result.size()-1)->toString().c_str());
                 }
                 startHandle = p->getElementEndHandle(count-1);
                 if( startHandle < 0xffff ) {
@@ -564,7 +565,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
      */
     const uuid16_t characteristicTypeReq = uuid16_t(GattAttributeType::CHARACTERISTIC);
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
-    COND_PRINT(debug_data, "GATT discoverCharacteristics Service: %s", service->toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT discoverCharacteristics Service: %s", service->toString().c_str());
 
     PERF_TS_T0();
 
@@ -573,11 +574,11 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
     service->characteristicList.clear();
     while(!done) {
         const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
-        COND_PRINT(debug_data, "GATT C discover send: %s", req.toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT C discover send: %s", req.toString().c_str());
 
         std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
         if( nullptr != pdu ) {
-            COND_PRINT(debug_data, "GATT C discover recv: %s", pdu->toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT C discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
                 const AttReadByTypeRsp * p = static_cast<const AttReadByTypeRsp*>(pdu.get());
                 const int e_count = p->getElementCount();
@@ -594,7 +595,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
                         static_cast<GATTCharacteristic::PropertyBitVal>(p->pdu.get_uint8(ePDUOffset  + 2)), // Characteristics Property
                         p->pdu.get_uint16(ePDUOffset + 2 + 1), // Characteristics Value Handle
                         p->pdu.get_uuid(ePDUOffset   + 2 + 1 + 2, uuid_t::toTypeSize(esz-2-1-2) ) ) ) ); // Characteristics Value Type UUID
-                    COND_PRINT(debug_data, "GATT C discovered[%d/%d]: %s", e_iter, e_count, service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str());
+                    COND_PRINT(env.DEBUG_DATA, "GATT C discovered[%d/%d]: %s", e_iter, e_count, service->characteristicList.at(service->characteristicList.size()-1)->toString().c_str());
                 }
                 handle = p->getElementHandle(e_count-1); // Last Characteristic Handle
                 if( handle < service->endHandle ) {
@@ -627,7 +628,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
      * BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.1 Characteristic Declaration Attribute Value
      * </p>
      */
-    COND_PRINT(debug_data, "GATT discoverDescriptors Service: %s", service->toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT discoverDescriptors Service: %s", service->toString().c_str());
     const std::lock_guard<std::recursive_mutex> lock(mtx_command); // RAII-style acquire and relinquish via destructor
     PERF_TS_T0();
 
@@ -636,7 +637,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
     for(int charIter=0; !done && charIter < charCount; charIter++ ) {
         GATTCharacteristicRef charDecl = service->characteristicList[charIter];
         charDecl->clearDescriptors();
-        COND_PRINT(debug_data, "GATT discoverDescriptors Characteristic[%d/%d]: %s", charIter, charCount, charDecl->toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT discoverDescriptors Characteristic[%d/%d]: %s", charIter, charCount, charDecl->toString().c_str());
 
         uint16_t cd_handle_iter = charDecl->value_handle + 1; // Start @ Characteristic Value Handle + 1
         uint16_t cd_handle_end;
@@ -648,7 +649,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 
         while( !done && cd_handle_iter <= cd_handle_end ) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
-            COND_PRINT(debug_data, "GATT CD discover send: %s", req.toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT CD discover send: %s", req.toString().c_str());
 
             std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
             if( nullptr == pdu ) {
@@ -656,7 +657,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                 done = true;
                 break;
             }
-            COND_PRINT(debug_data, "GATT CD discover recv: %s", pdu->toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT CD discover recv: %s", pdu->toString().c_str());
 
             if( pdu->getOpcode() == AttPDUMsg::ATT_FIND_INFORMATION_RSP ) {
                 const AttFindInfoRsp * p = static_cast<const AttFindInfoRsp*>(pdu.get());
@@ -688,7 +689,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
                         charDecl->clientCharacteristicsConfigIndex = charDecl->descriptorList.size();
                     }
                     charDecl->descriptorList.push_back(cd);
-                    COND_PRINT(debug_data, "GATT CD discovered[%d/%d]: %s", e_iter, e_count, cd->toString().c_str());
+                    COND_PRINT(env.DEBUG_DATA, "GATT CD discovered[%d/%d]: %s", e_iter, e_count, cd->toString().c_str());
                 }
                 cd_handle_iter = p->getElementHandle(e_count-1); // Last Descriptor Handle
                 if( cd_handle_iter < cd_handle_end ) {
@@ -710,12 +711,12 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
 }
 
 bool GATTHandler::readDescriptorValue(GATTDescriptor & desc, int expectedLength) {
-    COND_PRINT(debug_data, "GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readDescriptorValue expLen %d, desc %s", expectedLength, desc.toString().c_str());
     return readValue(desc.handle, desc.value, expectedLength);
 }
 
 bool GATTHandler::readCharacteristicValue(const GATTCharacteristic & decl, POctets & res, int expectedLength) {
-    COND_PRINT(debug_data, "GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readCharacteristicValue expLen %d, decl %s", expectedLength, decl.toString().c_str());
     return readValue(decl.value_handle, res, expectedLength);
 }
 
@@ -728,7 +729,7 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
     bool done=false;
     int offset=0;
 
-    COND_PRINT(debug_data, "GATTHandler::readValue expLen %d, handle %s", expectedLength, uint16HexString(handle).c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::readValue expLen %d, handle %s", expectedLength, uint16HexString(handle).c_str());
 
     while(!done) {
         if( 0 < expectedLength && expectedLength <= offset ) {
@@ -741,16 +742,16 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
 
         if( 0 == offset ) {
             const AttReadReq req (handle);
-            COND_PRINT(debug_data, "GATT RV send: %s", req.toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT RV send: %s", req.toString().c_str());
             pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
         } else {
             const AttReadBlobReq req (handle, offset);
-            COND_PRINT(debug_data, "GATT RV send: %s", req.toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT RV send: %s", req.toString().c_str());
             pdu = sendWithReply(req, env.GATT_READ_COMMAND_REPLY_TIMEOUT);
         }
 
         if( nullptr != pdu ) {
-            COND_PRINT(debug_data, "GATT RV recv: %s", pdu->toString().c_str());
+            COND_PRINT(env.DEBUG_DATA, "GATT RV recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_RSP ) {
                 const AttReadRsp * p = static_cast<const AttReadRsp*>(pdu.get());
                 const TOctetSlice & v = p->getValue();
@@ -806,19 +807,19 @@ bool GATTHandler::writeDescriptorValue(const GATTDescriptor & cd) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.11 Characteristic Value Indication */
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.12.3 Write Characteristic Descriptor */
-    COND_PRINT(debug_data, "GATTHandler::writeDesccriptorValue desc %s", cd.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeDesccriptorValue desc %s", cd.toString().c_str());
     return writeValue(cd.handle, cd.value, true);
 }
 
 bool GATTHandler::writeCharacteristicValue(const GATTCharacteristic & c, const TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.3 Write Characteristic Value */
-    COND_PRINT(debug_data, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString().c_str(), value.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::writeCharacteristicValue desc %s, value %s", c.toString().c_str(), value.toString().c_str());
     return writeValue(c.value_handle, value, true);
 }
 
 bool GATTHandler::writeCharacteristicValueNoResp(const GATTCharacteristic & c, const TROOctets & value) {
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 4.9.1 Write Characteristic Value Without Response */
-    COND_PRINT(debug_data, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString().c_str(), value.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT writeCharacteristicValueNoResp decl %s, value %s", c.toString().c_str(), value.toString().c_str());
     return writeValue(c.value_handle, value, false);
 }
 
@@ -839,7 +840,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
 
     if( !withResponse ) {
         AttWriteCmd req(handle, value);
-        COND_PRINT(debug_data, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
 
         send( req );
         PERF2_TS_TD("GATT writeValue (no-resp)");
@@ -847,12 +848,12 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     }
 
     AttWriteReq req(handle, value);
-    COND_PRINT(debug_data, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
+    COND_PRINT(env.DEBUG_DATA, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
 
     bool res = false;
     std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, env.GATT_WRITE_COMMAND_REPLY_TIMEOUT);
     if( nullptr != pdu ) {
-        COND_PRINT(debug_data, "GATT WV recv: %s", pdu->toString().c_str());
+        COND_PRINT(env.DEBUG_DATA, "GATT WV recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {
             // OK
             res = true;
@@ -875,7 +876,7 @@ bool GATTHandler::configNotificationIndication(GATTDescriptor & cccd, const bool
     }
     /* BT Core Spec v5.2: Vol 3, Part G GATT: 3.3.3.3 Client Characteristic Configuration */
     const uint16_t ccc_value = enableNotification | ( enableIndication << 1 );
-    COND_PRINT(debug_data, "GATTHandler::configNotificationIndication decl %s, enableNotification %d, enableIndication %d",
+    COND_PRINT(env.DEBUG_DATA, "GATTHandler::configNotificationIndication decl %s, enableNotification %d, enableIndication %d",
             cccd.toString().c_str(), enableNotification, enableIndication);
     cccd.value.resize(2, 2);
     cccd.value.put_uint16(0, ccc_value);

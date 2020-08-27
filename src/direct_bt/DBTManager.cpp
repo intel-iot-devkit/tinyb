@@ -52,9 +52,11 @@ extern "C" {
 using namespace direct_bt;
 
 MgmtEnv::MgmtEnv()
-: MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+: DEBUG_GLOBAL( DBTEnv::get().DEBUG ),
+  MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.manager.event", false) ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
 }
@@ -90,7 +92,7 @@ void DBTManager::mgmtReaderThreadImpl() {
             std::shared_ptr<MgmtEvent> event( MgmtEvent::getSpecialized(rbuffer.get_ptr(), len) );
             const MgmtEvent::Opcode opc = event->getOpcode();
             if( MgmtEvent::Opcode::CMD_COMPLETE == opc || MgmtEvent::Opcode::CMD_STATUS == opc ) {
-                COND_PRINT(debug_event, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CMD) %s", event->toString().c_str());
                 if( mgmtEventRing.isFull() ) {
                     const int dropCount = mgmtEventRing.capacity()/4;
                     mgmtEventRing.drop(dropCount);
@@ -99,7 +101,7 @@ void DBTManager::mgmtReaderThreadImpl() {
                 mgmtEventRing.putBlocking( event );
             } else {
                 // issue a callback
-                COND_PRINT(debug_event, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV (CB) %s", event->toString().c_str());
                 sendMgmtEvent(event);
             }
         } else if( ETIMEDOUT != errno && !mgmtReaderShallStop ) { // expected exits
@@ -129,7 +131,7 @@ void DBTManager::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    COND_PRINT(debug_event, "DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(env.DEBUG_EVENT, "DBTManager::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
@@ -163,7 +165,7 @@ static void mgmthandler_sigaction(int sig, siginfo_t *info, void *ucontext) {
 std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_sendReply); // RAII-style acquire and relinquish via destructor
     {
-        COND_PRINT(debug_event, "DBTManager-IO SENT %s", req.toString().c_str());
+        COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO SENT %s", req.toString().c_str());
         TROOctets & pdu = req.getPDU();
         if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
             ERR_PRINT("DBTManager::sendWithReply: HCIComm write error, req %s", req.toString().c_str());
@@ -183,11 +185,11 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
+            COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
                     retryCount, res->toString().c_str(), req.toString().c_str());
             retryCount++;
         } else {
-            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
+            COND_PRINT(env.DEBUG_EVENT, "DBTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
             return res;
         }
     }
@@ -251,8 +253,6 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) {
 
 DBTManager::DBTManager(const BTMode btMode)
 : env(MgmtEnv::get()),
-  debug_global(DBTEnv::get().DEBUG),
-  debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.manager.event", false)),
   btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
@@ -374,7 +374,7 @@ next1:
     }
 
     if( ok ) {
-        if( debug_event ) {
+        if( env.DEBUG_EVENT ) {
             addMgmtEventCallback(-1, MgmtEvent::Opcode::CLASS_OF_DEV_CHANGED, bindMemberFunc(this, &DBTManager::mgmtEvClassOfDeviceChangedCB));
             addMgmtEventCallback(-1, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTManager::mgmtEvDeviceDiscoveringCB));
             addMgmtEventCallback(-1, MgmtEvent::Opcode::DEVICE_FOUND, bindMemberFunc(this, &DBTManager::mgmtEvDeviceFoundCB));

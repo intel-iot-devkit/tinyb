@@ -76,6 +76,9 @@ namespace direct_bt {
             /** Medium ringbuffer capacity, defaults to 128 messages. */
             const int32_t ATTPDU_RING_CAPACITY;
 
+            /** Debug all GATT Data communication */
+            const bool DEBUG_DATA;
+
         public:
             static GATTEnv& get() {
                 /**
@@ -118,7 +121,6 @@ namespace direct_bt {
 
        private:
             const GATTEnv & env;
-            const bool debug_data;
 
             /** GATTHandle's device weak back-reference */
             std::weak_ptr<DBTDevice> wbr_device;

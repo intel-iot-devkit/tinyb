@@ -59,6 +59,7 @@ HCIEnv::HCIEnv()
   HCI_COMMAND_STATUS_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false) ),
   HCI_READ_PACKET_MAX_RETRY( HCI_EVT_RING_CAPACITY )
 {
 }
@@ -273,13 +274,13 @@ void HCIHandler::hciReaderThreadImpl() {
             const HCIMetaEventType mec = event->getMetaEventType();
             if( HCIMetaEventType::INVALID != mec && !filter_test_metaev(mec) ) {
                 // DROP
-                COND_PRINT(debug_event, "HCIHandler-IO RECV Drop (meta filter) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (meta filter) %s", event->toString().c_str());
                 continue; // next packet
             }
 
             if( event->isEvent(HCIEventType::CMD_STATUS) || event->isEvent(HCIEventType::CMD_COMPLETE) )
             {
-                COND_PRINT(debug_event, "HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
+                COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (CMD) %s", event->toString().c_str());
                 if( hciEventRing.isFull() ) {
                     const int dropCount = hciEventRing.capacity()/4;
                     hciEventRing.drop(dropCount);
@@ -291,7 +292,7 @@ void HCIHandler::hciReaderThreadImpl() {
                 std::vector<std::shared_ptr<EInfoReport>> eirlist = EInfoReport::read_ad_reports(event->getParam(), event->getParamSize());
                 int i=0;
                 for_each_idx(eirlist, [&](std::shared_ptr<EInfoReport> &eir) {
-                    // COND_PRINT(debug_event, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
+                    // COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (AD EIR) %s", eir->toString().c_str());
                     std::shared_ptr<MgmtEvent> mevent( new MgmtEvtDeviceFound(dev_id, eir) );
                     sendMgmtEvent( mevent );
                     i++;
@@ -300,10 +301,10 @@ void HCIHandler::hciReaderThreadImpl() {
                 // issue a callback for the translated event
                 std::shared_ptr<MgmtEvent> mevent = translate(event);
                 if( nullptr != mevent ) {
-                    COND_PRINT(debug_event, "HCIHandler-IO RECV (CB) %s", event->toString().c_str());
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV (CB) %s", event->toString().c_str());
                     sendMgmtEvent( mevent );
                 } else {
-                    COND_PRINT(debug_event, "HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
+                    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV Drop (no translation) %s", event->toString().c_str());
                 }
             }
         } else if( ETIMEDOUT != errno && !hciReaderShallStop ) { // expected exits
@@ -331,12 +332,12 @@ void HCIHandler::sendMgmtEvent(std::shared_ptr<MgmtEvent> event) {
             invokeCount++;
         }
     }
-    COND_PRINT(debug_event, "HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
+    COND_PRINT(env.DEBUG_EVENT, "HCIHandler::sendMgmtEvent: Event %s -> %d/%zd callbacks", event->toString().c_str(), invokeCount, mgmtEventCallbackList.size());
     (void)invokeCount;
 }
 
 bool HCIHandler::sendCommand(HCICommand &req) {
-    COND_PRINT(debug_event, "HCIHandler-IO SENT %s", req.toString().c_str());
+    COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO SENT %s", req.toString().c_str());
 
     TROOctets & pdu = req.getPDU();
     if ( comm.write( pdu.get_ptr(), pdu.getSize() ) < 0 ) {
@@ -360,10 +361,10 @@ std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & re
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
             retryCount++;
-            COND_PRINT(debug_event, "HCIHandler-IO RECV getNextReply: res mismatch (drop, retry %d): res %s; req %s",
+            COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV getNextReply: res mismatch (drop, retry %d): res %s; req %s",
                        retryCount, ev->toString().c_str(), req.toString().c_str());
         } else {
-            COND_PRINT(debug_event, "HCIHandler-IO RECV getNextReply: res %s; req %s", ev->toString().c_str(), req.toString().c_str());
+            COND_PRINT(env.DEBUG_EVENT, "HCIHandler-IO RECV getNextReply: res %s; req %s", ev->toString().c_str(), req.toString().c_str());
             return ev;
         }
     }
@@ -419,7 +420,7 @@ exit:
 }
 
 HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id)
-: env(HCIEnv::get()), debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
+: env(HCIEnv::get()),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
   hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)

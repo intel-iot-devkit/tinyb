@@ -57,6 +57,9 @@ namespace direct_bt {
             MgmtEnv();
 
         public:
+            /** Global Debug flag, retrieved first to triggers DBTEnv initialization. */
+            const bool DEBUG_GLOBAL;
+
             /** Poll timeout for mgmt reader thread, defaults to 10s. */
             const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
             /** Timeout for mgmt command replies, defaults to 3s. */
@@ -64,6 +67,9 @@ namespace direct_bt {
 
             /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
             const int32_t MGMT_EVT_RING_CAPACITY;
+
+            /** Debug all Mgmt event communication */
+            const bool DEBUG_EVENT;
 
         private:
             /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
@@ -119,8 +125,6 @@ namespace direct_bt {
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
 
             const MgmtEnv & env;
-            const bool debug_global; // only to trigger DBTEnv initialization first
-            const bool debug_event;
             const BTMode btMode;
             POctets rbuffer;
             HCIComm comm;
