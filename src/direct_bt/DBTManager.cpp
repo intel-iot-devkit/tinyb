@@ -170,8 +170,8 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         }
     }
     // Ringbuffer read is thread safe
-    int retry = 3;
-    while( 0 < retry ) {
+    int retryCount = 0;
+    while( retryCount < MGMT_READ_PACKET_MAX_RETRY ) {
         std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(MGMT_COMMAND_REPLY_TIMEOUT);
         // std::shared_ptr<MgmtEvent> res = receiveNext();
         if( nullptr == res ) {
@@ -181,9 +181,9 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
         } else if( !res->validate(req) ) {
             // This could occur due to an earlier timeout w/ a nullptr == res (see above),
             // i.e. the pending reply processed here and naturally not-matching.
-            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, continue retry %d): res %s; req %s",
-                       retry, res->toString().c_str(), req.toString().c_str());
-            retry--;
+            COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res mismatch (drop evt, retryCount %d): res %s; req %s",
+                    retryCount, res->toString().c_str(), req.toString().c_str());
+            retryCount++;
         } else {
             COND_PRINT(debug_event, "DBTManager-IO RECV sendWithReply: res %s; req %s", res->toString().c_str(), req.toString().c_str());
             return res;

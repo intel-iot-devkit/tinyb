@@ -61,7 +61,7 @@ namespace direct_bt {
         public:
             enum Defaults : int32_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
-                ClientMaxMTU = 512,
+                ClientMaxMTU = 512
             };
 
             /** Poll timeout for mgmt reader thread, defaults to 10s. */
@@ -69,11 +69,14 @@ namespace direct_bt {
             /** Timeout for mgmt command replies, defaults to 3s. */
             static const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
             /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
-            static const int32_t MGMTEVT_RING_CAPACITY;
+            static const int32_t MGMT_EVT_RING_CAPACITY;
 
             static const pid_t pidSelf;
 
         private:
+            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
+            static const int32_t MGMT_READ_PACKET_MAX_RETRY;
+
             static std::mutex mtx_singleton;
 
             struct WhitelistElem {
