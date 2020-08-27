@@ -54,6 +54,13 @@ extern "C" {
 
 using namespace direct_bt;
 
+const int32_t HCIHandler::HCI_READER_THREAD_POLL_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
+const int32_t HCIHandler::HCI_COMMAND_STATUS_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */);
+const int32_t HCIHandler::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
+const int32_t HCIHandler::HCI_EVT_RING_CAPACITY = DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */);
+
+const int32_t HCIHandler::HCI_READ_PACKET_MAX_RETRY = HCI_EVT_RING_CAPACITY;
+
 struct hci_rp_status {
     __u8    status;
 } __packed;
@@ -246,7 +253,7 @@ void HCIHandler::hciReaderThreadImpl() {
             break;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize());
+        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const uint16_t paramSize = len >= 3 ? rbuffer.get_uint8(2) : 0;
             if( len < number(HCIConstU8::EVENT_HDR_SIZE) + paramSize ) {
@@ -415,7 +422,7 @@ HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id,
                        const int cmdCompleteReplyTimeoutMS)
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
-  comm(dev_id, HCI_CHANNEL_RAW, Defaults::HCI_READER_THREAD_POLL_TIMEOUT),
+  comm(dev_id, HCI_CHANNEL_RAW),
   cmdStatusReplyTimeoutMS(cmdStatusReplyTimeoutMS),
   cmdCompleteReplyTimeoutMS(cmdCompleteReplyTimeoutMS),
   hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)

@@ -203,7 +203,7 @@ bool L2CAPComm::disconnect() {
     return true;
 }
 
-int L2CAPComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
+int L2CAPComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) {
     int len = 0;
     if( 0 > _dd || 0 > capacity ) {
         goto errout;

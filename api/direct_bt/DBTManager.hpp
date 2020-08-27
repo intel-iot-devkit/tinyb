@@ -59,17 +59,17 @@ namespace direct_bt {
      */
     class DBTManager : public JavaUplink {
         public:
-            enum Defaults : int {
+            enum Defaults : int32_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
                 ClientMaxMTU = 512,
-
-                /** 10s poll timeout for mgmt reader thread */
-                MGMT_READER_THREAD_POLL_TIMEOUT = 10000,
-                /** 3s timeout for mgmt command replies */
-                MGMT_COMMAND_REPLY_TIMEOUT = 3000,
-                /** Small ringbuffer capacity for synchronized commands */
-                MGMTEVT_RING_CAPACITY = 64
             };
+
+            /** Poll timeout for mgmt reader thread, defaults to 10s. */
+            static const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for mgmt command replies, defaults to 3s. */
+            static const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
+            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            static const int32_t MGMTEVT_RING_CAPACITY;
 
             static const pid_t pidSelf;
 

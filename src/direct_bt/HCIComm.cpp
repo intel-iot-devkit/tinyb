@@ -104,10 +104,7 @@ void HCIComm::close() {
     _dd = -1;
 }
 
-int HCIComm::read(uint8_t* buffer, const int capacity) {
-    return read(buffer, capacity, timeoutMS);
-}
-int HCIComm::read(uint8_t* buffer, const int capacity, const int timeoutMS) {
+int HCIComm::read(uint8_t* buffer, const int capacity, const int32_t timeoutMS) {
     int len = 0;
     if( 0 > _dd || 0 > capacity ) {
         goto errout;

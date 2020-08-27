@@ -65,6 +65,14 @@ extern "C" {
 
 using namespace direct_bt;
 
+const int32_t GATTHandler::L2CAP_READER_THREAD_POLL_TIMEOUT = DBTEnv::getInt32Property("direct_bt.gatt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
+
+const int32_t GATTHandler::GATT_READ_COMMAND_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */);
+const int32_t GATTHandler::GATT_WRITE_COMMAND_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */);
+const int32_t GATTHandler::GATT_INITIAL_COMMAND_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */);
+
+const int32_t GATTHandler::ATTPDU_RING_CAPACITY = DBTEnv::getInt32Property("direct_bt.gatt.ringsize", 128, 64 /* min */, 1024 /* max */);
+
 #define CASE_TO_STRING(V) case V: return #V;
 
 bool GATTHandler::validateConnected() {
@@ -182,7 +190,7 @@ void GATTHandler::l2capReaderThreadImpl() {
             break;
         }
 
-        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), number(Defaults::L2CAP_READER_THREAD_POLL_TIMEOUT));
+        len = l2cap.read(rbuffer.get_wptr(), rbuffer.getSize(), L2CAP_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const AttPDUMsg * attPDU = AttPDUMsg::getSpecialized(rbuffer.get_ptr(), len);
             const AttPDUMsg::Opcode opc = attPDU->getOpcode();
@@ -256,12 +264,12 @@ void GATTHandler::l2capReaderThreadImpl() {
     disconnect(true /* disconnectDevice */, ioErrorCause);
 }
 
-GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device, const int replyTimeoutMS)
+GATTHandler::GATTHandler(const std::shared_ptr<DBTDevice> &device)
 : debug_data(DBTEnv::getBooleanProperty("direct_bt.debug.gatt.data", false)),
   wbr_device(device), deviceString(device->getAddressString()), rbuffer(number(Defaults::MAX_ATT_MTU)),
-  l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT), replyTimeoutMS(replyTimeoutMS),
+  l2cap(device, L2CAP_PSM_UNDEF, L2CAP_CID_ATT),
   isConnected(false), hasIOError(false),
-  attPDURing(number(Defaults::ATTPDU_RING_CAPACITY)),
+  attPDURing(ATTPDU_RING_CAPACITY),
   l2capReaderThreadId(0), l2capReaderRunning(false), l2capReaderShallStop(false),
   serverMTU(number(Defaults::MIN_ATT_MTU)), usedMTU(number(Defaults::MIN_ATT_MTU))
 { }
@@ -311,7 +319,7 @@ bool GATTHandler::connect() {
     }
 
     // First point of failure if device exposes no GATT functionality. Allow a longer timeout!
-    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU), number(Defaults::GATT_INITIAL_COMMAND_REPLY_TIMEOUT));
+    serverMTU = exchangeMTU(number(Defaults::MAX_ATT_MTU));
     usedMTU = std::min(number(Defaults::MAX_ATT_MTU), (int)serverMTU);
     if( 0 == serverMTU ) {
         ERR_PRINT("GATTHandler::connect: Zero serverMTU -> disconnect: %s", deviceString.c_str());
@@ -416,7 +424,7 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     return res;
 }
 
-uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU, const int timeout) {
+uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU) {
     /***
      * BT Core Spec v5.2: Vol 3, Part G GATT: 4.3.1 Exchange MTU (Server configuration)
      */
@@ -430,7 +438,7 @@ uint16_t GATTHandler::exchangeMTU(const uint16_t clientMaxMTU, const int timeout
     uint16_t mtu = 0;
     DBG_PRINT("GATT send: %s", req.toString().c_str());
 
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, timeout);
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, GATT_INITIAL_COMMAND_REPLY_TIMEOUT);
     if( nullptr != pdu ) {
         if( pdu->getOpcode() == AttPDUMsg::ATT_EXCHANGE_MTU_RSP ) {
             const AttExchangeMTU * p = static_cast<const AttExchangeMTU*>(pdu.get());
@@ -506,7 +514,7 @@ bool GATTHandler::discoverPrimaryServices(std::vector<GATTServiceRef> & result) 
         const AttReadByNTypeReq req(true /* group */, startHandle, 0xffff, groupType);
         COND_PRINT(debug_data, "GATT PRIM SRV discover send: %s", req.toString().c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, replyTimeoutMS);
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, GATT_READ_COMMAND_REPLY_TIMEOUT);
         if( nullptr != pdu ) {
             COND_PRINT(debug_data, "GATT PRIM SRV discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_GROUP_TYPE_RSP ) {
@@ -568,7 +576,7 @@ bool GATTHandler::discoverCharacteristics(GATTServiceRef & service) {
         const AttReadByNTypeReq req(false /* group */, handle, service->endHandle, characteristicTypeReq);
         COND_PRINT(debug_data, "GATT C discover send: %s", req.toString().c_str());
 
-        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, replyTimeoutMS);
+        std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, GATT_READ_COMMAND_REPLY_TIMEOUT);
         if( nullptr != pdu ) {
             COND_PRINT(debug_data, "GATT C discover recv: %s", pdu->toString().c_str());
             if( pdu->getOpcode() == AttPDUMsg::ATT_READ_BY_TYPE_RSP ) {
@@ -643,7 +651,7 @@ bool GATTHandler::discoverDescriptors(GATTServiceRef & service) {
             const AttFindInfoReq req(cd_handle_iter, cd_handle_end);
             COND_PRINT(debug_data, "GATT CD discover send: %s", req.toString().c_str());
 
-            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, replyTimeoutMS);
+            std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, GATT_READ_COMMAND_REPLY_TIMEOUT);
             if( nullptr == pdu ) {
                 ERR_PRINT("GATT discoverDescriptors send failed: %s - %s", req.toString().c_str(), deviceString.c_str());
                 done = true;
@@ -735,11 +743,11 @@ bool GATTHandler::readValue(const uint16_t handle, POctets & res, int expectedLe
         if( 0 == offset ) {
             const AttReadReq req (handle);
             COND_PRINT(debug_data, "GATT RV send: %s", req.toString().c_str());
-            pdu = sendWithReply(req, replyTimeoutMS);
+            pdu = sendWithReply(req, GATT_READ_COMMAND_REPLY_TIMEOUT);
         } else {
             const AttReadBlobReq req (handle, offset);
             COND_PRINT(debug_data, "GATT RV send: %s", req.toString().c_str());
-            pdu = sendWithReply(req, replyTimeoutMS);
+            pdu = sendWithReply(req, GATT_READ_COMMAND_REPLY_TIMEOUT);
         }
 
         if( nullptr != pdu ) {
@@ -843,7 +851,7 @@ bool GATTHandler::writeValue(const uint16_t handle, const TROOctets & value, con
     COND_PRINT(debug_data, "GATT WV send(resp %d): %s", withResponse, req.toString().c_str());
 
     bool res = false;
-    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, number(Defaults::GATT_WRITE_COMMAND_REPLY_TIMEOUT));
+    std::shared_ptr<const AttPDUMsg> pdu = sendWithReply(req, GATT_WRITE_COMMAND_REPLY_TIMEOUT);
     if( nullptr != pdu ) {
         COND_PRINT(debug_data, "GATT WV recv: %s", pdu->toString().c_str());
         if( pdu->getOpcode() == AttPDUMsg::ATT_WRITE_RSP ) {

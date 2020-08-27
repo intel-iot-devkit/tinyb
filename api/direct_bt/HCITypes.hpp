@@ -68,13 +68,11 @@ namespace direct_bt {
             : HCIException("HCIOpcodeException", m, file, line) {}
     };
 
-    enum class HCIConstInt : int {
-        /** 3s poll timeout for complete HCI replies */
-        TO_SEND_REQ_POLL_MS    = 3000,
+    enum class HCIConstInt : int32_t {
         /** 10s le connection timeout, supervising max is 32s (v5.2 Vol 4, Part E - 7.8.12) */
         LE_CONN_TIMEOUT_MS     = 10000
     };
-    inline int number(const HCIConstInt rhs) {
+    inline int32_t number(const HCIConstInt rhs) {
         return static_cast<int>(rhs);
     }
 

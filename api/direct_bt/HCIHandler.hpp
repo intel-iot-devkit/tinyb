@@ -104,24 +104,25 @@ namespace direct_bt {
      */
     class HCIHandler {
         public:
-            enum Defaults : int {
-                HCI_MAX_MTU = static_cast<uint8_t>(HCIConstU8::PACKET_MAX_SIZE),
-
-                /** 10s poll timeout for HCI reader thread */
-                HCI_READER_THREAD_POLL_TIMEOUT = 10000,
-                /** 3s timeout for HCI command status replies, excluding command complete. */
-                HCI_COMMAND_STATUS_REPLY_TIMEOUT = 3000,
-                /** 10s timeout for HCI command complete replies. This timeout is rather longer, as it may include waiting for pending command complete. */
-                HCI_COMMAND_COMPLETE_REPLY_TIMEOUT = 10000,
-                /** Small ringbuffer capacity for synchronized commands */
-                HCI_EVT_RING_CAPACITY = 64,
-                /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
-                HCI_READ_PACKET_MAX_RETRY = HCI_EVT_RING_CAPACITY
+            enum Defaults : int32_t {
+                HCI_MAX_MTU = static_cast<uint8_t>(HCIConstU8::PACKET_MAX_SIZE)
             };
+
+            /** Poll timeout for HCI reader thread, defaults to 10s */
+            static const int32_t HCI_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for HCI command status replies, excluding command complete, defaults to 3s. */
+            static const int32_t HCI_COMMAND_STATUS_REPLY_TIMEOUT;
+            /** Timeout for HCI command complete replies, defaults to 10s. This timeout is rather longer, as it may include waiting for pending command complete. */
+            static const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
+            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            static const int32_t HCI_EVT_RING_CAPACITY;
 
             static const pid_t pidSelf;
 
         private:
+            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
+            static const int32_t HCI_READ_PACKET_MAX_RETRY;
+
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
 
             const bool debug_event;

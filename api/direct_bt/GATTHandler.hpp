@@ -70,26 +70,26 @@ namespace direct_bt {
      */
     class GATTHandler {
         public:
-            enum class Defaults : int {
+            enum class Defaults : int32_t {
                 /* BT Core Spec v5.2: Vol 3, Part F 3.2.8: Maximum length of an attribute value. */
                 MAX_ATT_MTU = 512,
 
                 /* BT Core Spec v5.2: Vol 3, Part G GATT: 5.2.1 ATT_MTU */
-                MIN_ATT_MTU = 23,
-
-                /** 3s poll timeout for l2cap reader thread */
-                L2CAP_READER_THREAD_POLL_TIMEOUT = 3000,
-                /** 500ms timeout for GATT read command replies */
-                GATT_READ_COMMAND_REPLY_TIMEOUT = 500,
-                /** 20,000ms timeout for GATT write command replies, extremely long as seen on certain adapter / command combinations. */
-                GATT_WRITE_COMMAND_REPLY_TIMEOUT = 20000, // FIXME: Needs to be analyzed further
-                /** 2500ms timeout for l2cap _initial_ command reply, long timeout. */
-                GATT_INITIAL_COMMAND_REPLY_TIMEOUT = 2500,
-
-                /** Medium ringbuffer capacity... */
-                ATTPDU_RING_CAPACITY = 128
+                MIN_ATT_MTU = 23
             };
             static inline int number(const Defaults d) { return static_cast<int>(d); }
+
+            /** L2CAP poll timeout for reader thread, defaults to 10s. */
+            static const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for GATT read command replies, defaults to 500ms. */
+            static const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
+            /** Timeout for GATT write command replies, defaults to 500ms. */
+            static const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
+            /** Timeout for l2cap _initial_ command reply, defaults to 2500ms. */
+            static const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
+
+            /** Medium ringbuffer capacity, defaults to 128 messages. */
+            static const int32_t ATTPDU_RING_CAPACITY;
 
        private:
             const bool debug_data;
@@ -103,7 +103,6 @@ namespace direct_bt {
             POctets rbuffer;
 
             L2CAPComm l2cap;
-            const int replyTimeoutMS;
             std::atomic<bool> isConnected; // reflects state
             std::atomic<bool> hasIOError;  // reflects state
 
@@ -138,10 +137,10 @@ namespace direct_bt {
              * Returns the server-mtu if successful, otherwise 0.
              * </p>
              */
-            uint16_t exchangeMTU(const uint16_t clientMaxMTU, const int timeout);
+            uint16_t exchangeMTU(const uint16_t clientMaxMTU);
 
         public:
-            GATTHandler(const std::shared_ptr<DBTDevice> & device, const int replyTimeoutMS = number(Defaults::GATT_READ_COMMAND_REPLY_TIMEOUT));
+            GATTHandler(const std::shared_ptr<DBTDevice> & device);
 
             ~GATTHandler();
 

@@ -91,7 +91,7 @@ namespace direct_bt {
             bool isOpen() const { return 0 <= _dd; }
             int dd() const { return _dd; }
 
-            int read(uint8_t* buffer, const int capacity, const int timeoutMS);
+            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
             int write(const uint8_t *buffer, const int length);
     };
 

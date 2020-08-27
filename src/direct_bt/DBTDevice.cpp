@@ -480,7 +480,7 @@ void DBTDevice::remove() {
     releaseSharedInstance();
 }
 
-std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int replyTimeoutMS) {
+std::shared_ptr<GATTHandler> DBTDevice::connectGATT() {
     std::shared_ptr<DBTDevice> sharedInstance = getSharedInstance();
     if( nullptr == sharedInstance ) {
         throw InternalError("DBTDevice::connectGATT: Device unknown to adapter and not tracked: "+toString(), E_FILE_LINE);
@@ -499,7 +499,7 @@ std::shared_ptr<GATTHandler> DBTDevice::connectGATT(int replyTimeoutMS) {
         return nullptr;
     }
 
-    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance, replyTimeoutMS));
+    gattHandler = std::shared_ptr<GATTHandler>(new GATTHandler(sharedInstance));
     if( !gattHandler->connect() ) {
         DBG_PRINT("DBTDevice::connectGATT: Connection failed");
         gattHandler = nullptr;

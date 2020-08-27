@@ -52,14 +52,13 @@ namespace direct_bt {
             static int hci_close_dev(int dd);
 
             std::recursive_mutex mtx;
-            const int timeoutMS;
             const uint16_t dev_id;
             const uint16_t channel;
             int _dd; // the hci socket
 
         public:
-            HCIComm(const uint16_t dev_id, const uint16_t channel, const int timeoutMS=number(HCIConstInt::TO_SEND_REQ_POLL_MS))
-            : timeoutMS(timeoutMS), dev_id(dev_id), channel(channel), _dd(-1) {
+            HCIComm(const uint16_t dev_id, const uint16_t channel)
+            : dev_id(dev_id), channel(channel), _dd(-1) {
                 _dd = hci_open_dev(dev_id, channel);
             }
 
@@ -79,9 +78,7 @@ namespace direct_bt {
             std::recursive_mutex & mutex() { return mtx; }
 
             /** Generic read w/ own timeoutMS. Not protected by mutex. */
-            int read(uint8_t* buffer, const int capacity, const int timeoutMS);
-            /** Generic read, reusing set timeoutMS from ctor. Not protected by mutex */
-            int read(uint8_t* buffer, const int capacity);
+            int read(uint8_t* buffer, const int capacity, const int32_t timeoutMS);
             /** Generic write */
             int write(const uint8_t* buffer, const int size);
 

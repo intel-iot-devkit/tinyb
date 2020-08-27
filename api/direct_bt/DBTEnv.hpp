@@ -93,6 +93,28 @@ namespace direct_bt {
              */
             static bool getBooleanProperty(const std::string & name, const bool default_value);
 
+            /**
+             * Returns the int32_t value of the environment's variable 'name',
+             * or the 'default_value' if the environment variable's value is null
+             * or not within int32_t value range.
+             * <p>
+             * Implementation uses getProperty(const char *name).
+             * </p>
+             */
+            static int32_t getInt32Property(const std::string & name, const int32_t default_value,
+                                            const int32_t min_allowed=INT32_MIN, const int32_t max_allowed=INT32_MAX);
+
+            /**
+             * Returns the uint32_t value of the environment's variable 'name',
+             * or the 'default_value' if the environment variable's value is null
+             * or not within uint32_t value range.
+             * <p>
+             * Implementation uses getProperty(const char *name).
+             * </p>
+             */
+            static uint32_t getUint32Property(const std::string & name, const uint32_t default_value,
+                                              const uint32_t min_allowed=0, const uint32_t max_allowed=UINT32_MAX);
+
             static DBTEnv& get() {
                 /**
                  * Thread safe starting with C++11 6.7:
