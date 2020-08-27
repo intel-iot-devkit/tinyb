@@ -210,9 +210,10 @@ public class BluetoothFactory {
             throw e; // fwd exception - end here
         }
 
+        // Map all Java properties '[org.]tinyb.*' and 'direct_bt.*' to native environment.
         try {
             if( DEBUG ) {
-                System.err.println("BlootoothFactory: Mapping properties to native environment");
+                System.err.println("BlootoothFactory: Mapping '[org.]tinyb.*' and 'direct_bt.*' properties to native environment");
             }
             final Properties props = AccessController.doPrivileged(new PrivilegedAction<Properties>() {
                   @Override
@@ -223,13 +224,14 @@ public class BluetoothFactory {
             final Enumeration<?> enums = props.propertyNames();
             while (enums.hasMoreElements()) {
               final String key = (String) enums.nextElement();
-              if( !key.startsWith("java.") && !key.startsWith("sun.") ) { // skip some
+              if( key.startsWith("org.tinyb.") ||
+                  key.startsWith("direct_bt.") || key.startsWith("tinyb.") )
+              {
                   final String value = props.getProperty(key);
-                  final String key2 = "jvm."+key;
                   if( DEBUG ) {
-                      System.err.println("  <"+key+"> -> <"+key2+"> := <"+value+">");
+                      System.err.println("  <"+key+"> -> := <"+value+">");
                   }
-                  setenv(key2, value, true /* overwrite */);
+                  setenv(key, value, true /* overwrite */);
               }
             }
         } catch (final Throwable e) {

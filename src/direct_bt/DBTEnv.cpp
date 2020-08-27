@@ -42,13 +42,7 @@ std::string DBTEnv::getProperty(const std::string & name) {
     if( nullptr != value ) {
         return std::string( value );
     } else {
-        const std::string name2 = "jvm." + name;
-        const char * value2 = getenv(name2.c_str());
-        if( nullptr != value2 ) {
-            return std::string( value2 );
-        } else {
-            return std::string();
-        }
+        return std::string();
     }
 }
 

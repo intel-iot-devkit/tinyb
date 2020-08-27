@@ -60,13 +60,7 @@ namespace direct_bt {
             /**
              * Returns the value of the environment's variable 'name'.
              * <p>
-             * If there is no environment variable 'name',
-             * implementation will try the potentially Java JVM imported 'jvm_name'.
-             * </p>
-             * <p>
-             * Note that all Java JVM system properties are passed to the environment
-             * and all property names have replaced dots '.' to underscore '_'
-             * and 'jvm_' prepended.
+             * Note that only '[org.]tinyb.*' and 'direct_bt.*' Java JVM properties are passed via 'org.tinyb.BluetoothFactory'
              * </p>
              */
             static std::string getProperty(const std::string & name);
@@ -75,7 +69,7 @@ namespace direct_bt {
              * Returns the value of the environment's variable 'name',
              * or the 'default_value' if the environment variable's value is null.
              * <p>
-             * Implementation uses getProperty(const char *name).
+             * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              */
             static std::string getProperty(const std::string & name, const std::string & default_value);
@@ -88,7 +82,7 @@ namespace direct_bt {
              * true is determined if the value equals 'true'.
              * </p>
              * <p>
-             * Implementation uses getProperty(const char *name).
+             * Implementation uses {@link #getProperty(const std::string & name)}.
              * </p>
              */
             static bool getBooleanProperty(const std::string & name, const bool default_value);
@@ -96,9 +90,9 @@ namespace direct_bt {
             /**
              * Returns the int32_t value of the environment's variable 'name',
              * or the 'default_value' if the environment variable's value is null
-             * or not within int32_t value range.
+             * or not within int32_t value range or within the given value range.
              * <p>
-             * Implementation uses getProperty(const char *name).
+             * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              */
             static int32_t getInt32Property(const std::string & name, const int32_t default_value,
@@ -107,9 +101,9 @@ namespace direct_bt {
             /**
              * Returns the uint32_t value of the environment's variable 'name',
              * or the 'default_value' if the environment variable's value is null
-             * or not within uint32_t value range.
+             * or not within uint32_t value range or within the given value range.
              * <p>
-             * Implementation uses getProperty(const char *name).
+             * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              */
             static uint32_t getUint32Property(const std::string & name, const uint32_t default_value,
@@ -134,6 +128,9 @@ namespace direct_bt {
              * Debug logging enabled or disabled.
              * <p>
              * Environment variable 'direct_bt.debug', boolean, default 'false'.
+             * </p>
+             * <p>
+             * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              * <p>
              * Exploding variable-name values</br>
@@ -169,6 +166,9 @@ namespace direct_bt {
              * Verbose info logging enabled or disabled.
              * <p>
              * Environment variable 'direct_bt.verbose', boolean, default 'false'.
+             * </p>
+             * <p>
+             * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              * <p>
              * VERBOSE is also enabled if DEBUG is enabled!
