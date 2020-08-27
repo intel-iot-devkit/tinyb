@@ -51,11 +51,13 @@ extern "C" {
 
 using namespace direct_bt;
 
-const int32_t DBTManager::MGMT_READER_THREAD_POLL_TIMEOUT = DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
-const int32_t DBTManager::MGMT_COMMAND_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */);
-const int32_t DBTManager::MGMT_EVT_RING_CAPACITY = DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */);
-
-const int32_t DBTManager::MGMT_READ_PACKET_MAX_RETRY = MGMT_EVT_RING_CAPACITY;
+MgmtEnv::MgmtEnv()
+: MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  MGMT_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
+  MGMT_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
+{
+}
 
 const pid_t DBTManager::pidSelf = getpid();
 std::mutex DBTManager::mtx_singleton;
@@ -78,7 +80,7 @@ void DBTManager::mgmtReaderThreadImpl() {
             break;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), MGMT_READER_THREAD_POLL_TIMEOUT);
+        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.MGMT_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const uint16_t paramSize = len >= 6 ? rbuffer.get_uint16(4) : 0;
             if( len < 6 + paramSize ) {
@@ -168,10 +170,11 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
             return nullptr;
         }
     }
+
     // Ringbuffer read is thread safe
-    int retryCount = 0;
-    while( retryCount < MGMT_READ_PACKET_MAX_RETRY ) {
-        std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(MGMT_COMMAND_REPLY_TIMEOUT);
+    int32_t retryCount = 0;
+    while( retryCount < env.MGMT_READ_PACKET_MAX_RETRY ) {
+        std::shared_ptr<MgmtEvent> res = mgmtEventRing.getBlocking(env.MGMT_COMMAND_REPLY_TIMEOUT);
         // std::shared_ptr<MgmtEvent> res = receiveNext();
         if( nullptr == res ) {
             errno = ETIMEDOUT;
@@ -247,10 +250,11 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) {
 }
 
 DBTManager::DBTManager(const BTMode btMode)
-: debug_global(DBTEnv::get().DEBUG),
+: env(MgmtEnv::get()),
+  debug_global(DBTEnv::get().DEBUG),
   debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.manager.event", false)),
   btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
-  mgmtEventRing(MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
+  mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
     INFO_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
     if( !comm.isOpen() ) {

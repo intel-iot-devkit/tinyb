@@ -57,6 +57,43 @@ namespace direct_bt {
     class DBTDevice; // forward
 
     /**
+     * GATT Singleton runtime environment properties
+     */
+    class GATTEnv {
+        private:
+            GATTEnv();
+
+        public:
+            /** L2CAP poll timeout for reader thread, defaults to 10s. */
+            static const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for GATT read command replies, defaults to 500ms. */
+            static const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
+            /** Timeout for GATT write command replies, defaults to 500ms. */
+            static const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
+            /** Timeout for l2cap _initial_ command reply, defaults to 2500ms. */
+            static const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
+
+            /** Medium ringbuffer capacity, defaults to 128 messages. */
+            static const int32_t ATTPDU_RING_CAPACITY;
+
+        public:
+            static GATTEnv& get() {
+                /**
+                 * Thread safe starting with C++11 6.7:
+                 *
+                 * If control enters the declaration concurrently while the variable is being initialized,
+                 * the concurrent execution shall wait for completion of the initialization.
+                 *
+                 * (Magic Statics)
+                 *
+                 * Avoiding non-working double checked locking.
+                 */
+                static GATTEnv e;
+                return e;
+            }
+    };
+
+    /**
      * A thread safe GATT handler associated to one device via one L2CAP connection.
      * <p>
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
@@ -79,19 +116,8 @@ namespace direct_bt {
             };
             static inline int number(const Defaults d) { return static_cast<int>(d); }
 
-            /** L2CAP poll timeout for reader thread, defaults to 10s. */
-            static const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for GATT read command replies, defaults to 500ms. */
-            static const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
-            /** Timeout for GATT write command replies, defaults to 500ms. */
-            static const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
-            /** Timeout for l2cap _initial_ command reply, defaults to 2500ms. */
-            static const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
-
-            /** Medium ringbuffer capacity, defaults to 128 messages. */
-            static const int32_t ATTPDU_RING_CAPACITY;
-
        private:
+            const GATTEnv & env;
             const bool debug_data;
 
             /** GATTHandle's device weak back-reference */

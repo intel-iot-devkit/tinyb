@@ -45,6 +45,47 @@
 
 namespace direct_bt {
 
+    class DBTManager; // forward
+
+    /**
+     * Managment Singleton runtime environment properties
+     */
+    class MgmtEnv {
+        friend class DBTManager;
+
+        private:
+            MgmtEnv();
+
+        public:
+            /** Poll timeout for mgmt reader thread, defaults to 10s. */
+            const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for mgmt command replies, defaults to 3s. */
+            const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
+
+            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            const int32_t MGMT_EVT_RING_CAPACITY;
+
+        private:
+            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
+            const int32_t MGMT_READ_PACKET_MAX_RETRY;
+
+        public:
+            static MgmtEnv& get() {
+                /**
+                 * Thread safe starting with C++11 6.7:
+                 *
+                 * If control enters the declaration concurrently while the variable is being initialized,
+                 * the concurrent execution shall wait for completion of the initialization.
+                 *
+                 * (Magic Statics)
+                 *
+                 * Avoiding non-working double checked locking.
+                 */
+                static MgmtEnv e;
+                return e;
+            }
+    };
+
     /**
      * A thread safe singleton handler of the Linux Kernel's BlueZ manager control channel.
      * <p>
@@ -64,19 +105,9 @@ namespace direct_bt {
                 ClientMaxMTU = 512
             };
 
-            /** Poll timeout for mgmt reader thread, defaults to 10s. */
-            static const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for mgmt command replies, defaults to 3s. */
-            static const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
-            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
-            static const int32_t MGMT_EVT_RING_CAPACITY;
-
             static const pid_t pidSelf;
 
         private:
-            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
-            static const int32_t MGMT_READ_PACKET_MAX_RETRY;
-
             static std::mutex mtx_singleton;
 
             struct WhitelistElem {
@@ -87,6 +118,7 @@ namespace direct_bt {
             };
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
 
+            const MgmtEnv & env;
             const bool debug_global; // only to trigger DBTEnv initialization first
             const bool debug_event;
             const BTMode btMode;

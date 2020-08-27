@@ -90,6 +90,49 @@ namespace direct_bt {
     };
     typedef std::shared_ptr<HCIConnection> HCIConnectionRef;
 
+    class HCIHandler; // forward
+
+    /**
+     * HCI Singleton runtime environment properties
+     */
+    class HCIEnv {
+        friend class HCIHandler;
+
+        private:
+            HCIEnv();
+
+        public:
+            /** Poll timeout for HCI reader thread, defaults to 10s */
+            const int32_t HCI_READER_THREAD_POLL_TIMEOUT;
+            /** Timeout for HCI command status replies, excluding command complete, defaults to 3s. */
+            const int32_t HCI_COMMAND_STATUS_REPLY_TIMEOUT;
+            /** Timeout for HCI command complete replies, defaults to 10s. This timeout is rather longer, as it may include waiting for pending command complete. */
+            const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
+
+            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            const int32_t HCI_EVT_RING_CAPACITY;
+
+        private:
+            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
+            const int32_t HCI_READ_PACKET_MAX_RETRY;
+
+        public:
+            static HCIEnv& get() {
+                /**
+                 * Thread safe starting with C++11 6.7:
+                 *
+                 * If control enters the declaration concurrently while the variable is being initialized,
+                 * the concurrent execution shall wait for completion of the initialization.
+                 *
+                 * (Magic Statics)
+                 *
+                 * Avoiding non-working double checked locking.
+                 */
+                static HCIEnv e;
+                return e;
+            }
+    };
+
     /**
      * A thread safe singleton handler of the HCI control channel to one controller (BT adapter)
      * <p>
@@ -108,23 +151,12 @@ namespace direct_bt {
                 HCI_MAX_MTU = static_cast<uint8_t>(HCIConstU8::PACKET_MAX_SIZE)
             };
 
-            /** Poll timeout for HCI reader thread, defaults to 10s */
-            static const int32_t HCI_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for HCI command status replies, excluding command complete, defaults to 3s. */
-            static const int32_t HCI_COMMAND_STATUS_REPLY_TIMEOUT;
-            /** Timeout for HCI command complete replies, defaults to 10s. This timeout is rather longer, as it may include waiting for pending command complete. */
-            static const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
-            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
-            static const int32_t HCI_EVT_RING_CAPACITY;
-
             static const pid_t pidSelf;
 
         private:
-            /** Maximum number of packets to wait for until matching a sequential command. Won't block as timeout will limit. */
-            static const int32_t HCI_READ_PACKET_MAX_RETRY;
-
             static MgmtEvent::Opcode translate(HCIEventType evt, HCIMetaEventType met);
 
+            const HCIEnv & env;
             const bool debug_event;
             const BTMode btMode;
             const uint16_t dev_id;
@@ -190,7 +222,7 @@ namespace direct_bt {
             void hciReaderThreadImpl();
 
             bool sendCommand(HCICommand &req);
-            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int & retryCount, const int replyTimeoutMS);
+            std::shared_ptr<HCIEvent> getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS);
 
             std::shared_ptr<HCIEvent> sendWithCmdCompleteReply(HCICommand &req, HCICommandCompleteEvent **res);
 

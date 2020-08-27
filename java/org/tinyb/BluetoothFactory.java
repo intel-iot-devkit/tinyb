@@ -229,7 +229,7 @@ public class BluetoothFactory {
               {
                   final String value = props.getProperty(key);
                   if( DEBUG ) {
-                      System.err.println("  <"+key+"> -> := <"+value+">");
+                      System.err.println("  <"+key+"> := <"+value+">");
                   }
                   setenv(key, value, true /* overwrite */);
               }

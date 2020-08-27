@@ -54,18 +54,20 @@ extern "C" {
 
 using namespace direct_bt;
 
-const int32_t HCIHandler::HCI_READER_THREAD_POLL_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
-const int32_t HCIHandler::HCI_COMMAND_STATUS_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */);
-const int32_t HCIHandler::HCI_COMMAND_COMPLETE_REPLY_TIMEOUT = DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */);
-const int32_t HCIHandler::HCI_EVT_RING_CAPACITY = DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */);
+HCIEnv::HCIEnv()
+: HCI_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_COMMAND_STATUS_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+  HCI_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),
+  HCI_READ_PACKET_MAX_RETRY( HCI_EVT_RING_CAPACITY )
+{
+}
 
-const int32_t HCIHandler::HCI_READ_PACKET_MAX_RETRY = HCI_EVT_RING_CAPACITY;
+const pid_t HCIHandler::pidSelf = getpid();
 
 struct hci_rp_status {
     __u8    status;
 } __packed;
-
-const pid_t HCIHandler::pidSelf = getpid();
 
 HCIConnectionRef HCIHandler::addOrUpdateTrackerConnection(const EUI48 & address, BDAddressType addrType, const uint16_t handle) {
     const std::lock_guard<std::recursive_mutex> lock(mtx_connectionList); // RAII-style acquire and relinquish via destructor
@@ -253,7 +255,7 @@ void HCIHandler::hciReaderThreadImpl() {
             break;
         }
 
-        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), HCI_READER_THREAD_POLL_TIMEOUT);
+        len = comm.read(rbuffer.get_wptr(), rbuffer.getSize(), env.HCI_READER_THREAD_POLL_TIMEOUT);
         if( 0 < len ) {
             const uint16_t paramSize = len >= 3 ? rbuffer.get_uint8(2) : 0;
             if( len < number(HCIConstU8::EVENT_HDR_SIZE) + paramSize ) {
@@ -344,9 +346,10 @@ bool HCIHandler::sendCommand(HCICommand &req) {
     return true;
 }
 
-std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int & retryCount, const int replyTimeoutMS) {
+std::shared_ptr<HCIEvent> HCIHandler::getNextReply(HCICommand &req, int32_t & retryCount, const int32_t replyTimeoutMS)
+{
     // Ringbuffer read is thread safe
-    while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
+    while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
         std::shared_ptr<HCIEvent> ev = hciEventRing.getBlocking(replyTimeoutMS);
         if( nullptr == ev ) {
             errno = ETIMEDOUT;
@@ -372,15 +375,15 @@ std::shared_ptr<HCIEvent> HCIHandler::sendWithCmdCompleteReply(HCICommand &req, 
 
     *res = nullptr;
 
-    int retryCount = 0;
+    int32_t retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
 
     if( !sendCommand(req) ) {
         goto exit;
     }
 
-    while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
+    while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
+        ev = getNextReply(req, retryCount, env.HCI_COMMAND_COMPLETE_REPLY_TIMEOUT);
         if( nullptr == ev ) {
             break;  // timeout, leave loop
         } else if( ev->isEvent(HCIEventType::CMD_COMPLETE) ) {
@@ -416,10 +419,10 @@ exit:
 }
 
 HCIHandler::HCIHandler(const BTMode btMode, const uint16_t dev_id)
-: debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
+: env(HCIEnv::get()), debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.hci.event", false)),
   btMode(btMode), dev_id(dev_id), rbuffer(HCI_MAX_MTU),
   comm(dev_id, HCI_CHANNEL_RAW),
-  hciEventRing(HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
+  hciEventRing(env.HCI_EVT_RING_CAPACITY), hciReaderRunning(false), hciReaderShallStop(false)
 {
     INFO_PRINT("HCIHandler.ctor: pid %d", HCIHandler::pidSelf);
     if( !comm.isOpen() ) {
@@ -729,15 +732,15 @@ std::shared_ptr<HCIEvent> HCIHandler::processCommandStatus(HCICommand &req, HCIS
 
     *status = HCIStatusCode::INTERNAL_FAILURE;
 
-    int retryCount = 0;
+    int32_t retryCount = 0;
     std::shared_ptr<HCIEvent> ev = nullptr;
 
     if( !sendCommand(req) ) {
         goto exit;
     }
 
-    while( retryCount < HCI_READ_PACKET_MAX_RETRY ) {
-        ev = getNextReply(req, retryCount, HCI_COMMAND_STATUS_REPLY_TIMEOUT);
+    while( retryCount < env.HCI_READ_PACKET_MAX_RETRY ) {
+        ev = getNextReply(req, retryCount, env.HCI_COMMAND_STATUS_REPLY_TIMEOUT);
         if( nullptr == ev ) {
             *status = HCIStatusCode::INTERNAL_TIMEOUT;
             break; // timeout, leave loop
