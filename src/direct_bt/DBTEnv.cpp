@@ -87,7 +87,7 @@ int32_t DBTEnv::getInt32Property(const std::string & name, const int32_t default
     } else {
         int32_t res = default_value;
         char *endptr = NULL;
-        const unsigned long int res0 = strtoul(value.c_str(), &endptr, 10);
+        const long int res0 = strtol(value.c_str(), &endptr, 10);
         if( *endptr == '\0' ) {
             // string value completely valid
             if( INT32_MIN <= res0 && res0 <= INT32_MAX ) {
