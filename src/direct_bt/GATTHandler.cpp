@@ -333,13 +333,16 @@ bool GATTHandler::connect() {
 }
 
 bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCause) {
+    // Interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
+    // and pull all underlying l2cap read operations!
+    l2cap.disconnect();
+
     // Avoid disconnect re-entry -> potential deadlock
     bool expConn = true; // C++11, exp as value since C++20
     if( !isConnected.compare_exchange_strong(expConn, false) ) {
         // not connected
         DBG_PRINT("GATTHandler::disconnect: Not connected: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
                   disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
-        l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
         characteristicListenerList.clear();
         return false;
     }
@@ -349,8 +352,6 @@ bool GATTHandler::disconnect(const bool disconnectDevice, const bool ioErrorCaus
     hasIOError = false;
     DBG_PRINT("GATTHandler::disconnect: Start: disconnectDevice %d, ioErrorCause %d: GattHandler[%s], l2cap[%s]: %s",
               disconnectDevice, ioErrorCause, getStateString().c_str(), l2cap.getStateString().c_str(), deviceString.c_str());
-
-    l2cap.disconnect(); // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
 
     const pthread_t tid_self = pthread_self();
     const pthread_t tid_l2capReader = l2capReaderThreadId;
@@ -418,9 +419,9 @@ std::shared_ptr<const AttPDUMsg> GATTHandler::sendWithReply(const AttPDUMsg & ms
     std::shared_ptr<const AttPDUMsg> res = attPDURing.getBlocking(timeout);
     if( nullptr == res ) {
         errno = ETIMEDOUT;
-        ERR_PRINT("GATTHandler::send: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
+        ERR_PRINT("GATTHandler::sendWithReply: nullptr result (timeout %d): req %s to %s", timeout, msg.toString().c_str(), deviceString.c_str());
         disconnect(true /* disconnectDevice */, true /* ioErrorCause */);
-        throw BluetoothException("GATTHandler::send: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
+        throw BluetoothException("GATTHandler::sendWithReply: nullptr result (timeout "+std::to_string(timeout)+"): req "+msg.toString()+" to "+deviceString, E_FILE_LINE);
     }
     return res;
 }
