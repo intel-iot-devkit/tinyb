@@ -36,6 +36,7 @@
 #include <atomic>
 #include <thread>
 
+#include "DBTEnv.hpp"
 #include "UUID.hpp"
 #include "BTTypes.hpp"
 #include "L2CAPComm.hpp"
@@ -58,27 +59,63 @@ namespace direct_bt {
 
     /**
      * GATT Singleton runtime environment properties
+     * <p>
+     * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * </p>
      */
-    class GATTEnv {
+    class GATTEnv : public DBTEnvrionment {
         private:
             GATTEnv();
 
             const bool exploding; // just to trigger exploding properties
 
         public:
-            /** L2CAP poll timeout for reader thread, defaults to 10s. */
+            /**
+             * L2CAP poll timeout for reader thread, defaults to 10s.
+             * <p>
+             * Environment variable is 'direct_bt.gatt.reader.timeout'.
+             * </p>
+             */
             const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for GATT read command replies, defaults to 500ms. */
+
+            /**
+             * Timeout for GATT read command replies, defaults to 500ms.
+             * <p>
+             * Environment variable is 'direct_bt.gatt.read.timeout'.
+             * </p>
+             */
             const int32_t GATT_READ_COMMAND_REPLY_TIMEOUT;
-            /** Timeout for GATT write command replies, defaults to 500ms. */
+
+            /**
+             * Timeout for GATT write command replies, defaults to 500ms.
+             * <p>
+             * Environment variable is 'direct_bt.gatt.write.timeout'.
+             * </p>
+             */
             const int32_t GATT_WRITE_COMMAND_REPLY_TIMEOUT;
-            /** Timeout for l2cap _initial_ command reply, defaults to 2500ms. */
+
+            /**
+             * Timeout for l2cap _initial_ command reply, defaults to 2500ms.
+             * <p>
+             * Environment variable is 'direct_bt.gatt.init.timeout'.
+             * </p>
+             */
             const int32_t GATT_INITIAL_COMMAND_REPLY_TIMEOUT;
 
-            /** Medium ringbuffer capacity, defaults to 128 messages. */
+            /**
+             * Medium ringbuffer capacity, defaults to 128 messages.
+             * <p>
+             * Environment variable is 'direct_bt.gatt.ringsize'.
+             * </p>
+             */
             const int32_t ATTPDU_RING_CAPACITY;
 
-            /** Debug all GATT Data communication */
+            /**
+             * Debug all GATT Data communication
+             * <p>
+             * Environment variable is 'direct_bt.debug.gatt.data'.
+             * </p>
+             */
             const bool DEBUG_DATA;
 
         public:

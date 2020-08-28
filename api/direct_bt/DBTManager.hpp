@@ -35,6 +35,7 @@
 #include <atomic>
 #include <thread>
 
+#include "DBTEnv.hpp"
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
@@ -49,8 +50,11 @@ namespace direct_bt {
 
     /**
      * Managment Singleton runtime environment properties
+     * <p>
+     * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * </p>
      */
-    class MgmtEnv {
+    class MgmtEnv : public DBTEnvrionment {
         friend class DBTManager;
 
         private:
@@ -64,15 +68,36 @@ namespace direct_bt {
             const bool exploding; // just to trigger exploding properties
 
         public:
-            /** Poll timeout for mgmt reader thread, defaults to 10s. */
+            /**
+             * Poll timeout for mgmt reader thread, defaults to 10s.
+             * <p>
+             * Environment variable is 'direct_bt.mgmt.reader.timeout'.
+             * </p>
+             */
             const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for mgmt command replies, defaults to 3s. */
+
+            /**
+             * Timeout for mgmt command replies, defaults to 3s.
+             * <p>
+             * Environment variable is 'direct_bt.mgmt.cmd.timeout'.
+             * </p>
+             */
             const int32_t MGMT_COMMAND_REPLY_TIMEOUT;
 
-            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            /**
+             * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
+             * <p>
+             * Environment variable is 'direct_bt.mgmt.ringsize'.
+             * </p>
+             */
             const int32_t MGMT_EVT_RING_CAPACITY;
 
-            /** Debug all Mgmt event communication */
+            /**
+             * Debug all Mgmt event communication
+             * <p>
+             * Environment variable is 'direct_bt.debug.manager.event'.
+             * </p>
+             */
             const bool DEBUG_EVENT;
 
         private:

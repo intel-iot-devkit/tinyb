@@ -35,6 +35,7 @@
 #include <atomic>
 #include <thread>
 
+#include "DBTEnv.hpp"
 #include "BTTypes.hpp"
 #include "BTIoctl.hpp"
 #include "OctetTypes.hpp"
@@ -94,8 +95,11 @@ namespace direct_bt {
 
     /**
      * HCI Singleton runtime environment properties
+     * <p>
+     * Also see {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * </p>
      */
-    class HCIEnv {
+    class HCIEnv : public DBTEnvrionment {
         friend class HCIHandler;
 
         private:
@@ -104,17 +108,45 @@ namespace direct_bt {
             const bool exploding; // just to trigger exploding properties
 
         public:
-            /** Poll timeout for HCI reader thread, defaults to 10s */
+            /**
+             * Poll timeout for HCI reader thread, defaults to 10s.
+             * <p>
+             * Environment variable is 'direct_bt.hci.reader.timeout'.
+             * </p>
+             */
             const int32_t HCI_READER_THREAD_POLL_TIMEOUT;
-            /** Timeout for HCI command status replies, excluding command complete, defaults to 3s. */
+
+            /**
+             * Timeout for HCI command status replies, excluding command complete, defaults to 3s.
+             * <p>
+             * Environment variable is 'direct_bt.hci.cmd.status.timeout'.
+             * </p>
+             */
             const int32_t HCI_COMMAND_STATUS_REPLY_TIMEOUT;
-            /** Timeout for HCI command complete replies, defaults to 10s. This timeout is rather longer, as it may include waiting for pending command complete. */
+
+            /**
+             * Timeout for HCI command complete replies, defaults to 10s.
+             * This timeout is rather longer, as it may include waiting for pending command complete.
+             * <p>
+             * Environment variable is 'direct_bt.hci.cmd.complete.timeout'.
+             * </p>
+             */
             const int32_t HCI_COMMAND_COMPLETE_REPLY_TIMEOUT;
 
-            /** Small ringbuffer capacity for synchronized commands, defaults to 64 messages. */
+            /**
+             * Small ringbuffer capacity for synchronized commands, defaults to 64 messages.
+             * <p>
+             * Environment variable is 'direct_bt.hci.ringsize'.
+             * </p>
+             */
             const int32_t HCI_EVT_RING_CAPACITY;
 
-            /** Debug all HCI event communication */
+            /**
+             * Debug all HCI event communication
+             * <p>
+             * Environment variable is 'direct_bt.debug.hci.event'.
+             * </p>
+             */
             const bool DEBUG_EVENT;
 
         private:

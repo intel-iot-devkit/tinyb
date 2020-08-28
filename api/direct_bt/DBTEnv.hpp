@@ -40,7 +40,22 @@ extern "C" {
 
 namespace direct_bt {
 
-    class DBTEnv {
+    /**
+     * Base direct_bt environment class,
+     * merely to tag all environment settings by inheritance and hence documentation.
+     * <p>
+     * See main direct_bt environment {@link DBTEnv} and
+     * {@link DBTEnv::getExplodingProperties(const std::string & prefixDomain)}.
+     * </p>
+     */
+    class DBTEnvrionment {
+    };
+
+    /**
+     * Main direct_bt environment class,
+     * supporting environment variable access and fetching elapsed time using its stored startup-time.
+     */
+    class DBTEnv : public DBTEnvrionment {
         private:
             DBTEnv();
 
