@@ -57,7 +57,7 @@ MgmtEnv::MgmtEnv()
   MGMT_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.mgmt.cmd.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   MGMT_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.mgmt.ringsize", 64, 64 /* min */, 1024 /* max */) ),
-  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.manager.event", false) ),
+  DEBUG_EVENT( DBTEnv::getBooleanProperty("direct_bt.debug.mgmt.event", false) ),
   MGMT_READ_PACKET_MAX_RETRY( MGMT_EVT_RING_CAPACITY )
 {
 }

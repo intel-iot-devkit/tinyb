@@ -176,10 +176,7 @@ namespace direct_bt {
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
      * <p>
-     * Controlling Environment variables:
-     * <pre>
-     * - 'direct_bt.debug.hci.event': Debug messages about events, see debug_event
-     * </pre>
+     * Controlling Environment variables, see {@link HCIEnv}.
      * </p>
      */
     class HCIHandler {

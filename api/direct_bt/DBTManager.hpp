@@ -95,7 +95,7 @@ namespace direct_bt {
             /**
              * Debug all Mgmt event communication
              * <p>
-             * Environment variable is 'direct_bt.debug.manager.event'.
+             * Environment variable is 'direct_bt.debug.mgmt.event'.
              * </p>
              */
             const bool DEBUG_EVENT;
@@ -127,10 +127,7 @@ namespace direct_bt {
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
      * <p>
-     * Controlling Environment variables:
-     * <pre>
-     * - 'direct_bt.debug.manager.event': Debug messages about events, see debug_event
-     * </pre>
+     * Controlling Environment variables, see {@link MgmtEnv}.
      * </p>
      */
     class DBTManager : public JavaUplink {

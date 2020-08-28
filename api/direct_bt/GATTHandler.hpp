@@ -141,10 +141,7 @@ namespace direct_bt {
      * Implementation utilizes a lock free ringbuffer receiving data within its separate thread.
      * </p>
      * <p>
-     * Controlling Environment variables:
-     * <pre>
-     * - 'direct_bt.debug.gatt.data': Debug messages about detailed GATT data, see debug_data
-     * </pre>
+     * Controlling Environment variables, see {@link GATTEnv}.
      * </p>
      */
     class GATTHandler {
