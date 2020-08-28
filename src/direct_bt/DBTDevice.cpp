@@ -593,11 +593,16 @@ std::shared_ptr<GenericAccess> DBTDevice::getGATTGenericAccess() {
 }
 
 void DBTDevice::disconnectGATT() {
-    const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
-    DBG_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=gattHandler));
-    if( nullptr != gattHandler ) {
+    // Perform a safe GATTHandler::disconnect w/o locking mtx_gatt,
+    // so it can pull the l2cap resources ASAP avoiding prolonged hangs.
+    // Only then we can lock mtx_gatt to null the GATTHandler references.
+    std::shared_ptr<GATTHandler> _gattHandler = gattHandler; // local instance, no dtor while operating!
+    DBG_PRINT("DBTDevice::disconnectGATT: Start: gattHandle %d", (nullptr!=_gattHandler));
+    if( nullptr != _gattHandler ) {
         // interrupt GATT's L2CAP ::connect(..), avoiding prolonged hang
-        gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+        _gattHandler->disconnect(false /* disconnectDevice */, false /* ioErrorCause */);
+        const std::lock_guard<std::recursive_mutex> lock(mtx_gatt); // RAII-style acquire and relinquish via destructor
+        _gattHandler = nullptr;
         gattHandler = nullptr;
     }
     DBG_PRINT("DBTDevice::disconnectGATT: End");
