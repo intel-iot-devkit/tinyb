@@ -383,12 +383,12 @@ namespace direct_bt {
              * </p>
              * <p>
              * In case the device is no more reachable, the GATTHandler will initiate disconnect due to the occurring IO error.
-             * will issue a disconnect.
+             * A disconnect will finally being issued.
              * </p>
              * <p>
-             * See {@link #getGATTServices()} regarding GATT initialization.
+             * GATT services must have been initialized via {@link #getGATTServices()}, otherwise {@code false} is being returned.
              * </p>
-             * @return {@code true} if successful, otherwise false in case no GATT services exists etc.
+             * @return {@code true} if successful, otherwise false in case no GATT services exists or is not connected .. etc.
              */
             bool pingGATT();
 

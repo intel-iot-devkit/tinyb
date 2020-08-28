@@ -207,9 +207,12 @@ public interface BluetoothDevice extends BluetoothObject
      * <p>
      * In case the device is no more reachable, disconnect will be initiated due to the occurring IO error.
      * </p>
-     *
-     * @return {@code true} if successful or not implemented, otherwise false in case GATT connection failed.
+     * <p>
+     * GATT services must have been initialized via {@link #getServices()}, otherwise {@code false} is being returned.
+     * </p>
+     * @return {@code true} if successful or not implemented, otherwise false in case no GATT services exists or is not connected..
      * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus.
      */
     boolean pingGATT();
 
