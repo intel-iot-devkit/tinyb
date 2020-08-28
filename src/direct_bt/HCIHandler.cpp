@@ -55,7 +55,8 @@ extern "C" {
 using namespace direct_bt;
 
 HCIEnv::HCIEnv()
-: HCI_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+: exploding( DBTEnv::getExplodingProperties("direct_bt.hci") ),
+  HCI_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_COMMAND_STATUS_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.status.timeout", 3000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_COMMAND_COMPLETE_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.hci.cmd.complete.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   HCI_EVT_RING_CAPACITY( DBTEnv::getInt32Property("direct_bt.hci.ringsize", 64, 64 /* min */, 1024 /* max */) ),

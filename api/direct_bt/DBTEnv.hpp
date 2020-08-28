@@ -44,6 +44,11 @@ namespace direct_bt {
         private:
             DBTEnv();
 
+            static bool debug;
+
+            static void envSet(std::string prefixDomain, std::string basepair);
+            static void envExplodeProperties(std::string prefixDomain, std::string list);
+
         public:
             /**
              * Module startup time t0 in monotonic time in milliseconds.
@@ -109,6 +114,54 @@ namespace direct_bt {
             static uint32_t getUint32Property(const std::string & name, const uint32_t default_value,
                                               const uint32_t min_allowed=0, const uint32_t max_allowed=UINT32_MAX);
 
+            /**
+             * Fetches exploding variable-name (prefixDomain) values.
+             * <p>
+             * If the value of a prefixDomain is neither 'true' or 'false',
+             * it is treated as a list of sub-variable names including their optional value separated by comma ','.
+             * <p>
+             * If the value is not given for the sub-variable name, a boolean "true" will be used per default.
+             * </p>
+             * <p>
+             * Example 1
+             * <pre>
+             * Input Environment:
+             *   "direct_bt.debug" := "hci.event,manager.event=true,gatt.data=false"
+             *
+             * Result Environment:
+             *   "direct_bt.debug.hci.event"     := "true"
+             *   "direct_bt.debug.manager.event" := "true"
+             *   "direct_bt.debug.gatt.data"     := "false"
+             *   "direct_bt.debug"               := "true" (will be overwritten)
+             * </pre>
+             * Example 2
+             * <pre>
+             * Input Environment:
+             *   "direct_bt.gatt" := "cmd.read.timeout=20000,cmd.write.timeout=20001,ringsize=256"
+             *
+             * Result Environment:
+             *   "direct_bt.gatt.cmd.read.timeout"  := "20000"
+             *   "direct_bt.gatt.cmd.write.timeout" := "20001"
+             *   "direct_bt.gatt.ringsize"          := "256"
+             *   "direct_bt.gatt"                   := "true" (will be overwritten)
+             * </pre>
+             * </p>
+             * <p>
+             * Each sub-variable name/value pair will be trimmed and if not zero-length
+             * appended to the prefixDomain with a dot '.'.</br>
+             *
+             * Each new variable name will be set in the environment with value 'true'.</br>
+             *
+             * The prefixDomain will also be set to the new value 'true', hence gets overwritten.</br>
+             *
+             * This is supported for DEBUG 'direct_bt.debug' and VERBOSE 'direct_bt.verbose', pre default.
+             * </p>
+             *
+             * @param prefixDomain
+             * @return
+             */
+            static bool getExplodingProperties(const std::string & prefixDomain);
+
             static DBTEnv& get() {
                 /**
                  * Thread safe starting with C++11 6.7:
@@ -133,31 +186,8 @@ namespace direct_bt {
              * Implementation uses {@link #getProperty(const std::string & name)}
              * </p>
              * <p>
-             * Exploding variable-name values</br>
-             * If the value of variable 'direct_bt.debug' is neither 'true' or 'false',
-             * it is treated as a list of sub-variable names separated by comma ','.</br>
-             *
-             * Each sub-variable name will be trimmed and if not zero-length
-             * appended to the basename "direct_bt.debug" with a dot '.'.</br>
-             *
-             * The new variable name will be set in the environment with value 'true'.</br>
-             *
-             * The boolean variable value having an exploded value is considered true.</br>
-             *
-             * This is supported for DEBUG 'direct_bt.debug' and VERBOSE 'direct_bt.verbose'.</br>
-             *
-             * Example:
-             * <pre>
-               Example:
-                   "direct_bt.debug" = "hci.event,manager.event,gatt.data".
-
-               This leads DBTEnv to set the following environment variables:
-                  "direct_bt.debug.hci.event"  = "true"
-                  "direct_bt.debug.manager.event"  = "true"
-                  "direct_bt.debug.gatt.data" = "true"
-
-               In this case, DEBUG "direct_bt.debug" is also considered true!
-             * </pre>
+             * Exploding variable-name values are implemented here,
+             * see {@link #getExplodingProperties(const std::string & prefixDomain)}.
              * </p>
              */
             const bool DEBUG;
@@ -174,7 +204,8 @@ namespace direct_bt {
              * VERBOSE is also enabled if DEBUG is enabled!
              * </p>
              * <p>
-             * See 'Exploding variable-name values' in DEBUG above.
+             * Exploding variable-name values are implemented here,
+             * see {@link #getExplodingProperties(const std::string & prefixDomain)}.
              * </p>
              */
             const bool VERBOSE;

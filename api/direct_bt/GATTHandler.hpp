@@ -63,6 +63,8 @@ namespace direct_bt {
         private:
             GATTEnv();
 
+            const bool exploding; // just to trigger exploding properties
+
         public:
             /** L2CAP poll timeout for reader thread, defaults to 10s. */
             const int32_t L2CAP_READER_THREAD_POLL_TIMEOUT;

@@ -60,6 +60,10 @@ namespace direct_bt {
             /** Global Debug flag, retrieved first to triggers DBTEnv initialization. */
             const bool DEBUG_GLOBAL;
 
+        private:
+            const bool exploding; // just to trigger exploding properties
+
+        public:
             /** Poll timeout for mgmt reader thread, defaults to 10s. */
             const int32_t MGMT_READER_THREAD_POLL_TIMEOUT;
             /** Timeout for mgmt command replies, defaults to 3s. */

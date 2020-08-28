@@ -492,6 +492,12 @@ public class ScannerTinyB10 {
                 System.setProperty("direct_bt.debug", args[++i]);
             } else if( arg.equals("-dbt_verbose") && args.length > (i+1) ) {
                 System.setProperty("direct_bt.verbose", args[++i]);
+            } else if( arg.equals("-dbt_gatt") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.gatt", args[++i]);
+            } else if( arg.equals("-dbt_hci") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.hci", args[++i]);
+            } else if( arg.equals("-dbt_mgmt") && args.length > (i+1) ) {
+                System.setProperty("direct_bt.mgmt", args[++i]);
             } else if( arg.equals("-default_dev_id") && args.length > (i+1) ) {
                 final int default_dev_id = Integer.valueOf(args[++i]).intValue();
                 if( 0 <= default_dev_id ) {
@@ -546,6 +552,9 @@ public class ScannerTinyB10 {
                     "[-verbose] [-debug] "+
                     "[-dbt_verbose [true|false]] "+
                     "[-dbt_debug [true|false|hci.event,manager.event,adapter.event,gatt.data]] "+
+                    "[-dbt_mgmt cmd.timeout=3000,ringsize=64,... "+
+                    "[-dbt_hci cmd.complete.timeout=10000,cmd.status.timeout=3000,ringsize=64,... "+
+                    "[-dbt_gatt cmd.read.timeout=500,cmd.write.timeout=500,cmd.init.timeout=2500,ringsize=128,... "+
                     "[-shutdown <int>]'");
         }
 

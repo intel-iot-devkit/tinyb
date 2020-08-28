@@ -101,6 +101,8 @@ namespace direct_bt {
         private:
             HCIEnv();
 
+            const bool exploding; // just to trigger exploding properties
+
         public:
             /** Poll timeout for HCI reader thread, defaults to 10s */
             const int32_t HCI_READER_THREAD_POLL_TIMEOUT;

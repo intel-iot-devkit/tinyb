@@ -66,7 +66,8 @@ extern "C" {
 using namespace direct_bt;
 
 GATTEnv::GATTEnv()
-: L2CAP_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
+: exploding( DBTEnv::getExplodingProperties("direct_bt.gatt") ),
+  L2CAP_READER_THREAD_POLL_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.reader.timeout", 10000, 1500 /* min */, INT32_MAX /* max */) ),
   GATT_READ_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.read.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_WRITE_COMMAND_REPLY_TIMEOUT(  DBTEnv::getInt32Property("direct_bt.gatt.cmd.write.timeout", 500, 250 /* min */, INT32_MAX /* max */) ),
   GATT_INITIAL_COMMAND_REPLY_TIMEOUT( DBTEnv::getInt32Property("direct_bt.gatt.cmd.init.timeout", 2500, 2000 /* min */, INT32_MAX /* max */) ),
