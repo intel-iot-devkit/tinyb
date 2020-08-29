@@ -197,8 +197,21 @@ std::shared_ptr<MgmtEvent> DBTManager::sendWithReply(MgmtCommand &req) {
     return nullptr;
 }
 
+void DBTManager::setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le) {
+    bool res;
+    res = setMode(dev_id, MgmtOpcode::SET_SSP, ssp);
+    DBG_PRINT("setAdapterMode[%d]: SET_SSP(%d): result %d", dev_id, ssp, res);
+
+    res = setMode(dev_id, MgmtOpcode::SET_BREDR, bredr);
+    DBG_PRINT("setAdapterMode[%d]: SET_BREDR(%d): result %d", dev_id, bredr, res);
+
+    res = setMode(dev_id, MgmtOpcode::SET_LE, le);
+    DBG_PRINT("setAdapterMode[%d]: SET_LE(%d): result %d", dev_id, le, res);
+}
+
 std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, const BTMode btMode) {
     std::shared_ptr<AdapterInfo> adapterInfo = nullptr;
+    bool powered;
     MgmtCommand req0(MgmtOpcode::READ_INFO, dev_id);
     {
         std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
@@ -215,22 +228,19 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
             throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
         }
     }
+    DBG_PRINT("initAdapter[%d]: Start: %s", dev_id, adapterInfo->toString().c_str());
 
     switch ( btMode ) {
         case BTMode::DUAL:
-            setMode(dev_id, MgmtOpcode::SET_SSP, 1);
-            setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
-            setMode(dev_id, MgmtOpcode::SET_LE, 1);
+            setAdapterMode(dev_id, 1 /* ssp */, 1 /* bredr */, 1 /* le */);
             break;
         case BTMode::BREDR:
-            setMode(dev_id, MgmtOpcode::SET_SSP, 1);
-            setMode(dev_id, MgmtOpcode::SET_BREDR, 1);
-            setMode(dev_id, MgmtOpcode::SET_LE, 0);
+            setAdapterMode(dev_id, 1 /* ssp */, 1 /* bredr */, 0 /* le */);
             break;
+        case BTMode::NONE:
+            // fall through intended, map NONE -> LE
         case BTMode::LE:
-            setMode(dev_id, MgmtOpcode::SET_SSP, 0);
-            setMode(dev_id, MgmtOpcode::SET_BREDR, 0);
-            setMode(dev_id, MgmtOpcode::SET_LE, 1);
+            setAdapterMode(dev_id, 0 /* ssp */, 0 /* bredr */, 1 /* le */);
             break;
     }
 
@@ -239,7 +249,30 @@ std::shared_ptr<AdapterInfo> DBTManager::initAdapter(const uint16_t dev_id, cons
 
     removeDeviceFromWhitelist(dev_id, EUI48_ANY_DEVICE, BDAddressType::BDADDR_BREDR); // flush whitelist!
 
-    setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
+    powered = setMode(dev_id, MgmtOpcode::SET_POWERED, 1);
+    DBG_PRINT("setAdapterMode[%d]: SET_POWERED(1): result %d", dev_id, powered);
+
+    /**
+     * Update AdapterSettings post settings
+     */
+    {
+        adapterInfo = nullptr; // flush
+
+        std::shared_ptr<MgmtEvent> res = sendWithReply(req0);
+        if( nullptr == res ) {
+            goto fail;
+        }
+        if( MgmtEvent::Opcode::CMD_COMPLETE != res->getOpcode() || res->getTotalSize() < MgmtEvtAdapterInfo::getRequiredSize()) {
+            ERR_PRINT("Insufficient data for adapter info: req %d, res %s", MgmtEvtAdapterInfo::getRequiredSize(), res->toString().c_str());
+            goto fail;
+        }
+        const MgmtEvtAdapterInfo * res1 = static_cast<MgmtEvtAdapterInfo*>(res.get());
+        adapterInfo = res1->toAdapterInfo();
+        if( dev_id != adapterInfo->dev_id ) {
+            throw InternalError("AdapterInfo dev_id="+std::to_string(adapterInfo->dev_id)+" != dev_id="+std::to_string(dev_id)+"]: "+adapterInfo->toString(), E_FILE_LINE);
+        }
+    }
+    DBG_PRINT("initAdapter[%d]: End: %s", dev_id, adapterInfo->toString().c_str());
 
 fail:
     return adapterInfo;
@@ -252,9 +285,10 @@ void DBTManager::shutdownAdapter(const uint16_t dev_id) {
     setMode(dev_id, MgmtOpcode::SET_POWERED, 0);
 }
 
-DBTManager::DBTManager(const BTMode btMode)
+DBTManager::DBTManager(const BTMode _defaultBTMode)
 : env(MgmtEnv::get()),
-  btMode(btMode), rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
+  defaultBTMode(BTMode::NONE != _defaultBTMode ? _defaultBTMode : BTMode::LE),
+  rbuffer(ClientMaxMTU), comm(HCI_DEV_NONE, HCI_CHANNEL_CONTROL),
   mgmtEventRing(env.MGMT_EVT_RING_CAPACITY), mgmtReaderRunning(false), mgmtReaderShallStop(false)
 {
     INFO_PRINT("DBTManager.ctor: pid %d", DBTManager::pidSelf);
@@ -362,7 +396,7 @@ next1:
             if( adapterInfos[dev_id] != nullptr ) {
                 throw InternalError("adapters[dev_id="+std::to_string(dev_id)+"] != nullptr: "+adapterInfos[dev_id]->toString(), E_FILE_LINE);
             }
-            std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, btMode);
+            std::shared_ptr<AdapterInfo> adapterInfo = initAdapter(dev_id, defaultBTMode);
             adapterInfos[dev_id] = adapterInfo;
             if( nullptr != adapterInfo ) {
                 DBG_PRINT("DBTManager::adapters %d/%d: dev_id %d: %s", i, num_adapter, dev_id, adapterInfo->toString().c_str());
@@ -484,7 +518,7 @@ bool DBTManager::setMode(const int dev_id, const MgmtOpcode opc, const uint8_t m
     return false;
 }
 
-ScanType DBTManager::startDiscovery(const int dev_id) {
+ScanType DBTManager::startDiscovery(const int dev_id, const BTMode btMode) {
     return startDiscovery(dev_id, getScanType(btMode));
 }
 

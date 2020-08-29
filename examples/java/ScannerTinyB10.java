@@ -37,6 +37,7 @@ import org.tinyb.BluetoothAddressType;
 import org.tinyb.BluetoothDevice;
 import org.tinyb.AdapterStatusListener;
 import org.tinyb.BLERandomAddressType;
+import org.tinyb.BTMode;
 import org.tinyb.BluetoothException;
 import org.tinyb.BluetoothFactory;
 import org.tinyb.BluetoothGattCharacteristic;
@@ -504,6 +505,10 @@ public class ScannerTinyB10 {
                     System.setProperty("org.tinyb.default_adapter", String.valueOf(default_dev_id));
                     System.err.println("Setting 'org.tinyb.default_adapter' to "+default_dev_id);
                 }
+            } else if( arg.equals("-btmode") && args.length > (i+1) ) {
+                final BTMode btmode = BTMode.get(args[++i]);
+                System.setProperty("org.tinyb.btmode", btmode.toString());
+                System.err.println("Setting 'org.tinyb.btmode' to "+btmode.toString());
             }
         }
         // Drop BluetoothGattCharacteristic value cache and notification compatibility using direct_bt.

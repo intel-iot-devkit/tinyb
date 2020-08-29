@@ -196,11 +196,25 @@ static inline const int8_t * const_uint8_to_const_int8_ptr(const uint8_t* p) {
 
 std::string direct_bt::getBTModeString(const BTMode v) {
     switch(v) {
+        case BTMode::NONE: return "NONE";
         case BTMode::DUAL: return "DUAL";
         case BTMode::BREDR: return "BREDR";
         case BTMode::LE: return "LE";
     }
     return "Unknown BTMode";
+}
+
+BTMode direct_bt::getBTMode(const std::string & value) {
+    if( "DUAL" == value ) {
+        return BTMode::DUAL;
+    }
+    if( "BREDR" == value ) {
+        return BTMode::BREDR;
+    }
+    if( "LE" == value ) {
+        return BTMode::LE;
+    }
+    return BTMode::NONE;
 }
 
 ScanType direct_bt::getScanType(BTMode btMode) {

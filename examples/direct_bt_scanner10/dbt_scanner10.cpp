@@ -416,6 +416,7 @@ void test(int dev_id) {
 int main(int argc, char *argv[])
 {
     int dev_id = 0; // default
+    BTMode btMode = BTMode::LE; // default
     bool waitForEnter=false;
 
     for(int i=1; i<argc; i++) {
@@ -425,6 +426,11 @@ int main(int argc, char *argv[])
             SHOW_UPDATE_EVENTS = true;
         } else if( !strcmp("-dev_id", argv[i]) && argc > (i+1) ) {
             dev_id = atoi(argv[++i]);
+        } else if( !strcmp("-btmode", argv[i]) && argc > (i+1) ) {
+            BTMode v = getBTMode(argv[++i]);
+            if( BTMode::NONE != v ) {
+                btMode = v;
+            }
         } else if( !strcmp("-mac", argv[i]) && argc > (i+1) ) {
             std::string macstr = std::string(argv[++i]);
             waitForDevice = EUI48(macstr);
@@ -446,14 +452,18 @@ int main(int argc, char *argv[])
     }
     fprintf(stderr, "pid %d\n", getpid());
 
-    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-mac <device_address>] [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events]'\n");
+    fprintf(stderr, "Run with '[-dev_id <adapter-index>] [-btmode <BT-MODE>] [-mac <device_address>] [-disconnect] [-count <number>] [-single] (-wl <device_address>)* [-show_update_events]'\n");
 
     fprintf(stderr, "MULTI_MEASUREMENTS %d\n", MULTI_MEASUREMENTS);
     fprintf(stderr, "KEEP_CONNECTED %d\n", KEEP_CONNECTED);
     fprintf(stderr, "REMOVE_DEVICE %d\n", REMOVE_DEVICE);
     fprintf(stderr, "USE_WHITELIST %d\n", USE_WHITELIST);
     fprintf(stderr, "dev_id %d\n", dev_id);
+    fprintf(stderr, "btmode %s\n", getBTModeString(btMode).c_str());
     fprintf(stderr, "waitForDevice: %s\n", waitForDevice.toString().c_str());
+
+    // initialize manager with given default BTMode
+    DBTManager::get(btMode);
 
     if( waitForEnter ) {
         fprintf(stderr, "Press ENTER to continue\n");

@@ -185,6 +185,9 @@ namespace direct_bt {
     std::string getAdapterSettingBitString(const AdapterSetting settingBit);
     std::string getAdapterSettingsString(const AdapterSetting settingBitMask);
 
+    /** Maps the given {@link AdapterSetting} to {@link BTMode} */
+    BTMode getAdapterSettingsBTMode(const AdapterSetting settingMask);
+
     class AdapterInfo
     {
         friend class DBTManager; // top manager
@@ -237,6 +240,9 @@ namespace direct_bt {
             uint32_t getDevClass() const { return dev_class; }
             std::string getName() const { return name; }
             std::string getShortName() const { return short_name; }
+
+            /** Map {@link #getCurrentSetting()} to {@link BTMode} */
+            BTMode getCurrentBTMode() const { return getAdapterSettingsBTMode(current_setting); }
 
             std::string toString() const {
                 return "Adapter[id "+std::to_string(dev_id)+", address "+address.toString()+", version "+std::to_string(version)+

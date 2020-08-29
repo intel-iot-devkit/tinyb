@@ -168,6 +168,7 @@ namespace direct_bt {
             const bool debug_event;
             DBTManager& mgmt;
             std::shared_ptr<AdapterInfo> adapterInfo;
+            BTMode btMode = BTMode::NONE;
             NameAndShortName localName;
             std::atomic<ScanType> currentMetaScanType; // = ScanType::NONE
             std::atomic<ScanType> currentNativeScanType; // = ScanType::NONE
@@ -229,7 +230,6 @@ namespace direct_bt {
             void sendDeviceUpdated(std::string cause, std::shared_ptr<DBTDevice> device, uint64_t timestamp, EIRDataType updateMask);
 
         public:
-            const BTMode btMode;
             const int dev_id;
 
             /**

@@ -151,7 +151,7 @@ namespace direct_bt {
             std::vector<std::shared_ptr<WhitelistElem>> whitelist;
 
             const MgmtEnv & env;
-            const BTMode btMode;
+            const BTMode defaultBTMode;
             POctets rbuffer;
             HCIComm comm;
 
@@ -181,10 +181,15 @@ namespace direct_bt {
              */
             std::shared_ptr<MgmtEvent> sendWithReply(MgmtCommand &req);
 
-            DBTManager(const BTMode btMode);
+            /**
+             * Instantiate singleton.
+             * @param btMode default {@link BTMode}, adapters are tried to be initialized.
+             */
+            DBTManager(const BTMode defaultBTMode);
             DBTManager(const DBTManager&) = delete;
             void operator=(const DBTManager&) = delete;
 
+            void setAdapterMode(const uint16_t dev_id, const uint8_t ssp, const uint8_t bredr, const uint8_t le);
             std::shared_ptr<AdapterInfo> initAdapter(const uint16_t dev_id, const BTMode btMode);
             void shutdownAdapter(const uint16_t dev_id);
 
@@ -209,8 +214,10 @@ namespace direct_bt {
              * <p>
              * First call will open and initialize the bluetooth kernel.
              * </p>
+             * @param btMode default {@link BTMode}, adapters are tried to be initialized.
+             * @return singleton instance.
              */
-            static DBTManager& get(const BTMode btMode) {
+            static DBTManager& get(const BTMode defaultBTMode) {
                 const std::lock_guard<std::mutex> lock(mtx_singleton); // ensure thread safety
                 /**
                  * Thread safe starting with C++11 6.7:
@@ -222,7 +229,7 @@ namespace direct_bt {
                  *
                  * Avoiding non-working double checked locking.
                  */
-                static DBTManager s(btMode);
+                static DBTManager s(defaultBTMode);
                 return s;
             }
             ~DBTManager() { close(); }
@@ -236,7 +243,8 @@ namespace direct_bt {
                 return std::string(JAVA_DBT_PACKAGE "DBTManager");
             }
 
-            BTMode getBTMode() { return btMode; }
+            /** Returns the default {@link BTMode}, adapters are tried to be initialized. */
+            BTMode getDefaultBTMode() { return defaultBTMode; }
 
             /** Returns true if this mgmt instance is open and hence valid, otherwise false */
             bool isOpen() const {
@@ -244,7 +252,7 @@ namespace direct_bt {
             }
 
             std::string toString() const override {
-                return "MgmtHandler[BTMode "+getBTModeString(btMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
+                return "MgmtHandler[BTMode "+getBTModeString(defaultBTMode)+", "+std::to_string(adapterInfos.size())+" adapter, "+javaObjectToString()+"]";
             }
 
             /** retrieve information gathered at startup */
@@ -281,8 +289,8 @@ namespace direct_bt {
 
             bool setMode(const int dev_id, const MgmtOpcode opc, const uint8_t mode);
 
-            /** Start discovery on given adapter dev_id with a ScanType matching the used BTMode. Returns set ScanType. */
-            ScanType startDiscovery(const int dev_id);
+            /** Start discovery on given adapter dev_id with a ScanType matching the given BTMode. Returns set ScanType. */
+            ScanType startDiscovery(const int dev_id, const BTMode btMode);
             /** Start discovery on given adapter dev_id with given ScanType. Returns set ScanType. */
             ScanType startDiscovery(const int dev_id, const ScanType type);
             /** Stop discovery on given adapter dev_id. */

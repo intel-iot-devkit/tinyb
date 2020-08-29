@@ -269,11 +269,11 @@ public class DBTManager implements BluetoothManager
 
     private native List<BluetoothAdapter> getAdapterListImpl();
 
-    private native void initImpl(final boolean unifyUUID128Bit) throws BluetoothException;
+    private native void initImpl(final boolean unifyUUID128Bit, final int btMode) throws BluetoothException;
     private native void deleteImpl(long nativeInstance);
     private DBTManager()
     {
-        initImpl(unifyUUID128Bit);
+        initImpl(unifyUUID128Bit, BluetoothFactory.DEFAULT_BTMODE.value);
         try {
             adapters.addAll(getAdapterListImpl());
         } catch (final BluetoothException be) {

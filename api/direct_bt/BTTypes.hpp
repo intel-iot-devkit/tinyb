@@ -38,15 +38,30 @@
 
 namespace direct_bt {
 
+    /**
+     * Bluetooth adapter operating mode
+     */
     enum class BTMode : uint8_t {
-        DUAL        = 1,
-        BREDR       = 2,
-        LE          = 3
+        /** Zero mode, neither DUAL, BREDR nor LE. Usually an error. */
+        NONE        = 0,/**< NONE */
+        /** Dual Bluetooth mode, i.e. BREDR + LE. */
+        DUAL        = 1,/**< DUAL */
+        /** BREDR only Bluetooth mode */
+        BREDR       = 2,/**< BREDR */
+        /** LE only Bluetooth mode */
+        LE          = 3 /**< LE */
     };
     inline uint8_t number(const BTMode rhs) {
         return static_cast<uint8_t>(rhs);
     }
     std::string getBTModeString(const BTMode v);
+
+    /**
+     * Maps the specified name to a constant of BTMode.
+     * @param name the string name to be mapped to a constant of this enum type.
+     * @return the corresponding constant of this enum type, using {@link BRMode#NONE} if not supported.
+     */
+    BTMode getBTMode(const std::string & value);
 
     /**
      * Meta ScanType as derived from BTMode,

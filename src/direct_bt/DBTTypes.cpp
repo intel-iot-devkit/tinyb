@@ -95,3 +95,17 @@ std::string direct_bt::getAdapterSettingsString(const AdapterSetting settingMask
     out.append("]");
     return out;
 }
+
+BTMode direct_bt::getAdapterSettingsBTMode(const AdapterSetting settingMask) {
+    const bool isBREDR = isAdapterSettingSet(settingMask, AdapterSetting::BREDR);
+    const bool isLE = isAdapterSettingSet(settingMask, AdapterSetting::LE);
+    if( isBREDR && isLE ) {
+        return BTMode::DUAL;
+    } else if( isBREDR ) {
+        return BTMode::BREDR;
+    } else if( isLE ) {
+        return BTMode::LE;
+    } else {
+        return BTMode::NONE;
+    }
+}

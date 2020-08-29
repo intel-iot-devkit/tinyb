@@ -181,6 +181,12 @@ bool DBTAdapter::validateDevInfo() {
 
     adapterInfo = mgmt.getAdapterInfo(dev_id);
 
+    btMode = adapterInfo->getCurrentBTMode();
+    if( BTMode::NONE == btMode ) {
+        ERR_PRINT("DBTAdapter::validateDevInfo: Adapter[%d] BTMode invalid, BREDR nor LE set: %s", dev_id, adapterInfo->toString().c_str());
+        return false;
+    }
+
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::DISCOVERING, bindMemberFunc(this, &DBTAdapter::mgmtEvDeviceDiscoveringMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::NEW_SETTINGS, bindMemberFunc(this, &DBTAdapter::mgmtEvNewSettingsMgmt));
     mgmt.addMgmtEventCallback(dev_id, MgmtEvent::Opcode::LOCAL_NAME_CHANGED, bindMemberFunc(this, &DBTAdapter::mgmtEvLocalNameChangedMgmt));
@@ -193,21 +199,21 @@ bool DBTAdapter::validateDevInfo() {
 
 DBTAdapter::DBTAdapter()
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
+  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(nullptr != mgmt.getDefaultAdapterInfo() ? 0 : -1)
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(EUI48 &mac) 
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(mgmt.findAdapterInfoIdx(mac))
+  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(mgmt.findAdapterInfoIdx(mac))
 {
     valid = validateDevInfo();
 }
 
 DBTAdapter::DBTAdapter(const int dev_id) 
 : debug_event(DBTEnv::getBooleanProperty("direct_bt.debug.adapter.event", false)),
-  mgmt(DBTManager::get(BTMode::LE)), btMode(mgmt.getBTMode()), dev_id(dev_id)
+  mgmt(DBTManager::get(BTMode::NONE /* already initialized */)), dev_id(dev_id)
 {
     valid = validateDevInfo();
 }
@@ -593,6 +599,7 @@ std::shared_ptr<DBTDevice> DBTAdapter::findSharedDevice (EUI48 const & mac, cons
 
 std::string DBTAdapter::toString() const {
     std::string out("Adapter[BTMode "+getBTModeString(btMode)+", "+getAddressString()+", '"+getName()+"', id "+std::to_string(dev_id)+
+                    ", curSettings"+getAdapterSettingsString(adapterInfo->getCurrentSetting())+
                     ", scanType[native "+getScanTypeString(currentNativeScanType)+", meta "+getScanTypeString(currentMetaScanType)+"]"
                     ", "+javaObjectToString()+"]");
     std::vector<std::shared_ptr<DBTDevice>> devices = getDiscoveredDevices();

@@ -38,11 +38,12 @@
 
 using namespace direct_bt;
 
-void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit)
+void Java_direct_1bt_tinyb_DBTManager_initImpl(JNIEnv *env, jobject obj, jboolean unifyUUID128Bit, jint jbtMode)
 {
     directBTJNISettings.setUnifyUUID128Bit(unifyUUID128Bit);
     try {
-        DBTManager *manager = &DBTManager::get(BTMode::LE); // special: static singleton
+        BTMode btMode = static_cast<BTMode>(jbtMode);
+        DBTManager *manager = &DBTManager::get(btMode); // special: static singleton
         setInstance<DBTManager>(env, obj, manager);
         java_exception_check_and_throw(env, E_FILE_LINE);
         manager->setJavaObject( std::shared_ptr<JavaAnonObj>( new JavaGlobalObj(obj, nullptr) ) );

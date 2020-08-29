@@ -143,6 +143,7 @@ public class BluetoothFactory {
      * </p>
      */
     public static final boolean VERBOSE;
+
     /**
      * Debug logging enabled or disabled.
      * <p>
@@ -150,6 +151,17 @@ public class BluetoothFactory {
      * </p>
      */
     public static final boolean DEBUG;
+
+    /**
+     * Default {@link BTMode} when initializing new adapter
+     * <p>
+     * System property {@code org.tinyb.btmode}, string, default {@code DUAL}.
+     * </p>
+     * @since 2.0.0
+     * @implNote not implemented in tinyb.dbus.
+     */
+    public static final BTMode DEFAULT_BTMODE;
+
     /**
      * Have direct_bt provide compatibility to TinyB's {@link BluetoothGattCharacteristic}
      * API: {@link BluetoothGattCharacteristic#getValue() value cache} and
@@ -168,6 +180,16 @@ public class BluetoothFactory {
         {
             final String v = System.getProperty("org.tinyb.debug", "false");
             DEBUG = Boolean.valueOf(v);
+        }
+        {
+            final String v = System.getProperty("org.tinyb.btmode", "DUAL");
+            BTMode btMode = BTMode.DUAL;
+            try {
+                btMode = BTMode.get(v);
+            } catch (final IllegalArgumentException ex) {
+                System.err.println("Invalid BTMode '"+v+"': "+ex.getMessage());
+            }
+            DEFAULT_BTMODE = btMode;
         }
         {
             final String v = System.getProperty("direct_bt.tinyb.characteristic.compat", "true");
@@ -442,15 +464,13 @@ public class BluetoothFactory {
         return getBluetoothManager(DirectBTImplementationID);
     }
 
-    private static final boolean debug = false;
-
     private static final Manifest getManifest(final ClassLoader cl, final String[] extensions) {
         final Manifest[] extManifests = new Manifest[extensions.length];
         try {
             final Enumeration<URL> resources = cl.getResources("META-INF/MANIFEST.MF");
             while (resources.hasMoreElements()) {
                 final URL resURL = resources.nextElement();
-                if( debug ) {
+                if( DEBUG ) {
                     System.err.println("resource: "+resURL);
                 }
                 final InputStream is = resURL.openStream();
@@ -465,7 +485,7 @@ public class BluetoothFactory {
                 final Attributes attributes = manifest.getMainAttributes();
                 if(attributes != null) {
                     final String attributesExtName = attributes.getValue( Attributes.Name.EXTENSION_NAME );
-                    if( debug ) {
+                    if( DEBUG ) {
                         System.err.println("resource: "+resURL+", attributes extName "+attributesExtName+", count "+attributes.size());
                         final Set<Object> keys = attributes.keySet();
                         for(final Iterator<Object> iter=keys.iterator(); iter.hasNext(); ) {
