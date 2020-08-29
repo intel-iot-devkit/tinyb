@@ -227,10 +227,22 @@ DBTAdapter::~DBTAdapter() {
         DBG_PRINT("DBTAdapter removeMgmtEventCallback(DISCOVERING): %d callbacks", count);
         (void)count;
     }
+    statusListenerList.clear();
+
+    poweredOff();
+
+    DBG_PRINT("DBTAdapter::dtor: XXX");
+}
+
+void DBTAdapter::poweredOff() {
+    const std::lock_guard<std::recursive_mutex> lock(mtx_hci); // RAII-style acquire and relinquish via destructor
+
+    DBG_PRINT("DBTAdapter::poweredOff: ... %p %s", this, toString().c_str());
+    keepDiscoveringAlive = false;
+
     if( nullptr != hci ) {
         hci->clearAllMgmtEventCallbacks();
     }
-    statusListenerList.clear();
 
     // Removes all device references from the lists: connectedDevices, discoveredDevices, sharedDevices
     stopDiscovery();
@@ -239,7 +251,10 @@ DBTAdapter::~DBTAdapter() {
     removeDiscoveredDevices();
     sharedDevices.clear();
 
-    DBG_PRINT("DBTAdapter::dtor: XXX");
+    currentNativeScanType = ScanType::NONE;
+    currentMetaScanType = ScanType::NONE;
+
+    DBG_PRINT("DBTAdapter::poweredOff: XXX");
 }
 
 void DBTAdapter::printSharedPtrListOfDevices() {
@@ -275,7 +290,10 @@ bool DBTAdapter::isDeviceWhitelisted(const EUI48 &address) {
 bool DBTAdapter::addDeviceToWhitelist(const EUI48 &address, const BDAddressType address_type, const HCIWhitelistConnectType ctype,
                                       const uint16_t conn_interval_min, const uint16_t conn_interval_max,
                                       const uint16_t conn_latency, const uint16_t timeout) {
-    checkValidEnabledAdapter();
+    if( !isEnabled() ) {
+        ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
+        return false;
+    }
     if( mgmt.isDeviceWhitelisted(dev_id, address) ) {
         ERR_PRINT("DBTAdapter::addDeviceToWhitelist: device already listed: dev_id %d, address %s", dev_id, address.toString().c_str());
         return true;
@@ -379,7 +397,10 @@ void DBTAdapter::checkDiscoveryState() {
 bool DBTAdapter::startDiscovery(const bool keepAlive, const HCILEOwnAddressType own_mac_type,
                                 const uint16_t le_scan_interval, const uint16_t le_scan_window)
 {
-    checkValidEnabledAdapter();
+    if( !isEnabled() ) {
+        ERR_PRINT("DBTAdapter::startDiscovery: Adapter not enabled/powered: %s", toString().c_str());
+        return false;
+    }
     const std::lock_guard<std::recursive_mutex> lock(mtx_discovery); // RAII-style acquire and relinquish via destructor
     if( ScanType::NONE != currentMetaScanType ) {
         removeDiscoveredDevices();
@@ -680,6 +701,11 @@ bool DBTAdapter::mgmtEvNewSettingsMgmt(std::shared_ptr<MgmtEvent> e) {
         i++;
     });
 
+    if( !isPowered() ) {
+        // Adapter has been powered off, close connections and cleanup off-thread.
+        std::thread bg(&DBTAdapter::poweredOff, this);
+        bg.detach();
+    }
     return true;
 }
 

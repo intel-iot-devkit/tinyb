@@ -98,6 +98,14 @@ public class ScannerTinyB10 {
             println("****** SETTINGS: "+oldmask+" -> "+newmask+", changed "+changedmask);
             println("Status Adapter:");
             println(adapter.toString());
+            if( changedmask.isSet(AdapterSettings.SettingType.POWERED) &&
+                newmask.isSet(AdapterSettings.SettingType.POWERED) )
+            {
+                // powered on adapter ....
+                if( !adapter.startDiscovery( true ) ) {
+                    println("Adapter (powered-on): Start discovery failed");
+                }
+            }
         }
 
         @Override

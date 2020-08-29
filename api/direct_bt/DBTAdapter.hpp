@@ -187,6 +187,15 @@ namespace direct_bt {
             std::recursive_mutex mtx_discovery;
 
             bool validateDevInfo();
+
+            /**
+             * Closes all connections, stops discovery and cleans up all references.
+             * <p>
+             * To be called at destructor or when powered off.
+             * </p>
+             */
+            void poweredOff();
+
             bool closeHCI();
 
             friend std::shared_ptr<DBTDevice> DBTDevice::getSharedInstance() const;
@@ -268,19 +277,20 @@ namespace direct_bt {
                 }
             }
 
-            /**
-             * Throws an IllegalStateException if isValid() == false or getHCI() == nullptr
-             */
-            inline void checkValidEnabledAdapter() {
-                if( nullptr == getHCI() ) { // implies 'checkValidAdapter()'
-                    throw IllegalStateException("Adapter HCI not enabled: "+aptrHexString(this)+", "+toString(), E_FILE_LINE);
-                }
-            }
-
             bool hasDevId() const { return 0 <= dev_id; }
 
+            /**
+             * Returns true if the device is powered.
+             */
+            bool isPowered() {
+                return isAdapterSettingSet(adapterInfo->getCurrentSetting(), AdapterSetting::POWERED);
+            }
+
+            /**
+             * Returns true if {@link #isPowered()} and if {@link #getHCI()} succeeds.
+             */
             bool isEnabled() {
-                return nullptr != getHCI(); // implies 'checkValidAdapter()'
+                return isPowered() && nullptr != getHCI(); // implies 'checkValidAdapter()'
             }
 
             EUI48 const & getAddress() const { return adapterInfo->address; }
