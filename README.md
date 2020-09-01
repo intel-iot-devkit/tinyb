@@ -1,6 +1,10 @@
 Tiny Bluetooth LE Library / Direct-BT LE and BREDR Library
 ==========================================================
 
+Git Repository
+==============
+This project's canonical repository is hosted on [Zafena ICT](https://ict.zafena.se/cgit/direct_bt.git/).
+
 Goals
 ============
 
@@ -54,7 +58,7 @@ systemctl mask bluetooth
 ```
 
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
-[C++ API doc of its *direct_bt* namespace](../../cpp/html/namespacedirect__bt.html#details).
+[C++ API doc of its *direct_bt* namespace](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
 
 *Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se).
 
@@ -85,9 +89,9 @@ API Documentation
 ============
 
 Up to date API documentation can be found:
-* [C++ API Doc](../../cpp/html/index.html).
-    * [Overview of *direct_bt*](../../cpp/html/namespacedirect__bt.html#details).
-* [Java API Doc](../../java/html/index.html).
+* [C++ API Doc](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/index.html).
+    * [Overview of *direct_bt*](https://ict.zafena.se/direct_bt/build/documentation/cpp/html/namespacedirect__bt.html#details).
+* [Java API Doc](https://ict.zafena.se/direct_bt/build/documentation/java/html/index.html).
 
 A guide for getting started with Direct-BT on C++ and Java will follow up soon from Zafena ICT.
 
