@@ -1,20 +1,21 @@
 Contributing to TinyB                           {#contributing}
 ======================
 
-TinyB is an opensource project and we are actively looking for people to help
+TinyB / Direct-BT is an opensource project and we are actively looking for people to help
 with:
 
 - Contributions to functionality, extensions of API
-- Use and test the library, provide bug reports where appropiate
+- Use and test the library, provide bug reports where appropriate
 - Help spread the word about this library to people who might need it
 - Other ideas are always welcome
 
-The recommended method to contribute is to fork on github, and then send pull
-requests to the main project. You can open issues if you find any bugs/have
-questions.
+The recommended method to contribute is to fork on an openly available git service, 
+and then send pull requests to the main project. 
+You can open issues on [Zafena ICT](https://ict.zafena.se/issues/) 
+if you find any bugs/have questions.
 
 If you'd rather not use github you are more than welcome to send git formatted
-patches to petre.p.eftime@intel.com.
+patches to Xerxes Ranby <xerxes@zafena.se> or Sven Gothel <sgothel@jausoft.com>.
 
 Basic rules
 -----------

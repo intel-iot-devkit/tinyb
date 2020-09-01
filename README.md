@@ -1,33 +1,40 @@
-Tiny Bluetooth LE Library / Direct-BT
-=====================================
+Tiny Bluetooth LE Library / Direct-BT LE and BREDR Library
+==========================================================
 
 Goals
 ============
 
-This project aims to create clean, modern and easy to use Bluetooth LE API.
-TinyB exposes the BLE GATT API for C++, Java and other languages.
+This project aims to create a clean, modern and easy to use Bluetooth LE and BREDR API
+fully accessible through C++, Java and other languages.
+
 
 TinyB Version 2
 ================
 
 Starting with version 2.1.0, the specification has slightly changed and hence its implementation.
 
-As of today, the TinyB Java API comprises two implementations.
+As of today, the TinyB Java API comprises two implementations, *TinyB* and *Direct-BT*.
+
 
 TinyB
 -----
 *TinyB* exposes the BLE GATT API for C++, Java and other languages, using BlueZ over DBus.
 
+*TinyB* does not expose the BREDR API.
+
 *TinyB* is exposed via the following native libraries
 - *libtinyb.so* for the core C++ implementation.
 - *libjavatinyb.so* for the Java binding.
 
+*TinyB* is the original implementation of the TinyB project by Intel.
+
+
 Direct-BT
 ----------
-*Direct-BT* provides direct Bluetooth programming without intermediate layers 
+*Direct-BT* provides direct Bluetooth LE and BREDR programming without intermediate layers
 targeting high-performance reliable Bluetooth support.
 
-*Direct-BT* maybe utilized via its C++ API or via the TinyB Java API.
+*Direct-BT* may be utilized via its C++ API or via the TinyB Java API.
 
 By having least system and userspace dependencies and no communication overhead, 
 Direct-BT shall be suitable for embedded device configurations besides others.
@@ -49,6 +56,8 @@ systemctl mask bluetooth
 You will find a detailed overview of *Direct-BT* in the doxygen generated 
 [C++ API doc of its *direct_bt* namespace](../../cpp/html/namespacedirect__bt.html#details).
 
+*Direct-BT* is the new implementation as provided by [Zafena ICT](https://ict.zafena.se).
+
 
 TinyB and Direct-BT
 -------------------
@@ -64,32 +73,39 @@ were created in package *org.tinyb*.
 *org.tinyb.BluetoothManager*, either using *Tiny-B*, the original D-Bus implementation,
 or *Direct-BT*, the direct implementation.
 
-C++ namespace and implementation kept unchanged.
+*TinyB*'s C++ namespace and implementation kept mostly unchanged.
 
-Build Status
-============
+The new Java interface of package *org.tinyb* has been kept mostly compatible,
+however, changes were required to benefit from *Direct-BT*'s implementation.
 
-*Outdated information*
+*since 2.x* version tags have been added to the Java interface specification for clarity.
 
-[![Build Status](https://travis-ci.org/intel-iot-devkit/tinyb.svg?branch=master)](https://travis-ci.org/intel-iot-devkit/tinyb)
-[![Coverity Scan](https://scan.coverity.com/projects/7546/badge.svg)](https://scan.coverity.com/projects/intel-iot-devkit-tinyb)
 
 API Documentation
 ============
 
-*Outdated information*
-
 Up to date API documentation can be found:
-* for C++: http://iotdk.intel.com/docs/master/tinyb/
-* for Java: http://iotdk.intel.com/docs/master/tinyb/java/
+* [C++ API Doc](../../cpp/html/index.html).
+    * [Overview of *direct_bt*](../../cpp/html/namespacedirect__bt.html#details).
+* [Java API Doc](../../java/html/index.html).
 
-A guide for getting started with TinyB on Java is available here:
+A guide for getting started with Direct-BT on C++ and Java will follow up soon from Zafena ICT.
+
+A guide for getting started with TinyB on Java is available from Intel:
 https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
-Using TinyB
+Build Status
 ============
 
-TinyB requires CMake 3.1+ for building and requires GLib/GIO 2.40+. It also
+*Will be updated soon*
+
+
+Using TinyB / Direct-BT
+=========================
+
+The project requires CMake 3.1+ for building and a Java JDK >= 11.
+
+*TinyB* requires GLib/GIO 2.40+. It also
 requires BlueZ with GATT profile activated, which is currently experimental (as
 of BlueZ 5.37), so you might have to run bluetoothd with the -E flag. For
 example, on a system with systemd (Fedora, poky, etc.) edit the
@@ -97,6 +113,18 @@ bluetooth.service file (usually found in /usr/lib/systemd/system/ or
 /lib/systemd/system) and append -E to ExecStart line, restart the daemon with
 systemctl restart bluetooth.
 
+
+*Direct-BT* does not require GLib/GIO 
+nor shall the BlueZ userspace service *bluetoothd* be active for best experience.
+
+To disable the *bluetoothd* service using systemd:
+```
+systemctl stop bluetooth
+systemctl disable bluetooth
+systemctl mask bluetooth
+```
+
+For a generic build use:
 ~~~~~~~~~~~~~{.sh}
 mkdir build
 cd build
@@ -133,6 +161,10 @@ To build Java bindings:
 ~~~~~~~~~~~~~
 -DBUILDJAVA=ON
 ~~~~~~~~~~~~~
+To not build the *TinyB* implementation:
+~~~~~~~~~~~~~
+-DSKIP_TINYB=ON
+~~~~~~~~~~~~~
 To build examples:
 ~~~~~~~~~~~~~
 -DBUILDEXAMPLES=ON
@@ -165,10 +197,11 @@ were created in package *org.tinyb*.
 Common issues
 ============
 
-If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). If the solution is not there, please create a new issue on [Github](https://github.com/intel-iot-devkit/tinyb).
+If you have any issues, please go through the [Troubleshooting Guide](TROUBLESHOOTING.md). 
+If the solution is not there, please create a new issue on [Zafena ICT](https://ict.zafena.se/issues/).
 
-Contributing to TinyB
-============
+Contributing to TinyB / Direct-BT
+===================================
 
 You shall agree to Developer Certificate of Origin and Sign-off your code,
 using a real name and e-mail address. 
