@@ -20,7 +20,6 @@ https://software.intel.com/en-us/java-for-bluetooth-le-apps.
 
 Using TinyB
 ============
-
 TinyB requires CMake 3.1+ for building and requires GLib/GIO 2.40+. It also
 requires BlueZ with GATT profile activated, which is currently experimental (as
 of BlueZ 5.37), so you might have to run bluetoothd with the -E flag. For
@@ -28,6 +27,10 @@ example, on a system with systemd (Fedora, poky, etc.) edit the
 bluetooth.service file (usually found in /usr/lib/systemd/system/ or
 /lib/systemd/system) and append -E to ExecStart line, restart the daemon with
 systemctl restart bluetooth.
+
+#### build requirements
+* cmake 3.13
+* glib2.0-dev 
 
 ~~~~~~~~~~~~~{.sh}
 mkdir build

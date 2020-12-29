@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0.0 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.13.0 FATAL_ERROR)
 project (tinyb)
 
 FIND_PACKAGE (Threads REQUIRED)
@@ -10,7 +10,6 @@ PKG_CHECK_MODULES (GIO-UNIX REQUIRED gio-unix-2.0>=2.40)
 
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -fno-omit-frame-pointer -DDEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
-set (LIB_INSTALL_DIR "lib${LIB_SUFFIX}" CACHE PATH "Installation path for libraries")
 
 # Set CMAKE_LIB_INSTALL_DIR if not defined
 include(GNUInstallDirs)

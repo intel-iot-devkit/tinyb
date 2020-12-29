@@ -53,7 +53,7 @@ macro (tinyb_CREATE_INSTALL_PKGCONFIG generated_file install_location)
   configure_file (${generated_file}.cmake ${CMAKE_CURRENT_BINARY_DIR}/${generated_file} @ONLY)
   install (FILES ${CMAKE_CURRENT_BINARY_DIR}/${generated_file} DESTINATION ${install_location})
 endmacro (tinyb_CREATE_INSTALL_PKGCONFIG)
-tinyb_create_install_pkgconfig (tinyb.pc lib${LIB_SUFFIX}/pkgconfig)
+tinyb_create_install_pkgconfig (tinyb.pc ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 install(TARGETS tinyb LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
