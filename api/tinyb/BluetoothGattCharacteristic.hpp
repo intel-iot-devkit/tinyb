@@ -100,12 +100,26 @@ public:
         uint16_t offset = 0
     );
 
-    /** Writes the value of this characteristic.
+    /** Writes the value of this characteristic with requiring a response.
       * @param[in] arg_value The data as vector<uchar>
       * to be written packed in a GBytes struct
       * @return TRUE if value was written succesfully
       */
-    bool write_value (const std::vector<unsigned char> &arg_value, uint16_t offset = 0);
+    bool write_value_request (const std::vector<unsigned char> &arg_value, uint16_t offset = 0);
+
+    /** Writes the value of this characteristic without requiring a response.
+      * @param[in] arg_value The data as vector<uchar>
+      * to be written packed in a GBytes struct
+      * @return TRUE if value was written succesfully
+      */
+    bool write_value_command (const std::vector<unsigned char> &arg_value, uint16_t offset = 0);
+
+    /** Writes the value of this characteristic. (deprecated, here for backwards compatibility)
+      */
+    inline bool write_value (const std::vector<unsigned char> &arg_value, uint16_t offset = 0)
+    {
+        return write_value_request (arg_value, offset);
+    }
 
     /**
      * Enables notifications (including at BLE level) for changes of the
