@@ -15,7 +15,7 @@ BluetoothUUID::BluetoothUUID(const char str[]) {
 
     if (len == 4 || len == 8) {
     /* 16bit or 32bit UUID: number + base UUID */
-       uuid[0] = strtoul(str, NULL, 16) << 32 | 0x00001000ULL;
+       uuid[0] = strtoull(str, NULL, 16) << 32 | 0x00001000ULL;
        uuid[1] = 0x800000805f9b34fbULL;
     } else if (len == 36) {
     /* 128bit UUID */
@@ -24,25 +24,25 @@ BluetoothUUID::BluetoothUUID(const char str[]) {
 
        if (u[8] == '-') {
             u[8] = ' ';
-            uuid[0] = strtoul(u + 0, NULL, 16) << 32;
+            uuid[0] = strtoull(u + 0, NULL, 16) << 32;
        } else {
             throw std::invalid_argument(err_msg);
        }
        if (u[13] == '-') {
             u[13] = ' ';
-            uuid[0] = uuid[0] | strtoul(u + 9, NULL, 16) << 16;
+            uuid[0] = uuid[0] | strtoull(u + 9, NULL, 16) << 16;
        } else throw std::invalid_argument(err_msg);
        if (u[18] == '-') {
             u[18] = ' ';
-            uuid[0] = uuid[0] | strtoul(u + 14, NULL, 16);
+            uuid[0] = uuid[0] | strtoull(u + 14, NULL, 16);
        } else throw std::invalid_argument(err_msg);
 
        if (u[23] == '-') {
             u[23] = ' ';
-            uuid[1] = strtoul(u + 19, NULL, 16) << 48;
+            uuid[1] = strtoull(u + 19, NULL, 16) << 48;
        } else throw std::invalid_argument(err_msg);
 
-       uuid[1] = uuid[1] | strtoul(u + 24, NULL, 16);
+       uuid[1] = uuid[1] | strtoull(u + 24, NULL, 16);
     } else throw std::invalid_argument(err_msg);
 }
 
@@ -51,7 +51,7 @@ BluetoothUUID::BluetoothUUID(const std::string &str) : BluetoothUUID(str.c_str()
 std::string BluetoothUUID::get_string()
 {
     char u[37];
-    snprintf(u, 37, "%08lx-%04lx-%04lx-%04lx-%012lx",
+    snprintf(u, 37, "%08llx-%04llx-%04llx-%04llx-%012llx",
         (uuid[0] >> 32),
         ((uuid[0] >> 16) & 0xFFFFULL),
         (uuid[0] & 0xFFFFULL),
@@ -66,9 +66,9 @@ std::string BluetoothUUID::get_short_string()
     if (is_short()) {
         uint32_t suuid = get_short();
         if (suuid & 0xFFFF == suuid)
-            snprintf(u, 9, "%04lx", suuid);
+            snprintf(u, 9, "%04llx", suuid);
         else
-            snprintf(u, 9, "%08lx", suuid);
+            snprintf(u, 9, "%08llx", suuid);
         return std::string(u);
     } else {
         return get_string();
